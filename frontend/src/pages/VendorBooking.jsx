@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import VenuePreview from '../components/VenuePreview';
+import '../styles/VendorBooking.css';
 
 const initialData = {
   name: 'Arena Padel Court',
@@ -38,42 +39,42 @@ export default function VendorBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row gap-8 p-8">
+    <div className="vendor-booking-container">
       {/* Left: Edit Form */}
-      <div className="w-full md:w-1/2 bg-white rounded-2xl shadow-xl p-8 mb-8 md:mb-0 border border-blue-100">
-        <h2 className="text-2xl font-extrabold mb-6 text-blue-700">Edit Venue Details</h2>
-        <form className="flex flex-col gap-6">
-          <label className="font-semibold text-blue-700">Venue Name
-            <input name="name" value={data.name} onChange={handleChange} className="block w-full border border-blue-200 rounded-lg px-4 py-2 mt-2 focus:outline-blue-400" />
+      <div className="edit-form-container">
+        <h2 className="edit-form-title">Edit Venue Details</h2>
+        <form className="edit-form">
+          <label className="edit-label">Venue Name
+            <input name="name" value={data.name} onChange={handleChange} className="edit-input" />
           </label>
-          <label className="font-semibold text-blue-700">Image
-            <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full mt-2" />
+          <label className="edit-label">Image
+            <input type="file" accept="image/*" onChange={handleImageChange} className="edit-input-file" />
           </label>
-          <label className="font-semibold text-blue-700">Location
-            <input name="location" value={data.location} onChange={handleChange} className="block w-full border border-blue-200 rounded-lg px-4 py-2 mt-2 focus:outline-blue-400" />
+          <label className="edit-label">Location
+            <input name="location" value={data.location} onChange={handleChange} className="edit-input" />
           </label>
-          <label className="font-semibold text-blue-700">Sport Type
-            <input name="sportType" value={data.sportType} onChange={handleChange} className="block w-full border border-blue-200 rounded-lg px-4 py-2 mt-2 focus:outline-blue-400" />
+          <label className="edit-label">Sport Type
+            <input name="sportType" value={data.sportType} onChange={handleChange} className="edit-input" />
           </label>
-          <label className="font-semibold text-blue-700">Price Per Hour
-            <input name="pricePerHour" type="number" value={data.pricePerHour} onChange={handleChange} className="block w-full border border-blue-200 rounded-lg px-4 py-2 mt-2 focus:outline-blue-400" />
+          <label className="edit-label">Price Per Hour
+            <input name="pricePerHour" type="number" value={data.pricePerHour} onChange={handleChange} className="edit-input" />
           </label>
-          <label className="font-semibold text-blue-700">Amenities (comma separated)
-            <input name="amenities" value={data.amenities.join(', ')} onChange={e => setData({ ...data, amenities: e.target.value.split(',').map(a => a.trim()) })} className="block w-full border border-blue-200 rounded-lg px-4 py-2 mt-2 focus:outline-blue-400" />
+          <label className="edit-label">Amenities (comma separated)
+            <input name="amenities" value={data.amenities.join(', ')} onChange={e => setData({ ...data, amenities: e.target.value.split(',').map(a => a.trim()) })} className="edit-input" />
           </label>
           <div>
-            <div className="font-semibold text-blue-700 mb-2">Slots</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="slots-title">Slots</div>
+            <div className="slots-grid">
               {data.slots.map((slot, idx) => (
-                <input key={idx} value={slot.time} onChange={e => handleSlotChange(idx, e.target.value)} className="block w-full border border-green-200 rounded-lg px-4 py-2 mb-2 focus:outline-green-400" />
+                <input key={idx} value={slot.time} onChange={e => handleSlotChange(idx, e.target.value)} className="slot-input" />
               ))}
             </div>
           </div>
         </form>
       </div>
       {/* Right: Live Preview */}
-      <div className="w-full md:w-1/2">
-        <h2 className="text-2xl font-extrabold mb-6 text-green-700">Live Preview</h2>
+      <div className="preview-container">
+        <h2 className="preview-title">Live Preview</h2>
         <VenuePreview data={data} />
       </div>
     </div>
