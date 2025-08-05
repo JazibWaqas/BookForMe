@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Complaints collection
+    match /complaints/{complaintId} {
+      // Allow read if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow create if user is authenticated and provides required fields
+      allow create: if request.auth != null 
+        && request.resource.data.keys().hasAll(['text', 'category', 'location', 'userId'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.category is string
+        && request.resource.data.category in ['streetlight', 'water', 'garbage', 'road', 'sewage', 'noise', 'security', 'general'];
+      
+      // Allow update if user is authenticated and owns the complaint or is admin
+      allow update: if request.auth != null 
+        && (resource.data.userId == request.auth.uid || request.auth.token.admin == true)
+        && request.resource.data.userId == resource.data.userId; // Prevent changing ownership
+      
+      // Allow delete if user is authenticated and owns the complaint or is admin
+      allow delete: if request.auth != null 
+        && (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+    }
+    
+    // Alerts collection
+    match /alerts/{alertId} {
+      // Allow read if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow create if user is authenticated and provides required fields
+      allow create: if request.auth != null 
+        && request.resource.data.keys().hasAll(['type', 'title', 'message'])
+        && request.resource.data.type in ['new_complaint', 'area_notification', 'status_update']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 1000;
+      
+      // Allow update only by admin or system (functions)
+      allow update: if request.auth != null 
+        && (request.auth.token.admin == true || request.auth.token.system == true);
+      
+      // Allow delete only by admin
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Users collection (for user profiles)
+    match /users/{userId} {
+      // Allow read if user is authenticated and reading their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow create if user is authenticated and creating their own profile
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['email', 'displayName'])
+        && request.resource.data.email == request.auth.token.email;
+      
+      // Allow update if user is authenticated and updating their own profile
+      allow update: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.data.email == resource.data.email; // Prevent email change
+      
+      // Allow delete if user is authenticated and deleting their own profile
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Neighborhoods collection (for area-based features)
+    match /neighborhoods/{neighborhoodId} {
+      // Allow read if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow create/update/delete only by admin
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Departments collection (for routing information)
+    match /departments/{departmentId} {
+      // Allow read if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow write only by admin
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Statistics collection (for analytics)
+    match /statistics/{statId} {
+      // Allow read if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow write only by system (functions)
+      allow write: if request.auth != null && request.auth.token.system == true;
+    }
+  }
+} 

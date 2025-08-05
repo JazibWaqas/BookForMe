@@ -1,0 +1,4 @@
+# .gitignore
+/backend/src/firebaseConfig.js
+/backend/functions/node_modules/
+/.env
