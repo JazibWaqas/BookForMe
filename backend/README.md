@@ -2,7 +2,7 @@
 
 A comprehensive Firebase-based backend for the Neighborhood-Aware AI App, providing authentication, complaint management, and real-time notifications.
 
-## 🚀 Features
+### 🚀 Features
 
 - **Firebase Authentication**: Email/password and anonymous sign-in
 - **Firestore Database**: Real-time complaint and alert storage
