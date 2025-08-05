@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeProvider';
 import { useFavorites } from '../contexts/FavoritesProvider';
+import DebugAuth from '../components/DebugAuth';
 
 const { width } = Dimensions.get('window');
 
@@ -261,6 +262,9 @@ export default function HomeScreen({ navigation }) {
         </View>
         {communityPosts.map(renderCommunityPost)}
       </View>
+
+      {/* Debug Authentication */}
+      <DebugAuth />
     </ScrollView>
   );
 }

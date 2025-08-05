@@ -4,8 +4,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { View, Text } from 'react-native';
 import { ThemeProvider } from './src/contexts/ThemeProvider';
 import { FavoritesProvider } from './src/contexts/FavoritesProvider';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ComplaintsProvider } from './src/contexts/ComplaintsContext';
 import HomeScreen from './src/screens/HomeScreen';
 import SearchServicesScreen from './src/screens/SearchServicesScreen';
 import SubmitComplaintScreen from './src/screens/SubmitComplaintScreen';
@@ -16,6 +19,7 @@ import VerifiedListingsScreen from './src/screens/VerifiedListingsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import AuthScreen from './src/screens/AuthScreen';
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -142,15 +146,44 @@ function DrawerNavigator() {
   );
 }
 
+function AppContent() {
+  const { user, loading } = useAuth();
+
+  console.log('AppContent: Current state - user:', !!user, 'loading:', loading);
+
+  if (loading) {
+    console.log('AppContent: Showing loading screen');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+        <Text style={{ fontSize: 18, color: '#6b7280' }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    console.log('AppContent: No user found, showing AuthScreen');
+    return <AuthScreen />;
+  }
+
+  console.log('AppContent: User found, showing main app');
+  return (
+    <NavigationContainer>
+      <StatusBar style="auto" />
+      <DrawerNavigator />
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   return (
-      <ThemeProvider>
-        <FavoritesProvider>
-          <NavigationContainer>
-            <StatusBar style="auto" />
-          <DrawerNavigator />
-          </NavigationContainer>
-        </FavoritesProvider>
-      </ThemeProvider>
+    <AuthProvider>
+      <ComplaintsProvider>
+        <ThemeProvider>
+          <FavoritesProvider>
+            <AppContent />
+          </FavoritesProvider>
+        </ThemeProvider>
+      </ComplaintsProvider>
+    </AuthProvider>
   );
 }

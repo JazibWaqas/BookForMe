@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeProvider';
+import { useAuth } from '../contexts/AuthContext';
+import { useComplaints } from '../contexts/ComplaintsContext';
 
 const complaintTypes = [
   { id: 'security', name: 'Security Issue', icon: 'shield', color: '#ef4444' },
@@ -31,6 +33,8 @@ const priorityLevels = [
 
 export default function SubmitComplaintScreen() {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const { createComplaint, loading, error } = useComplaints();
   const [selectedType, setSelectedType] = useState(null);
   const [selectedPriority, setSelectedPriority] = useState('medium');
   const [title, setTitle] = useState('');
@@ -85,6 +89,11 @@ export default function SubmitComplaintScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please sign in to submit a complaint');
+      return;
+    }
+
     if (!selectedType) {
       Alert.alert('Error', 'Please select a complaint type');
       return;
@@ -107,9 +116,19 @@ export default function SubmitComplaintScreen() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const complaintData = {
+        title: title.trim(),
+        description: description.trim(),
+        category: selectedType,
+        priority: selectedPriority,
+        location: location.trim(),
+        images: images, // Note: In a real app, you'd upload images to Firebase Storage
+        status: 'pending',
+      };
+
+      await createComplaint(complaintData);
+      
       Alert.alert(
         'Success',
         'Your complaint has been submitted successfully. We will review and take action within 24 hours.',
@@ -128,7 +147,11 @@ export default function SubmitComplaintScreen() {
           },
         ]
       );
-    }, 2000);
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to submit complaint. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderComplaintType = (type) => (
@@ -270,11 +293,11 @@ export default function SubmitComplaintScreen() {
       {/* Submit Button */}
       <View style={styles.submitSection}>
         <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (isSubmitting || loading) && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || loading}
         >
-          {isSubmitting ? (
+          {(isSubmitting || loading) ? (
             <View style={styles.loadingContainer}>
               <Ionicons name="reload" size={20} color="white" style={styles.spinner} />
               <Text style={styles.submitButtonText}>Submitting...</Text>

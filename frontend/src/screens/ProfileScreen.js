@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeProvider';
+import { useAuth } from '../contexts/AuthContext';
 
 const userProfile = {
   name: 'Ahmed Khan',
@@ -88,6 +89,7 @@ const profileActions = [
 
 export default function ProfileScreen() {
   const { theme } = useTheme();
+  const { user, signout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
 
   const styles = getStyles(theme);
@@ -107,6 +109,32 @@ export default function ProfileScreen() {
         Alert.alert('Privacy Settings', 'Privacy settings coming soon!');
         break;
     }
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signout();
+              console.log('ProfileScreen: Sign out successful');
+            } catch (error) {
+              console.error('ProfileScreen: Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderStatCard = (stat) => (
@@ -200,6 +228,14 @@ export default function ProfileScreen() {
             Keep your location services enabled for better safety alerts and emergency response.
           </Text>
         </View>
+      </View>
+
+      {/* Sign Out Button */}
+      <View style={styles.signOutSection}>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -384,4 +420,26 @@ const getStyles = (theme) => StyleSheet.create({
     marginLeft: 12,
       flex: 1,
     },
+  signOutSection: {
+    padding: 16,
+    backgroundColor: 'white',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginLeft: 8,
+  },
   });
