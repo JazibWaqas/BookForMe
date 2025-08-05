@@ -1,25 +1,50 @@
-# Slotify Frontend
+# Welcome to your Expo app 👋
 
-This is the frontend for Slotify, a web-based sports booking platform inspired by Foodpanda’s UI, built for time-based sports venues in Pakistan.
+This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Stack
-- **React.js** (with Vite)
-- **Tailwind CSS** for styling
-- **React Router DOM** for routing
-- **Firebase Web SDK** for authentication, Firestore, and storage
+## Get started
 
-## Features
-- Modern, category-based homepage
-- Venue pages with calendar-style slot booking
-- Reviews, payments, and leaderboard
-- Vendor admin dashboard
-- AI-powered chatbot (via backend)
+1. Install dependencies
 
-## Development
-- `npm run dev` — Start local dev server
-- `npm run build` — Build for production
-- `npm run preview` — Preview production build
+   ```bash
+   npm install
+   ```
 
----
+2. Start the app
 
-> See the main project README for overall architecture and setup instructions.
+   ```bash
+   npx expo start
+   ```
+
+In the output, you'll find options to open the app in a
+
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+
+You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+
+## Get a fresh project
+
+When you're ready, run:
+
+```bash
+npm run reset-project
+```
+
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+
+## Learn more
+
+To learn more about developing your project with Expo, look at the following resources:
+
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+
+## Join the community
+
+Join our community of developers creating universal apps.
+
+- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
+- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
