@@ -4,7 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemeProvider } from './src/contexts/ThemeProvider';
 import { FavoritesProvider } from './src/contexts/FavoritesProvider';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -25,6 +26,8 @@ const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
 function TabNavigator() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -50,10 +53,19 @@ function TabNavigator() {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
-          paddingBottom: 5,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
           paddingTop: 5,
-          height: 60,
+          height: 60 + (insets.bottom > 0 ? insets.bottom : 10),
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
+        tabBarSafeAreaInsets: { bottom: 0 },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
