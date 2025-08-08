@@ -1,0 +1,12 @@
+# Copy this to frontend/.env file
+
+# API Configuration - Using computer's IP address for mobile access
+EXPO_PUBLIC_API_URL=http://192.168.1.38:3001
+
+# Firebase Configuration
+EXPO_PUBLIC_FIREBASE_API_KEY=AlzaSyABT_0Mz5LZ-uuKcKJRjQGHLdJ0HFByGa4
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=neighborhoodaware-cf8dc.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=neighborhoodaware-cf8dc
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=neighborhoodaware-cf8dc.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=407967024714
+EXPO_PUBLIC_FIREBASE_APP_ID=1:407967024714:web:b1d81cae2364f346c888b3 

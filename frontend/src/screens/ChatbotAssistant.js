@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   StyleSheet,
   TextInput,
   FlatList,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeProvider';
+import chatbotService from '../services/chatbotService';
 
 export default function ChatbotAssistant({ onClose }) {
   const { colors, spacing, fontSize, borderRadius } = useTheme();
@@ -23,16 +26,33 @@ export default function ChatbotAssistant({ onClose }) {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [serviceAvailable, setServiceAvailable] = useState(true);
 
   const quickActions = [
-    { id: 1, text: 'Emergency numbers', icon: 'call' },
-    { id: 2, text: 'Safety tips', icon: 'shield' },
-    { id: 3, text: 'Report incident', icon: 'warning' },
-    { id: 4, text: 'Find services', icon: 'search' },
+    { id: 1, text: 'Emergency numbers', icon: 'call-outline' },
+    { id: 2, text: 'Safety tips', icon: 'shield-outline' },
+    { id: 3, text: 'Report incident', icon: 'warning-outline' },
+    { id: 4, text: 'Find services', icon: 'search-outline' },
   ];
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
+  // Check service availability on component mount
+  useEffect(() => {
+    checkServiceAvailability();
+  }, []);
+
+  const checkServiceAvailability = async () => {
+    try {
+      const available = await chatbotService.checkAvailability();
+      setServiceAvailable(available);
+    } catch (error) {
+      console.error('Service availability check failed:', error);
+      setServiceAvailable(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (message.trim() && !isLoading) {
       const userMessage = {
         id: messages.length + 1,
         text: message,
@@ -40,25 +60,51 @@ export default function ChatbotAssistant({ onClose }) {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setMessages([...messages, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
+      const currentMessage = message;
       setMessage('');
+      setIsLoading(true);
 
-      // Simulate bot response
-      setTimeout(() => {
+      try {
+        const response = await chatbotService.sendMessage(currentMessage);
+        
         const botResponse = {
           id: messages.length + 2,
-          text: getBotResponse(message),
+          text: response.message,
           isBot: true,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
+        
         setMessages(prev => [...prev, botResponse]);
-      }, 1000);
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        
+        // Fallback to local response
+        const fallbackResponse = {
+          id: messages.length + 2,
+          text: getBotResponse(currentMessage),
+          isBot: true,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        
+        setMessages(prev => [...prev, fallbackResponse]);
+        
+        if (!serviceAvailable) {
+          Alert.alert(
+            'Service Unavailable',
+            'The AI assistant is currently unavailable. Using fallback responses.',
+            [{ text: 'OK' }]
+          );
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleQuickAction = (action) => {
+  const handleQuickAction = async (action) => {
     setMessage(action.text);
-    handleSendMessage();
+    await handleSendMessage();
   };
 
   const getBotResponse = (userMessage) => {
@@ -224,6 +270,16 @@ export default function ChatbotAssistant({ onClose }) {
     sendButtonDisabled: {
       backgroundColor: colors.textMuted,
     },
+    loadingContainer: {
+      padding: spacing.sm,
+      alignItems: 'center',
+    },
+    statusIndicator: {
+      fontSize: fontSize.xs,
+      color: colors.textMuted,
+      textAlign: 'center',
+      padding: spacing.xs,
+    },
   });
 
   const renderMessage = ({ item }) => (
@@ -267,6 +323,23 @@ export default function ChatbotAssistant({ onClose }) {
           inverted={false}
         />
 
+        {/* Loading Indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.statusIndicator}>AI is thinking...</Text>
+          </View>
+        )}
+
+        {/* Service Status */}
+        {!serviceAvailable && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.statusIndicator}>
+              ⚠️ AI service unavailable - using fallback responses
+            </Text>
+          </View>
+        )}
+
         {/* Quick Actions */}
         {messages.length === 1 && (
           <View style={styles.quickActionsContainer}>
@@ -302,9 +375,9 @@ export default function ChatbotAssistant({ onClose }) {
             multiline
           />
           <TouchableOpacity
-            style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!message.trim() || isLoading) && styles.sendButtonDisabled]}
             onPress={handleSendMessage}
-            disabled={!message.trim()}
+            disabled={!message.trim() || isLoading}
           >
             <Ionicons name="send" size={20} color="white" />
           </TouchableOpacity>

@@ -26,6 +26,7 @@ import {
   addAlert,
   getAlerts
 } from './firestore.js';
+import geminiService from './gemini.js';
 
 // Load environment variables
 dotenv.config();
@@ -315,6 +316,43 @@ app.get('/user/profile', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Get user profile error:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Chatbot routes
+app.post('/chatbot/message', authenticateUser, async (req, res) => {
+  try {
+    const { message } = req.body;
+    const userId = req.user.uid;
+    
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ 
+        error: 'Message is required and must be a string' 
+      });
+    }
+
+    const response = await geminiService.sendMessage(userId, message);
+    res.json(response);
+  } catch (error) {
+    console.error('Chatbot message error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process message',
+      message: error.message 
+    });
+  }
+});
+
+app.post('/chatbot/clear-history', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    geminiService.clearChatHistory(userId);
+    res.json({ message: 'Chat history cleared successfully' });
+  } catch (error) {
+    console.error('Clear chat history error:', error);
+    res.status(500).json({ 
+      error: 'Failed to clear chat history',
+      message: error.message 
+    });
   }
 });
 

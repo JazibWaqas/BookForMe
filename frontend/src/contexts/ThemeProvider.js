@@ -39,6 +39,60 @@ export function ThemeProvider({ children }) {
     saveTheme(newTheme);
   };
 
+  // Theme configuration
+  const colors = {
+    light: {
+      primary: '#2563eb',
+      background: '#ffffff',
+      surface: '#f8fafc',
+      card: '#ffffff',
+      text: '#1f2937',
+      textMuted: '#6b7280',
+      border: '#e5e7eb',
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+    },
+    dark: {
+      primary: '#3b82f6',
+      background: '#111827',
+      surface: '#1f2937',
+      card: '#374151',
+      text: '#f9fafb',
+      textMuted: '#9ca3af',
+      border: '#374151',
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+    },
+  };
+
+  const spacing = {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+  };
+
+  const fontSize = {
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+  };
+
+  const borderRadius = {
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+  };
+
+  const currentColors = colors[theme] || colors.light;
+
   const value = {
     theme,
     toggleTheme,
@@ -46,6 +100,10 @@ export function ThemeProvider({ children }) {
       setTheme(newTheme);
       saveTheme(newTheme);
     },
+    colors: currentColors,
+    spacing,
+    fontSize,
+    borderRadius,
   };
 
   return (

@@ -20,6 +20,7 @@ import FavoritesScreen from './src/screens/FavoritesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import AuthScreen from './src/screens/AuthScreen';
+import ChatbotAssistant from './src/screens/ChatbotAssistant';
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -39,6 +40,8 @@ function TabNavigator() {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'Community') {
             iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Assistant') {
+            iconName = focused ? 'chatbubble' : 'chatbubble-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -60,6 +63,7 @@ function TabNavigator() {
       <Tab.Screen name="Near Me" component={SearchServicesScreen} />
       <Tab.Screen name="Report" component={SubmitComplaintScreen} />
       <Tab.Screen name="Community" component={CommunityChatScreen} />
+      <Tab.Screen name="Assistant" component={ChatbotAssistant} />
     </Tab.Navigator>
   );
 }
