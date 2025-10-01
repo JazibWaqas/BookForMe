@@ -1,0 +1,496 @@
+/* VendorPage Styles - Modern Design Matching Screenshots */
+
+/* Main Container */
+.vendor-page {
+  background: #f8fafc;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* Back Button */
+.back-button-container {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s ease;
+}
+
+.back-button:hover {
+  color: #1e293b;
+}
+
+/* Main Layout */
+.vendor-main-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Left Column - Venue Details */
+.venue-details {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Venue Image */
+.venue-image-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+}
+
+.venue-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.overlay-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.overlay-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.discount-tag {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: #dc2626;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Venue Info */
+.venue-info {
+  padding: 24px;
+}
+
+.venue-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.venue-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+.venue-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.price-section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.current-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.original-price {
+  font-size: 18px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.price-unit {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.reviews {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.location-section,
+.hours-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.location,
+.hours {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.venue-description {
+  font-size: 16px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+/* Tabs */
+.tabs-container {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  color: #1e293b;
+  border-bottom-color: #3b82f6;
+  background: white;
+}
+
+.tab:hover {
+  color: #1e293b;
+}
+
+/* Tab Content */
+.tab-content {
+  min-height: 200px;
+}
+
+/* Amenities Grid */
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.amenity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.amenity-card.available {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.amenity-card.unavailable {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  opacity: 0.6;
+}
+
+.amenity-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.amenity-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Right Column - Booking */
+.booking-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Booking Card */
+.booking-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.booking-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.time-slot {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-slot:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.time-slot.selected {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Booking Summary */
+.booking-summary {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.summary-item.discount {
+  color: #059669;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.book-now-button {
+  width: 100%;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 16px 0;
+  transition: background 0.2s ease;
+}
+
+.book-now-button:hover {
+  background: #0f172a;
+}
+
+.contact-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.contact-button {
+  flex: 1;
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contact-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Similar Venues */
+.similar-venues {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.similar-venues h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.similar-venue-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.similar-venue-card:hover {
+  background: #f8fafc;
+}
+
+.venue-thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.venue-details-small {
+  flex: 1;
+}
+
+.venue-name-small {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.venue-rating-small,
+.venue-price-small,
+.venue-distance-small {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .vendor-main-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .booking-section {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .vendor-main-layout {
+    padding: 16px;
+  }
+  
+  .venue-image-container {
+    height: 200px;
+  }
+  
+  .venue-title {
+    font-size: 24px;
+  }
+  
+  .amenities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-slots-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .contact-buttons {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .back-button-container {
+    padding: 12px 16px;
+  }
+  
+  .vendor-main-layout {
+    padding: 12px;
+  }
+  
+  .venue-info {
+    padding: 16px;
+  }
+  
+  .booking-card,
+  .booking-summary,
+  .similar-venues {
+    padding: 16px;
+  }
+}

@@ -7,7 +7,12 @@ import './App.css'
 function App() {
   return (
     <div className="App">
-      <VendorPage />
+      <Router>
+        <Routes>
+          <Route path="/" element={<Homepage />} />
+          <Route path="/vendor/:id" element={<VendorPage />} />
+        </Routes>
+      </Router>
     </div>
   )
 }

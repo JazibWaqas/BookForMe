@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import '../styles/Homepage.css';
@@ -32,6 +33,7 @@ interface ListingItem {
 
 const Homepage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   // Sample data - replace with actual data from your backend
   const categories: CategoryItem[] = [
@@ -461,8 +463,8 @@ const Homepage: React.FC = () => {
   };
 
   const handleItemClick = (item: ListingItem) => {
-    // Navigate to item details page
-    console.log('Item clicked:', item.name);
+    // Navigate to vendor page with item ID
+    navigate(`/vendor/${item.id}`);
   };
 
   return (

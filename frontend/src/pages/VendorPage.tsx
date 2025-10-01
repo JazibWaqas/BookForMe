@@ -1,295 +1,241 @@
 import { useMemo, useState } from 'react'
-import './Homepage.css'
-
-type DurationMinutes = 30 | 60 | 90 | 120
-
-function formatTimeLabel(totalMinutes: number) {
-  const hours24 = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  const suffix = hours24 >= 12 ? 'PM' : 'AM'
-  const hours12 = ((hours24 + 11) % 12) + 1
-  const minutesStr = minutes.toString().padStart(2, '0')
-  return `${hours12}:${minutesStr} ${suffix}`
-}
+import { useParams, useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
+import '../styles/VendorPage.css'
 
 function VendorPage() {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().slice(0, 10)
-  )
-  const sports = ['Pickleball', 'Padel', 'Tennis', 'Badminton']
-  const [selectedSport, setSelectedSport] = useState<string>(sports[0])
-  const [selectedDuration, setSelectedDuration] = useState<DurationMinutes>(60)
-  const [activeCourt, setActiveCourt] = useState<number>(1)
-  const [selectedSlotKey, setSelectedSlotKey] = useState<string | null>(null)
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'amenities' | 'reviews' | 'photos'>('amenities')
 
-  const courts = useMemo(() => [
-    { id: 1, name: 'Court 1', surface: 'Synthetic Turf', indoor: true },
-    { id: 2, name: 'Court 2', surface: 'Synthetic Turf', indoor: false },
-    { id: 3, name: 'Court 3', surface: 'Acrylic', indoor: true }
-  ], [])
-
-  const slots = useMemo(() => {
-    const step = 60 // show a slot row each hour like the screenshot
-    const openMinutes = 0
-    const closeMinutes = 24 * 60
-    const result: Array<{ start: number; end: number }> = []
-    for (let start = openMinutes; start + selectedDuration <= closeMinutes; start += step) {
-      result.push({ start, end: start + selectedDuration })
+  // Mock vendor data based on ID - in real app, fetch from API
+  const vendorData = useMemo(() => {
+    const vendors: Record<string, any> = {
+      '1': { 
+        name: 'Elite Sports Complex', 
+        location: 'Bandra West • 2.1 km', 
+        rating: 4.8,
+        reviews: 124,
+        price: 1200,
+        originalPrice: 1500,
+        discount: 20,
+        hours: '6:00 AM - 11:00 PM',
+        description: 'Premium sports complex with state-of-the-art facilities and professional coaching available.',
+        image: '/api/placeholder/600/400',
+        amenities: [
+          { name: 'Free WiFi', icon: '📶', available: true },
+          { name: 'Parking', icon: '🚗', available: true },
+          { name: 'Refreshments', icon: '☕', available: true },
+          { name: 'Group Rates', icon: '👥', available: false }
+        ],
+        timeSlots: ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'],
+        similarVenues: [
+          { name: 'Champion Sports Complex', rating: 4.6, price: 1000, distance: '3.5 km', image: '/api/placeholder/100/100' },
+          { name: 'Prime Court Complex', rating: 4.9, price: 1800, distance: '5.2 km', image: '/api/placeholder/100/100' }
+        ]
+      },
+      '2': { 
+        name: 'Champions Cricket Ground', 
+        location: 'Gulshan-e-Iqbal • 4.2 km', 
+        rating: 4.6,
+        reviews: 89,
+        price: 5000,
+        originalPrice: 6000,
+        discount: 17,
+        hours: '5:00 AM - 10:00 PM',
+        description: 'Professional cricket ground with natural grass and modern facilities.',
+        image: '/api/placeholder/600/400',
+        amenities: [
+          { name: 'Parking', icon: '🚗', available: true },
+          { name: 'Refreshments', icon: '☕', available: true },
+          { name: 'Changing Rooms', icon: '🚿', available: true },
+          { name: 'Equipment Rental', icon: '🏏', available: true }
+        ],
+        timeSlots: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+        similarVenues: [
+          { name: 'Green Field Cricket Club', rating: 4.7, price: 4500, distance: '2.8 km', image: '/api/placeholder/100/100' },
+          { name: 'Royal Cricket Academy', rating: 4.9, price: 5500, distance: '6.1 km', image: '/api/placeholder/100/100' }
+        ]
+      }
     }
-    return result
-  }, [selectedDuration])
+    return vendors[id || '1'] || vendors['1']
+  }, [id])
+
+  const calculateTotal = () => {
+    const basePrice = vendorData.price
+    const discount = (basePrice * vendorData.discount) / 100
+    const serviceFee = 50
+    return basePrice - discount + serviceFee
+  }
 
   return (
-    <div className="homepage" style={{ background: '#0f172a' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0f172a' }}>
-        <header className="header" style={{ background: 'transparent', boxShadow: 'none', padding: '20px 16px 8px' }}>
-          <div className="header-content" style={{ gap: 16 }}>
-            <div className="location">
-              <h3 style={{ margin: 0, color: 'white', fontSize: 22 }}>Padel Star</h3>
-              <p style={{ color: '#a3b1c6' }}>Phase 6 DHA, Karachi</p>
+    <>
+      <Header />
+      <div className="vendor-page">
+        {/* Back Button */}
+        <div className="back-button-container">
+          <button className="back-button" onClick={() => navigate('/')}>
+            ← Back to Venues
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="vendor-main-layout">
+          {/* Left Column - Venue Details */}
+          <div className="venue-details">
+            {/* Venue Image */}
+            <div className="venue-image-container">
+              <img src={vendorData.image} alt={vendorData.name} className="venue-image" />
+              <div className="image-overlay">
+                <button className="overlay-button share-button">📤</button>
+                <button className="overlay-button favorite-button">❤️</button>
+              </div>
+              <div className="discount-tag">20% OFF Today</div>
             </div>
-            <div className="header-actions" style={{ gap: 12 }} />
-          </div>
-        </header>
 
-        <div style={{ padding: '0 16px 8px' }}>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
-            {sports.map((s) => {
-              const active = s === selectedSport
-              return (
-                <button
-                  key={s}
-                  onClick={() => setSelectedSport(s)}
-                  style={{
-                    background: active ? '#1e293b' : '#111b33',
-                    color: 'white',
-                    border: '1px solid ' + (active ? '#334155' : '#1f2b4a'),
-                    borderRadius: 999,
-                    padding: '8px 14px',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap'
-                  }}
-                >{s}</button>
-              )
-            })}
-          </div>
-        </div>
+            {/* Venue Info */}
+            <div className="venue-info">
+              <h1 className="venue-title">{vendorData.name}</h1>
+              <p className="venue-subtitle">Sports Court</p>
+              
+              <div className="venue-meta">
+                <div className="price-section">
+                  <span className="current-price">₹{vendorData.price}</span>
+                  <span className="original-price">₹{vendorData.originalPrice}</span>
+                  <span className="price-unit">per hour</span>
+                </div>
+                
+                <div className="rating-section">
+                  <span className="rating">⭐ {vendorData.rating}</span>
+                  <span className="reviews">({vendorData.reviews} reviews)</span>
+                </div>
+                
+                <div className="location-section">
+                  <span className="location">📍 {vendorData.location}</span>
+                </div>
+                
+                <div className="hours-section">
+                  <span className="hours">🕐 {vendorData.hours}</span>
+                </div>
+              </div>
+              
+              <p className="venue-description">{vendorData.description}</p>
 
-        <div style={{ padding: '0 16px 12px' }}>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-            {Array.from({ length: 14 }).map((_, idx) => {
-              const d = new Date()
-              d.setDate(d.getDate() + idx)
-              const iso = d.toISOString().slice(0, 10)
-              const isActive = iso === selectedDate
-              const day = d.toLocaleDateString(undefined, { weekday: 'short' })
-              const date = d.getDate()
-              return (
-                <button
-                  key={iso}
-                  onClick={() => setSelectedDate(iso)}
-                  style={{
-                    background: isActive ? '#1e293b' : '#111b33',
-                    color: 'white',
-                    border: '1px solid ' + (isActive ? '#334155' : '#1f2b4a'),
-                    borderRadius: 12,
-                    padding: '10px 12px',
-                    width: 82,
-                    flex: '0 0 auto',
-                    textAlign: 'center'
-                  }}
+              {/* Tabs */}
+              <div className="tabs-container">
+                <button 
+                  className={`tab ${activeTab === 'amenities' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('amenities')}
                 >
-                  <div style={{ opacity: 0.8, fontSize: 12 }}>{day}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800 }}>{date}</div>
+                  Amenities
                 </button>
-              )
-            })}
-          </div>
-        </div>
+                <button 
+                  className={`tab ${activeTab === 'reviews' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('reviews')}
+                >
+                  Reviews
+                </button>
+                <button 
+                  className={`tab ${activeTab === 'photos' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('photos')}
+                >
+                  Photos
+                </button>
+              </div>
 
-        <div style={{ padding: '0 16px 12px' }}>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-            {courts.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveCourt(c.id)}
-                style={{
-                  background: activeCourt === c.id ? '#1e293b' : '#111b33',
-                  color: 'white',
-                  border: '1px solid ' + (activeCourt === c.id ? '#334155' : '#1f2b4a'),
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {c.name}
-              </button>
-            ))}
+              {/* Tab Content */}
+              <div className="tab-content">
+                {activeTab === 'amenities' && (
+                  <div className="amenities-grid">
+                    {vendorData.amenities.map((amenity: any, index: number) => (
+                      <div key={index} className={`amenity-card ${amenity.available ? 'available' : 'unavailable'}`}>
+                        <span className="amenity-icon">{amenity.icon}</span>
+                        <span className="amenity-name">{amenity.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {activeTab === 'reviews' && (
+                  <div className="reviews-content">
+                    <p>Reviews content would go here...</p>
+                  </div>
+                )}
+                
+                {activeTab === 'photos' && (
+                  <div className="photos-content">
+                    <p>Photo gallery would go here...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Booking */}
+          <div className="booking-section">
+            {/* Time Slots */}
+            <div className="booking-card">
+              <h3 className="booking-title">Available Time Slots</h3>
+              <div className="time-slots-grid">
+                {vendorData.timeSlots.map((slot: string) => (
+                  <button
+                    key={slot}
+                    className={`time-slot ${selectedTimeSlot === slot ? 'selected' : ''}`}
+                    onClick={() => setSelectedTimeSlot(selectedTimeSlot === slot ? null : slot)}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Booking Summary */}
+            <div className="booking-summary">
+              <div className="summary-item">
+                <span>Court rental (1 hour)</span>
+                <span>₹{vendorData.price}</span>
+              </div>
+              <div className="summary-item discount">
+                <span>Discount ({vendorData.discount}%)</span>
+                <span>-₹{(vendorData.price * vendorData.discount) / 100}</span>
+              </div>
+              <div className="summary-item">
+                <span>Service fee</span>
+                <span>₹50</span>
+              </div>
+              <div className="summary-total">
+                <span>Total</span>
+                <span>₹{calculateTotal()}</span>
+              </div>
+              
+              <button className="book-now-button">Book Now</button>
+              
+              <div className="contact-buttons">
+                <button className="contact-button">📞 Call</button>
+                <button className="contact-button">✉️ Email</button>
+              </div>
+            </div>
+
+            {/* Similar Venues */}
+            <div className="similar-venues">
+              <h3>Similar Venues</h3>
+              {vendorData.similarVenues.map((venue: any, index: number) => (
+                <div key={index} className="similar-venue-card">
+                  <img src={venue.image} alt={venue.name} className="venue-thumbnail" />
+                  <div className="venue-details-small">
+                    <h4 className="venue-name-small">{venue.name}</h4>
+                    <div className="venue-rating-small">⭐ {venue.rating}</div>
+                    <div className="venue-price-small">₹{venue.price}/hr</div>
+                    <div className="venue-distance-small">{venue.distance}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      <main className="main-content" style={{ maxWidth: 1400 }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          gap: 16,
-          paddingBottom: 80
-        }}>
-          <aside style={{
-            position: 'sticky',
-            top: 92,
-            alignSelf: 'start',
-            background: '#111827',
-            borderRadius: 12,
-            padding: 16,
-            border: '1px solid #1f2937',
-            height: 'fit-content'
-          }}>
-            <div style={{ fontWeight: 700, color: 'white', marginBottom: 12 }}>Duration</div>
-            {([30, 60, 90, 120] as DurationMinutes[]).map((d) => (
-              <button
-                key={d}
-                onClick={() => setSelectedDuration(d)}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'left',
-                  marginBottom: 10,
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  border: '1px solid ' + (selectedDuration === d ? '#22c55e55' : '#374151'),
-                  background: selectedDuration === d ? '#052e1f' : '#0b1220',
-                  color: 'white',
-                  fontWeight: 600
-                }}
-              >
-                {d} Minutes
-              </button>
-            ))}
-
-            <div style={{ fontWeight: 700, color: 'white', margin: '16px 0 10px' }}>Filters</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {['Morning', 'Afternoon', 'Evening'].map((t) => (
-                <span key={t} style={{
-                  background: '#0b1220',
-                  color: '#cbd5e1',
-                  border: '1px solid #1f2937',
-                  padding: '6px 10px',
-                  borderRadius: 999
-                }}>{t}</span>
-              ))}
-            </div>
-          </aside>
-
-          <section style={{
-            background: '#0b1220',
-            borderRadius: 16,
-            border: '1px solid #1f2937',
-            padding: 20,
-            minHeight: 'calc(100vh - 200px)',
-            overflow: 'auto'
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: 14
-            }}>
-              {slots.map((s) => {
-                const key = `${s.start}-${s.end}`
-                const selected = selectedSlotKey === key
-                const startLabel = formatTimeLabel(s.start)
-                const endLabel = formatTimeLabel(s.end % (24 * 60))
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedSlotKey(selected ? null : key)}
-                    style={{
-                      background: selected ? '#10b981' : '#052e1f',
-                      color: selected ? '#052e1f' : '#34d399',
-                      border: '1px solid ' + (selected ? '#10b981' : '#065f46'),
-                      borderRadius: 12,
-                      padding: '14px 16px',
-                      textAlign: 'center',
-                      fontWeight: 800,
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {startLabel} – {endLabel}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        </div>
-      </main>
-
-      {selectedSlotKey && (
-        <div style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: '#0b1220cc',
-          borderTop: '1px solid #1f2937',
-          backdropFilter: 'saturate(180%) blur(8px)',
-          padding: 12,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 30
-        }}>
-          <div style={{
-            width: '100%',
-            maxWidth: 1200,
-            display: 'flex',
-            gap: 12
-          }}>
-            <div style={{
-              flex: 1,
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <span style={{ opacity: 0.8 }}>Selected:</span>
-              <strong>
-                {(() => {
-                  const [s, e] = selectedSlotKey.split('-').map(Number)
-                  return `${formatTimeLabel(s)} – ${formatTimeLabel(e % (24 * 60))}`
-                })()}
-              </strong>
-              <span style={{ opacity: 0.6 }}>| {selectedDuration} mins | {selectedSport} | {courts.find(c => c.id === activeCourt)?.name}</span>
-            </div>
-            <button
-              style={{
-                background: '#22c55e',
-                color: '#052e1f',
-                fontWeight: 800,
-                border: 'none',
-                borderRadius: 10,
-                padding: '12px 18px'
-              }}
-              onClick={() => alert('Proceed to booking flow')}
-            >
-              Continue
-            </button>
-            <button
-              style={{
-                background: 'transparent',
-                color: '#cbd5e1',
-                border: '1px solid #334155',
-                borderRadius: 10,
-                padding: '12px 16px'
-              }}
-              onClick={() => setSelectedSlotKey(null)}
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   )
 }
 
