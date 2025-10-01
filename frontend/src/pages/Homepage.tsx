@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Header from '../components/Header';
+import SearchBar from '../components/SearchBar';
 import '../styles/Homepage.css';
 
 // Types
@@ -42,6 +43,10 @@ const Homepage: React.FC = () => {
     { id: '6', name: 'Beach Houses', icon: '🏖️' },
     { id: '7', name: 'Pickleball', icon: '🏸' },
     { id: '8', name: 'Tennis', icon: '🎾' },
+    { id: '9', name: 'Swimming', icon: '🏊' },
+    { id: '10', name: 'Badminton', icon: '🏸' },
+    { id: '11', name: 'Basketball', icon: '🏀' },
+    { id: '12', name: 'Volleyball', icon: '🏐' },
   ];
 
   const happeningItems: HappeningItem[] = [
@@ -64,10 +69,30 @@ const Homepage: React.FC = () => {
       image: '/api/placeholder/300/150',
       location: 'Clifton',
       discount: '25% OFF'
+    },
+    {
+      id: '4',
+      title: 'Beach House Grand Opening',
+      image: '/api/placeholder/300/150',
+      location: 'Hawke\'s Bay',
+      discount: '40% OFF'
+    },
+    {
+      id: '5',
+      title: 'Tennis Championship',
+      image: '/api/placeholder/300/150',
+      location: 'Defence'
+    },
+    {
+      id: '6',
+      title: 'Swimming Pool Party',
+      image: '/api/placeholder/300/150',
+      location: 'Karachi Club',
+      discount: '20% OFF'
     }
   ];
 
-  const favorites: ListingItem[] = [
+  const trending: ListingItem[] = [
     {
       id: '1',
       name: 'Elite Paddle Club',
@@ -87,6 +112,66 @@ const Homepage: React.FC = () => {
       time: '20-30 min',
       price: 'Rs. 5000/match',
       category: 'Cricket'
+    },
+    {
+      id: '3',
+      name: 'Pro Gaming Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 650,
+      time: '10-20 min',
+      price: 'Rs. 800/hr',
+      category: 'Gaming'
+    },
+    {
+      id: '4',
+      name: 'Sunset Beach House',
+      image: '/api/placeholder/200/120',
+      rating: 4.5,
+      reviews: 400,
+      time: '45-60 min',
+      price: 'Rs. 20000/day',
+      category: 'Beach House'
+    },
+    {
+      id: '5',
+      name: 'Royal Tennis Academy',
+      image: '/api/placeholder/200/120',
+      rating: 4.9,
+      reviews: 1200,
+      time: '25-35 min',
+      price: 'Rs. 1800/hr',
+      category: 'Tennis'
+    },
+    {
+      id: '6',
+      name: 'Aqua Sports Complex',
+      image: '/api/placeholder/200/120',
+      rating: 4.4,
+      reviews: 750,
+      time: '30-40 min',
+      price: 'Rs. 1200/hr',
+      category: 'Swimming'
+    },
+    {
+      id: '7',
+      name: 'Urban Futsal Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 920,
+      time: '20-30 min',
+      price: 'Rs. 3500/hr',
+      category: 'Futsal'
+    },
+    {
+      id: '8',
+      name: 'Mountain View Farmhouse',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 340,
+      time: '60-90 min',
+      price: 'Rs. 35000/day',
+      category: 'Farmhouse'
     }
   ];
 
@@ -112,12 +197,209 @@ const Homepage: React.FC = () => {
       price: 'Rs. 500/hr',
       category: 'Gaming',
       discount: '25% OFF'
+    },
+    {
+      id: '3',
+      name: 'Premier Paddle Courts',
+      image: '/api/placeholder/200/120',
+      rating: 4.8,
+      reviews: 890,
+      time: '20-30 min',
+      price: 'Rs. 1800/hr',
+      category: 'Paddle',
+      discount: '35% OFF'
+    },
+    {
+      id: '4',
+      name: 'Victory Cricket Stadium',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 670,
+      time: '25-35 min',
+      price: 'Rs. 4500/match',
+      category: 'Cricket',
+      discount: '20% OFF'
+    },
+    {
+      id: '5',
+      name: 'Luxury Farmhouse Resort',
+      image: '/api/placeholder/200/120',
+      rating: 4.9,
+      reviews: 280,
+      time: '70-90 min',
+      price: 'Rs. 28000/day',
+      category: 'Farmhouse',
+      discount: '50% OFF'
     }
   ];
 
   const allListings: ListingItem[] = [
+    // Paddle Courts
     {
       id: '1',
+      name: 'Elite Paddle Club',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 1000,
+      time: '15-25 min',
+      price: 'Rs. 2000/hr',
+      category: 'Paddle'
+    },
+    {
+      id: '2',
+      name: 'Premier Paddle Courts',
+      image: '/api/placeholder/200/120',
+      rating: 4.8,
+      reviews: 890,
+      time: '20-30 min',
+      price: 'Rs. 1800/hr',
+      category: 'Paddle'
+    },
+    {
+      id: '3',
+      name: 'City Paddle Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.5,
+      reviews: 650,
+      time: '18-28 min',
+      price: 'Rs. 2200/hr',
+      category: 'Paddle'
+    },
+    {
+      id: '4',
+      name: 'Sports Valley Paddle',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 720,
+      time: '22-32 min',
+      price: 'Rs. 1900/hr',
+      category: 'Paddle'
+    },
+    {
+      id: '5',
+      name: 'Metro Paddle Complex',
+      image: '/api/placeholder/200/120',
+      rating: 4.4,
+      reviews: 580,
+      time: '25-35 min',
+      price: 'Rs. 1700/hr',
+      category: 'Paddle'
+    },
+    // Cricket Grounds
+    {
+      id: '6',
+      name: 'Champions Cricket Ground',
+      image: '/api/placeholder/200/120',
+      rating: 4.8,
+      reviews: 850,
+      time: '20-30 min',
+      price: 'Rs. 5000/match',
+      category: 'Cricket'
+    },
+    {
+      id: '7',
+      name: 'Victory Cricket Stadium',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 670,
+      time: '25-35 min',
+      price: 'Rs. 4500/match',
+      category: 'Cricket'
+    },
+    {
+      id: '8',
+      name: 'Green Field Cricket Club',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 920,
+      time: '30-40 min',
+      price: 'Rs. 5500/match',
+      category: 'Cricket'
+    },
+    {
+      id: '9',
+      name: 'Royal Cricket Academy',
+      image: '/api/placeholder/200/120',
+      rating: 4.9,
+      reviews: 1100,
+      time: '35-45 min',
+      price: 'Rs. 6000/match',
+      category: 'Cricket'
+    },
+    {
+      id: '10',
+      name: 'City Cricket Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.5,
+      reviews: 540,
+      time: '28-38 min',
+      price: 'Rs. 4800/match',
+      category: 'Cricket'
+    },
+    // Gaming Zones
+    {
+      id: '11',
+      name: 'Pro Gaming Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 650,
+      time: '10-20 min',
+      price: 'Rs. 800/hr',
+      category: 'Gaming'
+    },
+    {
+      id: '12',
+      name: 'Pro Gaming Lounge',
+      image: '/api/placeholder/200/120',
+      rating: 4.7,
+      reviews: 1200,
+      time: '10-15 min',
+      price: 'Rs. 500/hr',
+      category: 'Gaming'
+    },
+    {
+      id: '13',
+      name: 'Cyber Gaming Hub',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 890,
+      time: '12-18 min',
+      price: 'Rs. 600/hr',
+      category: 'Gaming'
+    },
+    {
+      id: '14',
+      name: 'Elite Gaming Center',
+      image: '/api/placeholder/200/120',
+      rating: 4.8,
+      reviews: 1050,
+      time: '8-15 min',
+      price: 'Rs. 750/hr',
+      category: 'Gaming'
+    },
+    {
+      id: '15',
+      name: 'Digital Gaming Zone',
+      image: '/api/placeholder/200/120',
+      rating: 4.5,
+      reviews: 720,
+      time: '15-22 min',
+      price: 'Rs. 650/hr',
+      category: 'Gaming'
+    },
+    // Futsal Courts
+    {
+      id: '16',
+      name: 'Urban Futsal Arena',
+      image: '/api/placeholder/200/120',
+      rating: 4.6,
+      reviews: 920,
+      time: '20-30 min',
+      price: 'Rs. 3500/hr',
+      category: 'Futsal'
+    },
+    {
+      id: '17',
       name: 'Royal Futsal Arena',
       image: '/api/placeholder/200/120',
       rating: 4.4,
@@ -127,34 +409,34 @@ const Homepage: React.FC = () => {
       category: 'Futsal'
     },
     {
-      id: '2',
-      name: 'Green Valley Farmhouse',
+      id: '18',
+      name: 'City Futsal Complex',
       image: '/api/placeholder/200/120',
-      rating: 4.6,
-      reviews: 300,
-      time: '60-90 min',
-      price: 'Rs. 25000/day',
-      category: 'Farmhouse'
+      rating: 4.7,
+      reviews: 680,
+      time: '25-35 min',
+      price: 'Rs. 3200/hr',
+      category: 'Futsal'
     },
     {
-      id: '3',
-      name: 'Tennis Club Premium',
+      id: '19',
+      name: 'Premier Futsal Club',
       image: '/api/placeholder/200/120',
       rating: 4.8,
-      reviews: 650,
-      time: '25-35 min',
-      price: 'Rs. 1500/hr',
-      category: 'Tennis'
+      reviews: 850,
+      time: '18-28 min',
+      price: 'Rs. 3800/hr',
+      category: 'Futsal'
     },
     {
-      id: '4',
-      name: 'Pickleball Paradise',
+      id: '20',
+      name: 'Sports City Futsal',
       image: '/api/placeholder/200/120',
-      rating: 4.3,
-      reviews: 400,
-      time: '15-25 min',
-      price: 'Rs. 1200/hr',
-      category: 'Pickleball'
+      rating: 4.5,
+      reviews: 590,
+      time: '22-32 min',
+      price: 'Rs. 3300/hr',
+      category: 'Futsal'
     }
   ];
 
@@ -184,28 +466,32 @@ const Homepage: React.FC = () => {
   };
 
   return (
-    <div className="homepage">
-      {/* Header Component */}
-      <Header
+    <>
+      {/* Header Component - Outside container for full width */}
+      <Header />
+      
+      {/* SearchBar Component - Below header */}
+      <SearchBar
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         onSearchSubmit={handleSearch}
-        onAgentModeClick={handleAgentModeClick}
       />
+      
+      <div className="homepage">
 
       {/* Main Content */}
       <main className="main-content">
-        <div className="container">
-          {/* Happening in Your City */}
-          <section className="mb-4">
-            <h2 className="text-lg font-semibold text-primary mb-3">Happening in your city</h2>
-            <div className="horizontal-scroll d-flex gap-3">
+        <div className="home-container">
+          {/* 1. Happening in Your City - Horizontal Scroll */}
+          <section className="section">
+            <h2 className="section-title">Happening in your city</h2>
+            <div className="horizontal-scroll">
               {happeningItems.map((item) => (
                 <div key={item.id} className="card happening-card">
                   <img src={item.image} alt={item.title} className="card-img-top" />
-                  <div className="card-body p-2">
-                    <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
-                    <p className="text-xs text-secondary mb-0">{item.location}</p>
+                  <div className="card-body">
+                    <h3 className="card-title">{item.title}</h3>
+                    <p className="card-location">{item.location}</p>
                     {item.discount && (
                       <span className="discount-badge">{item.discount}</span>
                     )}
@@ -215,56 +501,56 @@ const Homepage: React.FC = () => {
             </div>
           </section>
 
-          {/* Categories */}
-          <section className="mb-4">
-            <h2 className="text-lg font-semibold text-primary mb-3">Categories</h2>
-            <div className="categories-grid grid-cols-4 gap-2">
+          {/* 2. Categories - Horizontal Scroll */}
+          <section className="section">
+            <h2 className="section-title">Categories</h2>
+            <div className="horizontal-scroll">
               {categories.map((category) => (
                 <div
                   key={category.id}
-                  className="category-item card p-2 text-center"
+                  className="category-card"
                   onClick={() => handleCategoryClick(category)}
                 >
-                  <span className="category-icon text-lg mb-1">{category.icon}</span>
-                  <span className="category-name text-xs font-semibold">{category.name}</span>
+                  <span className="category-icon">{category.icon}</span>
+                  <span className="category-name">{category.name}</span>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Your Favorites */}
-          <section className="mb-4">
-            <h2 className="text-lg font-semibold text-primary mb-3">Your favorites</h2>
-            <div className="horizontal-scroll d-flex gap-3">
-              {favorites.map((item) => (
+          {/* 3. Trending Now - Horizontal Scroll */}
+          <section className="section">
+            <h2 className="section-title">Trending now</h2>
+            <div className="horizontal-scroll">
+              {trending.map((item) => (
                 <div
                   key={item.id}
                   className="card listing-card"
                   onClick={() => handleItemClick(item)}
                 >
                   <img src={item.image} alt={item.name} className="card-img-top" />
-                    <div className="card-body p-2">
-                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
-                    <div className="rating d-flex align-items-center gap-1 mb-1">
-                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
-                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    <div className="card-body">
+                    <h3 className="card-title">{item.name}</h3>
+                    <div className="card-rating">
+                      <span className="rating-star">⭐ {item.rating}</span>
+                      <span className="rating-count">({item.reviews}+)</span>
                     </div>
-                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                    <div className="card-details">
                       <span>{item.time}</span>
                       <span>•</span>
                       <span>{item.category}</span>
                     </div>
-                    <div className="price text-xs font-semibold">{item.price}</div>
+                    <div className="card-price">{item.price}</div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Discounts */}
-          <section className="mb-4">
-            <h2 className="text-lg font-semibold text-primary mb-3">Discounts</h2>
-            <div className="horizontal-scroll d-flex gap-3">
+          {/* 4. Discounts - Horizontal Scroll */}
+          <section className="section">
+            <h2 className="section-title">Discounts</h2>
+            <div className="horizontal-scroll">
               {discounts.map((item) => (
                 <div
                   key={item.id}
@@ -277,18 +563,18 @@ const Homepage: React.FC = () => {
                       <span className="discount-text">{item.discount}</span>
                     </div>
                   )}
-                    <div className="card-body p-2">
-                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
-                    <div className="rating d-flex align-items-center gap-1 mb-1">
-                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
-                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    <div className="card-body">
+                    <h3 className="card-title">{item.name}</h3>
+                    <div className="card-rating">
+                      <span className="rating-star">⭐ {item.rating}</span>
+                      <span className="rating-count">({item.reviews}+)</span>
                     </div>
-                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                    <div className="card-details">
                       <span>{item.time}</span>
                       <span>•</span>
                       <span>{item.category}</span>
                     </div>
-                    <div className="price text-xs font-semibold">{item.price}</div>
+                    <div className="card-price">{item.price}</div>
                   </div>
                 </div>
               ))}
@@ -306,18 +592,18 @@ const Homepage: React.FC = () => {
                   onClick={() => handleItemClick(item)}
                 >
                   <img src={item.image} alt={item.name} className="card-img-top" />
-                    <div className="card-body p-2">
-                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
-                    <div className="rating d-flex align-items-center gap-1 mb-1">
-                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
-                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    <div className="card-body">
+                    <h3 className="card-title">{item.name}</h3>
+                    <div className="card-rating">
+                      <span className="rating-star">⭐ {item.rating}</span>
+                      <span className="rating-count">({item.reviews}+)</span>
                     </div>
-                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                    <div className="card-details">
                       <span>{item.time}</span>
                       <span>•</span>
                       <span>{item.category}</span>
                     </div>
-                    <div className="price text-xs font-semibold">{item.price}</div>
+                    <div className="card-price">{item.price}</div>
                   </div>
                 </div>
               ))}
@@ -325,7 +611,8 @@ const Homepage: React.FC = () => {
           </section>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 };
 

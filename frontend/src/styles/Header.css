@@ -1,0 +1,143 @@
+/* Basic Reset for Header */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Header Navigation Bar - Full Width */
+.header {
+  background: #000;
+  color: white;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 100;
+}
+
+/* Header Top Section - Navigation Bar */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  width: 100%;
+}
+
+/* Location Section - Left */
+.location-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.location-section .location-text p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Brand Section - Center */
+.brand-section {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.brand-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Profile Section - Right */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.profile-section .profile-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Navigation Tabs - Full Width */
+.navigation-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  width: 100%;
+  margin: 0; /* prevent centering box artifacts */
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav-tab:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+  color: white;
+  border-bottom-color: white;
+  font-weight: 600;
+}
+
+.nav-tab span:first-child {
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-top {
+    padding: 10px 16px;
+  }
+  
+  .brand-name {
+    font-size: 20px;
+  }
+  
+  .navigation-tabs {
+    display: none;
+  }
+  
+  .profile-section .profile-text {
+    display: none;
+  }
+  
+  .location-section .location-text p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-top {
+    padding: 8px 12px;
+  }
+  
+  .brand-name {
+    font-size: 18px;
+  }
+}
+
