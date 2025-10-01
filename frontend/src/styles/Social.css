@@ -1,0 +1,61 @@
+/* Basic reset */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.social-page { min-height: 100vh; background: #f8fafc; }
+.social-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 24px clamp(12px,3vw,24px) 48px; }
+
+.social-header { margin-bottom: 12px; }
+.title { font-size: 28px; font-weight: 700; color: #1e293b; letter-spacing: -0.02em; }
+.subtitle { color: #64748b; margin-top: 6px; font-weight: 500; }
+
+.tabs { display: flex; gap: 8px; margin: 12px 0 16px; }
+.tab { border: 1px solid rgba(226,232,240,.9); background: #fff; color: #334155; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.tab.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+/* FEED */
+.feed { display: grid; gap: 16px; }
+.post-card { background: #fff; border: 1px solid rgba(226,232,240,.9); border-radius: 12px; box-shadow: 0 2px 4px -1px rgba(0,0,0,.06); padding: 14px; }
+.post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.avatar { width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(226,232,240,.8); font-weight: 700; color: #475569; }
+.name-row { display: flex; align-items: center; gap: 8px; }
+.name { font-weight: 700; color: #1e293b; }
+.badge { background: #f1f5f9; border: 1px solid rgba(226,232,240,.8); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; color: #475569; }
+.time { color: #94a3b8; font-size: 12px; }
+.text { color: #334155; margin-bottom: 10px; font-weight: 500; }
+.media img { width: 100%; border-radius: 12px; border: 1px solid rgba(226,232,240,.8); }
+.actions { display: flex; gap: 12px; margin-top: 10px; }
+.actions button { border: 0; background: #f1f5f9; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 600; color: #334155; }
+.actions button:hover { background: #e2e8f0; }
+
+/* FIND MATCH */
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.mode-toggle { display: inline-flex; gap: 8px; background: #f1f5f9; border-radius: 12px; padding: 4px; }
+.mode-btn { border: 0; background: transparent; padding: 8px 18px; border-radius: 8px; font-weight: 700; color: #475569; cursor: pointer; }
+.mode-btn.active { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.primary { background: #0f172a; color: #fff; border: 1px solid #0f172a; padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.secondary { background: #fff; color: #0f172a; border: 1px solid rgba(15,23,42,.5); padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.wide { width: 100%; }
+
+.matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.match-card { background: #fff; border: 1px solid rgba(226,232,240,.9); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.match-card .title { font-weight: 800; color: #1e293b; }
+.match-card .sub { color: #64748b; font-weight: 600; }
+.match-card .details { display: flex; flex-direction: column; gap: 6px; color: #334155; }
+.match-card .actions { display: flex; gap: 8px; }
+
+/* LEADERBOARD */
+.panel { background: #fff; border: 1px solid rgba(226,232,240,.9); border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 4px -1px rgba(0,0,0,.06); }
+.rank-card { display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(226,232,240,.8); background: #f8fafc; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.rank-badge { background: #e0e7ff; color: #3730a3; font-weight: 800; border-radius: 999px; padding: 4px 10px; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(226,232,240,.8); }
+
+/* CHATS */
+.chat-list { display: grid; gap: 8px; }
+.chat-item { background: #fff; border: 1px solid rgba(226,232,240,.9); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.chat-item .info { flex: 1; }
+.chat-item .name { font-weight: 700; color: #1e293b; }
+.chat-item .preview { color: #64748b; font-weight: 500; margin-top: 2px; }
+.chat-item .open { color: #0f172a; font-weight: 800; text-decoration: none; border: 1px solid rgba(15,23,42,.5); padding: 6px 10px; border-radius: 10px; }
+
+

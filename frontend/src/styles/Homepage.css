@@ -1,0 +1,339 @@
+/* Basic Reset for Homepage */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* Homepage Styles - Professional Design */
+.homepage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Main Content - Better Spacing */
+.main-content {
+  padding: 32px 0 48px;
+}
+
+.home-container {
+  width: 100%;
+  max-width: 1440px; /* keep page readable on very wide screens */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(12px, 3vw, 24px);
+  padding-right: clamp(12px, 3vw, 24px);
+}
+
+/* Section Styling - Professional Design */
+.section {
+  margin-bottom: 48px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20px;
+  padding-left: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+/* Horizontal Scroll Containers - Foodpanda Style */
+.horizontal-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 8px 0 16px 0; /* no horizontal padding; use container's padding only */
+  scroll-behavior: smooth;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Card Base Styles - Professional Design */
+.card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.card-img-top {
+  width: 100%;
+  object-fit: cover;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* Happening Cards - Foodpanda Style */
+.happening-card {
+  flex: 0 0 280px;
+  cursor: pointer;
+  min-height: 160px;
+}
+
+.happening-card .card-img-top {
+  height: 120px;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #000;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+}
+
+/* Categories - Professional Design */
+.category-card {
+  flex: 0 0 140px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.category-card:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.category-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.category-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.2;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Listing Cards - Foodpanda Style */
+.listing-card {
+  flex: 0 0 240px;
+  cursor: pointer;
+  min-height: 200px;
+}
+
+.listing-card .card-img-top {
+  height: 120px;
+}
+
+.listing-card.full-width {
+  flex: 1;
+  max-width: 300px;
+}
+
+/* Card Content Styling - Professional Typography */
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.card-location {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.rating-star {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.rating-count {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.card-details {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.card-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Text Styles */
+.text-lg { font-size: 18px; }
+.text-base { font-size: 16px; }
+.text-sm { font-size: 14px; }
+.text-xs { font-size: 12px; }
+
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+.text-primary { color: #333; }
+.text-secondary { color: #666; }
+.text-muted { color: #999; }
+
+/* Spacing */
+.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-5 { margin-bottom: 20px; }
+
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+
+/* Flexbox */
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+
+/* Grid */
+.d-grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Discount Overlay */
+.discount-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #000;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 1;
+}
+
+/* Listings Grid */
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 12px;
+  }
+  
+  .happening-card {
+    flex: 0 0 180px;
+  }
+  
+  .listing-card {
+    flex: 0 0 140px;
+  }
+  
+  .categories-grid {
+    gap: 6px;
+  }
+  
+  .category-item {
+    min-height: 50px;
+  }
+  
+  .category-icon {
+    font-size: 18px;
+  }
+  
+  .category-name {
+    font-size: 10px;
+  }
+  
+  .listings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 8px;
+  }
+  
+  .happening-card {
+    flex: 0 0 160px;
+  }
+  
+  .listing-card {
+    flex: 0 0 130px;
+  }
+  
+  .categories-grid {
+    gap: 4px;
+  }
+  
+  .category-item {
+    min-height: 45px;
+  }
+}
