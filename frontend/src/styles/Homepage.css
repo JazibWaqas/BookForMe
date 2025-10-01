@@ -1,0 +1,165 @@
+/* Homepage Specific Styles */
+.homepage {
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* Main Content */
+.main-content {
+  padding-top: var(--spacing-md);
+  padding-bottom: var(--spacing-xl);
+}
+
+/* Horizontal Scroll Containers */
+.horizontal-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: var(--spacing-xs) 0;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Happening Cards - Compact like Foodpanda */
+.happening-card {
+  flex: 0 0 200px;
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+}
+
+.happening-card:hover {
+  transform: translateY(-2px);
+}
+
+.happening-card .card-img-top {
+  height: 100px;
+  object-fit: cover;
+}
+
+.discount-badge {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  z-index: 1;
+}
+
+/* Categories Grid - Square items like Foodpanda */
+.categories-grid {
+  display: grid;
+}
+
+.category-item {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-height: 60px;
+  background-color: var(--color-surface);
+  aspect-ratio: 1;
+}
+
+.category-item:hover {
+  transform: translateY(-1px);
+  background-color: #e9ecef;
+}
+
+.category-icon {
+  display: block;
+}
+
+.category-name {
+  display: block;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+/* Listing Cards - Compact square cards */
+.listing-card {
+  flex: 0 0 160px;
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+}
+
+.listing-card:hover {
+  transform: translateY(-2px);
+}
+
+.listing-card .card-img-top {
+  height: 100px;
+  object-fit: cover;
+}
+
+.listing-card.full-width {
+  flex: 1;
+}
+
+/* Discount Overlay */
+.discount-overlay {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  z-index: 1;
+}
+
+/* Listings Grid */
+.listings-grid {
+  gap: var(--spacing-lg);
+}
+
+/* Responsive Design */
+@media (max-width: 767px) {
+  .happening-card {
+    flex: 0 0 180px;
+  }
+  
+  .listing-card {
+    flex: 0 0 140px;
+  }
+  
+  .categories-grid {
+    gap: var(--spacing-sm);
+  }
+  
+  .category-item {
+    min-height: 50px;
+  }
+  
+  .category-icon {
+    font-size: var(--font-size-lg);
+  }
+  
+  .category-name {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .happening-card {
+    flex: 0 0 160px;
+  }
+  
+  .listing-card {
+    flex: 0 0 130px;
+  }
+  
+  .categories-grid {
+    gap: var(--spacing-xs);
+  }
+  
+  .category-item {
+    min-height: 45px;
+    padding: var(--spacing-xs);
+  }
+}

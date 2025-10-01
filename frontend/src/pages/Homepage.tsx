@@ -1,21 +1,12 @@
 import React, { useState } from 'react';
-import './Homepage.css';
+import Header from '../components/Header';
+import '../styles/Homepage.css';
 
-// Icons (you can replace with actual icon library like Lucide React or Heroicons)
-const HomeIcon = () => <span>🏠</span>;
-const ChatIcon = () => <span>💬</span>;
-const SocialIcon = () => <span>👥</span>;
-const NotificationIcon = () => <span>🔔</span>;
-const ProfileIcon = () => <span>👤</span>;
-const SearchIcon = () => <span>🔍</span>;
-const LocationIcon = () => <span>📍</span>;
-const HeartIcon = () => <span>❤️</span>;
-
+// Types
 interface CategoryItem {
   id: string;
   name: string;
   icon: string;
-  color: string;
 }
 
 interface HappeningItem {
@@ -40,18 +31,17 @@ interface ListingItem {
 
 const Homepage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('home');
 
   // Sample data - replace with actual data from your backend
   const categories: CategoryItem[] = [
-    { id: '1', name: 'Paddle', icon: '🏓', color: '#FF6B6B' },
-    { id: '2', name: 'Cricket', icon: '🏏', color: '#4ECDC4' },
-    { id: '3', name: 'Futsal', icon: '⚽', color: '#45B7D1' },
-    { id: '4', name: 'Gaming Zones', icon: '🎮', color: '#96CEB4' },
-    { id: '5', name: 'Farmhouses', icon: '🏡', color: '#FFEAA7' },
-    { id: '6', name: 'Beach Houses', icon: '🏖️', color: '#DDA0DD' },
-    { id: '7', name: 'Pickleball', icon: '🏸', color: '#98D8C8' },
-    { id: '8', name: 'Tennis', icon: '🎾', color: '#F7DC6F' },
+    { id: '1', name: 'Paddle', icon: '🏓' },
+    { id: '2', name: 'Cricket', icon: '🏏' },
+    { id: '3', name: 'Futsal', icon: '⚽' },
+    { id: '4', name: 'Gaming Zones', icon: '🎮' },
+    { id: '5', name: 'Farmhouses', icon: '🏡' },
+    { id: '6', name: 'Beach Houses', icon: '🏖️' },
+    { id: '7', name: 'Pickleball', icon: '🏸' },
+    { id: '8', name: 'Tennis', icon: '🎾' },
   ];
 
   const happeningItems: HappeningItem[] = [
@@ -174,6 +164,15 @@ const Homepage: React.FC = () => {
     console.log('Searching for:', searchQuery);
   };
 
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleAgentModeClick = () => {
+    // Implement agent mode functionality
+    console.log('Agent mode activated');
+  };
+
   const handleCategoryClick = (category: CategoryItem) => {
     // Navigate to category page or filter listings
     console.log('Category clicked:', category.name);
@@ -186,211 +185,146 @@ const Homepage: React.FC = () => {
 
   return (
     <div className="homepage">
-      {/* Header Navigation */}
-      <header className="header">
-        <div className="header-content">
-          <div className="location">
-            <LocationIcon />
-            <div>
-              <h3>Home</h3>
-              <p>2 Khayaban-e-Seher</p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <HeartIcon />
-            <div className="cart-icon">
-              <span>📋</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Search Bar */}
-      <div className="search-section">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input-container">
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder="Search for courts, gaming zones, and venues"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-        </form>
-      </div>
+      {/* Header Component */}
+      <Header
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        onSearchSubmit={handleSearch}
+        onAgentModeClick={handleAgentModeClick}
+      />
 
       {/* Main Content */}
       <main className="main-content">
-        {/* Happening in Your City */}
-        <section className="section">
-          <h2 className="section-title">Happening in your city</h2>
-          <div className="horizontal-scroll">
-            {happeningItems.map((item) => (
-              <div key={item.id} className="happening-card">
-                <img src={item.image} alt={item.title} />
-                <div className="happening-content">
-                  <h3>{item.title}</h3>
-                  <p>{item.location}</p>
+        <div className="container">
+          {/* Happening in Your City */}
+          <section className="mb-4">
+            <h2 className="text-lg font-semibold text-primary mb-3">Happening in your city</h2>
+            <div className="horizontal-scroll d-flex gap-3">
+              {happeningItems.map((item) => (
+                <div key={item.id} className="card happening-card">
+                  <img src={item.image} alt={item.title} className="card-img-top" />
+                  <div className="card-body p-2">
+                    <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
+                    <p className="text-xs text-secondary mb-0">{item.location}</p>
+                    {item.discount && (
+                      <span className="discount-badge">{item.discount}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Categories */}
+          <section className="mb-4">
+            <h2 className="text-lg font-semibold text-primary mb-3">Categories</h2>
+            <div className="categories-grid grid-cols-4 gap-2">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="category-item card p-2 text-center"
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  <span className="category-icon text-lg mb-1">{category.icon}</span>
+                  <span className="category-name text-xs font-semibold">{category.name}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Your Favorites */}
+          <section className="mb-4">
+            <h2 className="text-lg font-semibold text-primary mb-3">Your favorites</h2>
+            <div className="horizontal-scroll d-flex gap-3">
+              {favorites.map((item) => (
+                <div
+                  key={item.id}
+                  className="card listing-card"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <img src={item.image} alt={item.name} className="card-img-top" />
+                    <div className="card-body p-2">
+                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
+                    <div className="rating d-flex align-items-center gap-1 mb-1">
+                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
+                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    </div>
+                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                      <span>{item.time}</span>
+                      <span>•</span>
+                      <span>{item.category}</span>
+                    </div>
+                    <div className="price text-xs font-semibold">{item.price}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Discounts */}
+          <section className="mb-4">
+            <h2 className="text-lg font-semibold text-primary mb-3">Discounts</h2>
+            <div className="horizontal-scroll d-flex gap-3">
+              {discounts.map((item) => (
+                <div
+                  key={item.id}
+                  className="card listing-card discount-card"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <img src={item.image} alt={item.name} className="card-img-top" />
                   {item.discount && (
-                    <span className="discount-badge">{item.discount}</span>
+                    <div className="discount-overlay">
+                      <span className="discount-text">{item.discount}</span>
+                    </div>
                   )}
+                    <div className="card-body p-2">
+                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
+                    <div className="rating d-flex align-items-center gap-1 mb-1">
+                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
+                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    </div>
+                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                      <span>{item.time}</span>
+                      <span>•</span>
+                      <span>{item.category}</span>
+                    </div>
+                    <div className="price text-xs font-semibold">{item.price}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
 
-        {/* Categories */}
-        <section className="section">
-          <h2 className="section-title">Categories</h2>
-          <div className="categories-grid">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="category-item"
-                onClick={() => handleCategoryClick(category)}
-                style={{ backgroundColor: category.color }}
-              >
-                <span className="category-icon">{category.icon}</span>
-                <span className="category-name">{category.name}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Your Favorites */}
-        <section className="section">
-          <h2 className="section-title">Your favorites</h2>
-          <div className="horizontal-scroll">
-            {favorites.map((item) => (
-              <div
-                key={item.id}
-                className="listing-card"
-                onClick={() => handleItemClick(item)}
-              >
-                <img src={item.image} alt={item.name} />
-                <div className="listing-content">
-                  <h3>{item.name}</h3>
-                  <div className="rating">
-                    <span>⭐ {item.rating}</span>
-                    <span>({item.reviews}+)</span>
+          {/* All Listings */}
+          <section className="mb-4">
+            <h2 className="text-lg font-semibold text-primary mb-3">All venues</h2>
+            <div className="listings-grid d-grid grid-cols-1 grid-cols-md-2 grid-cols-lg-3 gap-4">
+              {allListings.map((item) => (
+                <div
+                  key={item.id}
+                  className="card listing-card full-width"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <img src={item.image} alt={item.name} className="card-img-top" />
+                    <div className="card-body p-2">
+                    <h3 className="text-sm font-semibold mb-1">{item.name}</h3>
+                    <div className="rating d-flex align-items-center gap-1 mb-1">
+                      <span className="text-xs font-semibold">⭐ {item.rating}</span>
+                      <span className="text-xs text-muted">({item.reviews}+)</span>
+                    </div>
+                    <div className="details d-flex align-items-center gap-1 mb-1 text-xs text-secondary">
+                      <span>{item.time}</span>
+                      <span>•</span>
+                      <span>{item.category}</span>
+                    </div>
+                    <div className="price text-xs font-semibold">{item.price}</div>
                   </div>
-                  <div className="details">
-                    <span>{item.time}</span>
-                    <span>•</span>
-                    <span>{item.category}</span>
-                  </div>
-                  <div className="price">{item.price}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Discounts */}
-        <section className="section">
-          <h2 className="section-title">Discounts</h2>
-          <div className="horizontal-scroll">
-            {discounts.map((item) => (
-              <div
-                key={item.id}
-                className="listing-card discount-card"
-                onClick={() => handleItemClick(item)}
-              >
-                <img src={item.image} alt={item.name} />
-                {item.discount && (
-                  <div className="discount-overlay">
-                    <span className="discount-text">{item.discount}</span>
-                  </div>
-                )}
-                <div className="listing-content">
-                  <h3>{item.name}</h3>
-                  <div className="rating">
-                    <span>⭐ {item.rating}</span>
-                    <span>({item.reviews}+)</span>
-                  </div>
-                  <div className="details">
-                    <span>{item.time}</span>
-                    <span>•</span>
-                    <span>{item.category}</span>
-                  </div>
-                  <div className="price">{item.price}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* All Listings */}
-        <section className="section">
-          <h2 className="section-title">All venues</h2>
-          <div className="listings-grid">
-            {allListings.map((item) => (
-              <div
-                key={item.id}
-                className="listing-card full-width"
-                onClick={() => handleItemClick(item)}
-              >
-                <img src={item.image} alt={item.name} />
-                <div className="listing-content">
-                  <h3>{item.name}</h3>
-                  <div className="rating">
-                    <span>⭐ {item.rating}</span>
-                    <span>({item.reviews}+)</span>
-                  </div>
-                  <div className="details">
-                    <span>{item.time}</span>
-                    <span>•</span>
-                    <span>{item.category}</span>
-                  </div>
-                  <div className="price">{item.price}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
-
-      {/* Bottom Navigation */}
-      <nav className="bottom-nav">
-        <div
-          className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
-          onClick={() => setActiveTab('home')}
-        >
-          <HomeIcon />
-          <span>Home</span>
-        </div>
-        <div
-          className={`nav-item ${activeTab === 'chat' ? 'active' : ''}`}
-          onClick={() => setActiveTab('chat')}
-        >
-          <ChatIcon />
-          <span>Chat</span>
-        </div>
-        <div
-          className={`nav-item ${activeTab === 'social' ? 'active' : ''}`}
-          onClick={() => setActiveTab('social')}
-        >
-          <SocialIcon />
-          <span>Social</span>
-        </div>
-        <div
-          className={`nav-item ${activeTab === 'notifications' ? 'active' : ''}`}
-          onClick={() => setActiveTab('notifications')}
-        >
-          <NotificationIcon />
-          <span>Notifications</span>
-        </div>
-        <div
-          className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profile')}
-        >
-          <ProfileIcon />
-          <span>Profile</span>
-        </div>
-      </nav>
     </div>
   );
 };
