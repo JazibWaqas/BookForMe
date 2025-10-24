@@ -1,0 +1,22 @@
+{
+  "element": {
+    "entry": [
+      {
+        "id": "57438975935",
+        "time": 1751483772,
+        "changes": [
+          {
+            "value": {
+              "message_template_id": 12345678,
+              "message_template_name": "my_message_template",
+              "message_template_language": "he",
+              "message_template_element": "Hi {{1}}! Welcome to our service."
+            },
+            "field": "message_template_components_update"
+          }
+        ]
+      }
+    ],
+    "object": "whatsapp_business_account"
+  }
+}
