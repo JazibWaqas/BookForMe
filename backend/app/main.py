@@ -1,20 +1,19 @@
 """
-FastAPI Main Application
+FastAPI Main Application - Simplified for WhatsApp + Firestore
 Entry point for the BookForMe backend server
-Handles webhook endpoints and API routes
+Handles WhatsApp webhook and provides REST API for frontend
 """
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
 
 from app.config import settings
 
 # TODO: Import agents and services when implemented
 # from agents.whatsapp_agent import WhatsAppAgent
-# from services.sheets_service import GoogleSheetsService
+# from services.availability_service import AvailabilityService
 
 # Configure logging
 logging.basicConfig(
@@ -27,10 +26,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
-    description="AI-powered auto-receptionist for booking platform"
+    description="AI-powered WhatsApp booking bot with Firestore backend"
 )
 
-# Add CORS middleware (for web app integration)
+# Add CORS middleware (for frontend integration)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # TODO: Restrict in production
@@ -39,9 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize scheduler for periodic tasks (Google Sheets sync)
-scheduler = AsyncIOScheduler()
-
 
 # ============================================================================
 # STARTUP & SHUTDOWN EVENTS
@@ -49,24 +45,12 @@ scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services and start background tasks"""
+    """Initialize services"""
     logger.info(f"Starting {settings.APP_NAME}...")
     
-    # TODO: Initialize database connection
-    # await database.connect()
-    
-    # TODO: Initialize agents and services
-    # global whatsapp_agent, sheets_service
-    # whatsapp_agent = WhatsAppAgent()
-    # sheets_service = GoogleSheetsService()
-    
-    # Start periodic Google Sheets sync (Member 4)
-    # scheduler.add_job(
-    #     sync_all_vendor_sheets,
-    #     'interval',
-    #     minutes=settings.SHEET_SYNC_INTERVAL_MINUTES
-    # )
-    # scheduler.start()
+    # TODO: Initialize Firestore connection
+    # from app.firestore import firestore_db
+    # await firestore_db.test_connection()
     
     logger.info("Server started successfully!")
 
@@ -75,14 +59,6 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on server shutdown"""
     logger.info("Shutting down server...")
-    
-    # Stop scheduler
-    if scheduler.running:
-        scheduler.shutdown()
-    
-    # TODO: Close database connection
-    # await database.disconnect()
-    
     logger.info("Server shut down successfully")
 
 
@@ -97,6 +73,7 @@ async def root():
         "service": settings.APP_NAME,
         "version": "0.1.0",
         "status": "running",
+        "description": "WhatsApp booking bot with Firestore backend",
         "endpoints": {
             "whatsapp_webhook": "/webhook/whatsapp",
             "health": "/health",
@@ -110,8 +87,9 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "database": "connected",  # TODO: Check actual DB connection
-        "redis": "connected",     # TODO: Check actual Redis connection
+        "database": "firestore",  # TODO: Check actual Firestore connection
+        "ai": "gemini",           # TODO: Check Gemini API connection
+        "whatsapp": "twilio"      # TODO: Check Twilio connection
     }
 
 
@@ -137,18 +115,19 @@ async def whatsapp_webhook(request: Request):
         incoming_msg = form_data.get('Body', '').strip()
         phone_number = form_data.get('From', '')
         
-        logger.info(f"Received WhatsApp message from {phone_number}: {incoming_msg}")
+        logger.info(f"📱 Received WhatsApp message from {phone_number}: {incoming_msg}")
         
-        # TODO: Process message through agent (Member 1)
+        # TODO: Process message through WhatsApp agent (Member 1)
         # response_text = await whatsapp_agent.process_message(phone_number, incoming_msg)
         
         # Temporary response for testing
-        response_text = "Hello! BookForMe backend is working. (Integration pending)"
+        response_text = f"Hello! BookForMe bot received your message: '{incoming_msg}'. Integration pending..."
         
-        # TODO: Return proper Twilio TwiML response
+        # TODO: Return proper Twilio TwiML response (Member 1)
         return {
             "message": response_text,
-            "status": "success"
+            "status": "success",
+            "phone_number": phone_number
         }
         
     except Exception as e:
@@ -160,79 +139,87 @@ async def whatsapp_webhook(request: Request):
 
 
 # ============================================================================
-# REST API ENDPOINTS (For Web App - Member 3)
+# REST API ENDPOINTS (For Frontend Dashboard)
 # ============================================================================
 
 @app.get("/api/vendors")
 async def get_vendors():
     """Get list of all vendors"""
-    # TODO: Member 3 - Query vendors from database
-    return {"vendors": []}
+    # TODO: Member 3 - Query vendors from Firestore
+    return {
+        "vendors": [
+            {
+                "id": "vendor1",
+                "name": "Karachi Futsal Arena",
+                "service_type": "futsal",
+                "whatsapp_connected": True
+            },
+            {
+                "id": "vendor2", 
+                "name": "Elite Salon & Spa",
+                "service_type": "salon",
+                "whatsapp_connected": True
+            }
+        ]
+    }
 
 
 @app.get("/api/vendors/{vendor_id}/availability")
-async def get_vendor_availability(vendor_id: int, date: str):
+async def get_vendor_availability(vendor_id: str, date: str):
     """
     Get available time slots for a vendor on a specific date
     
     Member 3: Implement availability checking
-    - Query availability_slots table
+    - Query availability_slots collection in Firestore
     - Filter by vendor_id, date, and status='available'
     - Return list of available time slots
     """
-    # TODO: Member 3 - Query availability from database
+    # TODO: Member 3 - Query availability from Firestore
     return {
         "vendor_id": vendor_id,
         "date": date,
-        "available_slots": []
+        "available_slots": [
+            {"time": "14:00", "price": 2000.0, "status": "available"},
+            {"time": "15:00", "price": 2000.0, "status": "available"},
+            {"time": "16:00", "price": 2000.0, "status": "available"}
+        ]
     }
 
 
 @app.post("/api/bookings")
 async def create_booking(booking_data: dict):
     """
-    Create a new booking via web app
+    Create a new booking via frontend
     
-    Member 3: Implement booking creation with concurrency control
+    Member 3: Implement booking creation with Firestore transaction
     - Use availability_service.check_and_book_slot()
-    - Apply row-level locking to prevent double-booking
+    - Apply Firestore transaction to prevent double-booking
     - Return booking confirmation
     """
-    # TODO: Member 3 - Create booking with locking
+    # TODO: Member 3 - Create booking with Firestore transaction
     return {
         "success": False,
-        "message": "Booking endpoint not yet implemented"
+        "message": "Booking endpoint not yet implemented",
+        "booking_data": booking_data
     }
 
 
-# ============================================================================
-# BACKGROUND TASKS (Member 4 - Google Sheets Integration)
-# ============================================================================
-
-async def sync_all_vendor_sheets():
+@app.get("/api/vendors/{vendor_id}/bookings")
+async def get_vendor_bookings(vendor_id: str, date: str = None):
     """
-    Periodic task to sync vendor Google Sheets with database
-    Runs every SHEET_SYNC_INTERVAL_MINUTES minutes
+    Get bookings for a vendor
     
-    Member 4: Implement this function
-    - Get all vendors with sheet_id from database
-    - For each vendor, call sheets_service.sync_to_database()
-    - Handle errors gracefully (log and continue)
-    
-    Reference: WhatsAppCabBookingBot cron pattern lines 291-327
+    Member 3: Implement booking retrieval
+    - Query bookings collection in Firestore
+    - Filter by vendor_id and optionally by date
+    - Return list of bookings
     """
-    logger.info("Starting periodic Google Sheets sync...")
-    
-    # TODO: Member 4 - Implement sheet sync
-    # vendors = await db.get_vendors_with_sheets()
-    # for vendor in vendors:
-    #     try:
-    #         await sheets_service.sync_to_database(vendor.id, vendor.sheet_id)
-    #         logger.info(f"Synced sheet for vendor {vendor.id}")
-    #     except Exception as e:
-    #         logger.error(f"Sheet sync failed for vendor {vendor.id}: {e}")
-    
-    logger.info("Google Sheets sync completed")
+    # TODO: Member 3 - Query bookings from Firestore
+    return {
+        "vendor_id": vendor_id,
+        "date": date,
+        "bookings": []
+    }
 
 
 # ============================================================================
@@ -247,4 +234,3 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.DEBUG
     )
-

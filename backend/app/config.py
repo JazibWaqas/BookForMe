@@ -1,6 +1,6 @@
 """
 Configuration and settings management
-Loads environment variables and provides app-wide configuration
+Simplified for WhatsApp + Firestore workflow
 """
 
 from pydantic_settings import BaseSettings
@@ -15,9 +15,6 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     
-    # Database
-    DATABASE_URL: str
-    
     # AI/NLU (Gemini)
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-1.5-pro-latest"
@@ -27,14 +24,9 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str
     TWILIO_PHONE_NUMBER: str
     
-    # Google Sheets
-    GOOGLE_SHEETS_CREDENTIALS_FILE: str
-    
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    
-    # Google Sheets Sync
-    SHEET_SYNC_INTERVAL_MINUTES: int = 2
+    # Firestore (instead of PostgreSQL)
+    FIRESTORE_PROJECT_ID: str
+    FIRESTORE_CREDENTIALS_FILE: str = "./credentials/firestore-service-account.json"
     
     # Logging
     LOG_LEVEL: str = "INFO"
@@ -46,4 +38,3 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
-
