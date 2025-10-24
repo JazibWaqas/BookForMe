@@ -11,9 +11,9 @@ import logging
 
 from app.config import settings
 
-# TODO: Import agents and services when implemented
-# from agents.whatsapp_agent import WhatsAppAgent
-# from services.availability_service import AvailabilityService
+# Import from modular structure
+from whatsapp.webhook import WhatsAppWebhookHandler
+from database.rest_api import router as rest_api_router
 
 # Configure logging
 logging.basicConfig(
@@ -28,6 +28,9 @@ app = FastAPI(
     version="0.1.0",
     description="AI-powered WhatsApp booking bot with Firestore backend"
 )
+
+# Include REST API router
+app.include_router(rest_api_router)
 
 # Add CORS middleware (for frontend integration)
 app.add_middleware(
@@ -47,6 +50,10 @@ app.add_middleware(
 async def startup_event():
     """Initialize services"""
     logger.info(f"Starting {settings.APP_NAME}...")
+    
+    # Initialize WhatsApp webhook handler
+    global whatsapp_handler
+    whatsapp_handler = WhatsAppWebhookHandler()
     
     # TODO: Initialize Firestore connection
     # from app.firestore import firestore_db
@@ -101,34 +108,15 @@ async def health_check():
 async def whatsapp_webhook(request: Request):
     """
     Webhook endpoint for receiving WhatsApp messages via Twilio
-    
-    Member 1: Implement this endpoint
-    - Parse incoming Twilio request (form data)
-    - Extract message body and phone number
-    - Call whatsapp_agent.process_message()
-    - Return TwiML response
-    
-    Reference: FlightChatbot app.py lines 700-725
     """
     try:
-        form_data = await request.form()
-        incoming_msg = form_data.get('Body', '').strip()
-        phone_number = form_data.get('From', '')
+        # Use WhatsApp webhook handler
+        result = await whatsapp_handler.handle_webhook(request)
         
-        logger.info(f"📱 Received WhatsApp message from {phone_number}: {incoming_msg}")
-        
-        # TODO: Process message through WhatsApp agent (Member 1)
-        # response_text = await whatsapp_agent.process_message(phone_number, incoming_msg)
-        
-        # Temporary response for testing
-        response_text = f"Hello! BookForMe bot received your message: '{incoming_msg}'. Integration pending..."
-        
-        # TODO: Return proper Twilio TwiML response (Member 1)
-        return {
-            "message": response_text,
-            "status": "success",
-            "phone_number": phone_number
-        }
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
         
     except Exception as e:
         logger.error(f"WhatsApp webhook error: {e}")
@@ -138,88 +126,8 @@ async def whatsapp_webhook(request: Request):
         )
 
 
-# ============================================================================
-# REST API ENDPOINTS (For Frontend Dashboard)
-# ============================================================================
-
-@app.get("/api/vendors")
-async def get_vendors():
-    """Get list of all vendors"""
-    # TODO: Member 3 - Query vendors from Firestore
-    return {
-        "vendors": [
-            {
-                "id": "vendor1",
-                "name": "Karachi Futsal Arena",
-                "service_type": "futsal",
-                "whatsapp_connected": True
-            },
-            {
-                "id": "vendor2", 
-                "name": "Elite Salon & Spa",
-                "service_type": "salon",
-                "whatsapp_connected": True
-            }
-        ]
-    }
-
-
-@app.get("/api/vendors/{vendor_id}/availability")
-async def get_vendor_availability(vendor_id: str, date: str):
-    """
-    Get available time slots for a vendor on a specific date
-    
-    Member 3: Implement availability checking
-    - Query availability_slots collection in Firestore
-    - Filter by vendor_id, date, and status='available'
-    - Return list of available time slots
-    """
-    # TODO: Member 3 - Query availability from Firestore
-    return {
-        "vendor_id": vendor_id,
-        "date": date,
-        "available_slots": [
-            {"time": "14:00", "price": 2000.0, "status": "available"},
-            {"time": "15:00", "price": 2000.0, "status": "available"},
-            {"time": "16:00", "price": 2000.0, "status": "available"}
-        ]
-    }
-
-
-@app.post("/api/bookings")
-async def create_booking(booking_data: dict):
-    """
-    Create a new booking via frontend
-    
-    Member 3: Implement booking creation with Firestore transaction
-    - Use availability_service.check_and_book_slot()
-    - Apply Firestore transaction to prevent double-booking
-    - Return booking confirmation
-    """
-    # TODO: Member 3 - Create booking with Firestore transaction
-    return {
-        "success": False,
-        "message": "Booking endpoint not yet implemented",
-        "booking_data": booking_data
-    }
-
-
-@app.get("/api/vendors/{vendor_id}/bookings")
-async def get_vendor_bookings(vendor_id: str, date: str = None):
-    """
-    Get bookings for a vendor
-    
-    Member 3: Implement booking retrieval
-    - Query bookings collection in Firestore
-    - Filter by vendor_id and optionally by date
-    - Return list of bookings
-    """
-    # TODO: Member 3 - Query bookings from Firestore
-    return {
-        "vendor_id": vendor_id,
-        "date": date,
-        "bookings": []
-    }
+# REST API endpoints are now handled by the database.rest_api module
+# See database/rest_api.py for all API endpoints
 
 
 # ============================================================================

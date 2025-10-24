@@ -1,9 +1,6 @@
 """
 State Manager - Firestore-based conversation state management
-Member 2: NLU & Conversation Logic Lead
-
-This service manages WhatsApp conversation state using Firestore.
-Much simpler than Redis - just store conversation context in Firestore.
+Handles conversation state for WhatsApp interactions
 """
 
 import logging

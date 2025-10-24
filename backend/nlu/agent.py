@@ -1,12 +1,6 @@
 """
 NLU Agent - Natural Language Understanding using Gemini API
-Member 2: NLU & Conversation Logic Lead
-
-This agent handles:
-1. Intent extraction (greeting, booking, confirmation, etc.)
-2. Entity extraction (date, time, service, customer name)
-3. Roman Urdu/English mixed language support
-4. Conversation context understanding
+Handles intent extraction and entity recognition for Roman Urdu/English mixed language
 """
 
 import logging

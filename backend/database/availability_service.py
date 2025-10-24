@@ -1,9 +1,6 @@
 """
 Availability Service - Firestore-based slot checking and booking
-Member 3: Database & Availability Logic Lead
-
-This service handles availability checking and booking creation using Firestore
-transactions to prevent double-bookings. Much simpler than PostgreSQL!
+Handles availability checking and booking creation using Firestore transactions
 """
 
 import logging

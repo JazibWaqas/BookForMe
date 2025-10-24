@@ -1,10 +1,8 @@
 """
 WhatsApp Agent - Conversation state machine for WhatsApp booking flow
-Member 1: WhatsApp Channel Lead
-
-This agent handles the complete WhatsApp conversation flow:
+Handles the complete WhatsApp conversation flow:
 1. Greeting → Service Selection → Date → Time → Confirmation → Booking
-2. Uses Firestore for state management (no Redis needed)
+2. Uses Firestore for state management
 3. Integrates with NLU agent and availability service
 """
 
@@ -13,9 +11,9 @@ from typing import Dict, Any, Optional
 from app.config import settings
 
 # TODO: Import when implemented
-# from agents.nlu_agent import NLUAgent
-# from services.availability_service import AvailabilityService
-# from utils.state_manager import StateManager
+# from nlu.agent import NLUAgent
+# from database.availability_service import AvailabilityService
+# from nlu.state_manager import StateManager
 # from utils.helpers import format_booking_confirmation, format_availability_message
 
 logger = logging.getLogger(__name__)
