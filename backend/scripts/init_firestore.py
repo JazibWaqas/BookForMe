@@ -17,7 +17,7 @@ from app.config import settings
 
 async def init_firestore():
     """Initialize Firestore with sample data"""
-    print("🔥 Initializing Firestore database...")
+    print("Initializing Firestore database...")
     
     try:
         # Create sample vendors
@@ -42,25 +42,25 @@ async def init_firestore():
             }
         ]
         
-        print("📝 Creating sample vendors...")
+        print("Creating sample vendors...")
         for vendor_data in vendors:
             # Add vendor to Firestore
             doc_ref = firestore_db.db.collection('vendors').document()
             doc_ref.set(vendor_data)
             vendor_id = doc_ref.id
-            print(f"✅ Created vendor: {vendor_data['name']} (ID: {vendor_id})")
+            print(f"Created vendor: {vendor_data['name']} (ID: {vendor_id})")
             
             # Create availability slots for the next 7 days
             await create_sample_slots(vendor_id, vendor_data['service_type'])
         
-        print("🎉 Firestore initialization completed successfully!")
-        print("\n📋 Sample data created:")
+        print("Firestore initialization completed successfully!")
+        print("\nSample data created:")
         print("- 2 vendors (1 futsal, 1 salon)")
         print("- 7 days of availability slots")
         print("- Ready for WhatsApp testing!")
         
     except Exception as e:
-        print(f"❌ Error initializing Firestore: {e}")
+        print(f"Error initializing Firestore: {e}")
         raise
 
 
@@ -109,7 +109,7 @@ async def create_sample_slots(vendor_id: str, service_type: str):
             
             firestore_db.db.collection('availability_slots').add(slot_doc)
     
-    print(f"✅ Created {len(time_slots)} slots for 7 days for vendor {vendor_id}")
+    print(f"Created {len(time_slots)} slots for 7 days for vendor {vendor_id}")
 
 
 async def test_connection():
@@ -120,20 +120,20 @@ async def test_connection():
         vendor_list = list(vendors)
         
         if vendor_list:
-            print("✅ Firestore connection successful!")
+            print("Firestore connection successful!")
             print(f"Found {len(vendor_list)} vendors in database")
         else:
-            print("⚠️ Firestore connected but no data found")
+            print("Firestore connected but no data found")
         
         return True
         
     except Exception as e:
-        print(f"❌ Firestore connection failed: {e}")
+        print(f"Firestore connection failed: {e}")
         return False
 
 
 if __name__ == "__main__":
-    print("🚀 BookForMe Firestore Initialization")
+    print("BookForMe Firestore Initialization")
     print("=" * 50)
     
     # Test connection first
@@ -141,8 +141,8 @@ if __name__ == "__main__":
         # Initialize database
         asyncio.run(init_firestore())
     else:
-        print("❌ Cannot proceed without Firestore connection")
-        print("\n🔧 Setup instructions:")
+        print("Cannot proceed without Firestore connection")
+        print("\nSetup instructions:")
         print("1. Create a Google Cloud project")
         print("2. Enable Firestore API")
         print("3. Create a service account")

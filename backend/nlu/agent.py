@@ -118,7 +118,7 @@ Message: "{message}"
 Context: {context}
 
 Possible intents:
-- greeting: Hello, hi, salam, assalam
+- greeting: Hello, hi, salam, assalam, hey
 - booking_request: Want to book, need slot, book futsal, book salon
 - service_selection: Choose futsal, choose salon, select service
 - date_selection: Tomorrow, next Friday, 15th January, specific date
@@ -132,7 +132,7 @@ Extract entities:
 - date: tomorrow, today, specific date
 - time: 5pm, evening, morning, specific time
 - customer_name: My name is Ahmed, I am Ali
-- phone_number: 03001234567, +923001234567
+- sex: Male, Female
 
 Respond in JSON format:
 {{
@@ -141,9 +141,9 @@ Respond in JSON format:
         "service_type": "futsal",
         "date": "tomorrow",
         "time": "5pm",
-        "customer_name": "Ahmed"
+        "customer_name": "Ahmad"
     }},
-    "confidence": 0.95
+    "confidence": 0.99
 }}
 """
     
@@ -166,7 +166,7 @@ Respond in JSON format:
     "service_type": "futsal",
     "date": "2025-01-15",
     "time": "17:00",
-    "customer_name": "Ahmed",
+    "customer_name": "Ahmad",
     "phone_number": "+923001234567"
 }}
 """
