@@ -2,6 +2,7 @@
 """
 Railway deployment entry point
 This file helps Railway detect this as a Python project
+Updated to force redeploy
 """
 import os
 import sys
