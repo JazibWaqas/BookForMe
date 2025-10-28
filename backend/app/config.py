@@ -9,7 +9,9 @@ from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+import os
+env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+load_dotenv(env_path)
 
 
 class Settings(BaseSettings):
@@ -31,7 +33,7 @@ class Settings(BaseSettings):
     
     # Firestore (instead of PostgreSQL)
     FIRESTORE_PROJECT_ID: str
-    FIRESTORE_CREDENTIALS_FILE: str = "./credentials/firestore-service-account.json"
+    FIRESTORE_CREDENTIALS_FILE: str = "./backend/credentials/firestore-service-account.json"
     
     # Logging
     LOG_LEVEL: str = "INFO"

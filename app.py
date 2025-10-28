@@ -1,51 +1,23 @@
 #!/usr/bin/env python3
 """
-Railway entry point - alternative to main.py
+Railway deployment entry point - imports from backend structure
 """
 import os
-from fastapi import FastAPI
+import sys
 
-app = FastAPI()
+# Add backend to Python path
+sys.path.insert(0, 'backend')
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "message": "BookForMe backend is running"}
+# Fix Firestore credentials path for Railway deployment
+os.environ['FIRESTORE_CREDENTIALS_FILE'] = './backend/credentials/firestore-service-account.json'
 
-@app.get("/healthz")
-async def health_check_alt():
-    """Alternative health check endpoint"""
-    return {"status": "ok"}
-
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {"message": "BookForMe Backend API"}
-
-@app.get("/webhook/whatsapp")
-async def whatsapp_webhook_get(hub_mode: str = None, hub_verify_token: str = None, hub_challenge: str = None):
-    """WhatsApp webhook verification (GET)"""
-    print(f"Webhook verification: mode={hub_mode}, token={hub_verify_token}, challenge={hub_challenge}")
-    
-    # Verify the webhook
-    expected_token = "bookforme_secret_2024"
-    
-    if hub_mode == "subscribe" and hub_verify_token == expected_token:
-        print("✅ Webhook verified successfully!")
-        return int(hub_challenge)
-    else:
-        print(f"❌ Webhook verification failed - Expected: {expected_token}, Got: {hub_verify_token}")
-        return {"error": "Verification failed"}, 403
-
-@app.post("/webhook/whatsapp")
-async def whatsapp_webhook_post():
-    """WhatsApp webhook for messages (POST)"""
-    return {"message": "WhatsApp message received"}
+# Import the main FastAPI app from backend
+from backend.app.main import app
 
 if __name__ == "__main__":
     import uvicorn
     print("=== BookForMe Backend Starting ===")
-    print(f"Python version: {os.sys.version}")
+    print(f"Python version: {sys.version}")
     print(f"Working directory: {os.getcwd()}")
     print(f"Environment PORT: {os.environ.get('PORT', 'NOT SET')}")
     

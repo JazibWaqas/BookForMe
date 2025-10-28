@@ -8,6 +8,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Copy backend code
+COPY backend/ ./backend/
+
 # Copy main entry point
 COPY app.py .
 
