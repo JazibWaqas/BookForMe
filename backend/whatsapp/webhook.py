@@ -35,6 +35,9 @@ class WhatsAppWebhookHandler:
             # Parse JSON data from Meta API
             data = await request.json()
             
+            # Debug: Log the received data
+            logger.info(f"📥 Received webhook data: {data}")
+            
             # Extract message data from Meta webhook format
             if 'entry' in data and len(data['entry']) > 0:
                 entry = data['entry'][0]
