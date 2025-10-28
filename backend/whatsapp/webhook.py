@@ -64,6 +64,11 @@ class WhatsAppWebhookHandler:
                 logger.info("No entry in webhook data")
                 return {"status": "success", "message": "No entry"}
             
+            # Only process if we have valid message data
+            if not phone_number or not incoming_msg:
+                logger.info("No valid message data to process")
+                return {"status": "success", "message": "No valid message data"}
+            
             # Process message through WhatsApp agent
             response_text = await self.whatsapp_agent.process_message(phone_number, incoming_msg)
             
