@@ -19,13 +19,28 @@ class FirestoreDB:
     def __init__(self):
         """Initialize Firestore client"""
         try:
-            # Set credentials file path if not already set
-            if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+            # Use Railway environment variable if available, otherwise use file
+            if settings.GOOGLE_APPLICATION_CREDENTIALS:
+                # Railway provides JSON content directly
+                import json
+                import tempfile
+                
+                # Create temporary file with credentials
+                creds_data = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    json.dump(creds_data, f)
+                    temp_file = f.name
+                
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_file
+                logger.info("Using Railway Firestore credentials from environment variable")
+            else:
+                # Fallback to file path
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.FIRESTORE_CREDENTIALS_FILE
+                logger.info("Using Firestore credentials from file")
             
             # Initialize Firestore client
             self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
-            logger.info("Firestore client initialized")
+            logger.info("Firestore client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Firestore: {e}")
             # Don't raise - allow app to start without Firestore

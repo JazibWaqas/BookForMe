@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # Firestore (instead of PostgreSQL)
     FIRESTORE_PROJECT_ID: str
     FIRESTORE_CREDENTIALS_FILE: str = "./backend/credentials/firestore-service-account.json"
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     
     # Logging
     LOG_LEVEL: str = "INFO"
