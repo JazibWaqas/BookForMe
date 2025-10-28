@@ -9,10 +9,10 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy main entry point
-COPY main.py .
+COPY app.py .
 
 # Expose port
 EXPOSE 8000
 
 # Start the application
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]
