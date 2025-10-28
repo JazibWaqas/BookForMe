@@ -104,10 +104,40 @@ async def health_check():
 # WHATSAPP WEBHOOK (Member 1 - WhatsApp Channel Lead)
 # ============================================================================
 
+@app.get("/webhook/whatsapp")
+async def whatsapp_webhook_verify(request: Request):
+    """
+    Webhook verification endpoint for Meta WhatsApp
+    """
+    try:
+        # Get verification parameters
+        mode = request.query_params.get("hub.mode")
+        token = request.query_params.get("hub.verify_token")
+        challenge = request.query_params.get("hub.challenge")
+        
+        # Verify the webhook
+        if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+            logger.info("WhatsApp webhook verified successfully")
+            return int(challenge)
+        else:
+            logger.error("WhatsApp webhook verification failed")
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Forbidden"}
+            )
+            
+    except Exception as e:
+        logger.error(f"WhatsApp webhook verification error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error"}
+        )
+
+
 @app.post("/webhook/whatsapp")
 async def whatsapp_webhook(request: Request):
     """
-    Webhook endpoint for receiving WhatsApp messages via Twilio
+    Webhook endpoint for receiving WhatsApp messages via Meta API
     """
     try:
         # Use WhatsApp webhook handler

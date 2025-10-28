@@ -32,12 +32,34 @@ class WhatsAppWebhookHandler:
             Response for Twilio
         """
         try:
-            # Parse form data from Twilio
-            form_data = await request.form()
-            incoming_msg = form_data.get('Body', '').strip()
-            phone_number = form_data.get('From', '')
+            # Parse JSON data from Meta API
+            data = await request.json()
             
-            logger.info(f"📱 Received WhatsApp message from {phone_number}: {incoming_msg}")
+            # Extract message data from Meta webhook format
+            if 'entry' in data and len(data['entry']) > 0:
+                entry = data['entry'][0]
+                if 'changes' in entry and len(entry['changes']) > 0:
+                    change = entry['changes'][0]
+                    if 'value' in change and 'messages' in change['value']:
+                        messages = change['value']['messages']
+                        if len(messages) > 0:
+                            message = messages[0]
+                            incoming_msg = message.get('text', {}).get('body', '').strip()
+                            phone_number = message.get('from', '')
+                            
+                            logger.info(f"📱 Received WhatsApp message from {phone_number}: {incoming_msg}")
+                        else:
+                            logger.info("No messages in webhook data")
+                            return {"status": "success", "message": "No messages to process"}
+                    else:
+                        logger.info("No message data in webhook")
+                        return {"status": "success", "message": "No message data"}
+                else:
+                    logger.info("No changes in webhook data")
+                    return {"status": "success", "message": "No changes"}
+            else:
+                logger.info("No entry in webhook data")
+                return {"status": "success", "message": "No entry"}
             
             # Process message through WhatsApp agent
             response_text = await self.whatsapp_agent.process_message(phone_number, incoming_msg)

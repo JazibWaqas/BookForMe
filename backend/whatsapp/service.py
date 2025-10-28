@@ -1,34 +1,33 @@
 """
-WhatsApp Service - Twilio integration for message sending
-Handles WhatsApp message sending via Twilio API
+WhatsApp Service - Meta Business API integration for message sending
+Handles WhatsApp message sending via Meta WhatsApp Business API
 """
 
 import logging
+import requests
 from typing import Dict, Any, Optional
-from twilio.rest import Client
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class WhatsAppService:
-    """WhatsApp service for sending messages via Twilio"""
+    """WhatsApp service for sending messages via Meta Business API"""
     
     def __init__(self):
-        """Initialize WhatsApp service with Twilio client"""
+        """Initialize WhatsApp service with Meta API"""
         try:
-            self.client = Client(
-                settings.TWILIO_ACCOUNT_SID,
-                settings.TWILIO_AUTH_TOKEN
-            )
-            logger.info("WhatsApp Service initialized with Twilio")
+            self.access_token = settings.WHATSAPP_ACCESS_TOKEN
+            self.phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
+            self.api_url = f"https://graph.facebook.com/v22.0/{self.phone_number_id}/messages"
+            logger.info("WhatsApp Service initialized with Meta Business API")
         except Exception as e:
-            logger.error(f"Failed to initialize Twilio client: {e}")
+            logger.error(f"Failed to initialize Meta WhatsApp client: {e}")
             raise
     
     async def send_message(self, to_phone: str, message: str) -> Dict[str, Any]:
         """
-        Send WhatsApp message via Twilio
+        Send WhatsApp message via Meta Business API
         
         Args:
             to_phone: Recipient phone number
@@ -40,22 +39,45 @@ class WhatsAppService:
         try:
             logger.info(f"Sending WhatsApp message to {to_phone}")
             
-            # Send message via Twilio
-            message_obj = self.client.messages.create(
-                body=message,
-                from_=settings.TWILIO_PHONE_NUMBER,
-                to=f"whatsapp:{to_phone}"
-            )
-            
-            result = {
-                'success': True,
-                'message_sid': message_obj.sid,
-                'status': message_obj.status,
-                'to': to_phone
+            # Prepare message data for Meta API
+            message_data = {
+                "messaging_product": "whatsapp",
+                "to": to_phone,
+                "type": "text",
+                "text": {
+                    "body": message
+                }
             }
             
-            logger.info(f"Message sent successfully: {message_obj.sid}")
-            return result
+            # Send message via Meta API
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(
+                self.api_url,
+                json=message_data,
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                result = {
+                    'success': True,
+                    'message_id': result_data.get('messages', [{}])[0].get('id'),
+                    'status': 'sent',
+                    'to': to_phone
+                }
+                logger.info(f"Message sent successfully: {result['message_id']}")
+                return result
+            else:
+                logger.error(f"Meta API error: {response.status_code} - {response.text}")
+                return {
+                    'success': False,
+                    'error': f"API error: {response.status_code}",
+                    'to': to_phone
+                }
             
         except Exception as e:
             logger.error(f"Failed to send WhatsApp message: {e}")

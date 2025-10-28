@@ -6,6 +6,10 @@ Simplified for WhatsApp + Firestore workflow
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -20,10 +24,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-pro-latest"
     
-    # WhatsApp (Twilio) - Optional for now
-    TWILIO_ACCOUNT_SID: Optional[str] = None
-    TWILIO_AUTH_TOKEN: Optional[str] = None
-    TWILIO_PHONE_NUMBER: Optional[str] = None
+    # WhatsApp (Meta Business API)
+    WHATSAPP_ACCESS_TOKEN: str
+    WHATSAPP_PHONE_NUMBER_ID: str
+    WHATSAPP_VERIFY_TOKEN: str
     
     # Firestore (instead of PostgreSQL)
     FIRESTORE_PROJECT_ID: str
@@ -41,6 +45,7 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = False
 
 
