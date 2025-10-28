@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Force fresh build
+# Force fresh build - Railway cache bust
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
