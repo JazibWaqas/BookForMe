@@ -8,8 +8,16 @@ import sys
 # Add backend to Python path
 sys.path.insert(0, 'backend')
 
-# Fix Firestore credentials path for Railway deployment
-os.environ['FIRESTORE_CREDENTIALS_FILE'] = './backend/credentials/firestore-service-account.json'
+# Fix Firestore credentials for Railway deployment
+# Try to use environment variable first, then fallback to file
+if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+    # If no env var, try to use the file
+    firestore_file = './backend/credentials/firestore-service-account.json'
+    if os.path.exists(firestore_file):
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = firestore_file
+    else:
+        # If no file, set a dummy path to prevent crashes
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/tmp/dummy.json'
 
 # Import the main FastAPI app from backend
 from backend.app.main import app

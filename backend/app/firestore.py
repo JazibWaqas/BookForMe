@@ -19,15 +19,17 @@ class FirestoreDB:
     def __init__(self):
         """Initialize Firestore client"""
         try:
-            # Set credentials file path
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.FIRESTORE_CREDENTIALS_FILE
+            # Set credentials file path if not already set
+            if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.FIRESTORE_CREDENTIALS_FILE
             
             # Initialize Firestore client
             self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
             logger.info("Firestore client initialized")
         except Exception as e:
             logger.error(f"Failed to initialize Firestore: {e}")
-            raise
+            # Don't raise - allow app to start without Firestore
+            self.db = None
     
     # ============================================================================
     # VENDOR OPERATIONS
