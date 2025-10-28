@@ -38,6 +38,10 @@ class WhatsAppWebhookHandler:
             # Debug: Log the received data
             logger.info(f"📥 Received webhook data: {data}")
             
+            # Initialize variables
+            phone_number = None
+            incoming_msg = None
+            
             # Extract message data from Meta webhook format
             if 'entry' in data and len(data['entry']) > 0:
                 entry = data['entry'][0]
@@ -89,6 +93,8 @@ class WhatsAppWebhookHandler:
             
         except Exception as e:
             logger.error(f"❌ Webhook processing failed: {e}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             return {
                 "status": "error",
                 "message": str(e),
