@@ -1,39 +1,31 @@
 #!/usr/bin/env python3
 """
-Railway deployment entry point
+Minimal test version for Railway - just health check
 """
 import os
-import subprocess
-import sys
-import time
+from fastapi import FastAPI
 
-def main():
-    """Main entry point with error handling"""
+app = FastAPI()
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "message": "BookForMe backend is running"}
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "BookForMe Backend API"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Get port from environment, default to 8000
+    port = os.environ.get("PORT", "8000")
+    # Convert to int and handle any issues
     try:
-        # Change to backend directory
-        os.chdir('backend')
-        print("Changed to backend directory")
-        
-        # Get port from environment
-        port = os.environ.get('PORT', '8000')
-        print(f"Starting server on port {port}")
-        
-        # Check if required files exist
-        if not os.path.exists('app/main.py'):
-            print("ERROR: app/main.py not found!")
-            sys.exit(1)
-        
-        # Start the FastAPI server
-        subprocess.run([
-            sys.executable, '-m', 'uvicorn', 
-            'app.main:app', 
-            '--host', '0.0.0.0', 
-            '--port', str(port)
-        ])
-        
-    except Exception as e:
-        print(f"ERROR: {e}")
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
+        port = int(port)
+    except (ValueError, TypeError):
+        port = 8000
+    
+    print(f"Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
