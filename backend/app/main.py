@@ -115,10 +115,14 @@ async def whatsapp_webhook_verify(request: Request):
         token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
         
+        # Debug: Log verification parameters
+        logger.info(f"Webhook verification: mode={mode}, token={token}, challenge={challenge}")
+        logger.info(f"Expected token: {settings.WHATSAPP_VERIFY_TOKEN}")
+        
         # Verify the webhook
         if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
             logger.info("WhatsApp webhook verified successfully")
-            return int(challenge)
+            return challenge  # Return as string, not int
         else:
             logger.error("WhatsApp webhook verification failed")
             return JSONResponse(
