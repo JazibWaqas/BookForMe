@@ -6,8 +6,8 @@ python-multipart>=0.0.6
 # AI/NLU (Gemini)
 google-generativeai>=0.3.0
 
-# WhatsApp/Twilio
-twilio>=8.10.0
+# WhatsApp/Meta API
+requests>=2.31.0
 
 # Firestore (Google Cloud)
 google-cloud-firestore>=2.13.0
