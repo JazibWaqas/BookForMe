@@ -28,7 +28,7 @@ def main():
             sys.executable, '-m', 'uvicorn', 
             'app.main:app', 
             '--host', '0.0.0.0', 
-            '--port', port
+            '--port', str(port)
         ])
         
     except Exception as e:
