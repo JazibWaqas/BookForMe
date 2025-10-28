@@ -174,7 +174,11 @@ Respond in JSON format:
     async def _call_gemini(self, prompt: str) -> str:
         """Call Gemini API with prompt"""
         try:
-            response = self.model.generate_content(prompt)
+            import asyncio
+            # Run the synchronous Gemini call in a thread pool
+            response = await asyncio.get_event_loop().run_in_executor(
+                None, self.model.generate_content, prompt
+            )
             return response.text
         except Exception as e:
             logger.error(f"Gemini API error: {e}")

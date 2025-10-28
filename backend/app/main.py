@@ -96,8 +96,28 @@ async def health_check():
         "status": "healthy",
         "database": "firestore",  # TODO: Check actual Firestore connection
         "ai": "gemini",           # TODO: Check Gemini API connection
-        "whatsapp": "twilio"      # TODO: Check Twilio connection
+        "whatsapp": "meta"        # Updated to reflect Meta API
     }
+
+
+@app.post("/test-webhook")
+async def test_webhook(request: Request):
+    """Test endpoint to debug webhook processing"""
+    try:
+        data = await request.json()
+        logger.info(f"🧪 Test webhook received: {data}")
+        
+        # Test WhatsApp agent
+        test_response = await whatsapp_handler.whatsapp_agent.process_message("+923001234567", "Hello")
+        
+        return {
+            "status": "success",
+            "received_data": data,
+            "test_response": test_response
+        }
+    except Exception as e:
+        logger.error(f"Test webhook error: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 # ============================================================================
