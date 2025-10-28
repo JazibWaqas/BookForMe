@@ -22,6 +22,26 @@ async def root():
     """Root endpoint"""
     return {"message": "BookForMe Backend API"}
 
+@app.get("/webhook/whatsapp")
+async def whatsapp_webhook_get(hub_mode: str = None, hub_verify_token: str = None, hub_challenge: str = None):
+    """WhatsApp webhook verification (GET)"""
+    print(f"Webhook verification: mode={hub_mode}, token={hub_verify_token}, challenge={hub_challenge}")
+    
+    # Verify the webhook
+    expected_token = "bookforme_secret_2024"
+    
+    if hub_mode == "subscribe" and hub_verify_token == expected_token:
+        print("✅ Webhook verified successfully!")
+        return int(hub_challenge)
+    else:
+        print(f"❌ Webhook verification failed - Expected: {expected_token}, Got: {hub_verify_token}")
+        return {"error": "Verification failed"}, 403
+
+@app.post("/webhook/whatsapp")
+async def whatsapp_webhook_post():
+    """WhatsApp webhook for messages (POST)"""
+    return {"message": "WhatsApp message received"}
+
 if __name__ == "__main__":
     import uvicorn
     print("=== BookForMe Backend Starting ===")
