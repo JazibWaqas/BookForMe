@@ -60,6 +60,30 @@ class WhatsAppAgent:
             
             # Extract intent and entities using NLU
             nlu_result = await self.nlu_agent.extract_intent(message, session.get('history', []))
+            intent = nlu_result.get('intent', 'unknown')
+            
+            # Check if user is starting a new conversation (greeting after being in other states)
+            if intent == 'greeting' and current_state != 'greeting':
+                logger.info(f"User {phone_number} starting new conversation, resetting to greeting state")
+                # Reset to greeting state for new conversation
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'greeting',
+                    'context': {}
+                })
+                current_state = 'greeting'
+            
+            # Check for conversation timeout (reset if last message was > 1 hour ago)
+            history = session.get('history', [])
+            if history:
+                from datetime import datetime, timedelta
+                last_message_time = datetime.fromisoformat(history[-1].get('timestamp', ''))
+                if datetime.now() - last_message_time > timedelta(hours=1):
+                    logger.info(f"Conversation timeout for {phone_number}, resetting to greeting")
+                    await self.state_manager.update_session(phone_number, {
+                        'state': 'greeting',
+                        'context': {}
+                    })
+                    current_state = 'greeting'
             
             # Process based on current state
             response = await self._handle_state(current_state, phone_number, message, nlu_result)
