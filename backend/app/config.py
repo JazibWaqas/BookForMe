@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     
     # AI/NLU (Gemini)
     GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-pro-latest"
+    GEMINI_MODEL: str = "gemini-2.5-flash"  # Fastest model for lowest latency
     
     # WhatsApp (Meta Business API)
     WHATSAPP_ACCESS_TOKEN: str
