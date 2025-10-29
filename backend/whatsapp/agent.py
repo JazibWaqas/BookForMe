@@ -106,7 +106,7 @@ class WhatsAppAgent:
             entities = nlu_result.get('entities', {})
             
             if current_state == 'greeting':
-                return await self._handle_greeting_state(phone_number, message)
+                return await self._handle_greeting_state(phone_number, message, intent, entities)
             elif current_state == 'select_service':
                 return await self._handle_service_selection(phone_number, message, intent, entities)
             elif current_state == 'select_date':
@@ -118,13 +118,13 @@ class WhatsAppAgent:
             elif current_state == 'booking_complete':
                 return await self._handle_booking_complete(phone_number, message, intent, entities)
             else:
-                return await self._handle_greeting_state(phone_number, message)
+                return await self._handle_greeting_state(phone_number, message, intent, entities)
                 
         except Exception as e:
             logger.error(f"Error handling state {current_state}: {e}")
             return "I'm sorry, I didn't understand that. Could you please try again?"
     
-    async def _handle_greeting_state(self, phone_number: str, message: str) -> str:
+    async def _handle_greeting_state(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle greeting state"""
         # Use NLU to generate response instead of hardcoded responses
         try:
@@ -132,10 +132,7 @@ class WhatsAppAgent:
             session = await self.state_manager.get_session(phone_number)
             history = session.get('history', [])
             
-            # Extract intent and entities first
-            nlu_result = await self.nlu_agent.extract_intent(message, history)
-            intent = nlu_result.get('intent', 'greeting')
-            entities = nlu_result.get('entities', {})
+            # Use the provided intent and entities (no duplicate extract_intent call)
             
             # Use NLU to generate appropriate response
             response = await self.nlu_agent.generate_response(
