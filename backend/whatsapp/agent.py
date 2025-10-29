@@ -102,34 +102,47 @@ class WhatsAppAgent:
     
     async def _handle_greeting_state(self, phone_number: str, message: str) -> str:
         """Handle greeting state"""
-        message_lower = message.lower()
-        
-        # Check if it's a greeting
-        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'salam', 'assalam']):
-            return """🎉 *Welcome to BookForMe!*
-
-I can help you book:
-• ⚽ Futsal courts
-• 💇 Salon appointments  
-• 🏃‍♂️ Gym sessions
-
-What would you like to book today?"""
-        
-        # Check if they want to book something
-        if any(word in message_lower for word in ['book', 'booking', 'slot', 'time', 'futsal', 'salon']):
-            # Update state to service selection
-            await self.state_manager.update_session(phone_number, {'state': 'select_service'})
+        # Use NLU to generate response instead of hardcoded responses
+        try:
+            # Get conversation history
+            session = await self.state_manager.get_session(phone_number)
+            history = session.get('history', [])
             
-            return """Great! What service would you like to book?
-
-1. ⚽ Futsal Court
-2. 💇 Salon Service
-3. 🏃‍♂️ Gym Session
-
-Please select a number or tell me the service name."""
-        
-        # Default response
-        return """Hello! I'm your BookForMe assistant. 
+            # Extract intent and entities first
+            nlu_result = await self.nlu_agent.extract_intent(message, history)
+            intent = nlu_result.get('intent', 'greeting')
+            entities = nlu_result.get('entities', {})
+            
+            # Use NLU to generate appropriate response
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'greeting', 'phone_number': phone_number}
+            )
+            
+            # Check if they want to book something
+            if intent == 'booking_request' or entities.get('service_type'):
+                # Update state to service selection
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'select_service',
+                    'context': {'service_type': entities.get('service_type', '')}
+                })
+                
+                if "service" in response.lower() or "book" in response.lower():
+                    return response
+                else:
+                    service_type = entities.get('service_type', 'service')
+                    return f"Great! You want to book {service_type}. What date would you like to book for?"
+            else:
+                # If NLU response is generic, provide specific booking options
+                if "book" in response.lower() or "service" in response.lower():
+                    return response
+                else:
+                    return f"{response}\n\nI can help you book:\n• ⚽ Futsal courts\n• 💇 Salon appointments\n• 🏃‍♂️ Gym sessions\n\nWhat would you like to book today?"
+                
+        except Exception as e:
+            logger.error(f"Error in greeting state: {e}")
+            return """Hello! I'm your BookForMe assistant. 
 
 I can help you book:
 • ⚽ Futsal courts
@@ -141,6 +154,13 @@ What would you like to book today?"""
     async def _handle_service_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle service selection state"""
         try:
+            # Use NLU to generate response based on intent and entities
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'select_service', 'phone_number': phone_number}
+            )
+            
             # Check if service type was mentioned
             service_type = entities.get('service_type', '').lower()
             
@@ -151,7 +171,11 @@ What would you like to book today?"""
                     'context': {'service_type': service_type}
                 })
                 
-                return f"Great! You want to book {service_type}. What date would you like to book for?"
+                # Use NLU response if it's good, otherwise provide specific response
+                if "date" in response.lower() or "when" in response.lower():
+                    return response
+                else:
+                    return f"Great! You want to book {service_type}. What date would you like to book for?"
             else:
                 # Show available services
                 services = await self._get_available_services()
@@ -161,25 +185,147 @@ What would you like to book today?"""
             logger.error(f"Error in service selection: {e}")
             return "I'm sorry, I didn't understand. What service would you like to book?"
     
-    async def _handle_date_selection(self, phone_number: str, message: str) -> str:
+    async def _handle_date_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle date selection state"""
-        # TODO: Implement date selection logic
-        return "Date selection logic not yet implemented"
+        try:
+            # Use NLU to generate response based on intent and entities
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'select_date', 'phone_number': phone_number}
+            )
+            
+            # Check if date was mentioned
+            date_mentioned = entities.get('date') or any(word in message.lower() for word in ['tomorrow', 'today', 'friday', 'saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday'])
+            
+            if date_mentioned:
+                # Update state to time selection
+                current_session = await self.state_manager.get_session(phone_number)
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'select_time',
+                    'context': {**current_session.get('context', {}), 'date': entities.get('date', message)}
+                })
+                
+                if "time" in response.lower() or "when" in response.lower():
+                    return response
+                else:
+                    return f"Great! You mentioned {entities.get('date', message)}. What time would you like to book?"
+            else:
+                return "What date would you like to book for? Please mention a specific date like 'tomorrow', 'Friday', or 'next week'."
+                
+        except Exception as e:
+            logger.error(f"Error in date selection: {e}")
+            return "What date would you like to book for?"
     
-    async def _handle_time_selection(self, phone_number: str, message: str) -> str:
+    async def _handle_time_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle time selection state"""
-        # TODO: Implement time selection logic
-        return "Time selection logic not yet implemented"
+        try:
+            # Use NLU to generate response based on intent and entities
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'select_time', 'phone_number': phone_number}
+            )
+            
+            # Check if time was mentioned
+            time_mentioned = entities.get('time') or any(word in message.lower() for word in ['morning', 'afternoon', 'evening', 'night', 'am', 'pm', 'o\'clock'])
+            
+            if time_mentioned:
+                # Update state to booking confirmation
+                current_session = await self.state_manager.get_session(phone_number)
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'confirm_booking',
+                    'context': {**current_session.get('context', {}), 'time': entities.get('time', message)}
+                })
+                
+                # Get booking summary
+                session = await self.state_manager.get_session(phone_number)
+                context = session.get('context', {})
+                service_type = context.get('service_type', 'service')
+                date = context.get('date', 'selected date')
+                time = entities.get('time', message)
+                
+                if "confirm" in response.lower() or "booking" in response.lower():
+                    return response
+                else:
+                    return f"Perfect! You want to book {service_type} for {date} at {time}. Should I confirm this booking?"
+            else:
+                return "What time would you like to book? Please mention a specific time like '5pm', 'evening', or 'morning'."
+                
+        except Exception as e:
+            logger.error(f"Error in time selection: {e}")
+            return "What time would you like to book?"
     
-    async def _handle_booking_confirmation(self, phone_number: str, message: str) -> str:
+    async def _handle_booking_confirmation(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle booking confirmation state"""
-        # TODO: Implement booking confirmation logic
-        return "Booking confirmation logic not yet implemented"
+        try:
+            # Use NLU to generate response based on intent and entities
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'confirm_booking', 'phone_number': phone_number}
+            )
+            
+            # Check if user confirmed
+            confirmed = intent == 'confirmation' or any(word in message.lower() for word in ['yes', 'confirm', 'book', 'done', 'ok', 'sure'])
+            
+            if confirmed:
+                # Update state to booking complete
+                current_session = await self.state_manager.get_session(phone_number)
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'booking_complete',
+                    'context': {**current_session.get('context', {}), 'confirmed': True}
+                })
+                
+                # Get booking summary
+                session = await self.state_manager.get_session(phone_number)
+                context = session.get('context', {})
+                service_type = context.get('service_type', 'service')
+                date = context.get('date', 'selected date')
+                time = context.get('time', 'selected time')
+                
+                if "thank" in response.lower() or "confirmed" in response.lower():
+                    return response
+                else:
+                    return f"🎉 Booking confirmed! You have {service_type} booked for {date} at {time}. Thank you for using BookForMe!"
+            else:
+                return "Would you like me to confirm this booking? Please say 'yes' or 'confirm' to proceed."
+                
+        except Exception as e:
+            logger.error(f"Error in booking confirmation: {e}")
+            return "Would you like me to confirm this booking?"
     
-    async def _handle_booking_complete(self, phone_number: str, message: str) -> str:
+    async def _handle_booking_complete(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
         """Handle booking complete state"""
-        # TODO: Implement booking complete logic
-        return "Booking complete logic not yet implemented"
+        try:
+            # Use NLU to generate response based on intent and entities
+            response = await self.nlu_agent.generate_response(
+                intent,
+                entities,
+                {'state': 'booking_complete', 'phone_number': phone_number}
+            )
+            
+            # Check if user wants to book something else
+            if intent == 'booking_request' or any(word in message.lower() for word in ['book', 'another', 'more', 'again']):
+                # Reset to greeting state for new booking
+                await self.state_manager.update_session(phone_number, {
+                    'state': 'greeting',
+                    'context': {}
+                })
+                
+                if "book" in response.lower() or "service" in response.lower():
+                    return response
+                else:
+                    return "Great! I can help you with another booking. What service would you like to book?"
+            else:
+                if "help" in response.lower() or "assist" in response.lower():
+                    return response
+                else:
+                    return "Is there anything else I can help you with? You can book another service anytime!"
+                
+        except Exception as e:
+            logger.error(f"Error in booking complete: {e}")
+            return "Is there anything else I can help you with?"
     
     async def _get_available_services(self) -> list:
         """Get list of available services"""
