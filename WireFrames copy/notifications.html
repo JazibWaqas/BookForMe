@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications Wireframe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-white border-b border-dashed border-gray-400">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+            <button class="w-10 h-10 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-600">&larr;</button>
+            <div>
+                <h1 class="text-lg font-semibold text-gray-800">Notifications</h1>
+                <p class="text-xs text-gray-500">3 unread</p>
+            </div>
+            <button class="ml-auto text-xs text-gray-500 underline">Mark all read</button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto">
+        <div class="max-w-md mx-auto px-4 py-6 space-y-3">
+            <article class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-1 bg-gray-50">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span class="px-2 py-1 border border-gray-500 rounded-full uppercase tracking-wide">Booking</span>
+                    <span>2 min ago</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">Booking Confirmed</p>
+                <p class="text-xs text-gray-600">Your booking at Elite Sports Complex for Oct 5, 6:00 PM has been confirmed.</p>
+                <div class="flex gap-2 pt-2">
+                    <button class="px-3 py-2 border-2 border-gray-800 rounded-lg text-xs font-semibold text-gray-800">View</button>
+                    <button class="px-3 py-2 border-2 border-gray-400 rounded-lg text-xs text-gray-600">Add to Calendar</button>
+                </div>
+            </article>
+
+            <article class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-1 bg-gray-50">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span class="px-2 py-1 border border-gray-500 rounded-full uppercase tracking-wide">Match</span>
+                    <span>1 hr ago</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">Match Invitation</p>
+                <p class="text-xs text-gray-600">Alex invited you to a padel match tomorrow at 7:00 PM.</p>
+                <div class="flex gap-2 pt-2">
+                    <button class="px-3 py-2 border-2 border-gray-800 rounded-lg text-xs font-semibold text-gray-800">Accept</button>
+                    <button class="px-3 py-2 border-2 border-gray-400 rounded-lg text-xs text-gray-600">Decline</button>
+                </div>
+            </article>
+
+            <article class="border-2 border-dashed border-gray-300 rounded-2xl p-4 space-y-1">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span class="px-2 py-1 border border-gray-400 rounded-full uppercase tracking-wide">Achievement</span>
+                    <span>1 day ago</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">Achievement Unlocked!</p>
+                <p class="text-xs text-gray-600">Congrats! You earned the "Sports Enthusiast" badge.</p>
+            </article>
+
+            <article class="border-2 border-dashed border-gray-300 rounded-2xl p-4 space-y-1">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span class="px-2 py-1 border border-gray-400 rounded-full uppercase tracking-wide">Promo</span>
+                    <span>2 days ago</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">Weekend Offer</p>
+                <p class="text-xs text-gray-600">Get 25% off at Beach Paradise Resort this weekend only.</p>
+            </article>
+        </div>
+    </main>
+
+    <nav class="bg-white border-t border-dashed border-gray-400">
+        <div class="max-w-md mx-auto grid grid-cols-4">
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">🏠</span>
+                Home
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">🤖</span>
+                Chatbot
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">👥</span>
+                Social
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-800 text-xs font-medium">
+                <span class="w-8 h-8 border-2 border-gray-800 rounded-full flex items-center justify-center text-sm font-bold">🔔</span>
+                Alerts
+            </button>
+        </div>
+    </nav>
+</body>
+</html>
+

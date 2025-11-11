@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking &amp; Payment Wireframe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-white border-b border-dashed border-gray-400">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+            <button class="w-10 h-10 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-600">&larr;</button>
+            <div>
+                <h1 class="text-lg font-semibold text-gray-800">Confirm Booking</h1>
+                <p class="text-xs text-gray-500">Review &amp; payment</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto">
+        <div class="max-w-md mx-auto px-4 py-6 space-y-5">
+            <section class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-16 h-16 border border-gray-300 rounded-xl flex items-center justify-center text-xs text-gray-500">Image</div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">Prime Court Complex</p>
+                        <p class="text-xs text-gray-500">Sports Courts • Clifton</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs text-gray-600">
+                    <div class="border border-gray-300 rounded-lg p-3">
+                        <p class="uppercase text-[10px] text-gray-500 tracking-wide mb-1">Date</p>
+                        <p class="text-sm font-semibold text-gray-800">Wed, Nov 5</p>
+                    </div>
+                    <div class="border border-gray-300 rounded-lg p-3">
+                        <p class="uppercase text-[10px] text-gray-500 tracking-wide mb-1">Time</p>
+                        <p class="text-sm font-semibold text-gray-800">13:00 - 14:00</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <span>Service</span>
+                    <span class="font-semibold text-gray-800">Padel Court (60 min)</span>
+                </div>
+            </section>
+
+            <section class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-3">
+                <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wide">Your Details</h2>
+                <div class="space-y-3">
+                    <div class="h-12 border-2 border-gray-400 rounded-lg flex items-center px-3 text-gray-500 text-sm">Full Name</div>
+                    <div class="h-12 border-2 border-gray-400 rounded-lg flex items-center px-3 text-gray-500 text-sm">Phone Number</div>
+                    <div class="h-12 border-2 border-gray-400 rounded-lg flex items-center px-3 text-gray-500 text-sm">Email Address</div>
+                    <label class="flex items-start gap-3 text-xs text-gray-600">
+                        <span class="w-5 h-5 border-2 border-gray-400 rounded-md mt-0.5"></span>
+                        Send WhatsApp confirmation
+                    </label>
+                </div>
+            </section>
+
+            <section class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-3">
+                <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wide">Payment Summary</h2>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex items-center justify-between">
+                        <span>Court Rental (1 hr)</span>
+                        <span class="font-semibold text-gray-800">PKR 1200</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Service Fee</span>
+                        <span class="font-semibold text-gray-800">PKR 50</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Discount</span>
+                        <span class="font-semibold text-gray-800">- PKR 100</span>
+                    </div>
+                    <hr class="border-dashed border-gray-300">
+                    <div class="flex items-center justify-between text-base font-semibold text-gray-900">
+                        <span>Total Due</span>
+                        <span>PKR 1,150</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="border-2 border-dashed border-gray-400 rounded-2xl p-4 space-y-3">
+                <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wide">Payment Method</h2>
+                <div class="space-y-2">
+                    <label class="flex items-center justify-between border-2 border-gray-400 rounded-lg px-4 py-3 text-sm text-gray-600">
+                        <span>Credit / Debit Card</span>
+                        <span class="w-4 h-4 border border-gray-500 rounded-full"></span>
+                    </label>
+                    <label class="flex items-center justify-between border-2 border-gray-400 rounded-lg px-4 py-3 text-sm text-gray-600">
+                        <span>Wallet / Cashless</span>
+                        <span class="w-4 h-4 border border-gray-500 rounded-full"></span>
+                    </label>
+                    <label class="flex items-center justify-between border-2 border-gray-400 rounded-lg px-4 py-3 text-sm text-gray-600">
+                        <span>Pay at Venue</span>
+                        <span class="w-4 h-4 border border-gray-500 rounded-full bg-gray-200"></span>
+                    </label>
+                </div>
+            </section>
+
+            <button class="w-full h-12 border-2 border-gray-800 rounded-lg text-gray-800 font-semibold tracking-wide">Confirm &amp; Pay</button>
+        </div>
+    </main>
+
+    <nav class="bg-white border-t border-dashed border-gray-400">
+        <div class="max-w-md mx-auto grid grid-cols-4">
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">🏠</span>
+                Home
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">📂</span>
+                Categories
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-800 text-xs font-medium">
+                <span class="w-8 h-8 border-2 border-gray-800 rounded-full flex items-center justify-center text-sm font-bold">💳</span>
+                Checkout
+            </button>
+            <button class="py-3 flex flex-col items-center text-gray-500 text-xs">
+                <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">👤</span>
+                Profile
+            </button>
+        </div>
+    </nav>
+</body>
+</html>
+
