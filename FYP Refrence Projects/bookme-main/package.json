@@ -1,0 +1,39 @@
+{
+  "name": "express-sequelize-boilerplate",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/gadfaria/express-sequelize-boilerplate.git",
+  "author": "gadfaria <gadfaria@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "docker": "docker compose up -d"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.310.0",
+    "@langchain/core": "^1.0.0-alpha.7",
+    "@langchain/ollama": "^1.0.0",
+    "@langchain/openai": "^1.0.0-alpha.3",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.0",
+    "dotenv": "^16.0.1",
+    "express": "^4.20.0",
+    "jsonwebtoken": "^9.0.0",
+    "langchain": "^1.0.0-alpha.9",
+    "langsmith": "^0.3.81",
+    "moment": "^2.29.3",
+    "multer": "^2.0.2",
+    "mysql2": "^3.9.8",
+    "pg": "^8.10.0",
+    "redis": "^5.9.0",
+    "sequelize": "^6.28.2",
+    "uuid": "^13.0.0",
+    "yup": "^1.0.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.18",
+    "sequelize-cli": "^6.4.1",
+    "sucrase": "^3.23.0"
+  }
+}
