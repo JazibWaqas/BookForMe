@@ -1,0 +1,62 @@
+import React from 'react';
+import { TextInput, View, Text, StyleSheet, ViewStyle } from 'react-native';
+
+interface InputProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  label?: string;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+  style?: ViewStyle;
+}
+
+export default function Input({
+  value,
+  onChangeText,
+  label,
+  placeholder,
+  secureTextEntry = false,
+  keyboardType = 'default',
+  style
+}: InputProps) {
+  return (
+    <View style={style}>
+      {label && (
+        <Text style={styles.label}>
+          {label}
+        </Text>
+      )}
+      <TextInput
+        placeholder={placeholder}
+        placeholderTextColor="#9ca3af"
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        style={styles.input}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  label: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  input: {
+    height: 48,
+    borderWidth: 2,
+    borderColor: '#4b5563',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: '#f9fafb',
+    backgroundColor: '#1f1f1f',
+  },
+});
