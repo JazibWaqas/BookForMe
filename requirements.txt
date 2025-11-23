@@ -23,3 +23,10 @@ langchain-community>=0.3.0
 
 # Image processing for OCR (payment screenshots with Gemini Vision)
 Pillow>=10.0.0
+
+# Additional utilities
+aiofiles>=23.0.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+email-validator>=2.0.0
+python-slugify>=8.0.0
