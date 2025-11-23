@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Dashboard - BookForMe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111; }
+        .mobile-frame {
+            width: 375px; height: 812px;
+            background-color: #1a1a1a;
+            border: 8px solid #333;
+            border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+        .status-bar {
+            height: 30px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #282828;
+            color: #ccc;
+            font-size: 12px;
+            padding: 0 16px;
+        }
+        .lf-button {
+            border: 2px solid #555;
+            background-color: #282828;
+            color: #ddd;
+            transition: background-color 0.1s;
+        }
+        .lf-button:hover { background-color: #383838; }
+        .nav-arrow {
+            position: absolute;
+            right: 20px;
+            bottom: 100px;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #4ade80;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(74, 222, 128, 0.1);
+            cursor: pointer;
+            z-index: 100;
+            animation: pulse 2s infinite;
+        }
+        .nav-arrow::after {
+            content: '→';
+            color: #4ade80;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-[#111] min-h-screen flex items-center justify-center p-6">
+    <div class="mobile-frame">
+        <div class="status-bar flex items-center justify-between">
+            <span>9:41</span>
+            <div class="flex space-x-1">
+                <div class="w-2 h-2 rounded-full bg-white opacity-40"></div>
+                <div class="w-2 h-2 rounded-full bg-white"></div>
+            </div>
+        </div>
+        <div class="flex flex-col h-[calc(100%-30px)] text-gray-200">
+            <header class="px-5 py-4 border-b border-dashed border-gray-700 flex items-center justify-between">
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-100">Vendor Dashboard</h1>
+                    <p class="text-xs text-gray-500">Arena Sports Complex</p>
+                </div>
+                <button class="px-3 py-2 border-2 border-gray-600 rounded-lg text-xs text-gray-300" onclick="window.location.href='05_customer_home.html'">Switch Role</button>
+            </header>
+
+            <main class="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+                <section class="grid grid-cols-2 gap-3">
+                    <div class="border-2 border-dashed border-gray-600 rounded-2xl p-4 text-sm text-gray-400 bg-[#1f1f1f]">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Today's Bookings</p>
+                        <p class="text-2xl font-semibold text-gray-100 mt-2">8</p>
+                        <p class="text-[11px] text-gray-500 mt-1">+12% vs yesterday</p>
+                    </div>
+                    <div class="border-2 border-dashed border-gray-600 rounded-2xl p-4 text-sm text-gray-400 bg-[#1f1f1f]">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Pending</p>
+                        <p class="text-2xl font-semibold text-gray-100 mt-2">3</p>
+                        <p class="text-[11px] text-gray-500 mt-1">Awaiting confirmation</p>
+                    </div>
+                    <div class="border-2 border-dashed border-gray-600 rounded-2xl p-4 text-sm text-gray-400 bg-[#1f1f1f]">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">This Month</p>
+                        <p class="text-2xl font-semibold text-gray-100 mt-2">PKR 45k</p>
+                        <p class="text-[11px] text-gray-500 mt-1">Revenue</p>
+                    </div>
+                    <div class="border-2 border-dashed border-gray-600 rounded-2xl p-4 text-sm text-gray-400 bg-[#1f1f1f]">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Active Integrations</p>
+                        <p class="text-2xl font-semibold text-gray-100 mt-2">2 / 2</p>
+                        <p class="text-[11px] text-gray-500 mt-1">WhatsApp & Sheets</p>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Recent Bookings</h2>
+                        <button class="text-xs text-gray-500 underline" onclick="window.location.href='14_manage_bookings.html'">View All</button>
+                    </div>
+                    <div class="space-y-3 text-xs text-gray-400">
+                        <div class="border border-gray-600 rounded-xl p-3 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-100">Sara Ahmed</p>
+                                <p>Oct 21 • 10:00 AM • WhatsApp</p>
+                            </div>
+                            <span class="px-2 py-1 border border-gray-500 rounded-full uppercase tracking-wide text-gray-200">Confirmed</span>
+                        </div>
+                        <div class="border border-gray-600 rounded-xl p-3 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-100">Ali Khan</p>
+                                <p>Oct 21 • 2:00 PM • Manual</p>
+                            </div>
+                            <span class="px-2 py-1 border border-gray-500 rounded-full uppercase tracking-wide text-gray-200">Pending</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Quick Actions</h2>
+                    <div class="grid grid-cols-2 gap-3 text-xs text-gray-400">
+                        <button class="h-24 border-2 border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#242424]" onclick="window.location.href='13_vendor_calendar.html'">
+                            <span class="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-gray-300">📅</span>
+                            View Calendar
+                        </button>
+                        <button class="h-24 border-2 border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#242424]" onclick="window.location.href='14_manage_bookings.html'">
+                            <span class="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-gray-300">➕</span>
+                            Add Booking
+                        </button>
+                        <button class="h-24 border-2 border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#242424]" onclick="window.location.href='15_business_profile.html'">
+                            <span class="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-gray-300">⚙️</span>
+                            Update Profile
+                        </button>
+                        <button class="h-24 border-2 border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#242424]" onclick="window.location.href='16_whatsapp_integration_setup.html'">
+                            <span class="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-gray-300">🔗</span>
+                            Manage Integrations
+                        </button>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Integrations</h2>
+                    <div class="space-y-3 text-sm text-gray-400">
+                        <div class="border border-gray-600 rounded-xl p-3 flex items-center justify-between" onclick="window.location.href='16_whatsapp_integration_setup.html'">
+                            <div>
+                                <p class="font-semibold text-gray-100">WhatsApp Business</p>
+                                <p class="text-xs text-gray-500">+92 300 1234567 • Verified Today</p>
+                            </div>
+                            <span class="px-2 py-1 border border-gray-500 rounded-full text-xs uppercase tracking-wide text-gray-200">Connected</span>
+                        </div>
+                        <div class="border border-gray-600 rounded-xl p-3 flex items-center justify-between" onclick="window.location.href='18_google_sheets_integration_setup.html'">
+                            <div>
+                                <p class="font-semibold text-gray-100">Google Sheets</p>
+                                <p class="text-xs text-gray-500">Bookings Master • Sync 15m ago</p>
+                            </div>
+                            <span class="px-2 py-1 border border-gray-500 rounded-full text-xs uppercase tracking-wide text-gray-200">Connected</span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <nav class="border-t border-dashed border-gray-700">
+                <div class="grid grid-cols-4">
+                    <button class="py-3 flex flex-col items-center text-gray-200 text-xs font-medium">
+                        <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">📊</span>
+                        Dashboard
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='13_vendor_calendar.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">📅</span>
+                        Calendar
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='14_manage_bookings.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">📋</span>
+                        Bookings
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='15_business_profile.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">⚙️</span>
+                        Profile
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <div class="nav-arrow" onclick="window.location.href='13_vendor_calendar.html'" title="Next: Calendar"></div>
+    </div>
+</body>
+</html>
+

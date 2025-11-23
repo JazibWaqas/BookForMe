@@ -14,3 +14,12 @@ httpx>=0.25.0
 python-dateutil>=2.8.0
 pytz>=2023.3
 structlog>=23.0.0
+
+# AI Orchestration - LangGraph for state machine agents
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+
+# Image processing for OCR (payment screenshots with Gemini Vision)
+Pillow>=10.0.0

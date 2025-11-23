@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking & Payment - BookForMe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111; }
+        .mobile-frame {
+            width: 375px; height: 812px;
+            background-color: #1a1a1a;
+            border: 8px solid #333;
+            border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+        .status-bar {
+            height: 30px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #282828;
+            color: #ccc;
+            font-size: 12px;
+            padding: 0 16px;
+        }
+        .lf-button {
+            border: 2px solid #555;
+            background-color: #282828;
+            color: #ddd;
+            transition: background-color 0.1s;
+        }
+        .lf-button:hover { background-color: #383838; }
+        .nav-arrow {
+            position: absolute;
+            right: 20px;
+            bottom: 100px;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #4ade80;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(74, 222, 128, 0.1);
+            cursor: pointer;
+            z-index: 100;
+            animation: pulse 2s infinite;
+        }
+        .nav-arrow::after {
+            content: '→';
+            color: #4ade80;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .back-arrow {
+            position: absolute;
+            left: 20px;
+            bottom: 100px;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #fbbf24;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(251, 191, 36, 0.1);
+            cursor: pointer;
+            z-index: 100;
+        }
+        .back-arrow::after {
+            content: '←';
+            color: #fbbf24;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-[#111] min-h-screen flex items-center justify-center p-6">
+    <div class="mobile-frame">
+        <div class="status-bar flex items-center justify-between">
+            <span>9:41</span>
+            <div class="flex space-x-1">
+                <div class="w-2 h-2 rounded-full bg-white opacity-40"></div>
+                <div class="w-2 h-2 rounded-full bg-white"></div>
+            </div>
+        </div>
+        <div class="flex flex-col h-[calc(100%-30px)] text-gray-200">
+            <header class="px-5 py-4 border-b border-dashed border-gray-700 flex items-center gap-3">
+                <button class="w-10 h-10 border-2 border-dashed border-gray-600 rounded-xl flex items-center justify-center text-gray-300" onclick="window.location.href='07_vendor_detail.html'">&larr;</button>
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-100">Confirm Booking</h1>
+                    <p class="text-xs text-gray-500">Review & payment</p>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-16 border border-gray-600 rounded-xl flex items-center justify-center text-xs text-gray-500">Image</div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-100">Prime Court Complex</p>
+                            <p class="text-xs text-gray-500">Sports Courts • Clifton</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-xs text-gray-400">
+                        <div class="border border-gray-600 rounded-lg p-3">
+                            <p class="uppercase text-[10px] text-gray-500 tracking-wide mb-1">Date</p>
+                            <p class="text-sm font-semibold text-gray-100">Wed, Nov 5</p>
+                        </div>
+                        <div class="border border-gray-600 rounded-lg p-3">
+                            <p class="uppercase text-[10px] text-gray-500 tracking-wide mb-1">Time</p>
+                            <p class="text-sm font-semibold text-gray-100">13:00 - 14:00</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-400">
+                        <span>Service</span>
+                        <span class="font-semibold text-gray-100">Padel Court (60 min)</span>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Your Details</h2>
+                    <div class="space-y-3">
+                        <div class="h-12 border-2 border-gray-600 rounded-lg flex items-center px-3 text-sm text-gray-400">Full Name</div>
+                        <div class="h-12 border-2 border-gray-600 rounded-lg flex items-center px-3 text-sm text-gray-400">Phone Number</div>
+                        <div class="h-12 border-2 border-gray-600 rounded-lg flex items-center px-3 text-sm text-gray-400">Email Address</div>
+                        <label class="flex items-start gap-3 text-xs text-gray-400">
+                            <span class="w-5 h-5 border-2 border-gray-600 rounded-md mt-0.5"></span>
+                            Send WhatsApp confirmation
+                        </label>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Payment Summary</h2>
+                    <div class="space-y-2 text-sm text-gray-400">
+                        <div class="flex items-center justify-between">
+                            <span>Court Rental (1 hr)</span>
+                            <span class="font-semibold text-gray-100">PKR 1200</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Service Fee</span>
+                            <span class="font-semibold text-gray-100">PKR 50</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Discount</span>
+                            <span class="font-semibold text-gray-100">- PKR 100</span>
+                        </div>
+                        <hr class="border-dashed border-gray-600">
+                        <div class="flex items-center justify-between text-base font-semibold text-gray-100">
+                            <span>Total Due</span>
+                            <span>PKR 1,150</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="border-2 border-dashed border-gray-600 rounded-2xl p-4 space-y-3 bg-[#1f1f1f]">
+                    <h2 class="text-sm font-semibold text-gray-100 uppercase tracking-wide">Payment Method</h2>
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between border-2 border-gray-600 rounded-lg px-4 py-3 text-sm text-gray-400">
+                            <span>Credit / Debit Card</span>
+                            <span class="w-4 h-4 border border-gray-500 rounded-full"></span>
+                        </label>
+                        <label class="flex items-center justify-between border-2 border-gray-600 rounded-lg px-4 py-3 text-sm text-gray-400">
+                            <span>Wallet / Cashless</span>
+                            <span class="w-4 h-4 border border-gray-500 rounded-full"></span>
+                        </label>
+                        <label class="flex items-center justify-between border-2 border-gray-600 rounded-lg px-4 py-3 text-sm text-gray-400">
+                            <span>Pay at Venue</span>
+                            <span class="w-4 h-4 border border-gray-500 rounded-full bg-gray-700"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <button class="w-full h-12 border-2 border-gray-500 rounded-lg text-gray-100 font-semibold tracking-wide lf-button" onclick="window.location.href='21_booking_confirmation.html'">Confirm & Pay</button>
+            </main>
+
+            <nav class="border-t border-dashed border-gray-700">
+                <div class="grid grid-cols-4">
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='05_customer_home.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">🏠</span>
+                        Home
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='06_category_listing.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">📂</span>
+                        Categories
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-200 text-xs font-medium">
+                        <span class="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center text-sm font-bold">💳</span>
+                        Checkout
+                    </button>
+                    <button class="py-3 flex flex-col items-center text-gray-500 text-xs" onclick="window.location.href='11_profile.html'">
+                        <span class="w-8 h-8 border-2 border-gray-600 rounded-full flex items-center justify-center text-sm font-bold">👤</span>
+                        Profile
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <div class="back-arrow" onclick="window.location.href='07_vendor_detail.html'" title="Back: Venue"></div>
+        <div class="nav-arrow" onclick="window.location.href='21_booking_confirmation.html'" title="Next: Confirmation"></div>
+    </div>
+</body>
+</html>
+
