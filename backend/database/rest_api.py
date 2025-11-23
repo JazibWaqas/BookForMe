@@ -19,33 +19,117 @@ availability_service = AvailabilityService()
 
 
 @router.get("/vendors")
-async def get_vendors():
-    """Get list of all vendors"""
+async def get_vendors(service_type: Optional[str] = None, category: Optional[str] = None):
+    """
+    Get list of all vendors from Firestore
+    
+    Args:
+        service_type: Optional filter by service type (e.g., 'padel', 'tennis', 'futsal')
+        category: Optional filter by category (e.g., 'Padel Court', 'Tennis Court')
+    
+    Returns:
+        List of vendors
+    """
     try:
-        # TODO: Query vendors from Firestore
-        vendors = [
-            {
-                "id": "vendor1",
-                "name": "Karachi Futsal Arena",
-                "service_type": "futsal",
-                "whatsapp_connected": True
-            },
-            {
-                "id": "vendor2", 
-                "name": "Elite Salon & Spa",
-                "service_type": "salon",
-                "whatsapp_connected": True
-            }
-        ]
+        if not firestore_db.db:
+            raise HTTPException(status_code=500, detail="Firestore not initialized")
+        
+        vendors = []
+        
+        # Build query
+        query = firestore_db.db.collection('vendors')
+        
+        # Apply filters
+        if service_type:
+            query = query.where('service_type', '==', service_type)
+        if category:
+            query = query.where('category', '==', category)
+        
+        # Execute query
+        docs = query.stream()
+        
+        for doc in docs:
+            vendor_data = doc.to_dict()
+            vendor_data['id'] = doc.id
+            vendors.append(vendor_data)
+        
+        logger.info(f"Retrieved {len(vendors)} vendors from Firestore")
         
         return {
             "success": True,
+            "count": len(vendors),
             "vendors": vendors
         }
         
     except Exception as e:
         logger.error(f"Error getting vendors: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get vendors")
+        raise HTTPException(status_code=500, detail=f"Failed to get vendors: {str(e)}")
+
+
+@router.get("/vendors/{vendor_id}")
+async def get_vendor(vendor_id: str):
+    """
+    Get a single vendor by ID
+    
+    Args:
+        vendor_id: Vendor ID
+        
+    Returns:
+        Vendor details
+    """
+    try:
+        if not firestore_db.db:
+            raise HTTPException(status_code=500, detail="Firestore not initialized")
+        
+        vendor = await firestore_db.get_vendor(vendor_id)
+        
+        if not vendor:
+            raise HTTPException(status_code=404, detail="Vendor not found")
+        
+        vendor['id'] = vendor_id
+        
+        return {
+            "success": True,
+            "vendor": vendor
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting vendor: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get vendor: {str(e)}")
+
+
+@router.get("/sport-courts")
+async def get_sport_courts():
+    """
+    Get all sport courts (padel, tennis, pickleball, table_tennis, futsal)
+    
+    Returns:
+        List of sport court vendors
+    """
+    try:
+        if not firestore_db.db:
+            raise HTTPException(status_code=500, detail="Firestore not initialized")
+        
+        sport_types = ['padel', 'tennis', 'pickleball', 'table_tennis', 'futsal']
+        all_sport_courts = []
+        
+        for sport_type in sport_types:
+            vendors = await firestore_db.get_vendors_by_service(sport_type)
+            all_sport_courts.extend(vendors)
+        
+        logger.info(f"Retrieved {len(all_sport_courts)} sport courts from Firestore")
+        
+        return {
+            "success": True,
+            "count": len(all_sport_courts),
+            "sport_courts": all_sport_courts
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting sport courts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get sport courts: {str(e)}")
 
 
 @router.get("/vendors/{vendor_id}/availability")

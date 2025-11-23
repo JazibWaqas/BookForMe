@@ -34,9 +34,25 @@ class FirestoreDB:
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_file
                 logger.info("Using Railway Firestore credentials from environment variable")
             else:
-                # Fallback to file path
-                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.FIRESTORE_CREDENTIALS_FILE
-                logger.info("Using Firestore credentials from file")
+                # Fallback to file path - resolve relative to config file location
+                creds_file = settings.FIRESTORE_CREDENTIALS_FILE
+                if not os.path.isabs(creds_file):
+                    # If relative path, resolve from backend directory
+                    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    creds_file = os.path.join(backend_dir, 'credentials', 'firestore-service-account.json')
+                
+                if os.path.exists(creds_file):
+                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_file
+                    logger.info(f"Using Firestore credentials from file: {creds_file}")
+                else:
+                    logger.warning(f"Firestore credentials file not found at: {creds_file}")
+                    # Try alternative path
+                    alt_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'credentials', 'firestore-service-account.json')
+                    if os.path.exists(alt_path):
+                        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = alt_path
+                        logger.info(f"Using Firestore credentials from alternative path: {alt_path}")
+                    else:
+                        raise FileNotFoundError(f"Firestore credentials file not found. Tried: {creds_file} and {alt_path}")
             
             # Initialize Firestore client
             self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
