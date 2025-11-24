@@ -1,0 +1,39 @@
+CONVERSATION 3: Pricing and Discount Inquiry
+==============================================
+Date: Real WhatsApp conversation spanning multiple days
+
+11/15/2025:
+
+CUSTOMER:
+11:28 PM - "Hi do u have a slot available tomorrow Friday between 7-9"
+
+AGENT:
+11:32 PM - "Tomorrow after 12am available"
+
+11/18/2025:
+
+CUSTOMER:
+4:43 PM - "Hi any alot available Wednesday between 7-9" (typo: "alot" = "slot")
+4:50 PM - (Agent responds: "Sir today 6 to 7pm\n11 to 2am available")
+4:56 PM - "And how about tomorrow Wednesday"
+7:55 PM - "?" (follow-up after delay)
+
+AGENT:
+7:57 PM - "Wednesday 7:30 to 9 pm available"
+
+CUSTOMER:
+8:01 PM - "Ok and how much are the charges, are there any discounts on any cards etc"
+
+AGENT:
+8:03 PM - "Rs7500/per hour 20 % discount after discount Rs6000/per hour\nCard discount is not available"
+
+KEY LEARNINGS:
+- Customer asks about specific time ranges ("between 7-9")
+- Agent offers alternative times if exact slot unavailable
+- Customer uses "?" to prompt response after delay
+- Pricing structured: Base price → Discount → Final price
+- Card discounts are common inquiry
+- Agent clarifies what discounts are/aren't available
+- Multi-day conversations need context preservation
+- Typos common ("alot" = "slot") - NLU must handle this
+

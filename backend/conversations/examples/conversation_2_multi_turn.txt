@@ -1,0 +1,26 @@
+CONVERSATION 2: Multi-turn Booking with Name Collection
+========================================================
+Date: Real WhatsApp conversation example
+
+CUSTOMER (Green bubbles):
+5:46 PM - "Aoa want to book a slot from 8-9 today"
+
+AGENT (Grey bubbles):
+5:48 PM - "AoA" (greeting response)
+5:48 PM - "Available"
+5:48 PM - "Plz share full name for booking"
+
+CUSTOMER:
+5:53 PM - "Jazib Waqas" (provides name)
+
+AGENT:
+5:55 PM - [Forwarded image] (payment details or confirmation)
+
+KEY LEARNINGS:
+- "Aoa" is common greeting (As-salamu alaykum in Roman Urdu)
+- Agent responds with "AoA" to match customer's language style
+- Immediate availability confirmation
+- Agent proactively asks for name (not waiting for customer)
+- Payment details or confirmation shared via image
+- Structured flow: Greeting → Availability → Name → Payment
+

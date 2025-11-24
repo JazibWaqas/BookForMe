@@ -1,0 +1,28 @@
+CONVERSATION 5: Slot Unavailable with Alternatives
+===================================================
+Date: Real WhatsApp conversation
+
+11/13/2025:
+
+CUSTOMER:
+10:37 PM - "Aoa is there a slot available between 7-9 tommorow Friday"
+
+AGENT:
+11:20 PM - "No I'm sorry were completely booked but we do have a slot open from 8 to 9:30"
+
+11/18/2025:
+
+CUSTOMER:
+4:44 PM - "Hi is there a slot available Wednesday anytime between 6-9"
+
+AGENT:
+4:55 PM - "Let us check the availability and get back to you."
+
+KEY LEARNINGS:
+- When slot unavailable, agent apologizes politely
+- Agent offers closest alternative (8-9:30 instead of 7-9)
+- Sometimes agent needs to check and respond later
+- "Let us check" creates expectation of follow-up
+- Customer uses flexible time range ("anytime between 6-9")
+- Delay in response is acceptable (45 minutes in second case)
+

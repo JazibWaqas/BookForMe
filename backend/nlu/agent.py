@@ -107,43 +107,86 @@ class NLUAgent:
         return context
     
     def _create_intent_prompt(self, message: str, context: str) -> str:
-        """Create prompt for intent extraction"""
+        """Create prompt for intent extraction - Enhanced with real conversation patterns"""
         return f"""
-You are a booking assistant for futsal courts and salons in Karachi, Pakistan.
+You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
 
-Analyze this message and extract the intent and entities. The user may speak in Roman Urdu mixed with English.
+Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
 
 Message: "{message}"
 
-Context: {context}
+Conversation History:
+{context}
 
-Possible intents:
-- greeting: Hello, hi, salam, assalam, hey
-- booking_request: Want to book, need slot, book futsal, book salon
-- service_selection: Choose futsal, choose salon, select service
-- date_selection: Tomorrow, next Friday, 15th January, specific date
-- time_selection: 5pm, evening, morning, specific time
-- confirmation: Yes, confirm, book it, done
-- cancellation: Cancel, no, don't want
-- information: What services, prices, availability
+Possible Intents:
+1. **greeting** - Simple greeting: "Hi", "Aoa", "Salam", "Hello" (NO booking info)
+2. **booking_request** - Want to book a slot: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai"
+3. **availability_inquiry** - Check availability (often INCOMPLETE): 
+   - Complete: "slot available tomorrow 6-9"
+   - Incomplete: "koi slot hei?", "slot hai?", "any slot?" (MISSING date/time/service)
+   - Partial: "kal slot" (has date, missing time/service), "evening slot" (has time, missing date/service)
+4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
+5. **date_selection** - Provide/ask about date: "tomorrow", "Friday", "kal", "next week"
+6. **time_selection** - Provide/ask about time: "6-9", "evening", "shaam", "7pm"
+7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "discount", "kitna"
+8. **confirmation** - Confirm booking: "yes", "ok", "confirm", "book it", "Han g"
+9. **cancellation** - Cancel booking: "cancel", "nahi", "don't want"
+10. **modification** - Change booking: "actually", "change to", "instead"
+11. **information** - General questions: "what services", "what are prices"
+12. **payment_related** - Payment questions: "payment", "transfer", "account number"
+13. **name_provided** - Sharing name: "Jazib Waqas", "My name is..."
+14. **unknown** - Unclear or irrelevant message
+
+IMPORTANT: Most customers send INCOMPLETE messages:
+- "Salam" / "Hi" / "Aoa" → greeting only, ask what they want
+- "koi slot hei?" → availability_inquiry (MISSING: date, time, service)
+- "kal slot" → availability_inquiry (HAS: date, MISSING: time, service)
+- "evening slot" → availability_inquiry (HAS: time, MISSING: date, service)
+
+Roman Urdu Patterns (Common Incomplete Queries):
+- "Aoa" / "AoA" / "Salam" / "Hi" = greeting only (NO booking info yet)
+- "koi slot hei?" / "slot hai?" = incomplete availability query (MISSING: date, time, service)
+- "kal slot" / "kal ka slot" = has date (tomorrow), MISSING: time, service
+- "evening slot" / "shaam ka slot" = has time, MISSING: date, service
+- "padel slot" / "futsal available?" = has service, MISSING: date, time
+- "mujhe" = "I want"
+- "chahiye" = "need"
+- "karna hai" = "want to do"
+- "mil jayega" = "will be available"
+- "kal" = "tomorrow"
+- "aaj" = "today"
+- "shaam" = "evening" (6-9 PM)
+
+Common Incomplete Patterns:
+1. Just greeting: "Salam", "Hi", "Aoa" → greeting intent, no entities
+2. Vague availability: "koi slot hei?" → availability_inquiry, missing ALL entities
+3. Date only: "kal slot", "tomorrow slot" → availability_inquiry, has date, missing time/service
+4. Time only: "evening slot", "shaam ka time" → availability_inquiry, has time, missing date/service
+5. Service only: "padel slot hai?" → availability_inquiry, has service, missing date/time
+
+Context Clues:
+- If previous message was about availability, "yes" likely means confirmation
+- If asking about time slot, likely availability_inquiry or booking_request
+- If customer provided date/time, likely confirming or asking for price
+- INCOMPLETE queries are VERY COMMON (80% of initial messages) - handle gracefully by asking for missing info
 
 Extract entities:
-- service_type: futsal, salon, gym
-- date: tomorrow, today, specific date
-- time: 5pm, evening, morning, specific time
-- customer_name: My name is Ahmed, I am Ali
-- sex: Male, Female
+- service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
+- date: tomorrow, today, specific date, "kal", "aaj"
+- time: 6-9, evening, morning, "shaam", "raat", specific time
+- customer_name: Full name or first name if mentioned
 
 Respond in JSON format:
 {{
-    "intent": "intent_name",
+    "intent": "booking_request",
+    "confidence": 0.95,
+    "reasoning": "User wants to book a slot (Roman Urdu: 'mujhe slot chahiye')",
     "entities": {{
-        "service_type": "futsal",
+        "service_type": "padel",
         "date": "tomorrow",
-        "time": "5pm",
-        "customer_name": "Ahmad"
-    }},
-    "confidence": 0.99
+        "time": "18:00-21:00",
+        "customer_name": null
+    }}
 }}
 """
     

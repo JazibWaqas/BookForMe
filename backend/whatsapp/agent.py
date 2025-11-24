@@ -141,9 +141,52 @@ class WhatsAppAgent:
                 {'state': 'greeting', 'phone_number': phone_number}
             )
             
-            # Check if they want to book something
-            if intent == 'booking_request' or entities.get('service_type'):
-                # Update state to service selection
+            # Handle different intents
+            if intent == 'availability_inquiry':
+                # Incomplete availability query (e.g., "koi slot hei?", "slot hai?")
+                # Check what entities are missing
+                has_service = entities.get('service_type')
+                has_date = entities.get('date')
+                has_time = entities.get('time')
+                
+                # Determine missing info and ask accordingly
+                missing = []
+                if not has_service:
+                    missing.append('service')
+                if not has_date:
+                    missing.append('date')
+                if not has_time:
+                    missing.append('time')
+                
+                # Update state based on what we have
+                if has_service and has_date and has_time:
+                    # Complete query - check availability
+                    await self.state_manager.update_session(phone_number, {
+                        'state': 'select_time',
+                        'context': entities
+                    })
+                    return await self._check_and_respond_availability(phone_number, entities)
+                elif has_date or has_time or has_service:
+                    # Partial query - ask for missing info
+                    await self.state_manager.update_session(phone_number, {
+                        'state': 'select_service' if not has_service else ('select_date' if not has_date else 'select_time'),
+                        'context': entities
+                    })
+                    return await self._ask_for_missing_info(entities, phone_number)
+                else:
+                    # Completely incomplete (just "koi slot hei?")
+                    await self.state_manager.update_session(phone_number, {
+                        'state': 'select_service',
+                        'context': {}
+                    })
+                    # Match language style
+                    if any(word in message.lower() for word in ['koi', 'slot', 'hei', 'hai']):
+                        return "Han g! Slots available hain. Kaunsa service chahiye? Padel, Futsal, ya Cricket? Aur kab ka time?"
+                    else:
+                        return "Yes, slots are available! Which service would you like? And what date/time?"
+            
+            elif intent == 'booking_request' or entities.get('service_type'):
+                # Complete booking request or has service type
                 await self.state_manager.update_session(phone_number, {
                     'state': 'select_service',
                     'context': {'service_type': entities.get('service_type', '')}
@@ -154,8 +197,15 @@ class WhatsAppAgent:
                 else:
                     service_type = entities.get('service_type', 'service')
                     return f"Great! You want to book {service_type}. What date would you like to book for?"
+            
+            elif intent == 'greeting':
+                # Just greeting - show services
+                if any(word in message.lower() for word in ['aoa', 'salam', 'assalam']):
+                    return "AoA! Welcome to BookForMe. I can help you book:\n• ⚽ Futsal courts\n• 🏓 Padel courts\n• 🏏 Cricket pitches\n• 💇 Salon appointments\n\nKaunsa service chahiye?"
+                else:
+                    return f"{response}\n\nI can help you book:\n• ⚽ Futsal courts\n• 🏓 Padel courts\n• 🏏 Cricket pitches\n• 💇 Salon appointments\n\nWhat would you like to book today?"
             else:
-                # If NLU response is generic, provide specific booking options
+                # Default fallback
                 if "book" in response.lower() or "service" in response.lower():
                     return response
                 else:
@@ -384,3 +434,55 @@ What would you like to book today?"""
             message += f"{i}. {vendor['name']}\n   📍 {vendor['address']}\n   💰 {vendor['price_range']}\n\n"
         message += "Please select a vendor by number or name."
         return message
+    
+    async def _ask_for_missing_info(self, entities: Dict[str, Any], phone_number: str) -> str:
+        """Ask for missing booking information based on what's already provided"""
+        has_service = entities.get('service_type')
+        has_date = entities.get('date')
+        has_time = entities.get('time')
+        
+        # Check if message was in Roman Urdu
+        session = await self.state_manager.get_session(phone_number)
+        history = session.get('history', [])
+        last_user_msg = history[-1].get('content', '') if history else ''
+        is_roman_urdu = any(word in last_user_msg.lower() for word in ['koi', 'hei', 'hai', 'kal', 'aaj', 'shaam'])
+        
+        missing = []
+        if not has_service:
+            missing.append('service')
+        if not has_date:
+            missing.append('date')
+        if not has_time:
+            missing.append('time')
+        
+        if is_roman_urdu:
+            # Roman Urdu response
+            if not has_service and not has_date and not has_time:
+                return "Kaunsa service chahiye? Aur kab ka time?"
+            elif not has_service:
+                service_info = f" ({entities.get('date', '')} {entities.get('time', '')})"
+                return f"Kaunsa service chahiye?{service_info}"
+            elif not has_date:
+                return "Kab ka slot chahiye? Aaj, kal, ya kisi aur din?"
+            elif not has_time:
+                return "Kaunsa time chahiye? Morning, evening, ya night?"
+        else:
+            # English response
+            if not has_service and not has_date and not has_time:
+                return "Which service would you like? And what date/time?"
+            elif not has_service:
+                return f"Which service would you like? (Date: {entities.get('date', '')}, Time: {entities.get('time', '')})"
+            elif not has_date:
+                return "What date would you like? Today, tomorrow, or another day?"
+            elif not has_time:
+                return "What time would you like? Morning, afternoon, or evening?"
+    
+    async def _check_and_respond_availability(self, phone_number: str, entities: Dict[str, Any]) -> str:
+        """Check availability and respond"""
+        # TODO: Implement actual availability checking
+        service = entities.get('service_type', 'service')
+        date = entities.get('date', 'date')
+        time = entities.get('time', 'time')
+        
+        # For now, just confirm
+        return f"Checking availability for {service} on {date} at {time}..."

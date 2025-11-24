@@ -1,0 +1,46 @@
+CONVERSATION 6: Complex Pricing Calculation
+============================================
+Date: 7/30/2025
+
+CUSTOMER:
+3:58 PM - "Aoa is there a slot available today from 8-9:30"
+
+AGENT:
+4:09 PM - "Yes mil jayega"
+
+CUSTOMER:
+4:09 PM - "Ok I'd like to book it"
+4:10 PM - "Aaj Kal shayad discount bhi hei, price batadei pls for this 1.5 hr session"
+       (These days maybe there's a discount, please tell me the price for this 1.5 hr session)
+
+AGENT:
+4:13 PM - "Han g" (Yes)
+4:13 PM - New price:
+        "03Am to 11Am "2000""
+        "11Am to 07pm "2500""
+        "07Pm to 03Am "3500""
+
+AGENT:
+4:14 PM - "Yes"
+4:14 PM - "Ap payment lagwa da m booking Karwa data hn" 
+          (You make the payment, I'll do the booking)
+
+CUSTOMER:
+4:14 PM - "So for 1.5 hour?"
+4:14 PM - "8-930 will be 5250"
+
+AGENT:
+4:14 PM - "8-930 will be 5250"
+4:14 PM - "Yes"
+
+KEY LEARNINGS:
+- Pricing based on time-of-day blocks (not simple hourly rate)
+- Time blocks: 03AM-11AM (Rs 2000), 11AM-7PM (Rs 2500), 7PM-03AM (Rs 3500)
+- 8-9:30 PM slot spans two blocks (7PM-03AM block = Rs 3500/hour)
+- Calculation: 1.5 hours × Rs 3500 = Rs 5250
+- Customer calculates price themselves and confirms
+- Agent confirms customer's calculation
+- Pricing logic is complex (time-based blocks, not linear)
+- System must handle time-of-day based pricing
+- Customer asks clarifying question before committing
+

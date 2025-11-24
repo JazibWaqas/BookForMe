@@ -1,0 +1,60 @@
+CONVERSATION 4: Complete Payment Flow with Account Details
+===========================================================
+Date: Real WhatsApp conversation
+
+CUSTOMER:
+5:55 PM - [Blurred message]
+
+AGENT:
+5:55 PM - Payment Details:
+      Account Title: Capital Padel
+      Account Number: 00150900000721
+      IBAN: PK38ASCM0000150900000721
+      Bank Name: Askari Bank
+
+AGENT (later):
+6:27 PM - [Forwarded image] (likely payment proof request or confirmation)
+
+KEY LEARNINGS:
+- Payment details shared as structured text
+- Includes: Account Title, Account Number, IBAN, Bank Name
+- Format is clean and easy to parse
+- Images used for payment proof sharing
+- Structured format makes it easy for OCR/extraction
+
+ADDITIONAL CONTEXT (from another conversation):
+
+CUSTOMER:
+6:41 PM - "Still available from 6-7?"
+6:41 PM - "Or 7-8"
+
+AGENT:
+6:41 PM - "yes mil jayega" (Yes, it will be available - in Roman Urdu)
+
+CUSTOMER:
+6:59 PM - [Payment details block]
+      Danish Arena Paddle Tennis
+      Account Title: Millennium Entertainment (Pvt.) Ltd.
+      Account Number: 9982 0106801185...
+6:59 PM - "Ok so want to book from 7-9 should transfer 8k?"
+
+AGENT:
+7:06 PM - "ok" (confirmation)
+
+CUSTOMER:
+7:12 PM - "Actually just want 6-7 so transferring 3k"
+7:26 PM - "Is it possible that I just decide over there if I want the 7-8 slot"
+
+AGENT:
+7:41 PM - "Ok ap payment lagwa da m booking Karwa data hn" 
+          (Okay, you make the payment, I will get the booking done - Roman Urdu)
+
+KEY LEARNINGS:
+- Customers change their mind mid-conversation (7-9 → 6-7)
+- Price calculations (8k for 7-9, 3k for 6-7 = likely Rs 4000/hour)
+- Flexible booking options discussed
+- Agent responds in Roman Urdu to match customer style
+- Payment amount confirmed before transfer
+- Booking confirmed after payment promise
+- Mix of English and Urdu in same conversation
+

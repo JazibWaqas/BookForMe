@@ -1,0 +1,89 @@
+CONVERSATION 7: Incomplete Queries - Real Common Cases
+=======================================================
+Based on user feedback: Most people start with simple, incomplete messages
+
+COMMON PATTERN 1: Just Greeting
+Customer: "Salam"
+Customer: "Hi"
+Customer: "Aoa"
+
+Agent Should:
+- Match greeting style ("Salam" → "Salam", "Hi" → "Hi", "Aoa" → "AoA")
+- Introduce service
+- Ask what they want
+
+Agent Response:
+"AoA! Welcome to BookForMe. I can help you book padel, futsal, cricket, or salon. What would you like to book?"
+
+COMMON PATTERN 2: Incomplete Availability Query (NO DATE/TIME)
+Customer: "Koi slot hei?"
+Customer: "Slot available hai?"
+Customer: "Any slot?"
+
+Agent Should:
+- Recognize availability_inquiry intent
+- Ask for missing information (date, time, service)
+- Guide customer to provide details
+
+Agent Response:
+"Han g! Slots available hain. Kaunsa service chahiye? Aur kab ka time?"
+(Yes! Slots are available. Which service do you need? And what time?)
+
+Or in English:
+"Yes, slots are available! Which service would you like? And what date/time?"
+
+COMMON PATTERN 3: Vague Date, No Time
+Customer: "Kal slot chahiye"
+Customer: "Tomorrow slot available?"
+Customer: "Aaj ka slot hai?"
+
+Agent Should:
+- Extract date: "kal" = tomorrow, "aaj" = today
+- Missing: time, service
+- Ask for time and confirm service
+
+Agent Response:
+"Han g, kal slots available hain. Kaunsa time chahiye? Morning, evening, ya night?"
+(Yes, tomorrow slots are available. What time do you need? Morning, evening, or night?)
+
+COMMON PATTERN 4: Vague Time, No Date
+Customer: "Evening ka slot hai?"
+Customer: "Shaam ka time hai?"
+Customer: "Night slot available?"
+
+Agent Should:
+- Extract time: "evening" = 6-9 PM, "shaam" = evening, "night" = 9 PM-12 AM
+- Missing: date, service
+- Ask for date and confirm service
+
+Agent Response:
+"Han g, evening slots available hain. Kaunsa din chahiye? Aaj, kal, ya kisi aur din?"
+(Yes, evening slots are available. Which day do you need? Today, tomorrow, or another day?)
+
+COMMON PATTERN 5: Service Mentioned, Nothing Else
+Customer: "Padel slot hai?"
+Customer: "Futsal available?"
+Customer: "Cricket ka time hai?"
+
+Agent Should:
+- Extract service: padel, futsal, cricket
+- Missing: date, time
+- Ask for date and time
+
+Agent Response:
+"Han g, padel slots available hain. Kaunsa date aur time chahiye?"
+(Yes, padel slots are available. What date and time do you need?)
+
+KEY LEARNINGS:
+- Most customers start with incomplete information
+- Agent must ask for missing pieces proactively
+- Use natural conversation flow (not robotic questionnaire)
+- Match language style (Roman Urdu queries get Roman Urdu responses)
+- Guide customer step by step without overwhelming
+
+NECESSARY HANDLING:
+- "koi slot hei?" → Ask: service? date? time?
+- "kal slot" → Ask: time? service?
+- "evening slot" → Ask: date? service?
+- Just greeting → Show services, ask what they want
+

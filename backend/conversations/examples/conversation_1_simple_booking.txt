@@ -1,0 +1,36 @@
+CONVERSATION 1: Simple Booking Request
+==========================================
+Date: Real WhatsApp conversation example
+
+CUSTOMER (Green bubbles):
+4:57 PM - "Hi is there a slot available tomorrow Wednesday between 6-9"
+
+AGENT (Grey bubbles):
+5:08 PM - "Yes"
+5:08 PM - "Available"
+
+CUSTOMER:
+5:15 PM - "I would like to book 6:30-8"
+
+AGENT:
+7:55 PM - "I would like to book 6:30-8"
+7:55 PM - "Padel Futsal Cricket ?"
+
+CUSTOMER:
+7:55 PM - "?"
+7:55 PM - "Padel"
+
+AGENT:
+7:57 PM - "8 own words are available" (likely OCR error: "8 slots are available")
+
+CUSTOMER:
+8:00 PM - "Ok and how much are the charges and is there any discounts on cards etc?"
+
+KEY LEARNINGS:
+- Customer provides date + time range in first message
+- Agent confirms availability quickly ("Yes", "Available")
+- Service type clarification needed (Padel/Futsal/Cricket)
+- Price inquiry comes after slot confirmation
+- Discount/card inquiries are common
+- OCR errors possible in agent responses (need to fix)
+
