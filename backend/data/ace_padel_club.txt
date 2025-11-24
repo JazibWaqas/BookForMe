@@ -1,0 +1,51 @@
+ACE PADEL CLUB - Reference Data for Testing
+==========================================
+
+VENDOR INFORMATION:
+- Name: Ace Padel Club
+- Service Type: Padel
+- Address: DHA Phase 5, Karachi
+- Phone: +923001234567
+
+PRICING:
+- Base Price: Rs 7,500 per hour
+- Discount: 20% available
+- Discounted Price: Rs 6,000 per hour
+- Card Discount: Not available
+
+Time-Based Pricing Blocks:
+- Morning (9:00 AM - 11:00 AM): Rs 2,000/hour
+- Afternoon (11:00 AM - 7:00 PM): Rs 2,500/hour
+- Evening (7:00 PM - 3:00 AM): Rs 3,500/hour
+
+PAYMENT DETAILS:
+- Account Title: Ace Padel Club
+- Account Number: 00150900000721
+- IBAN: PK38ASCM0000150900000721
+- Bank Name: Askari Bank
+
+SLOT SCHEDULE:
+Time slots are generated hourly from 9:00 AM to 11:00 PM
+
+Example for Today:
+- 9:00 AM - 10:00 AM: Available
+- 10:00 AM - 11:00 AM: Available
+- 11:00 AM - 12:00 PM: Available
+...
+- 7:00 PM - 8:00 PM: BOOKED (for testing)
+- 8:00 PM - 9:00 PM: PAID (for testing)
+- 9:00 PM - 10:00 PM: Available
+...
+
+STATUS CODES:
+- "available" - Slot is available for booking
+- "booked" - Slot is reserved (payment pending)
+- "paid" - Slot is confirmed and paid
+
+TESTING NOTES:
+- Slots generated for next 14 days
+- 7 PM slot is BOOKED (simulated)
+- 8 PM slot is PAID (simulated)
+- All other slots are AVAILABLE
+- Use this file to verify agent responses are correct
+

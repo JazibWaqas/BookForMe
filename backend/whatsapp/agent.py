@@ -1,48 +1,33 @@
 """
-WhatsApp Agent - Conversation state machine for WhatsApp booking flow
-Handles the complete WhatsApp conversation flow:
-1. Greeting → Service Selection → Date → Time → Confirmation → Booking
-2. Uses Firestore for state management
-3. Integrates with NLU agent and availability service
+WhatsApp Agent - LangGraph-based conversation agent for WhatsApp booking flow
+Uses LangGraph for stateful agent workflow with tool calling
 """
 
 import logging
 from typing import Dict, Any, Optional
 from app.config import settings
 
-# Import implemented modules
-from nlu.agent import NLUAgent
-from database.availability_service import AvailabilityService
+# Import LangGraph agent
+from agent.graph import BookingAgent
 from nlu.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
 
 class WhatsAppAgent:
-    """WhatsApp conversation agent with state machine"""
-    
-    # Conversation states
-    STATES = {
-        'GREETING': 'greeting',
-        'SELECT_SERVICE': 'select_service',
-        'SELECT_DATE': 'select_date', 
-        'SELECT_TIME': 'select_time',
-        'CONFIRM_BOOKING': 'confirm_booking',
-        'BOOKING_COMPLETE': 'booking_complete'
-    }
+    """WhatsApp conversation agent using LangGraph"""
     
     def __init__(self):
-        """Initialize WhatsApp agent"""
-        # Initialize services
-        self.nlu_agent = NLUAgent()
-        self.availability_service = AvailabilityService()
+        """Initialize WhatsApp agent with LangGraph"""
+        # Initialize LangGraph agent
+        self.booking_agent = BookingAgent()
         self.state_manager = StateManager()
         
-        logger.info("WhatsApp Agent initialized")
+        logger.info("WhatsApp Agent initialized with LangGraph")
     
     async def process_message(self, phone_number: str, message: str) -> str:
         """
-        Process incoming WhatsApp message and return response
+        Process incoming WhatsApp message using LangGraph agent
         
         Args:
             phone_number: Customer's phone number
@@ -54,435 +39,34 @@ class WhatsAppAgent:
         try:
             logger.info(f"Processing message from {phone_number}: {message}")
             
-            # Get conversation state from Firestore
+            # Get conversation history from Firestore
             session = await self.state_manager.get_session(phone_number)
-            current_state = session.get('state', 'greeting')
-            
-            # Extract intent and entities using NLU
-            nlu_result = await self.nlu_agent.extract_intent(message, session.get('history', []))
-            intent = nlu_result.get('intent', 'unknown')
-            
-            # Check if user is starting a new conversation (greeting after being in other states)
-            if intent == 'greeting' and current_state != 'greeting':
-                logger.info(f"User {phone_number} starting new conversation, resetting to greeting state")
-                # Reset to greeting state for new conversation
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'greeting',
-                    'context': {}
-                })
-                current_state = 'greeting'
-            
-            # Check for conversation timeout (reset if last message was > 1 hour ago)
             history = session.get('history', [])
-            if history:
-                from datetime import datetime, timedelta
-                last_message_time = datetime.fromisoformat(history[-1].get('timestamp', ''))
-                if datetime.now() - last_message_time > timedelta(hours=1):
-                    logger.info(f"Conversation timeout for {phone_number}, resetting to greeting")
-                    await self.state_manager.update_session(phone_number, {
-                        'state': 'greeting',
-                        'context': {}
-                    })
-                    current_state = 'greeting'
             
-            # Process based on current state
-            response = await self._handle_state(current_state, phone_number, message, nlu_result)
+            # Convert history to format expected by LangGraph
+            conversation_history = []
+            for msg in history:
+                conversation_history.append({
+                    "role": msg.get('role', 'user'),
+                    "content": msg.get('content', '')
+                })
             
-            # Update conversation state
+            # Process message through LangGraph agent
+            response = await self.booking_agent.process(
+                user_phone=phone_number,
+                message=message,
+                conversation_history=conversation_history
+            )
+            
+            # Update conversation state in Firestore
             await self.state_manager.add_message_to_history(phone_number, 'user', message)
             await self.state_manager.add_message_to_history(phone_number, 'assistant', response)
             
-            logger.info(f"Generated response: {response}")
+            logger.info(f"Generated response: {response[:100]}...")
             return response
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return "Sorry, I encountered an error. Please try again later."
-    
-    async def _handle_state(self, current_state: str, phone_number: str, message: str, nlu_result: Dict[str, Any]) -> str:
-        """Handle message based on current conversation state"""
-        try:
-            intent = nlu_result.get('intent', 'unknown')
-            entities = nlu_result.get('entities', {})
-            
-            if current_state == 'greeting':
-                return await self._handle_greeting_state(phone_number, message, intent, entities)
-            elif current_state == 'select_service':
-                return await self._handle_service_selection(phone_number, message, intent, entities)
-            elif current_state == 'select_date':
-                return await self._handle_date_selection(phone_number, message, intent, entities)
-            elif current_state == 'select_time':
-                return await self._handle_time_selection(phone_number, message, intent, entities)
-            elif current_state == 'confirm_booking':
-                return await self._handle_booking_confirmation(phone_number, message, intent, entities)
-            elif current_state == 'booking_complete':
-                return await self._handle_booking_complete(phone_number, message, intent, entities)
-            else:
-                return await self._handle_greeting_state(phone_number, message, intent, entities)
-                
-        except Exception as e:
-            logger.error(f"Error handling state {current_state}: {e}")
-            return "I'm sorry, I didn't understand that. Could you please try again?"
-    
-    async def _handle_greeting_state(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle greeting state"""
-        # Use NLU to generate response instead of hardcoded responses
-        try:
-            # Get conversation history
-            session = await self.state_manager.get_session(phone_number)
-            history = session.get('history', [])
-            
-            # Use the provided intent and entities (no duplicate extract_intent call)
-            
-            # Use NLU to generate appropriate response
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'greeting', 'phone_number': phone_number}
-            )
-            
-            # Handle different intents
-            if intent == 'availability_inquiry':
-                # Incomplete availability query (e.g., "koi slot hei?", "slot hai?")
-                # Check what entities are missing
-                has_service = entities.get('service_type')
-                has_date = entities.get('date')
-                has_time = entities.get('time')
-                
-                # Determine missing info and ask accordingly
-                missing = []
-                if not has_service:
-                    missing.append('service')
-                if not has_date:
-                    missing.append('date')
-                if not has_time:
-                    missing.append('time')
-                
-                # Update state based on what we have
-                if has_service and has_date and has_time:
-                    # Complete query - check availability
-                    await self.state_manager.update_session(phone_number, {
-                        'state': 'select_time',
-                        'context': entities
-                    })
-                    return await self._check_and_respond_availability(phone_number, entities)
-                elif has_date or has_time or has_service:
-                    # Partial query - ask for missing info
-                    await self.state_manager.update_session(phone_number, {
-                        'state': 'select_service' if not has_service else ('select_date' if not has_date else 'select_time'),
-                        'context': entities
-                    })
-                    return await self._ask_for_missing_info(entities, phone_number)
-                else:
-                    # Completely incomplete (just "koi slot hei?")
-                    await self.state_manager.update_session(phone_number, {
-                        'state': 'select_service',
-                        'context': {}
-                    })
-                    # Match language style
-                    if any(word in message.lower() for word in ['koi', 'slot', 'hei', 'hai']):
-                        return "Han g! Slots available hain. Kaunsa service chahiye? Padel, Futsal, ya Cricket? Aur kab ka time?"
-                    else:
-                        return "Yes, slots are available! Which service would you like? And what date/time?"
-            
-            elif intent == 'booking_request' or entities.get('service_type'):
-                # Complete booking request or has service type
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'select_service',
-                    'context': {'service_type': entities.get('service_type', '')}
-                })
-                
-                if "service" in response.lower() or "book" in response.lower():
-                    return response
-                else:
-                    service_type = entities.get('service_type', 'service')
-                    return f"Great! You want to book {service_type}. What date would you like to book for?"
-            
-            elif intent == 'greeting':
-                # Just greeting - show services
-                if any(word in message.lower() for word in ['aoa', 'salam', 'assalam']):
-                    return "AoA! Welcome to BookForMe. I can help you book:\n• ⚽ Futsal courts\n• 🏓 Padel courts\n• 🏏 Cricket pitches\n• 💇 Salon appointments\n\nKaunsa service chahiye?"
-                else:
-                    return f"{response}\n\nI can help you book:\n• ⚽ Futsal courts\n• 🏓 Padel courts\n• 🏏 Cricket pitches\n• 💇 Salon appointments\n\nWhat would you like to book today?"
-            else:
-                # Default fallback
-                if "book" in response.lower() or "service" in response.lower():
-                    return response
-                else:
-                    return f"{response}\n\nI can help you book:\n• ⚽ Futsal courts\n• 💇 Salon appointments\n• 🏃‍♂️ Gym sessions\n\nWhat would you like to book today?"
-                
-        except Exception as e:
-            logger.error(f"Error in greeting state: {e}")
-            return """Hello! I'm your BookForMe assistant. 
-
-I can help you book:
-• ⚽ Futsal courts
-• 💇 Salon appointments
-• 🏃‍♂️ Gym sessions
-
-What would you like to book today?"""
-    
-    async def _handle_service_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle service selection state"""
-        try:
-            # Use NLU to generate response based on intent and entities
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'select_service', 'phone_number': phone_number}
-            )
-            
-            # Check if service type was mentioned
-            service_type = entities.get('service_type', '').lower()
-            
-            if service_type in ['futsal', 'salon', 'gym']:
-                # Update state to date selection
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'select_date',
-                    'context': {'service_type': service_type}
-                })
-                
-                # Use NLU response if it's good, otherwise provide specific response
-                if "date" in response.lower() or "when" in response.lower():
-                    return response
-                else:
-                    return f"Great! You want to book {service_type}. What date would you like to book for?"
-            else:
-                # Show available services
-                services = await self._get_available_services()
-                return await self._format_service_options(services)
-                
-        except Exception as e:
-            logger.error(f"Error in service selection: {e}")
-            return "I'm sorry, I didn't understand. What service would you like to book?"
-    
-    async def _handle_date_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle date selection state"""
-        try:
-            # Use NLU to generate response based on intent and entities
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'select_date', 'phone_number': phone_number}
-            )
-            
-            # Check if date was mentioned
-            date_mentioned = entities.get('date') or any(word in message.lower() for word in ['tomorrow', 'today', 'friday', 'saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday'])
-            
-            if date_mentioned:
-                # Update state to time selection
-                current_session = await self.state_manager.get_session(phone_number)
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'select_time',
-                    'context': {**current_session.get('context', {}), 'date': entities.get('date', message)}
-                })
-                
-                if "time" in response.lower() or "when" in response.lower():
-                    return response
-                else:
-                    return f"Great! You mentioned {entities.get('date', message)}. What time would you like to book?"
-            else:
-                return "What date would you like to book for? Please mention a specific date like 'tomorrow', 'Friday', or 'next week'."
-                
-        except Exception as e:
-            logger.error(f"Error in date selection: {e}")
-            return "What date would you like to book for?"
-    
-    async def _handle_time_selection(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle time selection state"""
-        try:
-            # Use NLU to generate response based on intent and entities
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'select_time', 'phone_number': phone_number}
-            )
-            
-            # Check if time was mentioned
-            time_mentioned = entities.get('time') or any(word in message.lower() for word in ['morning', 'afternoon', 'evening', 'night', 'am', 'pm', 'o\'clock'])
-            
-            if time_mentioned:
-                # Update state to booking confirmation
-                current_session = await self.state_manager.get_session(phone_number)
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'confirm_booking',
-                    'context': {**current_session.get('context', {}), 'time': entities.get('time', message)}
-                })
-                
-                # Get booking summary
-                session = await self.state_manager.get_session(phone_number)
-                context = session.get('context', {})
-                service_type = context.get('service_type', 'service')
-                date = context.get('date', 'selected date')
-                time = entities.get('time', message)
-                
-                if "confirm" in response.lower() or "booking" in response.lower():
-                    return response
-                else:
-                    return f"Perfect! You want to book {service_type} for {date} at {time}. Should I confirm this booking?"
-            else:
-                return "What time would you like to book? Please mention a specific time like '5pm', 'evening', or 'morning'."
-                
-        except Exception as e:
-            logger.error(f"Error in time selection: {e}")
-            return "What time would you like to book?"
-    
-    async def _handle_booking_confirmation(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle booking confirmation state"""
-        try:
-            # Use NLU to generate response based on intent and entities
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'confirm_booking', 'phone_number': phone_number}
-            )
-            
-            # Check if user confirmed
-            confirmed = intent == 'confirmation' or any(word in message.lower() for word in ['yes', 'confirm', 'book', 'done', 'ok', 'sure'])
-            
-            if confirmed:
-                # Update state to booking complete
-                current_session = await self.state_manager.get_session(phone_number)
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'booking_complete',
-                    'context': {**current_session.get('context', {}), 'confirmed': True}
-                })
-                
-                # Get booking summary
-                session = await self.state_manager.get_session(phone_number)
-                context = session.get('context', {})
-                service_type = context.get('service_type', 'service')
-                date = context.get('date', 'selected date')
-                time = context.get('time', 'selected time')
-                
-                if "thank" in response.lower() or "confirmed" in response.lower():
-                    return response
-                else:
-                    return f"🎉 Booking confirmed! You have {service_type} booked for {date} at {time}. Thank you for using BookForMe!"
-            else:
-                return "Would you like me to confirm this booking? Please say 'yes' or 'confirm' to proceed."
-                
-        except Exception as e:
-            logger.error(f"Error in booking confirmation: {e}")
-            return "Would you like me to confirm this booking?"
-    
-    async def _handle_booking_complete(self, phone_number: str, message: str, intent: str, entities: Dict[str, Any]) -> str:
-        """Handle booking complete state"""
-        try:
-            # Use NLU to generate response based on intent and entities
-            response = await self.nlu_agent.generate_response(
-                intent,
-                entities,
-                {'state': 'booking_complete', 'phone_number': phone_number}
-            )
-            
-            # Check if user wants to book something else
-            if intent == 'booking_request' or any(word in message.lower() for word in ['book', 'another', 'more', 'again']):
-                # Reset to greeting state for new booking
-                await self.state_manager.update_session(phone_number, {
-                    'state': 'greeting',
-                    'context': {}
-                })
-                
-                if "book" in response.lower() or "service" in response.lower():
-                    return response
-                else:
-                    return "Great! I can help you with another booking. What service would you like to book?"
-            else:
-                if "help" in response.lower() or "assist" in response.lower():
-                    return response
-                else:
-                    return "Is there anything else I can help you with? You can book another service anytime!"
-                
-        except Exception as e:
-            logger.error(f"Error in booking complete: {e}")
-            return "Is there anything else I can help you with?"
-    
-    async def _get_available_services(self) -> list:
-        """Get list of available services"""
-        # TODO: Query services from Firestore
-        return [
-            {"id": "futsal", "name": "Futsal Court", "icon": "⚽"},
-            {"id": "salon", "name": "Salon Service", "icon": "💇"},
-            {"id": "gym", "name": "Gym Session", "icon": "🏃‍♂️"}
-        ]
-    
-    async def _get_available_vendors(self, service_type: str) -> list:
-        """Get vendors for a service type"""
-        # TODO: Query vendors from Firestore
-        return [
-            {
-                "id": "vendor1",
-                "name": "Karachi Futsal Arena",
-                "address": "DHA Phase 5",
-                "price_range": "Rs. 2000-3000"
-            }
-        ]
-    
-    async def _format_service_options(self, services: list) -> str:
-        """Format service options for display"""
-        message = "📋 *Available Services:*\n\n"
-        for i, service in enumerate(services, 1):
-            message += f"{i}. {service['icon']} {service['name']}\n"
-        message += "\nPlease select a number or tell me the service name."
-        return message
-    
-    async def _format_vendor_options(self, vendors: list) -> str:
-        """Format vendor options for display"""
-        message = "🏢 *Available Vendors:*\n\n"
-        for i, vendor in enumerate(vendors, 1):
-            message += f"{i}. {vendor['name']}\n   📍 {vendor['address']}\n   💰 {vendor['price_range']}\n\n"
-        message += "Please select a vendor by number or name."
-        return message
-    
-    async def _ask_for_missing_info(self, entities: Dict[str, Any], phone_number: str) -> str:
-        """Ask for missing booking information based on what's already provided"""
-        has_service = entities.get('service_type')
-        has_date = entities.get('date')
-        has_time = entities.get('time')
-        
-        # Check if message was in Roman Urdu
-        session = await self.state_manager.get_session(phone_number)
-        history = session.get('history', [])
-        last_user_msg = history[-1].get('content', '') if history else ''
-        is_roman_urdu = any(word in last_user_msg.lower() for word in ['koi', 'hei', 'hai', 'kal', 'aaj', 'shaam'])
-        
-        missing = []
-        if not has_service:
-            missing.append('service')
-        if not has_date:
-            missing.append('date')
-        if not has_time:
-            missing.append('time')
-        
-        if is_roman_urdu:
-            # Roman Urdu response
-            if not has_service and not has_date and not has_time:
-                return "Kaunsa service chahiye? Aur kab ka time?"
-            elif not has_service:
-                service_info = f" ({entities.get('date', '')} {entities.get('time', '')})"
-                return f"Kaunsa service chahiye?{service_info}"
-            elif not has_date:
-                return "Kab ka slot chahiye? Aaj, kal, ya kisi aur din?"
-            elif not has_time:
-                return "Kaunsa time chahiye? Morning, evening, ya night?"
-        else:
-            # English response
-            if not has_service and not has_date and not has_time:
-                return "Which service would you like? And what date/time?"
-            elif not has_service:
-                return f"Which service would you like? (Date: {entities.get('date', '')}, Time: {entities.get('time', '')})"
-            elif not has_date:
-                return "What date would you like? Today, tomorrow, or another day?"
-            elif not has_time:
-                return "What time would you like? Morning, afternoon, or evening?"
-    
-    async def _check_and_respond_availability(self, phone_number: str, entities: Dict[str, Any]) -> str:
-        """Check availability and respond"""
-        # TODO: Implement actual availability checking
-        service = entities.get('service_type', 'service')
-        date = entities.get('date', 'date')
-        time = entities.get('time', 'time')
-        
-        # For now, just confirm
-        return f"Checking availability for {service} on {date} at {time}..."
