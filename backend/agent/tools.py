@@ -19,19 +19,24 @@ from data.ace_padel_club import (
 logger = logging.getLogger(__name__)
 
 
-def check_availability(date: str, time_range: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+# Import general booking rules (agent rules, not vendor-specific)
+from agent.booking_rules import check_slot_conflict, filter_conflicting_slots, validate_booking_duration
+
+
+def check_availability(date: str, time_range: Optional[Dict[str, str]] = None, duration_hours: Optional[float] = None) -> Dict[str, Any]:
     """
     Check availability of slots for a specific date and optional time range
     
     Args:
         date: Date in YYYY-MM-DD format
         time_range: Optional dict with "start" and "end" times (HH:MM format)
+        duration_hours: Optional duration for conflict checking
     
     Returns:
         Dict with available slots and status
     """
     try:
-        logger.info(f"Checking availability for date: {date}, time_range: {time_range}")
+        logger.info(f"Checking availability for date: {date}, time_range: {time_range}, duration: {duration_hours}")
         
         # Get slots for the date
         if date not in ALL_SLOTS:
@@ -53,7 +58,10 @@ def check_availability(date: str, time_range: Optional[Dict[str, str]] = None) -
                 
                 # Check if slot overlaps with requested time range
                 if start_time and end_time:
-                    if slot_start >= start_time and slot_start < end_time:
+                    # Include slot if it starts within the range
+                    # Also include if slot end time is within range (for better coverage)
+                    if (slot_start >= start_time and slot_start < end_time) or \
+                       (slot_end > start_time and slot_end <= end_time):
                         filtered_slots.append(slot)
                 elif start_time:
                     # Only start time provided (e.g., "after 6pm")
@@ -63,6 +71,44 @@ def check_availability(date: str, time_range: Optional[Dict[str, str]] = None) -
         
         # Filter only available slots
         available_slots = [s for s in slots if s["status"] == "available"]
+        
+        # Get booked slots for conflict checking (agent rule: no overlaps allowed)
+        booked_slots = [s for s in slots if s["status"] in ["booked", "paid"]]
+        
+        # If duration specified, apply agent rule: filter out slots that would conflict
+        # This is a general booking rule - applies to all vendors
+        if duration_hours and available_slots:
+            available_slots = filter_conflicting_slots(available_slots, booked_slots, duration_hours)
+        
+        # Add duration options to each slot (30 mins, 1 hr, 1.5 hrs, 2 hrs)
+        for slot in available_slots:
+            price_per_hour = slot.get("price_per_hour", slot.get("price", 0))
+            slot["duration_options"] = [
+                {
+                    "duration_hours": 0.5,
+                    "duration_minutes": 30,
+                    "price": int(price_per_hour * 0.5),
+                    "discounted_price": int(price_per_hour * 0.5 * 0.8)
+                },
+                {
+                    "duration_hours": 1.0,
+                    "duration_minutes": 60,
+                    "price": int(price_per_hour * 1.0),
+                    "discounted_price": int(price_per_hour * 1.0 * 0.8)
+                },
+                {
+                    "duration_hours": 1.5,
+                    "duration_minutes": 90,
+                    "price": int(price_per_hour * 1.5),
+                    "discounted_price": int(price_per_hour * 1.5 * 0.8)
+                },
+                {
+                    "duration_hours": 2.0,
+                    "duration_minutes": 120,
+                    "price": int(price_per_hour * 2.0),
+                    "discounted_price": int(price_per_hour * 2.0 * 0.8)
+                }
+            ]
         
         return {
             "success": True,

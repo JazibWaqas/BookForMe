@@ -50,45 +50,91 @@ PAYMENT_DETAILS = {
     "bank_name": "Askari Bank"
 }
 
+# Import general booking rules from agent (agent rules, not vendor-specific)
+from agent.booking_rules import check_slot_conflict
+
+
+def check_slot_conflicts_with_ranges(slot_start: str, slot_end: str, booked_ranges: List[Dict[str, str]]) -> bool:
+    """
+    Check if a slot conflicts with vendor-specific booked ranges
+    Uses general agent booking rules (applies to all vendors)
+    """
+    # Convert booked ranges to format expected by general conflict checker
+    booked_slots = [
+        {"start_time": r["start"], "end_time": r["end"]}
+        for r in booked_ranges
+    ]
+    
+    # Use general agent booking rule (not vendor-specific)
+    return check_slot_conflict(slot_start, slot_end, booked_slots)
+
+
 def generate_slots_for_date(date: str) -> List[Dict[str, Any]]:
     """
-    Generate time slots for a specific date
+    Generate time slots for a specific date (24 hours)
     Date format: YYYY-MM-DD
     
     Returns list of slots with status: available, booked, paid
+    
+    Booked slots:
+    - 6-7pm (18:00-19:00)
+    - 8:30-10pm (20:30-22:00)
+    - 10pm-12am (22:00-00:00)
+    - 2-4am (02:00-04:00)
+    - 5-6am (05:00-06:00)
+    - 7-9am (07:00-09:00)
     """
     slots = []
     
-    # Generate hourly slots from 9 AM to 11 PM
-    for hour in range(9, 23):
+    # Define booked time ranges
+    booked_ranges = [
+        {"start": "18:00", "end": "19:00"},      # 6-7pm
+        {"start": "20:30", "end": "22:00"},      # 8:30-10pm
+        {"start": "22:00", "end": "00:00"},      # 10pm-12am (midnight)
+        {"start": "02:00", "end": "04:00"},      # 2-4am
+        {"start": "05:00", "end": "06:00"},      # 5-6am
+        {"start": "07:00", "end": "09:00"},      # 7-9am
+    ]
+    
+    # Generate hourly slots for 24 hours (00:00 to 23:00)
+    for hour in range(24):
         slot_time = f"{hour:02d}:00"
-        end_time = f"{hour+1:02d}:00"
+        end_time = f"{(hour+1)%24:02d}:00"  # Handle midnight wrap (23:00 -> 00:00)
         
-        # Determine status based on hour (simulate some booked slots)
-        # Example: 7 PM slot is booked, 8 PM is paid, rest available
-        if hour == 19:  # 7 PM
+        # Check if this slot conflicts with booked ranges
+        # Uses general agent booking rules (not vendor-specific)
+        is_conflict = check_slot_conflicts_with_ranges(slot_time, end_time, booked_ranges)
+        
+        # Also check for partial hour conflicts (e.g., slot ends at 6:30 but 6-7 is booked)
+        # For now, we'll mark full hour slots. Partial hour bookings will be checked separately.
+        if is_conflict:
             status = "booked"
-        elif hour == 20:  # 8 PM
-            status = "paid"
         else:
             status = "available"
         
         # Calculate price based on time block
         if 9 <= hour < 11:
-            price = PRICING["time_blocks"]["morning"]["price_per_hour"]
+            price_per_hour = PRICING["time_blocks"]["morning"]["price_per_hour"]
         elif 11 <= hour < 19:
-            price = PRICING["time_blocks"]["afternoon"]["price_per_hour"]
+            price_per_hour = PRICING["time_blocks"]["afternoon"]["price_per_hour"]
+        elif 19 <= hour < 24 or hour < 9:  # Evening (7pm-9am) or late night
+            price_per_hour = PRICING["time_blocks"]["evening"]["price_per_hour"]
         else:
-            price = PRICING["time_blocks"]["evening"]["price_per_hour"]
+            price_per_hour = PRICING["time_blocks"]["afternoon"]["price_per_hour"]
+        
+        price = price_per_hour  # For 1-hour slot
         
         slots.append({
             "slot_id": f"{date}_{slot_time}",
             "slot_date": date,
             "slot_time": slot_time,
             "end_time": end_time,
-            "duration_hours": 1,
+            "duration_hours": 1.0,  # Base slot is 1 hour
+            "duration_minutes": 60,
             "price": price,
+            "price_per_hour": price_per_hour,  # For calculating flexible durations
             "discounted_price": int(price * 0.8),  # 20% discount
+            "discounted_price_per_hour": int(price_per_hour * 0.8),
             "status": status
         })
     

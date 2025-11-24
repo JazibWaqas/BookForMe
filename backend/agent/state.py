@@ -18,6 +18,12 @@ class AgentState(TypedDict):
     current_intent: str  # greeting, availability_inquiry, price_inquiry, booking_request, etc.
     entities: Dict[str, Any]  # {date, time, service_type, etc.}
     
+    # Booking context (tracks what user is booking)
+    selected_slot: Optional[Dict[str, Any]]  # Selected slot info
+    selected_duration: Optional[float]  # Selected duration in hours
+    selected_date: Optional[str]  # Selected date
+    booking_in_progress: bool  # Whether user is in booking flow
+    
     # Vendor context (always Ace Padel Club for testing)
     vendor_id: str  # Always "ace_padel_club"
     vendor_data: Optional[Dict[str, Any]]  # Vendor info, pricing, etc.

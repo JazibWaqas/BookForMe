@@ -25,27 +25,38 @@ PAYMENT DETAILS:
 - Bank Name: Askari Bank
 
 SLOT SCHEDULE:
-Time slots are generated hourly from 9:00 AM to 11:00 PM
+Time slots are generated hourly for 24 HOURS A DAY (00:00 to 23:00)
 
-Example for Today:
-- 9:00 AM - 10:00 AM: Available
-- 10:00 AM - 11:00 AM: Available
-- 11:00 AM - 12:00 PM: Available
-...
-- 7:00 PM - 8:00 PM: BOOKED (for testing)
-- 8:00 PM - 9:00 PM: PAID (for testing)
-- 9:00 PM - 10:00 PM: Available
-...
+BOOKED SLOTS (Only 7 slots booked):
+- 6:00 PM - 7:00 PM (18:00-19:00): BOOKED
+- 8:30 PM - 10:00 PM (20:30-22:00): BOOKED
+- 10:00 PM - 12:00 AM (22:00-00:00): BOOKED
+- 2:00 AM - 4:00 AM (02:00-04:00): BOOKED
+- 5:00 AM - 6:00 AM (05:00-06:00): BOOKED
+- 7:00 AM - 9:00 AM (07:00-09:00): BOOKED
+
+ALL OTHER SLOTS ARE AVAILABLE
+
+Example:
+- 5:00 PM - 6:00 PM: AVAILABLE (can book)
+- 5:00 PM - 5:30 PM: AVAILABLE (can book)
+- 5:00 PM - 6:30 PM: NOT AVAILABLE (conflicts with 6-7pm booked slot)
+- 6:00 PM - 7:00 PM: BOOKED (cannot book)
 
 STATUS CODES:
 - "available" - Slot is available for booking
-- "booked" - Slot is reserved (payment pending)
-- "paid" - Slot is confirmed and paid
+- "booked" - Slot is reserved and cannot be booked
+
+CONFLICT RULES:
+- If a slot is booked, you cannot book any time that overlaps with it
+- Example: If 6-7pm is booked, you CAN book 5-6pm but CANNOT book 5:30-6:30pm
+- The system checks for conflicts when booking partial hours
 
 TESTING NOTES:
 - Slots generated for next 14 days
-- 7 PM slot is BOOKED (simulated)
-- 8 PM slot is PAID (simulated)
-- All other slots are AVAILABLE
+- Only 7 specific slots are booked (see above)
+- All other slots (24 hours) are AVAILABLE
 - Use this file to verify agent responses are correct
+- Test: "is 5pm available?" → YES (5-6pm is available)
+- Test: "book 5-6:30" → NO (conflicts with 6-7pm booked)
 
