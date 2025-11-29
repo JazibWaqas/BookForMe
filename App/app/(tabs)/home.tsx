@@ -52,15 +52,15 @@ export default function HomeScreen() {
               <Text style={styles.locationArrow}>▼</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push('/(tabs)/profile')}
           >
             <View style={styles.profileIconCircle} />
           </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={() => router.push('/(tabs)/chatbot')}
           style={styles.searchBar}
         >
@@ -68,12 +68,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={COLORS.primary}
             colors={[COLORS.primary]}
@@ -83,8 +83,8 @@ export default function HomeScreen() {
         {/* Categories - Horizontal Scroll */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Browse by Sport</Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesScroll}
           >
@@ -115,8 +115,8 @@ export default function HomeScreen() {
                 <Text style={styles.viewAll}>View All →</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.vendorsScroll}
             >
@@ -142,8 +142,8 @@ export default function HomeScreen() {
                 <Text style={styles.viewAll}>View All →</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.vendorsScroll}
             >
@@ -164,19 +164,19 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push('/(tabs)/chatbot')}
             >
               <Text style={styles.actionLabel}>AI Assistant</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push('/(tabs)/social')}
             >
               <Text style={styles.actionLabel}>Find Players</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push('/notifications')}
             >
@@ -187,6 +187,20 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* AI Chatbot FAB */}
+      <TouchableOpacity
+        style={styles.chatFab}
+        onPress={() => router.push('/(tabs)/chatbot')}
+        activeOpacity={0.9}
+      >
+        <View style={styles.fabIcon}>
+          <View style={styles.fabChatBubble} />
+          <View style={styles.fabSparkle1} />
+          <View style={styles.fabSparkle2} />
+        </View>
+        <Text style={styles.fabText}>Ask AI</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -349,5 +363,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
+  },
+  // AI Chatbot FAB
+  chatFab: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  fabIcon: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 2,
+  },
+  fabChatBubble: {
+    width: 24,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2.5,
+    borderColor: COLORS.textDark,
+  },
+  fabSparkle1: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.textDark,
+    position: 'absolute',
+    top: -2,
+    right: -2,
+  },
+  fabSparkle2: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.textDark,
+    position: 'absolute',
+    bottom: -2,
+    left: -2,
+  },
+  fabText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginTop: 2,
   },
 });

@@ -57,6 +57,17 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/bookings')}
+          >
+            <Card style={styles.settingCard}>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>My Bookings</Text>
+                <Text style={styles.settingArrow}>→</Text>
+              </View>
+            </Card>
+          </TouchableOpacity>
           {[
             { label: 'Edit Profile' },
             { label: 'Notifications' },

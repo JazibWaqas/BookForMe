@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { COLORS } from '../../constants/colors';
+
+type BookingStep = 'details' | 'payment' | 'confirmed';
+type VerificationStatus = 'idle' | 'uploading' | 'analyzing' | 'verified' | 'rejected';
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -16,10 +20,14 @@ export default function BookingScreen() {
     slotId: string;
   }>();
 
+  const [step, setStep] = useState<BookingStep>('details');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet' | 'venue'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet' | 'venue'>('wallet');
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('idle');
+  const [countdown, setCountdown] = useState(600); // 10 minutes in seconds
   const [loading, setLoading] = useState(false);
 
   const basePrice = 1250;
@@ -27,42 +35,121 @@ export default function BookingScreen() {
   const tax = 125;
   const total = basePrice + bookingFee + tax;
 
-  const handleConfirmPayment = async () => {
+  // Countdown timer
+  useEffect(() => {
+    if (step === 'payment' && countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            Alert.alert(
+              'Time Expired',
+              'Your slot reservation has expired. Please try booking again.',
+              [{ text: 'OK', onPress: () => router.back() }]
+            );
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [step, countdown]);
+
+  const formatCountdown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleLockSlot = () => {
     if (!name || !phone || !email) {
       Alert.alert('Missing Info', 'Please fill in all customer details');
       return;
     }
 
-    setLoading(true);
+    // Lock the slot and move to payment
+    setStep('payment');
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photos to upload payment proof.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setScreenshot(result.assets[0].uri);
+      setVerificationStatus('idle');
+    }
+  };
+
+  const handleUploadPayment = async () => {
+    if (!screenshot) {
+      Alert.alert('No Image', 'Please select a payment screenshot first.');
+      return;
+    }
+
+    // Simulate upload and AI verification
+    setVerificationStatus('uploading');
 
     setTimeout(() => {
-      setLoading(false);
-      Alert.alert(
-        'Booking Confirmed!',
-        `Your ${vendorName} slot for ${date} at ${time} has been booked.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => router.push('/(tabs)/home'),
-          },
-        ]
-      );
-    }, 1500);
+      setVerificationStatus('analyzing');
+
+      setTimeout(() => {
+        // Simulate AI verification result (80% success rate for demo)
+        const isVerified = Math.random() > 0.2;
+        setVerificationStatus(isVerified ? 'verified' : 'rejected');
+
+        if (isVerified) {
+          setTimeout(() => {
+            setStep('confirmed');
+          }, 1500);
+        }
+      }, 2000);
+    }, 1000);
   };
+
+  const getStatusMessage = () => {
+    switch (verificationStatus) {
+      case 'uploading':
+        return { text: 'Uploading screenshot...', color: COLORS.textMuted };
+      case 'analyzing':
+        return { text: 'AI analyzing payment...', color: COLORS.primary };
+      case 'verified':
+        return { text: 'Payment verified! ✓', color: COLORS.success };
+      case 'rejected':
+        return { text: 'Verification failed. Please upload a clearer screenshot.', color: COLORS.error };
+      default:
+        return { text: 'Upload your payment screenshot', color: COLORS.textMuted };
+    }
+  };
+
+  const statusMsg = getStatusMessage();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirm Booking</Text>
+        <Text style={styles.headerTitle}>
+          {step === 'details' ? 'Confirm Booking' : step === 'payment' ? 'Upload Payment' : 'Booking Confirmed'}
+        </Text>
+        <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.content}>
+        {/* Booking Summary - Always visible */}
         <Card>
           <Text style={styles.cardTitle}>Booking Summary</Text>
           <View style={styles.summaryRow}>
@@ -70,106 +157,210 @@ export default function BookingScreen() {
             <Text style={styles.summaryValue}>{vendorName}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Date:</Text>
-            <Text style={styles.summaryValue}>{date}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Time:</Text>
-            <Text style={styles.summaryValue}>{time}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service:</Text>
-            <Text style={styles.summaryValue}>Padel Court</Text>
-          </View>
-        </Card>
-
-        <Card>
-          <Text style={styles.cardTitle}>Customer Details</Text>
-          <View style={styles.formGroup}>
-            <Input
-              label="Full Name"
-              placeholder="Enter your name"
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
-          <View style={styles.formGroup}>
-            <Input
-              label="Phone Number"
-              placeholder="+92 300 1234567"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-          </View>
-          <View style={styles.formGroup}>
-            <Input
-              label="Email"
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-          </View>
-        </Card>
-
-        <Card>
-          <Text style={styles.cardTitle}>Payment Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Base Price:</Text>
-            <Text style={styles.summaryValue}>PKR {basePrice}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Booking Fee:</Text>
-            <Text style={styles.summaryValue}>PKR {bookingFee}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax (10%):</Text>
-            <Text style={styles.summaryValue}>PKR {tax}</Text>
+            <Text style={styles.summaryLabel}>Date & Time:</Text>
+            <Text style={styles.summaryValue}>{date} at {time}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalLabel}>Total Amount:</Text>
             <Text style={styles.totalValue}>PKR {total}</Text>
           </View>
         </Card>
 
-        <Card>
-          <Text style={styles.cardTitle}>Payment Method</Text>
-          <View style={styles.paymentOptions}>
-            <TouchableOpacity
-              style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
-              onPress={() => setPaymentMethod('card')}
-            >
-              <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
-                Card
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.paymentOption, paymentMethod === 'wallet' && styles.paymentOptionActive]}
-              onPress={() => setPaymentMethod('wallet')}
-            >
-              <Text style={[styles.paymentText, paymentMethod === 'wallet' && styles.paymentTextActive]}>
-                Wallet
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.paymentOption, paymentMethod === 'venue' && styles.paymentOptionActive]}
-              onPress={() => setPaymentMethod('venue')}
-            >
-              <Text style={[styles.paymentText, paymentMethod === 'venue' && styles.paymentTextActive]}>
-                Pay at Venue
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
+        {/* Step 1: Customer Details */}
+        {step === 'details' && (
+          <>
+            <Card>
+              <Text style={styles.cardTitle}>Customer Details</Text>
+              <View style={styles.formGroup}>
+                <Input
+                  label="Full Name"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+              <View style={styles.formGroup}>
+                <Input
+                  label="Phone Number"
+                  placeholder="+92 300 1234567"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              <View style={styles.formGroup}>
+                <Input
+                  label="Email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                />
+              </View>
+            </Card>
 
-        <Button
-          title={`Confirm & Pay PKR ${total}`}
-          onPress={handleConfirmPayment}
-          loading={loading}
-          variant="secondary"
-        />
+            <Card>
+              <Text style={styles.cardTitle}>Payment Method</Text>
+              <View style={styles.paymentOptions}>
+                <TouchableOpacity
+                  style={[styles.paymentOption, paymentMethod === 'wallet' && styles.paymentOptionActive]}
+                  onPress={() => setPaymentMethod('wallet')}
+                >
+                  <Text style={[styles.paymentText, paymentMethod === 'wallet' && styles.paymentTextActive]}>
+                    Digital Wallet
+                  </Text>
+                  <Text style={[styles.paymentSubtext, paymentMethod === 'wallet' && styles.paymentSubtextActive]}>
+                    JazzCash / EasyPaisa
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
+                  onPress={() => setPaymentMethod('card')}
+                >
+                  <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
+                    Bank Transfer
+                  </Text>
+                  <Text style={[styles.paymentSubtext, paymentMethod === 'card' && styles.paymentSubtextActive]}>
+                    Screenshot proof
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+
+            <Button
+              title="Lock Slot & Proceed to Payment"
+              onPress={handleLockSlot}
+              loading={loading}
+              variant="secondary"
+            />
+          </>
+        )}
+
+        {/* Step 2: Payment Upload with Countdown */}
+        {step === 'payment' && (
+          <>
+            {/* Countdown Timer */}
+            <Card style={styles.countdownCard}>
+              <View style={styles.countdownContainer}>
+                <Text style={styles.countdownLabel}>Slot Reserved For:</Text>
+                <Text style={styles.countdownText}>⏱️ {formatCountdown(countdown)}</Text>
+                <Text style={styles.countdownSubtext}>Complete payment before time expires</Text>
+              </View>
+            </Card>
+
+            <Card>
+              <Text style={styles.cardTitle}>Payment Instructions</Text>
+              <Text style={styles.instructionText}>
+                1. Transfer PKR {total} to the vendor's account
+              </Text>
+              <Text style={styles.instructionText}>
+                2. Take a screenshot of the transaction
+              </Text>
+              <Text style={styles.instructionText}>
+                3. Upload the screenshot below
+              </Text>
+              <Text style={styles.instructionText}>
+                4. Our AI will verify the payment amount
+              </Text>
+            </Card>
+
+            <Card>
+              <Text style={styles.cardTitle}>Upload Screenshot</Text>
+
+              {screenshot ? (
+                <View style={styles.imagePreview}>
+                  <Image source={{ uri: screenshot }} style={styles.previewImage} />
+                  <TouchableOpacity onPress={pickImage} style={styles.changeButton}>
+                    <Text style={styles.changeButtonText}>Change Screenshot</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={pickImage} style={styles.uploadBox}>
+                  <Text style={styles.uploadIcon}>📷</Text>
+                  <Text style={styles.uploadText}>Tap to select screenshot</Text>
+                  <Text style={styles.uploadSubtext}>JPG, PNG supported</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Status Indicator */}
+              {verificationStatus !== 'idle' && (
+                <View style={styles.statusContainer}>
+                  <View style={[
+                    styles.statusIndicator,
+                    verificationStatus === 'uploading' && styles.statusUploading,
+                    verificationStatus === 'analyzing' && styles.statusAnalyzing,
+                    verificationStatus === 'verified' && styles.statusVerified,
+                    verificationStatus === 'rejected' && styles.statusRejected,
+                  ]}>
+                    {verificationStatus === 'uploading' && <Text style={styles.statusIcon}>⬆️</Text>}
+                    {verificationStatus === 'analyzing' && <Text style={styles.statusIcon}>🔍</Text>}
+                    {verificationStatus === 'verified' && <Text style={styles.statusIcon}>✓</Text>}
+                    {verificationStatus === 'rejected' && <Text style={styles.statusIcon}>✗</Text>}
+                  </View>
+                  <Text style={[styles.statusText, { color: statusMsg.color }]}>
+                    {statusMsg.text}
+                  </Text>
+                </View>
+              )}
+            </Card>
+
+            <Button
+              title={verificationStatus === 'verified' ? 'Payment Verified ✓' : 'Verify Payment'}
+              onPress={handleUploadPayment}
+              disabled={!screenshot || verificationStatus === 'uploading' || verificationStatus === 'analyzing' || verificationStatus === 'verified'}
+              loading={verificationStatus === 'uploading' || verificationStatus === 'analyzing'}
+              variant="secondary"
+            />
+
+            {verificationStatus === 'rejected' && (
+              <TouchableOpacity onPress={pickImage} style={styles.retryButton}>
+                <Text style={styles.retryText}>Upload Different Screenshot</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Step 3: Confirmation */}
+        {step === 'confirmed' && (
+          <>
+            <View style={styles.successContainer}>
+              <View style={styles.successIcon}>
+                <Text style={styles.successIconText}>✓</Text>
+              </View>
+              <Text style={styles.successTitle}>Booking Confirmed!</Text>
+              <Text style={styles.successMessage}>
+                Your payment has been verified. Waiting for vendor confirmation.
+              </Text>
+            </View>
+
+            <Card>
+              <Text style={styles.cardTitle}>What's Next?</Text>
+              <Text style={styles.nextStepText}>
+                • Vendor will confirm your booking within 10 minutes
+              </Text>
+              <Text style={styles.nextStepText}>
+                • You'll receive a confirmation notification
+              </Text>
+              <Text style={styles.nextStepText}>
+                • Check "My Bookings" to track status
+              </Text>
+            </Card>
+
+            <Button
+              title="View My Bookings"
+              onPress={() => router.push('/bookings')}
+              variant="secondary"
+            />
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push('/(tabs)/home')}
+            >
+              <Text style={styles.secondaryButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -184,8 +375,8 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 12,
@@ -235,9 +426,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
   },
-  formGroup: {
-    marginBottom: 16,
-  },
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
@@ -253,13 +441,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary,
   },
+  formGroup: {
+    marginBottom: 16,
+  },
   paymentOptions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
   paymentOption: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -270,12 +462,194 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   paymentText: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.textMuted,
+    marginBottom: 4,
   },
   paymentTextActive: {
     color: COLORS.primary,
+  },
+  paymentSubtext: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  paymentSubtextActive: {
+    color: COLORS.primary,
+    opacity: 0.8,
+  },
+  countdownCard: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderColor: COLORS.warning,
+  },
+  countdownContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  countdownLabel: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: 8,
+  },
+  countdownText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.warning,
+    marginBottom: 4,
+  },
+  countdownSubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  uploadBox: {
+    height: 200,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  uploadIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  uploadSubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  imagePreview: {
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: '100%',
+    height: 300,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  changeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+  },
+  changeButtonText: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  statusContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusIndicator: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+  },
+  statusUploading: {
+    borderColor: COLORS.textMuted,
+    backgroundColor: 'rgba(156, 163, 175, 0.1)',
+  },
+  statusAnalyzing: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+  },
+  statusVerified: {
+    borderColor: COLORS.success,
+    backgroundColor: 'rgba(74, 222, 128, 0.2)',
+  },
+  statusRejected: {
+    borderColor: COLORS.error,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  statusIcon: {
+    fontSize: 28,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: COLORS.error,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  retryText: {
+    fontSize: 14,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(74, 222, 128, 0.2)',
+    borderWidth: 3,
+    borderColor: COLORS.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successIconText: {
+    fontSize: 40,
+    color: COLORS.success,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  successMessage: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  nextStepText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  secondaryButton: {
+    marginTop: 12,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    color: COLORS.text,
     fontWeight: '600',
   },
 });
-
