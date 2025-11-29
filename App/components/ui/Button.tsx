@@ -1,5 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS } from '../../constants/colors';
 
 interface ButtonProps {
   onPress: () => void;
@@ -18,20 +20,42 @@ export default function Button({
   disabled = false,
   style
 }: ButtonProps) {
-  const buttonStyle = [
-    styles.base,
-    variant === 'primary' && styles.primary,
-    variant === 'secondary' && styles.secondary,
-    variant === 'outline' && styles.outline,
-    disabled && styles.disabled,
-    style,
-  ];
-
   const textStyle = [
     styles.text,
     variant === 'primary' && styles.primaryText,
     variant === 'secondary' && styles.secondaryText,
     variant === 'outline' && styles.outlineText,
+  ];
+
+  if (variant === 'secondary') {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={[styles.base, disabled && styles.disabled, style]}
+      >
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradient}
+        >
+          {loading ? (
+            <ActivityIndicator color={COLORS.textDark} />
+          ) : (
+            <Text style={textStyle}>{title}</Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  const buttonStyle = [
+    styles.base,
+    variant === 'primary' && styles.primary,
+    variant === 'outline' && styles.outline,
+    disabled && styles.disabled,
+    style,
   ];
 
   return (
@@ -41,7 +65,7 @@ export default function Button({
       style={buttonStyle}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? '#1a1a1a' : '#f9fafb'} />
+        <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.text} />
       ) : (
         <Text style={textStyle}>{title}</Text>
       )}
@@ -51,42 +75,45 @@ export default function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
+    height: 56,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  gradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   primary: {
-    backgroundColor: '#282828',
+    backgroundColor: COLORS.surface,
     borderWidth: 2,
-    borderColor: '#6b7280',
-  },
-  secondary: {
-    backgroundColor: '#4ade80',
-    borderWidth: 2,
-    borderColor: '#4ade80',
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabled: {
     opacity: 0.5,
   },
   text: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   primaryText: {
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   secondaryText: {
-    color: '#1a1a1a',
+    color: COLORS.textDark,
   },
   outlineText: {
-    color: '#d1d5db',
+    color: COLORS.primary,
   },
 });

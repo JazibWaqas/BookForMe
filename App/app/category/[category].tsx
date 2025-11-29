@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Vendor } from '../../types';
 import { getSportsVendors, getVendorsByCategory } from '../../services/vendors';
 import VendorCard from '../../components/VendorCard';
+import { COLORS } from '../../constants/colors';
 
 export default function CategoryListingScreen() {
   const router = useRouter();
   const { category } = useLocalSearchParams<{ category: string }>();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadVendors();
@@ -17,9 +19,16 @@ export default function CategoryListingScreen() {
 
   const loadVendors = async () => {
     setLoading(true);
-    const data = category === 'sports' 
-      ? await getSportsVendors()
-      : await getVendorsByCategory(category || '');
+    let data: Vendor[] = [];
+    
+    if (category === 'padel') {
+      data = await getVendorsByCategory('Padel Court');
+    } else if (category === 'futsal') {
+      data = await getVendorsByCategory('Futsal Court');
+    } else {
+      data = await getSportsVendors();
+    }
+    
     setVendors(data);
     setLoading(false);
   };
@@ -34,65 +43,89 @@ export default function CategoryListingScreen() {
           >
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
-          <View>
+          <View style={styles.headerInfo}>
             <Text style={styles.title}>
-              {category === 'sports' ? 'Sports Courts' : category}
+              {category === 'padel' ? 'Padel Courts' : category === 'futsal' ? 'Futsal Courts' : 'Sports Courts'}
             </Text>
-            <Text style={styles.subtitle}>{vendors.length} venues found</Text>
+            <Text style={styles.subtitle}>{vendors.length} venues available</Text>
           </View>
         </View>
         
         <View style={styles.searchRow}>
           <TouchableOpacity style={styles.searchBar}>
-            <Text style={styles.searchText}>Search venues or locations…</Text>
+            <Text style={styles.searchText}>Search venues...</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sortButton}>
-            <Text style={styles.sortText}>Top</Text>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilters(true)}
+          >
+            <Text style={styles.filterText}>Filters</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.sidebar}>
-          <ScrollView style={styles.filters}>
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterTitle}>Price / hr</Text>
-              <View style={styles.sliderPlaceholder}>
-                <Text style={styles.placeholderText}>Slider</Text>
-              </View>
+      <ScrollView style={styles.content}>
+        {loading ? (
+          <Text style={styles.emptyText}>Loading venues...</Text>
+        ) : vendors.length > 0 ? (
+          <View style={styles.vendorGrid}>
+            {vendors.map((vendor) => (
+              <VendorCard
+                key={vendor.id}
+                vendor={vendor}
+                onPress={() => router.push(`/vendor/${vendor.id}`)}
+                onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+              />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>No venues found</Text>
+        )}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filters</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
             </View>
             
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterTitle}>Amenities</Text>
-              {['Parking', 'WiFi', 'AC Courts', 'Coaching'].map((amenity) => (
-                <TouchableOpacity key={amenity} style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text style={styles.checkboxLabel}>{amenity}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+            <ScrollView style={styles.filtersList}>
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterTitle}>Price Range</Text>
+                <Text style={styles.filterSubtext}>PKR 1000 - PKR 5000/hr</Text>
+              </View>
+              
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterTitle}>Amenities</Text>
+                {['Parking', 'WiFi', 'AC Courts', 'Coaching', 'Showers', 'Cafeteria'].map((amenity) => (
+                  <TouchableOpacity key={amenity} style={styles.filterOption}>
+                    <View style={styles.checkbox} />
+                    <Text style={styles.filterOptionText}>{amenity}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={styles.applyButton}
+              onPress={() => setShowFilters(false)}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <ScrollView style={styles.venueList}>
-          {loading ? (
-            <Text style={styles.emptyText}>Loading venues...</Text>
-          ) : vendors.length > 0 ? (
-            <View style={styles.vendorGrid}>
-              {vendors.map((vendor) => (
-                <VendorCard
-                  key={vendor.id}
-                  vendor={vendor}
-                  onPress={() => router.push(`/vendor/${vendor.id}`)}
-                  onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-                />
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>No venues found</Text>
-          )}
-        </ScrollView>
-      </View>
+      </Modal>
     </View>
   );
 }
@@ -100,141 +133,169 @@ export default function CategoryListingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 16,
+    backgroundColor: COLORS.backgroundLight,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
-    gap: 12,
+    borderBottomColor: COLORS.border,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 12,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   backText: {
-    color: '#d1d5db',
-    fontSize: 18,
+    fontSize: 20,
+    color: COLORS.text,
+  },
+  headerInfo: {
+    flex: 1,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#f9fafb',
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   subtitle: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
   searchRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
   searchBar: {
     flex: 1,
     height: 48,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: '#1f1f1f',
-    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   searchText: {
-    fontSize: 14,
-    color: '#9ca3af',
+    fontSize: 15,
+    color: COLORS.textMuted,
+    flex: 1,
   },
-  sortButton: {
-    width: 48,
+  filterButton: {
+    paddingHorizontal: 16,
     height: 48,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1f1f1f',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  sortText: {
-    fontSize: 12,
-    color: '#9ca3af',
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   content: {
     flex: 1,
-    flexDirection: 'row',
-  },
-  sidebar: {
-    width: 128,
-    borderRightWidth: 1,
-    borderRightColor: '#4b5563',
-    backgroundColor: '#1a1a1a',
-  },
-  filters: {
-    padding: 12,
-  },
-  filterGroup: {
-    marginBottom: 16,
-  },
-  filterTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  sliderPlaceholder: {
-    height: 80,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1f1f1f',
-  },
-  placeholderText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderWidth: 1,
-    borderColor: '#4b5563',
-  },
-  checkboxLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  venueList: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
   },
   vendorGrid: {
+    padding: 20,
     gap: 16,
   },
   emptyText: {
-    color: '#6b7280',
+    fontSize: 16,
+    color: COLORS.textMuted,
     textAlign: 'center',
-    paddingVertical: 32,
+    marginTop: 60,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.backgroundLight,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  modalClose: {
+    fontSize: 24,
+    color: COLORS.textMuted,
+  },
+  filtersList: {
+    padding: 20,
+  },
+  filterGroup: {
+    marginBottom: 24,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  filterSubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 6,
+  },
+  filterOptionText: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+  },
+  applyButton: {
+    margin: 20,
+    height: 56,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textDark,
   },
 });

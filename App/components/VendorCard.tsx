@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Vendor } from '../types';
 import Card from './ui/Card';
+import { getCourtImage } from '../constants/images';
+import { COLORS } from '../constants/colors';
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -10,68 +12,94 @@ interface VendorCardProps {
 }
 
 export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardProps) {
+  const imageUrl = getCourtImage(vendor.category, parseInt(vendor.id, 36) % 4);
+  
   return (
-    <Card onPress={onPress} style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.info}>
-          <Text style={styles.name}>{vendor.business_name}</Text>
-          <Text style={styles.meta}>{vendor.category} • {vendor.location}</Text>
-        </View>
-        {vendor.rating && (
-          <View style={styles.rating}>
-            <Text style={styles.ratingText}>⭐ {vendor.rating}</Text>
+    <TouchableOpacity onPress={onPress} style={styles.card}>
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.image}
+        resizeMode="cover"
+      />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.info}>
+            <Text style={styles.name} numberOfLines={1}>{vendor.business_name}</Text>
+            <Text style={styles.meta}>{vendor.category} • {vendor.location}</Text>
           </View>
-        )}
+          {vendor.rating && (
+            <View style={styles.rating}>
+              <Text style={styles.ratingText}>⭐ {vendor.rating}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.footer}>
+          <Text style={styles.price}>{vendor.price_range || 'PKR 1200/hr'}</Text>
+          {onBookPress && (
+            <TouchableOpacity 
+              onPress={(e) => {
+                e.stopPropagation();
+                onBookPress();
+              }}
+              style={styles.bookButton}
+            >
+              <Text style={styles.bookText}>Book Now</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-      <View style={styles.footer}>
-        <Text style={styles.price}>{vendor.price_range || 'PKR 1200/hr'}</Text>
-        {onBookPress && (
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              onBookPress();
-            }}
-            style={styles.bookButton}
-          >
-            <Text style={styles.bookText}>Book</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </Card>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    gap: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  image: {
+    width: '100%',
+    height: 180,
+    backgroundColor: COLORS.surface,
+  },
+  content: {
+    padding: 16,
+    gap: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: 12,
   },
   info: {
     flex: 1,
   },
   name: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
+    marginBottom: 4,
   },
   meta: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: COLORS.textMuted,
   },
   rating: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#6b7280',
-    borderRadius: 6,
+    borderColor: COLORS.border,
   },
   ratingText: {
-    fontSize: 12,
-    color: '#9ca3af',
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   footer: {
     flexDirection: 'row',
@@ -79,20 +107,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   price: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.primary,
   },
   bookButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#6b7280',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
   },
   bookText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#f9fafb',
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textDark,
   },
 });

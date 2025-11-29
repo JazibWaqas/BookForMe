@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { COLORS } from '../../constants/colors';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -51,10 +53,14 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>JHAT</Text>
-        <Text style={styles.subtitle}>Create your account</Text>
+    <LinearGradient
+      colors={[COLORS.background, COLORS.backgroundLight]}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join BookForMe today</Text>
 
         <View style={styles.roleToggle}>
           <TouchableOpacity
@@ -141,32 +147,33 @@ export default function RegisterScreen() {
         </View>
 
         <View style={{ height: 32 }} />
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 80,
+    paddingHorizontal: 24,
+    paddingTop: 60,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#f9fafb',
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    fontSize: 15,
+    color: COLORS.textMuted,
     marginBottom: 32,
   },
   roleToggle: {

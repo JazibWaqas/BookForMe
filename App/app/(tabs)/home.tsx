@@ -1,24 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Vendor, Category } from '../../types';
-import { getSportsVendors } from '../../services/vendors';
+import { Vendor } from '../../types';
+import { getSportsVendors, getVendorsByCategory } from '../../services/vendors';
 import { CATEGORIES } from '../../constants/categories';
 import VendorCard from '../../components/VendorCard';
-import CategoryScroll from '../../components/CategoryScroll';
-import QuickActionGrid from '../../components/QuickActionGrid';
-import Card from '../../components/ui/Card';
+import { COLORS } from '../../constants/colors';
+import { getCourtImage } from '../../constants/images';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [padelVendors, setPadelVendors] = useState<Vendor[]>([]);
+  const [futsalVendors, setFutsalVendors] = useState<Vendor[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadVendors = async () => {
     setLoading(true);
-    const data = await getSportsVendors();
-    setVendors(data);
+    const [all, padel, futsal] = await Promise.all([
+      getSportsVendors(),
+      getVendorsByCategory('Padel Court'),
+      getVendorsByCategory('Futsal Court'),
+    ]);
+    setAllVendors(all);
+    setPadelVendors(padel);
+    setFutsalVendors(futsal);
     setLoading(false);
   };
 
@@ -32,254 +40,314 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const quickActions = [
-    { id: '1', label: 'AI Assistant', icon: '🤖', onPress: () => router.push('/(tabs)/chatbot') },
-    { id: '2', label: 'Find Match', icon: '🎮', onPress: () => router.push('/(tabs)/social') },
-    { id: '3', label: 'My Bookings', icon: '📅', onPress: () => router.push('/(tabs)/profile') },
-  ];
-
-  const trendingVendors = vendors.slice(0, 5);
-  const upcomingBookings = [];
-
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
-          onRefresh={onRefresh}
-          tintColor="#4ade80"
-          colors={['#4ade80']}
-        />
-      }
-    >
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.locationLabel}>Location</Text>
-            <Text style={styles.locationText}>Karachi, Pakistan</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.signOutButton}
-              onPress={() => router.push('/(auth)/login')}
-            >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuButton}>
-              <Text style={styles.menuIcon}>☰</Text>
+            <Text style={styles.greeting}>Hello</Text>
+            <TouchableOpacity style={styles.locationRow}>
+              <Text style={styles.location}>Karachi, DHA</Text>
+              <Text style={styles.locationArrow}>▼</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => router.push('/(tabs)/profile')}
+          >
+            <View style={styles.profileIconCircle} />
+          </TouchableOpacity>
         </View>
         
         <TouchableOpacity 
-          onPress={() => router.push('/category/sports')}
+          onPress={() => router.push('/(tabs)/chatbot')}
           style={styles.searchBar}
         >
-          <Text style={styles.searchText}>Search venues, sports, locations…</Text>
+          <Text style={styles.searchText}>Search venues...</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <QuickActionGrid actions={quickActions} />
-      </View>
-
-      {/* Categories */}
-      <View style={styles.categorySection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        <CategoryScroll 
-          categories={CATEGORIES} 
-          onCategoryPress={(category) => router.push(`/category/${category.id}`)} 
-        />
-      </View>
-
-      {/* Trending */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => router.push('/category/sports')}>
-            <Text style={styles.viewAllText}>See More</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {loading ? (
-          <Text style={styles.emptyText}>Loading venues...</Text>
-        ) : trendingVendors.length > 0 ? (
-          <View style={styles.vendorList}>
-            {trendingVendors.map((vendor) => (
-              <VendorCard
-                key={vendor.id}
-                vendor={vendor}
-                onPress={() => router.push(`/vendor/${vendor.id}`)}
-                onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-              />
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>No venues found</Text>
-        )}
-      </View>
-
-      {/* Upcoming Bookings */}
-      {upcomingBookings.length > 0 && (
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
+        {/* Categories - Horizontal Scroll */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Bookings</Text>
-          <Card style={styles.bookingCard}>
-            <View>
-              <Text style={styles.bookingName}>Elite Padel Club</Text>
-              <Text style={styles.bookingTime}>Today • 6:00 PM</Text>
-            </View>
-            <View style={styles.bookingBadge}>
-              <Text style={styles.bookingBadgeText}>Confirmed</Text>
-            </View>
-          </Card>
+          <Text style={styles.sectionTitle}>Browse by Sport</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesScroll}
+          >
+            {CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.categoryCard}
+                onPress={() => router.push(`/category/${cat.id}`)}
+              >
+                <View style={styles.categoryContent}>
+                  <Text style={styles.categoryName}>{cat.name}</Text>
+                  <Text style={styles.categoryCount}>{cat.count} venues</Text>
+                  <View style={styles.categoryArrow}>
+                    <Text style={styles.categoryArrowText}>→</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-      )}
 
-      <View style={{ height: 32 }} />
-    </ScrollView>
+        {/* Padel Courts - Horizontal Scroll */}
+        {padelVendors.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Padel Courts</Text>
+              <TouchableOpacity onPress={() => router.push('/category/padel')}>
+                <Text style={styles.viewAll}>View All →</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.vendorsScroll}
+            >
+              {padelVendors.slice(0, 5).map((vendor) => (
+                <View key={vendor.id} style={styles.vendorCardWrapper}>
+                  <VendorCard
+                    vendor={vendor}
+                    onPress={() => router.push(`/vendor/${vendor.id}`)}
+                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Futsal Courts - Horizontal Scroll */}
+        {futsalVendors.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Futsal Courts</Text>
+              <TouchableOpacity onPress={() => router.push('/category/futsal')}>
+                <Text style={styles.viewAll}>View All →</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.vendorsScroll}
+            >
+              {futsalVendors.slice(0, 5).map((vendor) => (
+                <View key={vendor.id} style={styles.vendorCardWrapper}>
+                  <VendorCard
+                    vendor={vendor}
+                    onPress={() => router.push(`/vendor/${vendor.id}`)}
+                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <View style={styles.quickActions}>
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/chatbot')}
+            >
+              <Text style={styles.actionLabel}>AI Assistant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/social')}
+            >
+              <Text style={styles.actionLabel}>Find Players</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => router.push('/notifications')}
+            >
+              <Text style={styles.actionLabel}>Notifications</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
+    paddingTop: 50,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: COLORS.backgroundLight,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  locationLabel: {
-    fontSize: 11,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  locationText: {
+  greeting: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#e5e7eb',
+    color: COLORS.textMuted,
+    marginBottom: 4,
   },
-  headerActions: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  signOutButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 8,
-  },
-  signOutText: {
-    fontSize: 12,
+  location: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#d1d5db',
+    color: COLORS.text,
   },
-  menuButton: {
+  locationArrow: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  profileButton: {
     width: 40,
     height: 40,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 12,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  menuIcon: {
-    color: '#d1d5db',
+  profileIconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
   },
   searchBar: {
     height: 48,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: '#1f1f1f',
-    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   searchText: {
-    fontSize: 14,
-    color: '#9ca3af',
+    fontSize: 15,
+    color: COLORS.textMuted,
+    flex: 1,
+  },
+  content: {
+    flex: 1,
   },
   section: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 12,
-  },
-  categorySection: {
-    paddingVertical: 20,
-    gap: 12,
+    paddingTop: 28,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#d1d5db',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: COLORS.text,
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
+    marginBottom: 16,
   },
-  viewAllText: {
-    fontSize: 12,
-    color: '#6b7280',
-    textDecorationLine: 'underline',
-  },
-  vendorList: {
-    gap: 12,
-  },
-  emptyText: {
-    color: '#6b7280',
-    textAlign: 'center',
-    paddingVertical: 32,
-  },
-  bookingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  bookingName: {
+  viewAll: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.primary,
   },
-  bookingTime: {
-    fontSize: 12,
-    color: '#9ca3af',
+  categoriesScroll: {
+    paddingHorizontal: 20,
+    gap: 12,
   },
-  bookingBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  categoryCard: {
+    width: 160,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#6b7280',
-    borderRadius: 8,
+    borderColor: COLORS.border,
   },
-  bookingBadgeText: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: '#e5e7eb',
+  categoryContent: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  categoryCount: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+  categoryArrow: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+  },
+  categoryArrowText: {
+    fontSize: 18,
+    color: COLORS.primary,
+  },
+  vendorsScroll: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  vendorCardWrapper: {
+    width: 280,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  actionCard: {
+    flex: 1,
+    height: 80,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  actionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
   },
 });

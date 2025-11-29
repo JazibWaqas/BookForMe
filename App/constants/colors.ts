@@ -1,25 +1,38 @@
-export const Colors = {
-  primary: '#4ade80',
-  secondary: '#fbbf24',
-  dark: {
-    100: '#1a1a1a',
-    200: '#1f1f1f',
-    300: '#282828',
-    400: '#333333',
-  },
-  gray: {
-    100: '#f3f4f6',
-    200: '#e5e7eb',
-    300: '#d1d5db',
-    400: '#9ca3af',
-    500: '#6b7280',
-    600: '#4b5563',
-    700: '#374151',
-  },
-  text: {
-    primary: '#f9fafb',
-    secondary: '#d1d5db',
-    muted: '#9ca3af',
-  },
+export const COLORS = {
+  primary: '#4ADE80',
+  primaryDark: '#22C55E',
+  secondary: '#3B82F6',
+  secondaryDark: '#2563EB',
+  
+  background: '#0A0E1A',
+  backgroundLight: '#111827',
+  surface: '#1F2937',
+  surfaceLight: '#374151',
+  
+  card: '#1F2937',
+  cardLight: '#374151',
+  
+  text: '#F9FAFB',
+  textSecondary: '#D1D5DB',
+  textMuted: '#9CA3AF',
+  textDark: '#0A0E1A',
+  
+  success: '#4ADE80',
+  warning: '#FBBF24',
+  error: '#EF4444',
+  
+  border: '#374151',
+  borderLight: '#4B5563',
+  
+  white: '#FFFFFF',
+  black: '#000000',
+  
+  overlay: 'rgba(0, 0, 0, 0.7)',
 };
 
+export const GRADIENTS = {
+  primary: ['#4ADE80', '#22C55E'],
+  secondary: ['#3B82F6', '#2563EB'],
+  dark: ['#0A0E1A', '#111827'],
+  card: ['#1F2937', '#374151'],
+};

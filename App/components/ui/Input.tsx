@@ -1,5 +1,6 @@
 import React from 'react';
 import { TextInput, View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { COLORS } from '../../constants/colors';
 
 interface InputProps {
   value: string;
@@ -42,21 +43,20 @@ export default function Input({
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: COLORS.textMuted,
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   input: {
-    height: 48,
+    height: 56,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#f9fafb',
-    backgroundColor: '#1f1f1f',
+    fontSize: 16,
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
   },
 });

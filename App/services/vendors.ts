@@ -35,11 +35,8 @@ export const getSportsVendors = async (): Promise<Vendor[]> => {
   try {
     const vendors = await getVendors();
     return vendors.filter(v => 
-      v.category === 'Paddle' || 
-      v.category === 'Futsal' || 
-      v.category === 'Cricket' ||
-      v.category === 'Tennis' ||
-      v.category === 'Badminton'
+      v.category === 'Padel Court' || 
+      v.category === 'Futsal Court'
     );
   } catch (error) {
     console.error('Error fetching sports vendors:', error);
