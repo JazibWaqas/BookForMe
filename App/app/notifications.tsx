@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Card from '../components/ui/Card';
+import { COLORS } from '../constants/colors';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -79,12 +80,11 @@ export default function NotificationsScreen() {
 
       <ScrollView style={styles.content}>
         {notifications.map((notification) => (
-          <Card 
-            key={notification.id} 
+          <Card
+            key={notification.id}
             style={[styles.notificationCard, !notification.read && styles.notificationCardUnread]}
           >
             <View style={styles.notificationRow}>
-              <Text style={styles.icon}>{getIcon(notification.type)}</Text>
               <View style={styles.notificationContent}>
                 <View style={styles.notificationHeader}>
                   <Text style={styles.notificationTitle}>{notification.title}</Text>
@@ -106,7 +106,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -116,25 +116,26 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontSize: 18,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   markAllButton: {
     paddingHorizontal: 12,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   },
   markAllText: {
     fontSize: 12,
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   content: {
     flex: 1,
@@ -153,15 +154,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   notificationCardUnread: {
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     backgroundColor: 'rgba(74, 222, 128, 0.05)',
   },
   notificationRow: {
     flexDirection: 'row',
     gap: 12,
-  },
-  icon: {
-    fontSize: 24,
   },
   notificationContent: {
     flex: 1,
@@ -175,23 +173,23 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#4ade80',
+    backgroundColor: COLORS.primary,
   },
   notificationMessage: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     lineHeight: 18,
     marginBottom: 8,
   },
   notificationTime: {
     fontSize: 11,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { COLORS } from '../../constants/colors';
 
 interface Message {
   id: string;
@@ -44,7 +45,7 @@ export default function ChatbotScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
@@ -78,7 +79,7 @@ export default function ChatbotScreen() {
           value={input}
           onChangeText={setInput}
           placeholder="Type your message..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={COLORS.textMuted}
           style={styles.input}
           onSubmitEditing={handleSend}
         />
@@ -96,23 +97,24 @@ export default function ChatbotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   messages: {
     flex: 1,
@@ -135,57 +137,58 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userBubble: {
-    backgroundColor: '#4ade80',
+    backgroundColor: COLORS.primary,
   },
   botBubble: {
     borderWidth: 2,
-    borderColor: '#4b5563',
-    backgroundColor: '#1f1f1f',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   messageText: {
     fontSize: 14,
   },
   userText: {
-    color: '#1a1a1a',
+    color: COLORS.textDark,
   },
   botText: {
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   timestamp: {
     fontSize: 11,
-    color: '#6b7280',
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   inputContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#4b5563',
+    borderTopColor: COLORS.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    backgroundColor: COLORS.backgroundLight,
   },
   input: {
     flex: 1,
     height: 48,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 16,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#f9fafb',
-    backgroundColor: '#1f1f1f',
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
   },
   sendButton: {
     width: 48,
     height: 48,
-    backgroundColor: '#4ade80',
+    backgroundColor: COLORS.primary,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendText: {
-    color: '#1a1a1a',
+    color: COLORS.textDark,
     fontSize: 18,
   },
 });

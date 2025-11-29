@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
+import { COLORS } from '../../constants/colors';
 
 export default function VendorBookingsScreen() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function VendorBookingsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -46,7 +47,7 @@ export default function VendorBookingsScreen() {
           style={styles.searchInput}
         />
 
-        <ScrollView 
+        <ScrollView
           horizontal={true}
           showsHorizontalScrollIndicator={false}
           style={styles.filterScroll}
@@ -85,7 +86,7 @@ export default function VendorBookingsScreen() {
               </View>
 
               <Text style={styles.customerName}>{booking.customer}</Text>
-              
+
               <View style={styles.bookingDetails}>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Date:</Text>
@@ -133,7 +134,7 @@ export default function VendorBookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -143,25 +144,26 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontSize: 18,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   content: {
     flex: 1,
@@ -180,19 +182,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 8,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
   },
   filterChipActive: {
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   filterText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   filterTextActive: {
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   bookingsList: {
@@ -209,41 +211,41 @@ const styles = StyleSheet.create({
   },
   bookingId: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
     fontWeight: '600',
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     borderRadius: 6,
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   statusBadgePending: {
-    borderColor: '#fbbf24',
+    borderColor: COLORS.warning,
     backgroundColor: 'rgba(251, 191, 36, 0.1)',
   },
   statusBadgeCancelled: {
-    borderColor: '#ef4444',
+    borderColor: COLORS.error,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   statusText: {
     fontSize: 10,
-    color: '#4ade80',
+    color: COLORS.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   statusTextPending: {
-    color: '#fbbf24',
+    color: COLORS.warning,
   },
   statusTextCancelled: {
-    color: '#ef4444',
+    color: COLORS.error,
   },
   customerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
     marginBottom: 12,
   },
   bookingDetails: {
@@ -256,15 +258,15 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   detailValue: {
     fontSize: 12,
-    color: '#e5e7eb',
+    color: COLORS.textSecondary,
   },
   amountValue: {
     fontSize: 12,
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   actions: {
@@ -273,33 +275,33 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#4b5563',
+    borderTopColor: COLORS.border,
   },
   actionButtonConfirm: {
     flex: 1,
     paddingVertical: 8,
     borderWidth: 2,
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     borderRadius: 8,
     alignItems: 'center',
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   actionButtonTextConfirm: {
     fontSize: 12,
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   actionButtonCancel: {
     flex: 1,
     paddingVertical: 8,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 8,
     alignItems: 'center',
   },
   actionButtonTextCancel: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
 });
 

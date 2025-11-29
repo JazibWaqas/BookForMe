@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Card from '../../components/ui/Card';
+import { COLORS } from '../../constants/colors';
 
 export default function SocialScreen() {
   const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'leaderboard'>('forum');
@@ -39,7 +40,7 @@ export default function SocialScreen() {
             ))}
           </View>
         )}
-        
+
         {activeTab === 'matches' && (
           <View>
             <Text style={styles.sectionTitle}>Open Matches</Text>
@@ -54,11 +55,11 @@ export default function SocialScreen() {
             ))}
           </View>
         )}
-        
+
         {activeTab === 'chats' && (
           <Text style={styles.emptyText}>No chats yet</Text>
         )}
-        
+
         {activeTab === 'leaderboard' && (
           <View>
             <Text style={styles.sectionTitle}>Top Players</Text>
@@ -86,34 +87,36 @@ export default function SocialScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 2,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     borderRightWidth: 1,
-    borderRightColor: '#4b5563',
+    borderRightColor: COLORS.border,
   },
   tabLast: {
     borderRightWidth: 0,
@@ -122,10 +125,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     textTransform: 'capitalize',
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   tabTextActive: {
-    color: '#f9fafb',
+    color: COLORS.text,
     fontWeight: '600',
   },
   content: {
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -145,17 +148,17 @@ const styles = StyleSheet.create({
   forumTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
     marginBottom: 4,
   },
   forumMeta: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   forumBody: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
   },
   matchCard: {
     marginBottom: 12,
@@ -168,19 +171,19 @@ const styles = StyleSheet.create({
   matchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   joinText: {
     fontSize: 12,
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   matchMeta: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: COLORS.textMuted,
     textAlign: 'center',
     paddingVertical: 32,
   },
@@ -200,20 +203,20 @@ const styles = StyleSheet.create({
   rank: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   playerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   playerMatches: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   points: {
     fontSize: 14,
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

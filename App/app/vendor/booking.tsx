@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { COLORS } from '../../constants/colors';
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function BookingScreen() {
     }
 
     setLoading(true);
-    
+
     setTimeout(() => {
       setLoading(false);
       Alert.alert(
@@ -52,7 +53,7 @@ export default function BookingScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -141,7 +142,7 @@ export default function BookingScreen() {
               onPress={() => setPaymentMethod('card')}
             >
               <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
-                💳 Card
+                Card
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -149,7 +150,7 @@ export default function BookingScreen() {
               onPress={() => setPaymentMethod('wallet')}
             >
               <Text style={[styles.paymentText, paymentMethod === 'wallet' && styles.paymentTextActive]}>
-                👛 Wallet
+                Wallet
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -157,7 +158,7 @@ export default function BookingScreen() {
               onPress={() => setPaymentMethod('venue')}
             >
               <Text style={[styles.paymentText, paymentMethod === 'venue' && styles.paymentTextActive]}>
-                🏢 Pay at Venue
+                Pay at Venue
               </Text>
             </TouchableOpacity>
           </View>
@@ -179,7 +180,7 @@ export default function BookingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -189,25 +190,26 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontSize: 18,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   content: {
     flex: 1,
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
     marginBottom: 12,
   },
   summaryRow: {
@@ -227,29 +229,29 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   summaryValue: {
     fontSize: 14,
-    color: '#e5e7eb',
+    color: COLORS.textSecondary,
   },
   formGroup: {
     marginBottom: 16,
   },
   divider: {
     height: 1,
-    backgroundColor: '#4b5563',
+    backgroundColor: COLORS.border,
     marginVertical: 12,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   totalValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   paymentOptions: {
     flexDirection: 'row',
@@ -259,20 +261,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
   },
   paymentOptionActive: {
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   paymentText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   paymentTextActive: {
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

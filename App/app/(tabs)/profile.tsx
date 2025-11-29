@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import { COLORS } from '../../constants/colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -18,12 +19,12 @@ export default function ProfileScreen() {
         <Card style={styles.profileCard}>
           <View style={styles.avatarSection}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarIcon}>👤</Text>
+              <View style={styles.avatarInner} />
             </View>
             <Text style={styles.userName}>John Doe</Text>
             <Text style={styles.userEmail}>john.doe@email.com</Text>
           </View>
-          
+
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>12</Text>
@@ -57,18 +58,15 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
           {[
-            { label: 'Edit Profile', icon: '👤' },
-            { label: 'Notifications', icon: '🔔' },
-            { label: 'Payment Methods', icon: '💳' },
-            { label: 'Help & Support', icon: '❓' },
+            { label: 'Edit Profile' },
+            { label: 'Notifications' },
+            { label: 'Payment Methods' },
+            { label: 'Help & Support' },
           ].map((item, i) => (
             <TouchableOpacity key={i} style={styles.settingItem}>
               <Card style={styles.settingCard}>
                 <View style={styles.settingRow}>
-                  <View style={styles.settingLeft}>
-                    <Text style={styles.settingIcon}>{item.icon}</Text>
-                    <Text style={styles.settingLabel}>{item.label}</Text>
-                  </View>
+                  <Text style={styles.settingLabel}>{item.label}</Text>
                   <Text style={styles.settingArrow}>→</Text>
                 </View>
               </Card>
@@ -91,23 +89,24 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   content: {
     flex: 1,
@@ -124,29 +123,34 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    backgroundColor: '#4b5563',
+    backgroundColor: COLORS.surface,
     borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
   },
-  avatarIcon: {
-    fontSize: 40,
+  avatarInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
   },
   userName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   userEmail: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
-    borderTopColor: '#4b5563',
+    borderTopColor: COLORS.border,
     paddingTop: 16,
   },
   statItem: {
@@ -155,11 +159,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   section: {
     marginBottom: 20,
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -183,19 +187,19 @@ const styles = StyleSheet.create({
   bookingTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   bookingStatus: {
     fontSize: 12,
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   bookingDate: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   bookingPrice: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   settingItem: {
@@ -210,21 +214,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  settingIcon: {
-    fontSize: 20,
-  },
   settingLabel: {
     fontSize: 14,
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   settingArrow: {
     fontSize: 14,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
 });
+
 

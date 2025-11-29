@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { Vendor } from '../../types';
 import { getVendorById } from '../../services/vendors';
 import TimeSlotPicker from '../../components/TimeSlotPicker';
 import Button from '../../components/ui/Button';
+import { COLORS } from '../../constants/colors';
+import { getCourtImage } from '../../constants/images';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function VendorDetailScreen() {
   const router = useRouter();
@@ -13,6 +17,7 @@ export default function VendorDetailScreen() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [availableSlots] = useState<string[]>([
     '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '18:00', '19:00'
   ]);
@@ -32,7 +37,7 @@ export default function VendorDetailScreen() {
 
   const handleConfirmBooking = () => {
     if (!selectedTime || !vendor) return;
-    
+
     router.push({
       pathname: '/vendor/booking',
       params: {
@@ -56,7 +61,7 @@ export default function VendorDetailScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -69,13 +74,44 @@ export default function VendorDetailScreen() {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.imagePlaceholderText}>Venue Photo / Slider</Text>
+        {/* Image Slider */}
+        <View style={styles.imageSliderContainer}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={(e) => {
+              const slideIndex = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
+              setCurrentImageIndex(slideIndex);
+            }}
+            scrollEventThrottle={16}
+          >
+            {[0, 1, 2, 3].map((index) => (
+              <Image
+                key={index}
+                source={{ uri: getCourtImage(vendor.category, index) }}
+                style={styles.venueImage}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+          {/* Pagination Dots */}
+          <View style={styles.paginationDots}>
+            {[0, 1, 2, 3].map((index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  currentImageIndex === index && styles.dotActive,
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
         <View style={styles.card}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoText}>⭐ {vendor.rating || 4.9} (201 reviews)</Text>
+            <Text style={styles.infoText}>★ {vendor.rating || 4.9} (201 reviews)</Text>
             <Text style={styles.infoText}>5.2 km away</Text>
           </View>
           <Text style={styles.description}>
@@ -107,7 +143,7 @@ export default function VendorDetailScreen() {
               availableSlots={availableSlots}
               bookedSlots={bookedSlots}
             />
-            
+
             <Button
               title={`Confirm Booking (${vendor.price_range || 'PKR 1250'})`}
               onPress={handleConfirmBooking}
@@ -130,7 +166,7 @@ export default function VendorDetailScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          
+
           <View style={styles.tabContent}>
             {activeTab === 'amenities' && (
               <View style={styles.amenitiesGrid}>
@@ -159,16 +195,16 @@ export default function VendorDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingText: {
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   header: {
     flexDirection: 'row',
@@ -178,19 +214,20 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontSize: 18,
   },
   headerInfo: {
@@ -199,35 +236,51 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   subtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  imagePlaceholder: {
-    height: 192,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 16,
-    backgroundColor: '#1f1f1f',
-    alignItems: 'center',
-    justifyContent: 'center',
+  imageSliderContainer: {
+    height: 240,
+    marginHorizontal: -20,
+    marginTop: -20,
     marginBottom: 20,
+    position: 'relative',
   },
-  imagePlaceholderText: {
-    fontSize: 14,
-    color: '#6b7280',
+  venueImage: {
+    width: SCREEN_WIDTH,
+    height: 240,
+  },
+  paginationDots: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dotActive: {
+    backgroundColor: COLORS.primary,
+    width: 24,
   },
   card: {
-    backgroundColor: '#1f1f1f',
+    backgroundColor: COLORS.surface,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -239,18 +292,18 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   description: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     lineHeight: 20,
   },
   badge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#6b7280',
+    borderColor: COLORS.borderLight,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
@@ -258,7 +311,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: '#e5e7eb',
+    color: COLORS.textSecondary,
   },
   bookingHeader: {
     flexDirection: 'row',
@@ -268,25 +321,25 @@ const styles = StyleSheet.create({
   bookingTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   bookingSubtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   priceText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     textAlign: 'right',
   },
   priceSubtext: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     textAlign: 'right',
   },
   bookingContent: {
     borderWidth: 1,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 8,
     padding: 12,
     gap: 12,
@@ -294,13 +347,13 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     borderRightWidth: 1,
-    borderRightColor: '#4b5563',
+    borderRightColor: COLORS.border,
   },
   tabLast: {
     borderRightWidth: 0,
@@ -308,10 +361,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     textAlign: 'center',
-    color: '#6b7280',
+    color: COLORS.textMuted,
   },
   tabTextActive: {
-    color: '#f9fafb',
+    color: COLORS.text,
     fontWeight: '600',
   },
   tabContent: {
@@ -326,19 +379,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#6b7280',
+    borderColor: COLORS.borderLight,
     borderRadius: 8,
   },
   amenityText: {
     fontSize: 12,
-    color: '#e5e7eb',
+    color: COLORS.textSecondary,
   },
   placeholderText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   addressText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
 });

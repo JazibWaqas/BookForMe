@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
+import { COLORS } from '../../constants/colors';
 
 export default function VendorCalendarScreen() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(15);
 
   const dates = Array.from({ length: 30 }, (_, i) => i + 1);
-  
+
   const bookings = [
     { time: '09:00 AM', customer: 'Ahmed Khan', court: 'Court 1', source: 'App' },
     { time: '10:00 AM', customer: 'Sara Ali', court: 'Court 2', source: 'WhatsApp' },
@@ -20,7 +21,7 @@ export default function VendorCalendarScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -41,7 +42,7 @@ export default function VendorCalendarScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
+        <ScrollView
           horizontal={true}
           showsHorizontalScrollIndicator={false}
           style={styles.dateScroll}
@@ -83,7 +84,7 @@ export default function VendorCalendarScreen() {
         <Card>
           <Text style={styles.cardTitle}>Bookings for Nov {selectedDate}</Text>
           <Text style={styles.cardSubtitle}>{bookings.length} bookings scheduled</Text>
-          
+
           {bookings.map((booking, index) => (
             <View key={index} style={styles.bookingRow}>
               <View style={styles.timeBlock}>
@@ -109,7 +110,7 @@ export default function VendorCalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -119,25 +120,26 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.backgroundLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
     fontSize: 18,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   content: {
     flex: 1,
@@ -152,12 +154,12 @@ const styles = StyleSheet.create({
   },
   monthNav: {
     fontSize: 20,
-    color: '#d1d5db',
+    color: COLORS.textSecondary,
   },
   monthText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
   },
   dateScroll: {
     paddingLeft: 20,
@@ -168,29 +170,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 8,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
   },
   dateCardActive: {
-    borderColor: '#4ade80',
+    borderColor: COLORS.primary,
     backgroundColor: 'rgba(74, 222, 128, 0.1)',
   },
   dateDay: {
     fontSize: 10,
-    color: '#6b7280',
+    color: COLORS.textMuted,
     marginBottom: 4,
   },
   dateDayActive: {
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   dateNumber: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   dateNumberActive: {
-    color: '#4ade80',
+    color: COLORS.primary,
   },
   filterRow: {
     paddingHorizontal: 20,
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   filterChips: {
@@ -209,11 +211,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#4ade80',
+    backgroundColor: COLORS.primary,
   },
   chipText: {
     fontSize: 12,
-    color: '#1a1a1a',
+    color: COLORS.textDark,
     fontWeight: '600',
   },
   chipOutline: {
@@ -221,21 +223,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
   },
   chipTextOutline: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f9fafb',
+    color: COLORS.text,
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     marginBottom: 16,
   },
   bookingRow: {
@@ -244,37 +246,37 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#4b5563',
+    borderTopColor: COLORS.border,
   },
   timeBlock: {
     width: 80,
   },
   timeText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   bookingInfo: {
     flex: 1,
   },
   customerName: {
     fontSize: 14,
-    color: '#f9fafb',
+    color: COLORS.text,
     marginBottom: 4,
   },
   courtInfo: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 6,
   },
   sourceText: {
     fontSize: 10,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
 });
 
