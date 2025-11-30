@@ -67,63 +67,55 @@ export default function VendorBookingsScreen() {
 
         <ScrollView style={styles.bookingsList}>
           {filteredBookings.map((booking) => (
-            <Card key={booking.id} style={styles.bookingCard}>
-              <View style={styles.bookingHeader}>
-                <Text style={styles.bookingId}>#{booking.id}</Text>
-                <View style={[
-                  styles.statusBadge,
-                  booking.status === 'pending' && styles.statusBadgePending,
-                  booking.status === 'cancelled' && styles.statusBadgeCancelled,
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    booking.status === 'pending' && styles.statusTextPending,
-                    booking.status === 'cancelled' && styles.statusTextCancelled,
+            <TouchableOpacity
+              key={booking.id}
+              onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${booking.id}`)}
+              activeOpacity={0.7}
+            >
+              <Card style={styles.bookingCard}>
+                <View style={styles.bookingHeader}>
+                  <Text style={styles.bookingId}>#{booking.id}</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    booking.status === 'pending' && styles.statusBadgePending,
+                    booking.status === 'cancelled' && styles.statusBadgeCancelled,
                   ]}>
-                    {booking.status}
-                  </Text>
+                    <Text style={[
+                      styles.statusText,
+                      booking.status === 'pending' && styles.statusTextPending,
+                      booking.status === 'cancelled' && styles.statusTextCancelled,
+                    ]}>
+                      {booking.status}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={styles.customerName}>{booking.customer}</Text>
+                <Text style={styles.customerName}>{booking.customer}</Text>
 
-              <View style={styles.bookingDetails}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Date:</Text>
-                  <Text style={styles.detailValue}>{booking.date}</Text>
+                <View style={styles.bookingDetails}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Date:</Text>
+                    <Text style={styles.detailValue}>{booking.date}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Time:</Text>
+                    <Text style={styles.detailValue}>{booking.time}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Court:</Text>
+                    <Text style={styles.detailValue}>{booking.court}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Amount:</Text>
+                    <Text style={styles.amountValue}>{booking.amount}</Text>
+                  </View>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Time:</Text>
-                  <Text style={styles.detailValue}>{booking.time}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Court:</Text>
-                  <Text style={styles.detailValue}>{booking.court}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Amount:</Text>
-                  <Text style={styles.amountValue}>{booking.amount}</Text>
-                </View>
-              </View>
 
-              <View style={styles.actions}>
-                {booking.status === 'pending' && (
-                  <>
-                    <TouchableOpacity style={styles.actionButtonConfirm}>
-                      <Text style={styles.actionButtonTextConfirm}>Confirm</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButtonCancel}>
-                      <Text style={styles.actionButtonTextCancel}>Decline</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-                {booking.status === 'confirmed' && (
-                  <TouchableOpacity style={styles.actionButtonCancel}>
-                    <Text style={styles.actionButtonTextCancel}>Cancel</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card>
+                <View style={styles.viewDetailsHint}>
+                  <Text style={styles.viewDetailsText}>Tap to view details →</Text>
+                </View>
+              </Card>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -302,6 +294,18 @@ const styles = StyleSheet.create({
   actionButtonTextCancel: {
     fontSize: 12,
     color: COLORS.textMuted,
+  },
+  viewDetailsHint: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    alignItems: 'center',
+  },
+  viewDetailsText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 
