@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Vendor } from '../../types';
 import { getVendorById } from '../../services/vendors';
 import TimeSlotPicker from '../../components/TimeSlotPicker';
@@ -135,14 +135,63 @@ export default function VendorDetailScreen() {
           </View>
 
           <View style={styles.bookingContent}>
-            <TimeSlotPicker
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              onDateChange={setSelectedDate}
-              onTimeChange={setSelectedTime}
-              availableSlots={availableSlots}
-              bookedSlots={bookedSlots}
-            />
+            {/* Horizontal Date Picker */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.datePicker}
+              contentContainerStyle={styles.datePickerContent}
+            >
+              {Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)).map((date, index) => {
+                const isSelected = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.dateCard, isSelected && styles.dateCardActive]}
+                    onPress={() => setSelectedDate(date)}
+                  >
+                    <Text style={[styles.dateMonth, isSelected && styles.dateTextActive]}>
+                      {format(date, 'MMM')}
+                    </Text>
+                    <Text style={[styles.dateDay, isSelected && styles.dateTextActive]}>
+                      {format(date, 'dd')}
+                    </Text>
+                    <Text style={[styles.dateWeekday, isSelected && styles.dateTextActive]}>
+                      {format(date, 'EEE')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Time Slots Grid */}
+            <View style={styles.slotsGrid}>
+              {availableSlots.map((time) => {
+                const isBooked = bookedSlots.includes(time);
+                const isSelected = selectedTime === time;
+                return (
+                  <TouchableOpacity
+                    key={time}
+                    style={[
+                      styles.slotCard,
+                      isSelected && styles.slotCardSelected,
+                      isBooked && styles.slotCardBooked,
+                    ]}
+                    onPress={() => !isBooked && setSelectedTime(time)}
+                    disabled={isBooked}
+                  >
+                    {!isBooked && <View style={styles.slotDot} />}
+                    <Text style={[
+                      styles.slotTime,
+                      isSelected && styles.slotTimeSelected,
+                      isBooked && styles.slotTimeBooked,
+                    ]}>
+                      {time}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
             <Button
               title={`Confirm Booking (${vendor.price_range || 'PKR 1250'})`}
@@ -343,6 +392,89 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 12,
+  },
+  datePicker: {
+    marginBottom: 16,
+  },
+  datePickerContent: {
+    gap: 12,
+  },
+  dateCard: {
+    width: 70,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  dateCardActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  dateMonth: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  dateDay: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  dateWeekday: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  dateTextActive: {
+    color: COLORS.textDark,
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  slotCard: {
+    width: '22%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    position: 'relative',
+  },
+  slotCardSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  slotCardBooked: {
+    opacity: 0.4,
+  },
+  slotDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.success,
+  },
+  slotTime: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+  slotTimeSelected: {
+    color: COLORS.textDark,
+    fontWeight: '600',
+  },
+  slotTimeBooked: {
+    textDecorationLine: 'line-through',
   },
   tabBar: {
     flexDirection: 'row',
