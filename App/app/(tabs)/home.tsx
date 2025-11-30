@@ -187,20 +187,6 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* AI Chatbot FAB */}
-      <TouchableOpacity
-        style={styles.chatFab}
-        onPress={() => router.push('/(tabs)/chatbot')}
-        activeOpacity={0.9}
-      >
-        <View style={styles.fabIcon}>
-          <View style={styles.fabChatBubble} />
-          <View style={styles.fabSparkle1} />
-          <View style={styles.fabSparkle2} />
-        </View>
-        <Text style={styles.fabText}>Ask AI</Text>
-      </TouchableOpacity>
     </View>
   );
 }

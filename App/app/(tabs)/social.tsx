@@ -1,84 +1,358 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 
 export default function SocialScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'leaderboard'>('forum');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [postText, setPostText] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+
+  const posts = [
+    {
+      id: '1',
+      author: 'Ahmed Khan',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+      time: '2h ago',
+      content: 'Looking for doubles partners for tomorrow evening at DHA courts. Anyone interested? 🎾',
+      likes: 12,
+      comments: 5,
+      liked: false
+    },
+    {
+      id: '2',
+      author: 'Sara Ali',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+      time: '5h ago',
+      content: 'Just finished an amazing match at Courtside! The new courts are fantastic. Highly recommend! 🔥',
+      likes: 24,
+      comments: 8,
+      liked: true
+    },
+    {
+      id: '3',
+      author: 'Bilal Shah',
+      avatar: 'https://i.pravatar.cc/150?img=33',
+      time: '1d ago',
+      content: 'Tips for improving backhand? Been struggling lately... Any coaches available?',
+      likes: 18,
+      comments: 12,
+      liked: false
+    },
+  ];
+
+  const matches = [
+    { id: '1', sport: '🏸 Padel', type: 'casual', date: 'Tomorrow', time: '6:00 PM', location: 'DHA Courts', players: 2, maxPlayers: 4, host: 'Ahmed', hostAvatar: 'https://i.pravatar.cc/150?img=12' },
+    { id: '2', sport: '🎾 Tennis', type: 'ranked', date: 'Dec 1', time: '8:00 AM', location: 'Courtside', players: 3, maxPlayers: 4, host: 'Sara', hostAvatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: '3', sport: '🏸 Badminton', type: 'casual', date: 'Dec 2', time: '7:00 PM', location: 'Sports Arena', players: 1, maxPlayers: 2, host: 'Bilal', hostAvatar: 'https://i.pravatar.cc/150?img=33' },
+  ];
+
+  const chats = [
+    { id: '1', name: 'Ahmed Khan', avatar: 'https://i.pravatar.cc/150?img=12', lastMessage: 'See you tomorrow!', time: '10m', unread: 2, online: true },
+    { id: '2', name: 'Padel Squad', avatar: 'https://i.pravatar.cc/150?img=68', lastMessage: 'Who\'s in for Saturday?', time: '1h', unread: 5, online: false },
+    { id: '3', name: 'Sara Ali', avatar: 'https://i.pravatar.cc/150?img=5', lastMessage: 'Thanks for the game!', time: '2h', unread: 0, online: true },
+    { id: '4', name: 'Tennis Club', avatar: 'https://i.pravatar.cc/150?img=70', lastMessage: 'New tournament announced!', time: '3h', unread: 1, online: false },
+  ];
+
+  const leaderboard = [
+    { rank: 1, name: 'Hassan Raza', avatar: 'https://i.pravatar.cc/150?img=60', matches: 120, points: 2450, sport: 'Padel', winRate: 78 },
+    { rank: 2, name: 'Fatima Malik', avatar: 'https://i.pravatar.cc/150?img=47', matches: 98, points: 2280, sport: 'Tennis', winRate: 72 },
+    { rank: 3, name: 'Ali Ahmed', avatar: 'https://i.pravatar.cc/150?img=15', matches: 85, points: 2100, sport: 'Badminton', winRate: 68 },
+    { rank: 4, name: 'Zainab Khan', avatar: 'https://i.pravatar.cc/150?img=32', matches: 76, points: 1950, sport: 'Padel', winRate: 65 },
+    { rank: 5, name: 'Omar Shah', avatar: 'https://i.pravatar.cc/150?img=51', matches: 64, points: 1820, sport: 'Tennis', winRate: 61 },
+  ];
 
   return (
     <View style={styles.container}>
+      {/* Header with Gradient */}
       <View style={styles.header}>
-        <Text style={styles.title}>Social Hub</Text>
-        <Text style={styles.subtitle}>Connect with the community</Text>
+        <View style={styles.headerGradient}>
+          <Text style={styles.title}>Social Hub</Text>
+          <Text style={styles.subtitle}>Connect • Compete • Conquer</Text>
+        </View>
       </View>
 
+      {/* Tabs */}
       <View style={styles.tabBar}>
-        {(['forum', 'matches', 'chats', 'leaderboard'] as const).map((tab, index) => (
+        {(['forum', 'matches', 'chats', 'leaderboard'] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[styles.tab, index === 3 && styles.tabLast]}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'forum' && '📰'}
+              {tab === 'matches' && '⚔️'}
+              {tab === 'chats' && '💬'}
+              {tab === 'leaderboard' && '🏆'}
+              {' '}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* FORUM TAB */}
         {activeTab === 'forum' && (
           <View>
-            <Text style={styles.sectionTitle}>Recent Posts</Text>
-            {[1, 2, 3].map((i) => (
-              <Card key={i} style={styles.forumCard}>
-                <Text style={styles.forumTitle}>Looking for doubles partners</Text>
-                <Text style={styles.forumMeta}>Posted 2h ago by @user{i}</Text>
-                <Text style={styles.forumBody}>Anyone up for a game tomorrow evening at DHA courts?</Text>
-              </Card>
-            ))}
-          </View>
-        )}
+            {/* Create Post Card */}
+            <Card style={styles.createPostCard}>
+              <View style={styles.createPostHeader}>
+                <Image source={{ uri: 'https://i.pravatar.cc/150?img=68' }} style={styles.userAvatar} />
+                <TextInput
+                  style={styles.postInput}
+                  placeholder="What's on your mind?"
+                  placeholderTextColor={COLORS.textMuted}
+                  multiline
+                  value={postText}
+                  onChangeText={setPostText}
+                />
+              </View>
+              <View style={styles.createPostActions}>
+                <TouchableOpacity style={styles.postActionButton}>
+                  <Text style={styles.postActionText}>📷 Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.postActionButton}>
+                  <Text style={styles.postActionText}>📍 Location</Text>
+                </TouchableOpacity>
+                <Button title="Post" variant="secondary" style={styles.postButton} />
+              </View>
+            </Card>
 
-        {activeTab === 'matches' && (
-          <View>
-            <Text style={styles.sectionTitle}>Open Matches</Text>
-            {[1, 2].map((i) => (
-              <Card key={i} style={styles.matchCard}>
-                <View style={styles.matchHeader}>
-                  <Text style={styles.matchTitle}>Padel Match</Text>
-                  <Text style={styles.joinText}>Join</Text>
-                </View>
-                <Text style={styles.matchMeta}>Tomorrow • 6:00 PM • 2/4 players</Text>
-              </Card>
-            ))}
-          </View>
-        )}
-
-        {activeTab === 'chats' && (
-          <Text style={styles.emptyText}>No chats yet</Text>
-        )}
-
-        {activeTab === 'leaderboard' && (
-          <View>
-            <Text style={styles.sectionTitle}>Top Players</Text>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} style={styles.leaderboardCard}>
-                <View style={styles.leaderboardRow}>
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.rank}>#{i}</Text>
+            {/* Posts Feed */}
+            {posts.map((post) => (
+              <Card key={post.id} style={styles.postCard}>
+                <View style={styles.postHeader}>
+                  <View style={styles.authorInfo}>
+                    <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
                     <View>
-                      <Text style={styles.playerName}>Player {i}</Text>
-                      <Text style={styles.playerMatches}>{100 - i * 10} matches</Text>
+                      <Text style={styles.authorName}>{post.author}</Text>
+                      <Text style={styles.postTime}>{post.time}</Text>
                     </View>
                   </View>
-                  <Text style={styles.points}>{500 - i * 50} pts</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.moreButton}>⋯</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.postContent}>{post.content}</Text>
+
+                <View style={styles.postStats}>
+                  <Text style={styles.statsText}>{post.likes} likes</Text>
+                  <Text style={styles.statsText}>{post.comments} comments</Text>
+                </View>
+
+                <View style={styles.postActions}>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Text style={[styles.actionText, post.liked && styles.actionTextLiked]}>
+                      {post.liked ? '❤️' : '🤍'} Like
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Text style={styles.actionText}>💬 Comment</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Text style={styles.actionText}>↗️ Share</Text>
+                  </TouchableOpacity>
                 </View>
               </Card>
             ))}
           </View>
         )}
+
+        {/* MATCHES TAB */}
+        {activeTab === 'matches' && (
+          <View>
+            {/* Search & Create */}
+            <View style={styles.matchHeader}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="🔍 Search matches..."
+                placeholderTextColor={COLORS.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <TouchableOpacity style={styles.createMatchButton}>
+                <Text style={styles.createMatchText}>+ Create</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Filters */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+              {['all', 'casual', 'ranked', 'today', 'tomorrow'].map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
+                  onPress={() => setSelectedFilter(filter)}
+                >
+                  <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Matches */}
+            {matches.map((match) => (
+              <TouchableOpacity key={match.id} activeOpacity={0.8}>
+                <Card style={styles.matchCard}>
+                  <View style={styles.matchCardHeader}>
+                    <View style={styles.matchInfo}>
+                      <Text style={styles.matchSport}>{match.sport}</Text>
+                      <View style={[styles.typeBadge, match.type === 'ranked' && styles.typeBadgeRanked]}>
+                        <Text style={styles.typeText}>{match.type.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.playersIndicator}>
+                      <Text style={styles.playersText}>{match.players}/{match.maxPlayers}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.matchDetails}>
+                    <View style={styles.matchDetailRow}>
+                      <Text style={styles.matchIcon}>📅</Text>
+                      <Text style={styles.matchDetailText}>{match.date} • {match.time}</Text>
+                    </View>
+                    <View style={styles.matchDetailRow}>
+                      <Text style={styles.matchIcon}>📍</Text>
+                      <Text style={styles.matchDetailText}>{match.location}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.matchFooter}>
+                    <View style={styles.hostInfo}>
+                      <Image source={{ uri: match.hostAvatar }} style={styles.hostAvatar} />
+                      <Text style={styles.hostText}>Host: {match.host}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.joinButton}>
+                      <Text style={styles.joinButtonText}>Join Match</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* CHATS TAB */}
+        {activeTab === 'chats' && (
+          <View>
+            {/* Search */}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="🔍 Search messages..."
+              placeholderTextColor={COLORS.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+
+            {/* Chats */}
+            {chats.map((chat) => (
+              <TouchableOpacity key={chat.id} style={styles.chatCard} activeOpacity={0.7}>
+                <View style={styles.chatAvatarContainer}>
+                  <Image source={{ uri: chat.avatar }} style={styles.chatAvatar} />
+                  {chat.online && <View style={styles.onlineIndicator} />}
+                </View>
+                <View style={styles.chatInfo}>
+                  <View style={styles.chatHeader}>
+                    <Text style={styles.chatName}>{chat.name}</Text>
+                    <Text style={styles.chatTime}>{chat.time}</Text>
+                  </View>
+                  <View style={styles.chatMessageRow}>
+                    <Text style={[styles.chatMessage, chat.unread > 0 && styles.chatMessageUnread]} numberOfLines={1}>
+                      {chat.lastMessage}
+                    </Text>
+                    {chat.unread > 0 && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadText}>{chat.unread}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* LEADERBOARD TAB */}
+        {activeTab === 'leaderboard' && (
+          <View>
+            {/* Filters */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+              {['All Sports', 'Padel', 'Tennis', 'Badminton'].map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
+                  onPress={() => setSelectedFilter(filter)}
+                >
+                  <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Top 3 Podium */}
+            <View style={styles.podium}>
+              <View style={styles.podiumItem}>
+                <Image source={{ uri: leaderboard[1].avatar }} style={styles.podiumAvatar} />
+                <View style={styles.podiumRank2}>
+                  <Text style={styles.podiumRankText}>2</Text>
+                </View>
+                <Text style={styles.podiumName}>{leaderboard[1].name.split(' ')[0]}</Text>
+                <Text style={styles.podiumPoints}>{leaderboard[1].points}</Text>
+              </View>
+
+              <View style={[styles.podiumItem, styles.podiumWinner]}>
+                <Text style={styles.crown}>👑</Text>
+                <Image source={{ uri: leaderboard[0].avatar }} style={styles.podiumAvatarLarge} />
+                <View style={styles.podiumRank1}>
+                  <Text style={styles.podiumRankText}>1</Text>
+                </View>
+                <Text style={styles.podiumName}>{leaderboard[0].name.split(' ')[0]}</Text>
+                <Text style={styles.podiumPoints}>{leaderboard[0].points}</Text>
+              </View>
+
+              <View style={styles.podiumItem}>
+                <Image source={{ uri: leaderboard[2].avatar }} style={styles.podiumAvatar} />
+                <View style={styles.podiumRank3}>
+                  <Text style={styles.podiumRankText}>3</Text>
+                </View>
+                <Text style={styles.podiumName}>{leaderboard[2].name.split(' ')[0]}</Text>
+                <Text style={styles.podiumPoints}>{leaderboard[2].points}</Text>
+              </View>
+            </View>
+
+            {/* Rest of Leaderboard */}
+            {leaderboard.slice(3).map((player) => (
+              <Card key={player.rank} style={styles.leaderboardCard}>
+                <View style={styles.leaderboardRow}>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.rankNumber}>#{player.rank}</Text>
+                    <Image source={{ uri: player.avatar }} style={styles.playerAvatar} />
+                    <View>
+                      <Text style={styles.playerName}>{player.name}</Text>
+                      <Text style={styles.playerStats}>
+                        {player.matches} matches • {player.winRate}% win rate
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.pointsContainer}>
+                    <Text style={styles.points}>{player.points}</Text>
+                    <Text style={styles.pointsLabel}>pts</Text>
+                  </View>
+                </View>
+              </Card>
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
@@ -90,105 +364,455 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerGradient: {
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    color: COLORS.textDark,
+    opacity: 0.9,
   },
   tabBar: {
     flexDirection: 'row',
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface,
   },
-  tabLast: {
-    borderRightWidth: 0,
+  tabActive: {
+    backgroundColor: COLORS.primary,
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    textTransform: 'capitalize',
     color: COLORS.textMuted,
+    fontWeight: '600',
   },
   tabTextActive: {
-    color: COLORS.text,
-    fontWeight: '600',
+    color: COLORS.textDark,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 20,
   },
-  sectionTitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
+  createPostCard: {
+    marginBottom: 16,
+    padding: 16,
+  },
+  createPostHeader: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 12,
   },
-  forumCard: {
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  postInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    minHeight: 40,
+  },
+  createPostActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  postActionButton: {
+    flex: 1,
+  },
+  postActionText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+  postButton: {
+    paddingHorizontal: 24,
+  },
+  postCard: {
+    marginBottom: 16,
+    padding: 16,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-  forumTitle: {
-    fontSize: 14,
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  postAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  authorName: {
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 4,
   },
-  forumMeta: {
+  postTime: {
     fontSize: 12,
     color: COLORS.textMuted,
-    marginBottom: 8,
   },
-  forumBody: {
+  moreButton: {
+    fontSize: 20,
+    color: COLORS.textMuted,
+  },
+  postContent: {
     fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  matchCard: {
+    color: COLORS.text,
+    lineHeight: 20,
     marginBottom: 12,
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  statsText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  postActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  actionText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  actionTextLiked: {
+    color: COLORS.error,
   },
   matchHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 16,
+    marginTop: 16,
   },
-  matchTitle: {
+  searchInput: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 14,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  createMatchButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  createMatchText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textDark,
+  },
+  filtersScroll: {
+    marginBottom: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  filterTextActive: {
+    color: COLORS.textDark,
+  },
+  matchCard: {
+    marginBottom: 16,
+    padding: 16,
+  },
+  matchCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  matchInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  matchSport: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: COLORS.success,
+  },
+  typeBadgeRanked: {
+    backgroundColor: COLORS.warning,
+  },
+  typeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  playersIndicator: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  playersText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  matchDetails: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  matchDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  matchIcon: {
+    fontSize: 16,
+  },
+  matchDetailText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+  },
+  matchFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  hostInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hostAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  hostText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  joinButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  joinButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textDark,
+  },
+  chatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  chatAvatarContainer: {
+    position: 'relative',
+  },
+  chatAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.success,
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  chatInfo: {
+    flex: 1,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  chatName: {
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
-  joinText: {
-    fontSize: 12,
-    color: COLORS.primary,
-  },
-  matchMeta: {
+  chatTime: {
     fontSize: 12,
     color: COLORS.textMuted,
   },
-  emptyText: {
+  chatMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chatMessage: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    flex: 1,
+  },
+  chatMessageUnread: {
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  unreadBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  unreadText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  podium: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginVertical: 24,
+    gap: 12,
+  },
+  podiumItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  podiumWinner: {
+    marginBottom: 20,
+  },
+  crown: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  podiumAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
+  },
+  podiumAvatarLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+    borderWidth: 3,
+    borderColor: COLORS.primary,
+  },
+  podiumRank1: {
+    backgroundColor: '#FFD700',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  podiumRank2: {
+    backgroundColor: '#C0C0C0',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  podiumRank3: {
+    backgroundColor: '#CD7F32',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  podiumRankText: {
     fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    paddingVertical: 32,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  podiumName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  podiumPoints: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   leaderboardCard: {
     marginBottom: 12,
+    padding: 16,
   },
   leaderboardRow: {
     flexDirection: 'row',
@@ -199,25 +823,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
-  rank: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  rankNumber: {
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.textMuted,
+    width: 32,
+  },
+  playerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
-  playerMatches: {
+  playerStats: {
     fontSize: 12,
     color: COLORS.textMuted,
   },
+  pointsContainer: {
+    alignItems: 'flex-end',
+  },
   points: {
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.primary,
-    fontWeight: '600',
+  },
+  pointsLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
   },
 });
-
