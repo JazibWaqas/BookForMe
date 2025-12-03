@@ -1,12 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check user role when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkUserRole = async () => {
+        setLoading(true);
+        const role = await AsyncStorage.getItem('userRole');
+        if (role === 'vendor') {
+          // Redirect vendor to vendor dashboard
+          router.replace('/vendor-dashboard');
+        } else {
+          setUserRole(role as 'customer' | 'vendor' | null);
+          setLoading(false);
+        }
+      };
+      checkUserRole();
+    }, [router])
+  );
+
+  // Show loading state while checking role
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: COLORS.textMuted }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -88,7 +118,10 @@ export default function ProfileScreen() {
         <Button
           title="Sign Out"
           variant="outline"
-          onPress={() => router.replace('/(auth)/login')}
+          onPress={async () => {
+            await AsyncStorage.removeItem('userRole');
+            router.replace('/(auth)/login');
+          }}
         />
 
         <View style={{ height: 32 }} />

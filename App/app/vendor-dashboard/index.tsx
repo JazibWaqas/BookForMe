@@ -124,7 +124,7 @@ export default function VendorDashboardScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => router.push('/(tabs)/profile')}
+          onPress={() => router.push('/vendor-dashboard/profile')}
           activeOpacity={0.7}
         >
           <View style={styles.navIconContainer}>

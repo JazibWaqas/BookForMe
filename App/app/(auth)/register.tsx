@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { CATEGORIES } from '../../constants/categories';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -14,20 +17,90 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Vendor-specific fields
   const [businessName, setBusinessName] = useState('');
+  const [cnic, setCnic] = useState('');
+  const [address, setAddress] = useState('');
+  const [category, setCategory] = useState('padel');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  const getCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant location permissions');
+        setLocationLoading(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({});
+      const newLocation = {
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude,
+      };
+      setLocation(newLocation);
+      
+      // Reverse geocode to get address
+      const [addressResult] = await Location.reverseGeocodeAsync(newLocation);
+      if (addressResult) {
+        const formattedAddress = `${addressResult.street || ''} ${addressResult.city || ''} ${addressResult.region || ''}`.trim();
+        if (formattedAddress) {
+          setAddress(formattedAddress);
+        }
+      }
+      Alert.alert('Success', 'Location captured successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get location');
+    }
+    setLocationLoading(false);
+  };
+
+  const validateCNIC = (cnicValue: string): boolean => {
+    // CNIC format: XXXXX-XXXXXXX-X
+    const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+    return cnicRegex.test(cnicValue);
+  };
 
   const handleRegister = async () => {
     if (role === 'customer') {
       if (!name || !email || !phone || !password || !confirmPassword) {
-        Alert.alert('Error', 'Please fill in all fields');
+        Alert.alert('Error', 'Please fill in all required fields');
         return;
       }
     } else {
-      if (!name || !email || !phone || !password || !confirmPassword || !businessName) {
-        Alert.alert('Error', 'Please fill in all fields');
+      if (!name || !email || !phone || !password || !confirmPassword || !businessName || !cnic || !address || !category) {
+        Alert.alert('Error', 'Please fill in all required fields');
         return;
       }
+
+      // Validate CNIC format
+      if (!validateCNIC(cnic)) {
+        Alert.alert('Error', 'Please enter a valid CNIC format (XXXXX-XXXXXXX-X)');
+        return;
+      }
+
+      // Validate location
+      if (!location) {
+        Alert.alert('Error', 'Please capture your business location');
+        return;
+      }
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
     }
 
     if (password !== confirmPassword) {
@@ -37,15 +110,40 @@ export default function RegisterScreen() {
 
     setLoading(true);
     
+    // Store user role and vendor data
+    await AsyncStorage.setItem('userRole', role);
+    if (role === 'vendor') {
+      const vendorData = {
+        businessName,
+        ownerName: name,
+        email,
+        phone,
+        cnic,
+        category,
+        address,
+        location,
+        description,
+      };
+      await AsyncStorage.setItem('vendorProfile', JSON.stringify(vendorData));
+    }
+    
     setTimeout(() => {
       setLoading(false);
       Alert.alert(
         'Success!',
-        'Account created successfully',
+        role === 'vendor' 
+          ? 'Vendor account created successfully! Your account is pending verification.'
+          : 'Account created successfully!',
         [
           {
             text: 'OK',
-            onPress: () => router.replace('/(auth)/login'),
+            onPress: () => {
+              if (role === 'vendor') {
+                router.replace('/vendor-dashboard');
+              } else {
+                router.replace('/(auth)/login');
+              }
+            },
           },
         ]
       );
@@ -83,23 +181,86 @@ export default function RegisterScreen() {
 
         <View style={styles.form}>
           <Input
-            label="Full Name"
+            label={role === 'vendor' ? "Owner Name *" : "Full Name *"}
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
             style={styles.input}
           />
           {role === 'vendor' && (
-            <Input
-              label="Business Name"
-              placeholder="Enter business name"
-              value={businessName}
-              onChangeText={setBusinessName}
-              style={styles.input}
-            />
+            <>
+              <Input
+                label="Business Name *"
+                placeholder="Enter business name"
+                value={businessName}
+                onChangeText={setBusinessName}
+                style={styles.input}
+              />
+              <Input
+                label="CNIC *"
+                placeholder="42101-1234567-1"
+                value={cnic}
+                onChangeText={setCnic}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <View style={styles.categoryContainer}>
+                <Text style={styles.label}>Category *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                  {CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryButton,
+                        category === cat.id && styles.categoryButtonActive,
+                      ]}
+                      onPress={() => setCategory(cat.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          category === cat.id && styles.categoryTextActive,
+                        ]}
+                      >
+                        {cat.icon} {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              <Input
+                label="Business Address *"
+                placeholder="Enter business address"
+                value={address}
+                onChangeText={setAddress}
+                style={styles.input}
+                multiline
+              />
+              <Button
+                title={location ? "Update Location" : "Capture Location *"}
+                onPress={getCurrentLocation}
+                variant="outline"
+                loading={locationLoading}
+                style={styles.locationButton}
+              />
+              {location && (
+                <Text style={styles.locationText}>
+                  Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                </Text>
+              )}
+              <Input
+                label="Business Description"
+                placeholder="Describe your business (optional)"
+                value={description}
+                onChangeText={setDescription}
+                style={styles.input}
+                multiline
+                numberOfLines={3}
+              />
+            </>
           )}
           <Input
-            label="Email"
+            label="Email *"
             placeholder="your@email.com"
             value={email}
             onChangeText={setEmail}
@@ -107,7 +268,7 @@ export default function RegisterScreen() {
             style={styles.input}
           />
           <Input
-            label="Phone Number"
+            label="Phone Number *"
             placeholder="+92 300 1234567"
             value={phone}
             onChangeText={setPhone}
@@ -115,15 +276,15 @@ export default function RegisterScreen() {
             style={styles.input}
           />
           <Input
-            label="Password"
-            placeholder="Create password"
+            label="Password *"
+            placeholder="Create password (min 6 characters)"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
             style={styles.input}
           />
           <Input
-            label="Confirm Password"
+            label="Confirm Password *"
             placeholder="Re-enter password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -221,5 +382,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4ade80',
     fontWeight: '600',
+  },
+  categoryContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  categoryScroll: {
+    marginHorizontal: -4,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface,
+    marginRight: 8,
+  },
+  categoryButtonActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+  },
+  categoryText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  categoryTextActive: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  locationButton: {
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+    marginBottom: 16,
   },
 });

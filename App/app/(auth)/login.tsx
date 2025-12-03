@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -21,7 +22,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Store user role in AsyncStorage
+      await AsyncStorage.setItem('userRole', role);
       setLoading(false);
       if (role === 'customer') {
         router.replace('/(tabs)/home');
@@ -99,6 +102,33 @@ export default function LoginScreen() {
             loading={loading}
             variant="secondary"
           />
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialButtons}>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={async () => {
+                // TODO: Implement Google login
+                Alert.alert('Coming Soon', 'Google login will be available soon');
+              }}
+            >
+              <Text style={styles.socialButtonText}>🔵 Continue with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={async () => {
+                // TODO: Implement Facebook login
+                Alert.alert('Coming Soon', 'Facebook login will be available soon');
+              }}
+            >
+              <Text style={styles.facebookButtonText}>📘 Continue with Facebook</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
@@ -214,5 +244,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.primary,
     fontWeight: '700',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  socialButtons: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  socialButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  googleButton: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+    borderColor: '#1877F2',
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  facebookButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
