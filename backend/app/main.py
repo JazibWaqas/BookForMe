@@ -73,7 +73,7 @@ async def shutdown_event():
 # HEALTH CHECK & INFO ENDPOINTS
 # ============================================================================
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     """Root endpoint - API information"""
     return {
@@ -89,7 +89,7 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """Health check endpoint"""
     return {
