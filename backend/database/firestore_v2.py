@@ -57,6 +57,9 @@ class FirestoreV2:
                 'created_at': firestore.SERVER_TIMESTAMP
             }
             
+            if 'password_hash' in user_data:
+                user_doc['password_hash'] = user_data['password_hash']
+            
             if 'id' in user_data:
                 self.db.collection(Collections.USERS).document(user_data['id']).set(user_doc)
                 return user_data['id']

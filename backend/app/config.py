@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     FIRESTORE_CREDENTIALS_FILE: str = "./backend/credentials/firestore-service-account.json"
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     
+    # Authentication
+    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     

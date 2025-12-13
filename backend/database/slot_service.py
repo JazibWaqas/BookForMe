@@ -21,10 +21,15 @@ class SlotService:
         self.db = db_client
         logger.info("SlotService initialized")
     
-    def lock_slot(self, slot_id: str, user_id: str) -> Dict[str, Any]:
+    def lock_slot(self, slot_id: str, user_id: str, booking_source: str = "app") -> Dict[str, Any]:
         """
         Lock a slot for a user using Firestore transaction (OCC)
         Prevents double-booking by ensuring atomicity
+        
+        Args:
+            slot_id: The slot to lock
+            user_id: The user locking the slot
+            booking_source: "app" or "whatsapp"
         
         State transition: available -> locked
         """
@@ -48,6 +53,7 @@ class SlotService:
                 transaction.update(slot_ref, {
                     'status': SlotStatus.LOCKED.value,
                     'user_id': user_id,
+                    'booking_source': booking_source,
                     'hold_expires_at': hold_expires,
                     'updated_at': firestore.SERVER_TIMESTAMP
                 })
@@ -56,6 +62,7 @@ class SlotService:
                     'success': True,
                     'slot_id': slot_id,
                     'user_id': user_id,
+                    'booking_source': booking_source,
                     'hold_expires_at': hold_expires,
                     'expires_in_minutes': HOLD_EXPIRY_MINUTES
                 }
@@ -451,3 +458,184 @@ class SlotService:
         except Exception as e:
             logger.error(f"Error checking slot availability: {e}")
             return {'available': False, 'error': str(e)}
+    
+    def block_slot(self, slot_id: str, vendor_id: str, reason: str = "Manual block") -> Dict[str, Any]:
+        """
+        Vendor blocks a slot (maintenance, private event, etc.)
+        
+        State transition: available -> blocked
+        """
+        try:
+            @firestore.transactional
+            def block_transaction(transaction):
+                slot_ref = self.db.collection(Collections.SLOTS).document(slot_id)
+                slot_doc = slot_ref.get(transaction=transaction)
+                
+                if not slot_doc.exists:
+                    return {'success': False, 'error': 'Slot not found'}
+                
+                slot_data = slot_doc.to_dict()
+                
+                if slot_data.get('vendor_id') != vendor_id:
+                    return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
+                
+                if slot_data.get('status') != SlotStatus.AVAILABLE.value:
+                    return {'success': False, 'error': 'Slot is not available to block'}
+                
+                transaction.update(slot_ref, {
+                    'status': SlotStatus.BLOCKED.value,
+                    'block_reason': reason,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+                return {'success': True, 'slot_id': slot_id}
+            
+            transaction = self.db.transaction()
+            result = block_transaction(transaction)
+            
+            if result['success']:
+                logger.info(f"Slot {slot_id} blocked: {reason}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error blocking slot {slot_id}: {e}")
+            return {'success': False, 'error': f'Block failed: {str(e)}'}
+    
+    def unblock_slot(self, slot_id: str, vendor_id: str) -> Dict[str, Any]:
+        """
+        Vendor unblocks a previously blocked slot
+        
+        State transition: blocked -> available
+        """
+        try:
+            @firestore.transactional
+            def unblock_transaction(transaction):
+                slot_ref = self.db.collection(Collections.SLOTS).document(slot_id)
+                slot_doc = slot_ref.get(transaction=transaction)
+                
+                if not slot_doc.exists:
+                    return {'success': False, 'error': 'Slot not found'}
+                
+                slot_data = slot_doc.to_dict()
+                
+                if slot_data.get('vendor_id') != vendor_id:
+                    return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
+                
+                if slot_data.get('status') != SlotStatus.BLOCKED.value:
+                    return {'success': False, 'error': 'Slot is not blocked'}
+                
+                transaction.update(slot_ref, {
+                    'status': SlotStatus.AVAILABLE.value,
+                    'block_reason': None,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+                return {'success': True, 'slot_id': slot_id}
+            
+            transaction = self.db.transaction()
+            result = unblock_transaction(transaction)
+            
+            if result['success']:
+                logger.info(f"Slot {slot_id} unblocked")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error unblocking slot {slot_id}: {e}")
+            return {'success': False, 'error': f'Unblock failed: {str(e)}'}
+    
+    def manual_booking(self, slot_id: str, vendor_id: str, customer_name: str, customer_phone: str) -> Dict[str, Any]:
+        """
+        Vendor creates a manual booking (walk-in, phone call, etc.)
+        
+        State transition: available -> confirmed (bypasses lock/pending)
+        """
+        from database.schema import BookingSource
+        
+        try:
+            @firestore.transactional
+            def manual_transaction(transaction):
+                slot_ref = self.db.collection(Collections.SLOTS).document(slot_id)
+                slot_doc = slot_ref.get(transaction=transaction)
+                
+                if not slot_doc.exists:
+                    return {'success': False, 'error': 'Slot not found'}
+                
+                slot_data = slot_doc.to_dict()
+                
+                if slot_data.get('vendor_id') != vendor_id:
+                    return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
+                
+                if slot_data.get('status') != SlotStatus.AVAILABLE.value:
+                    return {'success': False, 'error': 'Slot is not available'}
+                
+                transaction.update(slot_ref, {
+                    'status': SlotStatus.CONFIRMED.value,
+                    'booking_source': BookingSource.MANUAL.value,
+                    'customer_name': customer_name,
+                    'customer_phone': customer_phone,
+                    'user_id': None,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+                return {
+                    'success': True,
+                    'slot_id': slot_id,
+                    'booking_source': BookingSource.MANUAL.value
+                }
+            
+            transaction = self.db.transaction()
+            result = manual_transaction(transaction)
+            
+            if result['success']:
+                logger.info(f"Manual booking created for slot {slot_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error creating manual booking for slot {slot_id}: {e}")
+            return {'success': False, 'error': f'Manual booking failed: {str(e)}'}
+    
+    def complete_booking(self, slot_id: str, vendor_id: str) -> Dict[str, Any]:
+        """
+        Mark a confirmed booking as completed (after the session is done)
+        
+        State transition: confirmed -> completed
+        """
+        try:
+            @firestore.transactional
+            def complete_transaction(transaction):
+                slot_ref = self.db.collection(Collections.SLOTS).document(slot_id)
+                slot_doc = slot_ref.get(transaction=transaction)
+                
+                if not slot_doc.exists:
+                    return {'success': False, 'error': 'Slot not found'}
+                
+                slot_data = slot_doc.to_dict()
+                
+                if slot_data.get('vendor_id') != vendor_id:
+                    return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
+                
+                if slot_data.get('status') != SlotStatus.CONFIRMED.value:
+                    return {'success': False, 'error': 'Slot is not in confirmed state'}
+                
+                transaction.update(slot_ref, {
+                    'status': SlotStatus.COMPLETED.value,
+                    'completed_at': firestore.SERVER_TIMESTAMP,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+                return {'success': True, 'slot_id': slot_id}
+            
+            transaction = self.db.transaction()
+            result = complete_transaction(transaction)
+            
+            if result['success']:
+                logger.info(f"Booking completed for slot {slot_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error completing booking for slot {slot_id}: {e}")
+            return {'success': False, 'error': f'Complete failed: {str(e)}'}

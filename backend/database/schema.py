@@ -24,7 +24,9 @@ class SlotStatus(str, Enum):
     LOCKED = "locked"
     PENDING = "pending"
     CONFIRMED = "confirmed"
+    COMPLETED = "completed"
     CANCELLED = "cancelled"
+    BLOCKED = "blocked"
 
 
 class PaymentStatus(str, Enum):
@@ -60,6 +62,7 @@ class PriceTier(str, Enum):
 class BookingSource(str, Enum):
     APP = "app"
     WHATSAPP = "whatsapp"
+    MANUAL = "manual"
 
 
 class Areas:

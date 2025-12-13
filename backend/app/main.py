@@ -14,6 +14,7 @@ from app.config import settings
 # Import from modular structure
 from whatsapp.webhook import WhatsAppWebhookHandler
 from database.rest_api import router as rest_api_router
+from database.auth_api import router as auth_router
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +32,9 @@ app = FastAPI(
 
 # Include REST API router
 app.include_router(rest_api_router)
+
+# Include Authentication router
+app.include_router(auth_router)
 
 # Add CORS middleware (for frontend integration)
 app.add_middleware(
