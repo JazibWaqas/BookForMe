@@ -84,10 +84,61 @@ class BookingAgent:
             }
             
             # Run the graph
+            # #region agent log
+            import json
+            import time
+            debug_log_path = r"c:\Users\LENOVO\Desktop\Fyp\.cursor\debug.log"
+            try:
+                log_entry = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "D",
+                    "location": "graph.py:87",
+                    "message": "BEFORE ainvoke",
+                    "data": {"initial_state_intent": initial_state.get("current_intent"), "initial_state_keys": list(initial_state.keys())},
+                    "timestamp": int(time.time() * 1000)
+                }
+                with open(debug_log_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_entry) + "\n")
+            except Exception:
+                pass
+            # #endregion
             final_state = await self.app.ainvoke(initial_state)
+            # #region agent log
+            try:
+                log_entry = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "D",
+                    "location": "graph.py:90",
+                    "message": "AFTER ainvoke",
+                    "data": {"final_state_intent": final_state.get("current_intent"), "final_state_keys": list(final_state.keys()), "final_state_intent_type": type(final_state.get("current_intent")).__name__},
+                    "timestamp": int(time.time() * 1000)
+                }
+                with open(debug_log_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_entry) + "\n")
+            except Exception:
+                pass
+            # #endregion
             
             # Get response
             response = final_state.get("response", "Sorry, I couldn't process that.")
+            # #region agent log
+            try:
+                log_entry = {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "D",
+                    "location": "graph.py:95",
+                    "message": "Response extracted",
+                    "data": {"response": response[:100], "response_len": len(response)},
+                    "timestamp": int(time.time() * 1000)
+                }
+                with open(debug_log_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_entry) + "\n")
+            except Exception:
+                pass
+            # #endregion
             
             logger.info(f"Agent response: {response[:100]}...")
             
