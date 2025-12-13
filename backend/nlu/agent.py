@@ -99,7 +99,7 @@ class NLUAgent:
             return "No previous conversation."
         
         context = "Previous conversation:\n"
-        for msg in history[-5:]:  # Last 5 messages
+        for msg in history[-10:]:  # Last 5 messages
             role = msg.get('role', 'user')
             content = msg.get('content', '')
             context += f"{role}: {content}\n"
@@ -109,110 +109,110 @@ class NLUAgent:
     def _create_intent_prompt(self, message: str, context: str) -> str:
         """Create prompt for intent extraction - Enhanced with real conversation patterns"""
         return f"""
-You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
+            You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
 
-Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
+            Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
 
-Message: "{message}"
+            Message: "{message}"
 
-Conversation History:
-{context}
+            Conversation History:
+            {context}
 
-Possible Intents:
-1. **greeting** - Simple greeting: "Hi", "Aoa", "Salam", "Hello" (NO booking info)
-2. **booking_request** - Want to book a slot: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai"
-3. **availability_inquiry** - Check availability (often INCOMPLETE): 
-   - Complete: "slot available tomorrow 6-9"
-   - Incomplete: "koi slot hei?", "slot hai?", "any slot?" (MISSING date/time/service)
-   - Partial: "kal slot" (has date, missing time/service), "evening slot" (has time, missing date/service)
-4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
-5. **date_selection** - Provide/ask about date: "tomorrow", "Friday", "kal", "next week"
-6. **time_selection** - Provide/ask about time: "6-9", "evening", "shaam", "7pm"
-7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "discount", "kitna"
-8. **confirmation** - Confirm booking: "yes", "ok", "confirm", "book it", "Han g"
-9. **cancellation** - Cancel booking: "cancel", "nahi", "don't want"
-10. **modification** - Change booking: "actually", "change to", "instead"
-11. **information** - General questions: "what services", "what are prices"
-12. **payment_related** - Payment questions: "payment", "transfer", "account number"
-13. **name_provided** - Sharing name: "Jazib Waqas", "My name is..."
-14. **unknown** - Unclear or irrelevant message
+            Possible Intents:
+            1. **greeting** - Simple greeting: "Hi", "Aoa", "Salam", "Hello" (NO booking info)
+            2. **booking_request** - Want to book a slot: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai"
+            3. **availability_inquiry** - Check availability (often INCOMPLETE): 
+            - Complete: "slot available tomorrow 6-9"
+            - Incomplete: "koi slot hei?", "slot hai?", "any slot?" (MISSING date/time/service)
+            - Partial: "kal slot" (has date, missing time/service), "evening slot" (has time, missing date/service)
+            4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
+            5. **date_selection** - Provide/ask about date: "tomorrow", "Friday", "kal", "next week"
+            6. **time_selection** - Provide/ask about time: "6-9", "evening", "shaam", "7pm"
+            7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "discount", "kitna"
+            8. **confirmation** - Confirm booking: "yes", "ok", "confirm", "book it", "Han g"
+            9. **cancellation** - Cancel booking: "cancel", "nahi", "don't want"
+            10. **modification** - Change booking: "actually", "change to", "instead"
+            11. **information** - General questions: "what services", "what are prices"
+            12. **payment_related** - Payment questions: "payment", "transfer", "account number"
+            13. **name_provided** - Sharing name: "Jazib Waqas", "My name is..."
+            14. **unknown** - Unclear or irrelevant message
 
-IMPORTANT: Most customers send INCOMPLETE messages:
-- "Salam" / "Hi" / "Aoa" → greeting only, ask what they want
-- "koi slot hei?" → availability_inquiry (MISSING: date, time, service)
-- "kal slot" → availability_inquiry (HAS: date, MISSING: time, service)
-- "evening slot" → availability_inquiry (HAS: time, MISSING: date, service)
+            IMPORTANT: Most customers send INCOMPLETE messages:
+            - "Salam" / "Hi" / "Aoa" → greeting only, ask what they want
+            - "koi slot hei?" → availability_inquiry (MISSING: date, time, service)
+            - "kal slot" → availability_inquiry (HAS: date, MISSING: time, service)
+            - "evening slot" → availability_inquiry (HAS: time, MISSING: date, service)
 
-Roman Urdu Patterns (Common Incomplete Queries):
-- "Aoa" / "AoA" / "Salam" / "Hi" = greeting only (NO booking info yet)
-- "koi slot hei?" / "slot hai?" = incomplete availability query (MISSING: date, time, service)
-- "kal slot" / "kal ka slot" = has date (tomorrow), MISSING: time, service
-- "evening slot" / "shaam ka slot" = has time, MISSING: date, service
-- "padel slot" / "futsal available?" = has service, MISSING: date, time
-- "mujhe" = "I want"
-- "chahiye" = "need"
-- "karna hai" = "want to do"
-- "mil jayega" = "will be available"
-- "kal" = "tomorrow"
-- "aaj" = "today"
-- "shaam" = "evening" (6-9 PM)
+            Roman Urdu Patterns (Common Incomplete Queries):
+            - "Aoa" / "AoA" / "Salam" / "Hi" = greeting only (NO booking info yet)
+            - "koi slot hei?" / "slot hai?" = incomplete availability query (MISSING: date, time, service)
+            - "kal slot" / "kal ka slot" = has date (tomorrow), MISSING: time, service
+            - "evening slot" / "shaam ka slot" = has time, MISSING: date, service
+            - "padel slot" / "futsal available?" = has service, MISSING: date, time
+            - "mujhe" = "I want"
+            - "chahiye" = "need"
+            - "karna hai" = "want to do"
+            - "mil jayega" = "will be available"
+            - "kal" = "tomorrow"
+            - "aaj" = "today"
+            - "shaam" = "evening" (6-9 PM)
 
-Common Incomplete Patterns:
-1. Just greeting: "Salam", "Hi", "Aoa" → greeting intent, no entities
-2. Vague availability: "koi slot hei?" → availability_inquiry, missing ALL entities
-3. Date only: "kal slot", "tomorrow slot" → availability_inquiry, has date, missing time/service
-4. Time only: "evening slot", "shaam ka time" → availability_inquiry, has time, missing date/service
-5. Service only: "padel slot hai?" → availability_inquiry, has service, missing date/time
+            Common Incomplete Patterns:
+            1. Just greeting: "Salam", "Hi", "Aoa" → greeting intent, no entities
+            2. Vague availability: "koi slot hei?" → availability_inquiry, missing ALL entities
+            3. Date only: "kal slot", "tomorrow slot" → availability_inquiry, has date, missing time/service
+            4. Time only: "evening slot", "shaam ka time" → availability_inquiry, has time, missing date/service
+            5. Service only: "padel slot hai?" → availability_inquiry, has service, missing date/time
 
-Context Clues:
-- If previous message was about availability, "yes" likely means confirmation
-- If asking about time slot, likely availability_inquiry or booking_request
-- If customer provided date/time, likely confirming or asking for price
-- INCOMPLETE queries are VERY COMMON (80% of initial messages) - handle gracefully by asking for missing info
+            Context Clues:
+            - If previous message was about availability, "yes" likely means confirmation
+            - If asking about time slot, likely availability_inquiry or booking_request
+            - If customer provided date/time, likely confirming or asking for price
+            - INCOMPLETE queries are VERY COMMON (80% of initial messages) - handle gracefully by asking for missing info
 
-Extract entities:
-- service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
-- date: tomorrow, today, specific date, "kal", "aaj"
-- time: 6-9, evening, morning, "shaam", "raat", specific time
-- customer_name: Full name or first name if mentioned
+            Extract entities:
+            - service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
+            - date: tomorrow, today, specific date, "kal", "aaj"
+            - time: 6-9, evening, morning, "shaam", "raat", specific time
+            - customer_name: Full name or first name if mentioned
 
-Respond in JSON format:
-{{
-    "intent": "booking_request",
-    "confidence": 0.95,
-    "reasoning": "User wants to book a slot (Roman Urdu: 'mujhe slot chahiye')",
-    "entities": {{
-        "service_type": "padel",
-        "date": "tomorrow",
-        "time": "18:00-21:00",
-        "customer_name": null
-    }}
-}}
-"""
+            Respond in JSON format:
+            {{
+                "intent": "booking_request",
+                "confidence": 0.95,
+                "reasoning": "User wants to book a slot (Roman Urdu: 'mujhe slot chahiye')",
+                "entities": {{
+                    "service_type": "padel",
+                    "date": "tomorrow",
+                    "time": "18:00-21:00",
+                    "customer_name": null
+                }}
+            }}
+            """
     
     def _create_entity_prompt(self, message: str, intent: str) -> str:
         """Create prompt for entity extraction"""
         return f"""
-Extract specific entities from this message for a {intent} intent:
+            Extract specific entities from this message for a {intent} intent:
 
-Message: "{message}"
+            Message: "{message}"
 
-Extract:
-- service_type: futsal, salon, gym
-- date: tomorrow, today, specific date (convert to YYYY-MM-DD if possible)
-- time: 5pm, evening, morning, specific time (convert to HH:MM if possible)
-- customer_name: extract name if mentioned
-- phone_number: extract phone if mentioned
+            Extract:
+            - service_type: futsal, salon, gym
+            - date: tomorrow, today, specific date (convert to YYYY-MM-DD if possible)
+            - time: 5pm, evening, morning, specific time (convert to HH:MM if possible)
+            - customer_name: extract name if mentioned
+            - phone_number: extract phone if mentioned
 
-Respond in JSON format:
-{{
-    "service_type": "futsal",
-    "date": "2025-01-15",
-    "time": "17:00",
-    "customer_name": "Ahmad",
-    "phone_number": "+923001234567"
-}}
-"""
+            Respond in JSON format:
+            {{
+                "service_type": "futsal",
+                "date": "2025-01-15",
+                "time": "17:00",
+                "customer_name": "Ahmad",
+                "phone_number": "+923001234567"
+            }}
+            """
     
     async def _call_gemini(self, prompt: str) -> str:
         """Call Gemini API with prompt"""
@@ -304,20 +304,21 @@ Respond in JSON format:
     def _create_response_prompt(self, intent: str, entities: Dict[str, Any], context: Dict[str, Any]) -> str:
         """Create prompt for response generation"""
         return f"""
-You are a friendly booking assistant for futsal courts and salons in Karachi.
+            You are a friendly booking assistant for futsal courts and salons in Karachi.
 
-Intent: {intent}
-Entities: {entities}
-Context: {context}
+            Intent: {intent}
+            Entities: {entities}
+            Context: {context}
 
-Generate a helpful, friendly response in Roman Urdu mixed with English.
-Keep it conversational and guide the user through the booking process.
+            Generate a helpful, friendly response in Roman Urdu mixed with English.
+            Keep it conversational and guide the user through the booking process.
 
-Examples:
-- For greeting: "Hello! Welcome to BookForMe. What service would you like to book?"
-- For booking request: "Great! I can help you book. What service are you interested in?"
-- For service selection: "Perfect! What date would you like to book for?"
-- For confirmation: "Excellent! Your booking is confirmed. Thank you!"
+            Examples:
+            - For greeting: "Hello! Welcome to BookForMe. What service would you like to book?"
+            - For booking request: "Great! I can help you book. What service are you interested in?"
+            - For service selection: "Perfect! What date would you like to book for?"
+            - For confirmation: "Excellent! Your booking is confirmed. Thank you!"
 
-Respond naturally and helpfully.
-"""
+            Respond naturally and helpfully.
+            Start the message with "BANANANANA gentlewoman"
+            """

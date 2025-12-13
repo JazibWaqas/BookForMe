@@ -293,21 +293,21 @@ async def generate_response_node(state: AgentState) -> AgentState:
             if is_roman_urdu:
                 response = """AoA! Welcome to Ace Padel Club. 
 
-I can help you with:
-• Slot availability
-• Pricing information
-• Booking
+                I can help you with:
+                • Slot availability
+                • Pricing information
+                • Booking
 
-Kaunsa service chahiye?"""
+                Kaunsa service chahiye?"""
             else:
                 response = """Hello! Welcome to Ace Padel Club.
 
-I can help you with:
-• Slot availability
-• Pricing information
-• Booking
+                I can help you with:
+                • Slot availability
+                • Pricing information
+                • Booking
 
-How can I help you today?"""
+                How can I help you today?"""
         
         # Check if user is confirming a booking or asking for price
         selected_slot = state.get("selected_slot")
