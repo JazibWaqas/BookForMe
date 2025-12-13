@@ -5,6 +5,7 @@ Handles intent extraction and entity recognition for Roman Urdu/English mixed la
 
 import logging
 from typing import Dict, List, Any, Optional
+from datetime import datetime, timedelta
 import google.generativeai as genai
 from app.config import settings
 
@@ -20,7 +21,7 @@ class NLUAgent:
             # Configure Gemini API
             genai.configure(api_key=settings.GEMINI_API_KEY)
             self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
-            logger.info("NLU Agent initialized with Gemini")
+            logger.info(f"NLU Agent initialized with Gemini model: {settings.GEMINI_MODEL}")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini: {e}")
             raise
@@ -36,22 +37,37 @@ class NLUAgent:
         Returns:
             Dict with intent, entities, and confidence
         """
+        logger.info("=" * 70)
+        logger.info("🔵 [extract_intent] FUNCTION CALLED")
+        logger.info(f"   Message: {message}")
+        logger.info(f"   History length: {len(conversation_history)}")
+        logger.info("=" * 70)
+        
         try:
-            logger.info(f"Extracting intent from: {message}")
-            
             # Build context from conversation history
+            logger.info("📝 [extract_intent] Building context from history...")
             context = self._build_context(conversation_history)
+            logger.info(f"   Context built: {len(context)} characters")
             
             # Create prompt for Gemini
+            logger.info("📝 [extract_intent] Creating intent classification prompt...")
             prompt = self._create_intent_prompt(message, context)
+            logger.info(f"   Prompt created: {len(prompt)} characters")
             
             # Get response from Gemini
+            logger.info("🤖 [extract_intent] Calling Gemini API...")
             response = await self._call_gemini(prompt)
+            logger.info(f"   Gemini response received: {len(response)} characters")
             
             # Parse Gemini response
+            logger.info("🔍 [extract_intent] Parsing Gemini response...")
             result = self._parse_intent_response(response)
             
-            logger.info(f"Intent extracted: {result}")
+            logger.info(f"✅ [extract_intent] RESULT:")
+            logger.info(f"   Intent: {result.get('intent')} (confidence: {result.get('confidence', 0.0)})")
+            logger.info(f"   Entities: {result.get('entities')}")
+            logger.info("=" * 70)
+            
             return result
             
         except Exception as e:
@@ -216,15 +232,21 @@ class NLUAgent:
     
     async def _call_gemini(self, prompt: str) -> str:
         """Call Gemini API with prompt"""
+        logger.info(f"🤖 [_call_gemini] Calling Gemini API...")
+        logger.info(f"   Model: {settings.GEMINI_MODEL}")
+        logger.info(f"   Prompt length: {len(prompt)} characters")
         try:
             import asyncio
             # Run the synchronous Gemini call in a thread pool
+            logger.info(f"   ⏳ Sending request to Gemini...")
             response = await asyncio.get_event_loop().run_in_executor(
                 None, self.model.generate_content, prompt
             )
-            return response.text
+            response_text = response.text
+            logger.info(f"   ✅ Gemini response received: {len(response_text)} characters")
+            return response_text
         except Exception as e:
-            logger.error(f"Gemini API error: {e}")
+            logger.error(f"   ❌ Gemini API error: {e}")
             raise
     
     def _parse_intent_response(self, response: str) -> Dict[str, Any]:
@@ -287,38 +309,336 @@ class NLUAgent:
             Generated response message
         """
         try:
-            logger.info(f"Generating response for intent: {intent}")
+            logger.info("=" * 70)
+            logger.info("🔵 [generate_response] FUNCTION CALLED")
+            logger.info(f"   Intent: {intent}")
+            logger.info(f"   Entities: {entities}")
+            logger.info(f"   Context: {context}")
+            logger.info("=" * 70)
             
-            # Create response generation prompt
-            prompt = self._create_response_prompt(intent, entities, context)
+            # Check if we have all booking details and should check database
+            availability_data = None
+            should_check = self._should_check_availability(intent, entities)
+            logger.info(f"🔍 [generate_response] Checking if database lookup needed: {should_check}")
+            
+            if should_check:
+                logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
+                availability_data = await self._check_database_availability(entities)
+                logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
+            else:
+                logger.info("⏭️  [generate_response] Skipping database check - not all details present")
+            
+            # Create response generation prompt with availability data
+            logger.info("📝 [generate_response] Creating response prompt...")
+            prompt = self._create_response_prompt(intent, entities, context, availability_data)
             
             # Get response from Gemini
+            logger.info("🤖 [generate_response] Calling Gemini to generate response...")
             response = await self._call_gemini(prompt)
+            logger.info(f"✅ [generate_response] Response generated: {response[:100]}...")
+            logger.info("=" * 70)
             
             return response.strip()
             
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
+            logger.error(f"❌ [generate_response] ERROR: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return "I understand. How can I help you with your booking?"
     
-    def _create_response_prompt(self, intent: str, entities: Dict[str, Any], context: Dict[str, Any]) -> str:
+    def _should_check_availability(self, intent: str, entities: Dict[str, Any]) -> bool:
+        """
+        Check if we have all required details to check database availability
+        
+        Returns True if:
+        - Intent is availability_inquiry or booking_request
+        - Service type is provided
+        - Date is provided
+        - Time is provided (optional but preferred)
+        """
+        logger.info("🔍 [_should_check_availability] FUNCTION CALLED")
+        logger.info(f"   Intent: {intent}")
+        logger.info(f"   Entities: {entities}")
+        
+        # Check if intent requires availability check
+        if intent not in ["availability_inquiry", "booking_request"]:
+            logger.info(f"   ❌ Intent '{intent}' does not require availability check")
+            return False
+        logger.info(f"   ✅ Intent '{intent}' requires availability check")
+        
+        # Check if service type is provided
+        service_type = entities.get("service_type", "").lower()
+        if not service_type:
+            logger.info("   ❌ Service type not provided")
+            return False  # Need service type to find vendor
+        logger.info(f"   ✅ Service type found: {service_type}")
+        
+        # Check if date is provided
+        date = entities.get("date")
+        if not date:
+            logger.info("   ❌ Date not provided")
+            return False
+        logger.info(f"   ✅ Date found: {date}")
+        
+        # Time is optional
+        time = entities.get("time") or entities.get("time_range")
+        if time:
+            logger.info(f"   ✅ Time found: {time}")
+        else:
+            logger.info("   ⚠️  Time not provided (optional)")
+        
+        logger.info("   ✅ All required details present - WILL check database")
+        return True
+    
+    async def _check_database_availability(self, entities: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Check actual database for slot availability
+        
+        Args:
+            entities: Extracted entities with date, time, service_type
+            
+        Returns:
+            Availability data from database
+        """
+        logger.info("=" * 70)
+        logger.info("🔵 [_check_database_availability] FUNCTION CALLED")
+        logger.info(f"   Input entities: {entities}")
+        logger.info("=" * 70)
+        
+        try:
+            from database.availability_service import AvailabilityService
+            
+            # Get entities
+            date = entities.get("date")
+            time_range = entities.get("time") or entities.get("time_range")
+            service_type = entities.get("service_type", "padel")
+            
+            logger.info(f"📋 [_check_database_availability] Extracted:")
+            logger.info(f"   Date: {date}")
+            logger.info(f"   Time range: {time_range}")
+            logger.info(f"   Service type: {service_type}")
+            
+            # Normalize date if needed (handle "tomorrow", "kal", etc.)
+            original_date = date
+            if isinstance(date, str) and not date.startswith("202"):
+                logger.info(f"📅 [_check_database_availability] Normalizing date: '{date}'")
+                # Try to normalize relative dates
+                today = datetime.now()
+                date_lower = date.lower()
+                if date_lower in ["tomorrow", "kal"]:
+                    date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
+                    logger.info(f"   ✅ Normalized 'tomorrow' to: {date}")
+                elif date_lower in ["today", "aaj"]:
+                    date = today.strftime("%Y-%m-%d")
+                    logger.info(f"   ✅ Normalized 'today' to: {date}")
+                else:
+                    # Try to parse as date string
+                    try:
+                        parsed_date = datetime.strptime(date, "%Y-%m-%d")
+                        date = parsed_date.strftime("%Y-%m-%d")
+                        logger.info(f"   ✅ Parsed date to: {date}")
+                    except:
+                        # Default to today if can't parse
+                        date = today.strftime("%Y-%m-%d")
+                        logger.warning(f"   ⚠️  Could not parse date, defaulting to today: {date}")
+            else:
+                logger.info(f"📅 [_check_database_availability] Date already in format: {date}")
+            
+            # Get vendor_id from entities or context
+            # First try to get from entities, then from context, or query by service_type
+            vendor_id = entities.get("vendor_id")
+            logger.info(f"🏢 [_check_database_availability] Looking for vendor_id...")
+            
+            if not vendor_id:
+                logger.info(f"   ⚠️  vendor_id not in entities, querying Firestore by service_type: {service_type}")
+                # Try to get vendor_id from service_type by querying Firestore
+                try:
+                    from app.firestore import firestore_db
+                    service_type = entities.get("service_type", "padel").lower()
+                    
+                    logger.info(f"   🔍 Querying Firestore: vendors collection where service_type == '{service_type}'")
+                    # Query Firestore for vendors with this service type
+                    vendors = await firestore_db.get_vendors_by_service(service_type)
+                    logger.info(f"   📊 Firestore query returned {len(vendors)} vendor(s)")
+                    
+                    if vendors:
+                        # Use the first vendor found (or you can add logic to select specific vendor)
+                        vendor_id = vendors[0].get("id")
+                        logger.info(f"   ✅ Found vendor_id: {vendor_id} (using first vendor from results)")
+                        logger.info(f"   📋 Vendor details: {vendors[0]}")
+                    else:
+                        logger.warning(f"   ❌ No vendors found for service type: {service_type}")
+                        logger.info("   📤 Returning error response")
+                        return {
+                            "success": False,
+                            "error": f"No vendors found for service type: {service_type}",
+                            "available_slots": []
+                        }
+                except Exception as e:
+                    logger.error(f"   ❌ Error getting vendor by service type: {e}")
+                    import traceback
+                    logger.error(f"   Traceback: {traceback.format_exc()}")
+                    return {
+                        "success": False,
+                        "error": f"Could not determine vendor: {str(e)}",
+                        "available_slots": []
+                    }
+            else:
+                logger.info(f"   ✅ vendor_id found in entities: {vendor_id}")
+            
+            if not vendor_id:
+                logger.error("   ❌ vendor_id is still None after all attempts")
+                return {
+                    "success": False,
+                    "error": "Vendor ID not found. Please specify the vendor or service type.",
+                    "available_slots": []
+                }
+            
+            # Initialize availability service
+            logger.info(f"🔧 [_check_database_availability] Initializing AvailabilityService...")
+            availability_service = AvailabilityService()
+            
+            # Check database for available slots
+            logger.info(f"🗄️  [_check_database_availability] CALLING DATABASE:")
+            logger.info(f"   Vendor ID: {vendor_id}")
+            logger.info(f"   Date: {date}")
+            logger.info(f"   Method: availability_service.get_available_slots()")
+            available_slots = await availability_service.get_available_slots(vendor_id, date)
+            logger.info(f"📊 [_check_database_availability] DATABASE RESPONSE:")
+            logger.info(f"   Slots returned: {len(available_slots)}")
+            if available_slots:
+                logger.info(f"   First slot example: {available_slots[0]}")
+            else:
+                logger.info(f"   ⚠️  No slots returned from database")
+            
+            # Format time range if provided
+            time_filter = None
+            if time_range:
+                logger.info(f"⏰ [_check_database_availability] Processing time range: {time_range}")
+                if isinstance(time_range, dict):
+                    time_filter = time_range
+                    logger.info(f"   ✅ Time range is dict: {time_filter}")
+                elif isinstance(time_range, str):
+                    # Try to parse time string
+                    # This is a simple parser - you might want to enhance it
+                    if "-" in time_range:
+                        parts = time_range.split("-")
+                        time_filter = {"start": parts[0].strip(), "end": parts[1].strip()}
+                        logger.info(f"   ✅ Parsed time string to: {time_filter}")
+                    else:
+                        logger.info(f"   ⚠️  Time range string doesn't contain '-', skipping filter")
+            
+            # Filter slots by time range if provided
+            original_slot_count = len(available_slots)
+            if time_filter and available_slots:
+                logger.info(f"🔍 [_check_database_availability] Filtering slots by time: {time_filter}")
+                start_time = time_filter.get("start", "")
+                end_time = time_filter.get("end", "")
+                filtered_slots = []
+                for slot in available_slots:
+                    slot_time = slot.get("time", "")
+                    if start_time and end_time:
+                        if start_time <= slot_time < end_time:
+                            filtered_slots.append(slot)
+                    elif start_time:
+                        if slot_time >= start_time:
+                            filtered_slots.append(slot)
+                    else:
+                        filtered_slots.append(slot)
+                available_slots = filtered_slots
+                logger.info(f"   📊 Filtered from {original_slot_count} to {len(available_slots)} slots")
+            elif time_filter:
+                logger.info(f"   ⚠️  Time filter provided but no slots to filter")
+            else:
+                logger.info(f"   ℹ️  No time filter, using all {len(available_slots)} slots")
+            
+            result = {
+                "success": True,
+                "date": date,
+                "vendor_id": vendor_id,
+                "available_slots": available_slots,
+                "total_available": len(available_slots),
+                "time_filter": time_filter
+            }
+            
+            logger.info(f"✅ [_check_database_availability] FUNCTION COMPLETED SUCCESSFULLY")
+            logger.info(f"   Result: success=True, slots={len(available_slots)}, vendor={vendor_id}, date={date}")
+            logger.info("=" * 70)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ [_check_database_availability] ERROR: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.info("=" * 70)
+            return {
+                "success": False,
+                "error": str(e),
+                "available_slots": []
+            }
+    
+    def _create_response_prompt(self, intent: str, entities: Dict[str, Any], context: Dict[str, Any], availability_data: Optional[Dict[str, Any]] = None) -> str:
         """Create prompt for response generation"""
+        
+        # Build availability information string if available
+        availability_info = ""
+        if availability_data and availability_data.get("success"):
+            slots = availability_data.get("available_slots", [])
+            date = availability_data.get("date", "")
+            
+            if slots:
+                availability_info = f"""
+REAL DATABASE AVAILABILITY DATA (use this actual data):
+Date: {date}
+Available Slots: {len(slots)} slots found
+
+Slot Details:
+"""
+                for i, slot in enumerate(slots[:10], 1):  # Show max 10 slots
+                    slot_time = slot.get("time", "N/A")
+                    price = slot.get("price", 0)
+                    slot_id = slot.get("slot_id", "")
+                    availability_info += f"{i}. Time: {slot_time}, Price: Rs {price}/hour, ID: {slot_id}\n"
+                
+                availability_info += "\nPresent this information clearly to the user. Show times and prices."
+            else:
+                availability_info = f"""
+REAL DATABASE AVAILABILITY DATA:
+Date: {date}
+Available Slots: 0 slots found
+
+The requested date/time has no available slots. Apologize and suggest alternatives (different date or time).
+"""
+        elif availability_data and not availability_data.get("success"):
+            availability_info = f"""
+DATABASE CHECK FAILED:
+Error: {availability_data.get('error', 'Unknown error')}
+
+Apologize that you couldn't check availability right now and ask them to try again.
+"""
+        
         return f"""
             You are a friendly booking assistant for futsal courts and salons in Karachi.
 
-            Intent: {intent}
-            Entities: {entities}
-            Context: {context}
+Intent: {intent}
+Entities: {entities}
+Context: {context}
+{availability_info if availability_info else ""}
 
-            Generate a helpful, friendly response in Roman Urdu mixed with English.
-            Keep it conversational and guide the user through the booking process.
+Generate a helpful, friendly response that:
+1. Matches the user's language style (Roman Urdu if they use "Aoa", "kal", "shaam" / English otherwise)
+2. Addresses the {intent} intent directly
+3. Uses the extracted entities naturally: {entities}
+4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
 
-            Examples:
-            - For greeting: "Hello! Welcome to BookForMe. What service would you like to book?"
-            - For booking request: "Great! I can help you book. What service are you interested in?"
-            - For service selection: "Perfect! What date would you like to book for?"
-            - For confirmation: "Excellent! Your booking is confirmed. Thank you!"
+Response Guidelines:
+- Tone: Friendly, professional, helpful
+- Length: 2-4 sentences (be concise)
+- Format: Use emojis sparingly (✅ 📅 ⏰ 💰)
+- Language: Match user's style exactly
+- {"If slots are available: List them clearly with times and prices" if availability_info and availability_data.get("total_available", 0) > 0 else ""}
+- {"If no slots available: Apologize and suggest alternatives" if availability_info and availability_data.get("total_available", 0) == 0 else ""}
 
-            Respond naturally and helpfully.
-            Start the message with "BANANANANA gentlewoman"
-            """
+Generate the response now:
+"""

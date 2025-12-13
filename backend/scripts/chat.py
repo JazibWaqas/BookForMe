@@ -6,11 +6,22 @@ Chat with your NLU system through the terminal
 import asyncio
 import sys
 import os
+import logging
 
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.config import settings
 from nlu.agent import NLUAgent
+
+# Configure logging to show in terminal
+logging.basicConfig(
+    level=logging.INFO,  # Shows INFO, WARNING, ERROR (use DEBUG for more detail)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+logger = logging.getLogger(__name__)
 
 
 class SimpleChat:
