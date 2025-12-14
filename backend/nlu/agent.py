@@ -219,7 +219,11 @@ class NLUAgent:
             - time: 5pm, evening, morning, specific time (convert to HH:MM if possible)
             - customer_name: extract name if mentioned
             - phone_number: extract phone if mentioned
-
+            DATE FORMATS TO EXTRACT:
+            - If user provides YYYY-MM-DD format (e.g., "2025-12-17"), PRESERVE IT EXACTLY
+            - If user says "tomorrow" or "kal", extract as: "tomorrow"
+            - If user says day name (e.g., "Friday"), extract as: "Friday"
+            - DO NOT convert dates to other formats
             Respond in JSON format:
             {{
                 "service_type": "futsal",
@@ -328,7 +332,44 @@ class NLUAgent:
             else:
                 logger.info("⏭️  [generate_response] Skipping database check - not all details present")
             
-            # Create response generation prompt with availability data
+            # NEW: Check for booking confirmation/request and create booking if needed
+            # This should run OUTSIDE the availability check if/else
+            booking_result = None
+            logger.info(f"🔍 [generate_response] Checking booking conditions:")
+            logger.info(f"   Intent: {intent}")
+            logger.info(f"   Is booking intent: {intent in ['confirmation', 'booking_request']}")
+            
+            has_details = self._has_complete_booking_details(entities, context)
+            logger.info(f"   Has complete details: {has_details}")
+            
+            # Trigger booking on both confirmation AND booking_request with complete details
+            if intent in ["confirmation", "booking_request"] and has_details:
+                logger.info("🎯 [generate_response] BOOKING DETECTED - Creating booking...")
+                
+                # Resolve vendor_id from vendor_name if needed
+                vendor_name = context.get('vendor_name') or entities.get('vendor_name') or entities.get('vendor')
+                if vendor_name and (not context.get('vendor_id') or context.get('vendor_id') == 'ace_padel_club'):
+                    logger.info(f"🔍 [generate_response] Resolving vendor_id for name: '{vendor_name}'")
+                    resolved_vendor_id = await self._get_vendor_id_by_name(vendor_name)
+                    if resolved_vendor_id:
+                        context['vendor_id'] = resolved_vendor_id
+                        entities['vendor_id'] = resolved_vendor_id
+                        logger.info(f"✅ [generate_response] Resolved vendor_id: {resolved_vendor_id}")
+                
+                booking_details = self._extract_booking_details(entities, context)
+                booking_result = await self._create_booking(booking_details)
+                
+                if booking_result and booking_result.get('success'):
+                    logger.info(f"✅ [generate_response] Booking created: {booking_result.get('booking_id', 'N/A')}")
+                    context['booking_result'] = booking_result
+                elif booking_result:
+                    logger.error(f"❌ [generate_response] Booking failed: {booking_result.get('error', 'Unknown error')}")
+                    context['booking_error'] = booking_result.get('error', 'Unknown error')
+                else:
+                    logger.error(f"❌ [generate_response] Booking result is None")
+                    context['booking_error'] = 'Booking failed: No result returned'
+            
+            # Create response generation prompt with availability AND booking data
             logger.info("📝 [generate_response] Creating response prompt...")
             prompt = self._create_response_prompt(intent, entities, context, availability_data)
             
@@ -345,6 +386,289 @@ class NLUAgent:
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return "I understand. How can I help you with your booking?"
+    
+    def _has_complete_booking_details(self, entities: Dict[str, Any], context: Dict[str, Any]) -> bool:
+        """
+        Check if we have all required details to create a booking
+        Now extracts from conversation history if not in context
+        """
+        phone_number = context.get('phone_number')
+        if not phone_number:
+            logger.info("   ❌ Missing phone_number")
+            return False
+        
+        # Try to get date from multiple sources
+        date = entities.get('date') or context.get('selected_date')
+        
+        # If no date in entities/context, check conversation history
+        if not date:
+            conversation_history = context.get('conversation_history', [])
+            for msg in reversed(conversation_history[-5:]):  # Check last 5 messages
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', '').lower()
+                    # Look for date mentions in agent responses
+                    import re
+                    date_pattern = r'(\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4})'
+                    date_match = re.search(date_pattern, content, re.IGNORECASE)
+                    if date_match:
+                        # Convert to YYYY-MM-DD
+                        from datetime import datetime
+                        try:
+                            parsed = datetime.strptime(date_match.group(1), '%d %B %Y')
+                            date = parsed.strftime('%Y-%m-%d')
+                            logger.info(f"   ℹ️  Extracted date from history: {date}")
+                            break
+                        except:
+                            pass
+        
+        # Try to get time from entities or conversation history
+        time = entities.get('time')
+        if not time:
+            # Check if selected_slot has time
+            selected_slot = context.get('selected_slot')
+            if selected_slot:
+                time = selected_slot.get('slot_time') or selected_slot.get('time')
+        
+        # If still no time, extract from conversation history
+        if not time:
+            conversation_history = context.get('conversation_history', [])
+            for msg in reversed(conversation_history[-5:]):  # Check last 5 messages
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', '').lower()
+                    # Look for time mentions like "8:00 AM" or "8 AM"
+                    import re
+                    time_pattern = r'(\d{1,2}):?(\d{2})?\s*(am|pm)'
+                    time_match = re.search(time_pattern, content, re.IGNORECASE)
+                    if time_match:
+                        hour = int(time_match.group(1))
+                        minute = int(time_match.group(2)) if time_match.group(2) else 0
+                        period = time_match.group(3).lower()
+                        
+                        if period == 'pm' and hour < 12:
+                            hour += 12
+                        elif period == 'am' and hour == 12:
+                            hour = 0
+                        
+                        time = f"{hour:02d}:{minute:02d}"
+                        logger.info(f"   ℹ️  Extracted time from history: {time}")
+                        break
+        
+        # Check if we have all required fields
+        if not date:
+            logger.info("   ❌ Missing date")
+            return False
+        
+        if not time:
+            logger.info("   ❌ Missing time")
+            return False
+        
+        logger.info(f"   ✅ All booking details available: date={date}, time={time}")
+        return True
+
+    async def _get_vendor_id_by_name(self, vendor_name: str) -> Optional[str]:
+        """
+        Map vendor name to vendor_id by querying Firestore
+        
+        Args:
+            vendor_name: Vendor name (e.g., "Golden Court", "Ace Padel Club")
+            
+        Returns:
+            vendor_id if found, None otherwise
+        """
+        if not vendor_name:
+            return None
+            
+        try:
+            from app.firestore import firestore_db
+            
+            vendor_name_lower = vendor_name.lower().strip()
+            
+            # Query vendors collection by name (case-insensitive match)
+            vendors_ref = firestore_db.db.collection('vendors')
+            vendors = vendors_ref.stream()
+            
+            for vendor_doc in vendors:
+                vendor_data = vendor_doc.to_dict()
+                vendor_doc_name = vendor_data.get('name', '').lower().strip()
+                
+                # Check if names match (exact or contains)
+                if vendor_name_lower == vendor_doc_name or vendor_name_lower in vendor_doc_name or vendor_doc_name in vendor_name_lower:
+                    vendor_id = vendor_doc.id
+                    logger.info(f"✅ Found vendor_id '{vendor_id}' for name '{vendor_name}'")
+                    return vendor_id
+            
+            logger.warning(f"⚠️  No vendor found for name: '{vendor_name}'")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting vendor by name: {e}")
+            return None
+
+    def _extract_booking_details(self, entities: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract all booking details from entities, context, and conversation history
+        """
+        logger.info("=" * 70)
+        logger.info("🔍 [_extract_booking_details] EXTRACTING BOOKING DETAILS")
+        logger.info(f"   Entities: {entities}")
+        logger.info(f"   Context keys: {list(context.keys())}")
+        logger.info("=" * 70)
+        
+        selected_slot = context.get('selected_slot', {})
+        
+        # Get slot time (try multiple formats and sources)
+        slot_time = selected_slot.get('slot_time') or selected_slot.get('time') or entities.get('time')
+        logger.info(f"   Initial slot_time from context/entities: {slot_time}")
+        
+        # If no time found, extract from conversation history
+        if not slot_time:
+            conversation_history = context.get('conversation_history', [])
+            logger.info(f"   🔍 Searching conversation history for time (history length: {len(conversation_history)})")
+            for msg in reversed(conversation_history[-5:]):
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', '')
+                    logger.info(f"   📝 Checking message: {content[:100]}...")
+                    import re
+                    time_pattern = r'(\d{1,2}):(\d{2})\s*(am|pm)'
+                    time_match = re.search(time_pattern, content, re.IGNORECASE)
+                    if time_match:
+                        hour = int(time_match.group(1))
+                        minute = int(time_match.group(2))
+                        period = time_match.group(3).lower()
+                        
+                        logger.info(f"   🕐 Matched time: {hour}:{minute:02d} {period}")
+                        
+                        if period == 'pm' and hour < 12:
+                            hour += 12
+                        elif period == 'am' and hour == 12:
+                            hour = 0
+                        # For AM times 1-11, keep as is
+                        
+                        slot_time = f"{hour:02d}:{minute:02d}"
+                        logger.info(f"   ✅ Extracted time from history: {slot_time}")
+                        break
+                    else:
+                        logger.info(f"   ❌ No time pattern matched in this message")
+        
+        # If slot_time is not in HH:MM format, try to normalize it
+        if slot_time and not isinstance(slot_time, str):
+            slot_time = str(slot_time)
+        
+        # Normalize slot_time to HH:MM format if needed
+        if slot_time:
+            import re
+            # Check if it's already in HH:MM format
+            if not re.match(r'^\d{2}:\d{2}$', slot_time):
+                # Try to extract time from various formats
+                from agent.nodes import normalize_time
+                normalized = normalize_time(slot_time)
+                if normalized:
+                    slot_time = normalized.get('start', slot_time)
+        
+        # Get date - try multiple sources
+        date = entities.get('date') or context.get('selected_date')
+        if not date:
+            conversation_history = context.get('conversation_history', [])
+            for msg in reversed(conversation_history[-5:]):
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', '').lower()
+                    import re
+                    date_pattern = r'(\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4})'
+                    date_match = re.search(date_pattern, content, re.IGNORECASE)
+                    if date_match:
+                        from datetime import datetime
+                        try:
+                            parsed = datetime.strptime(date_match.group(1), '%d %B %Y')
+                            date = parsed.strftime('%Y-%m-%d')
+                            logger.info(f"   📅 Extracted date from history: {date}")
+                            break
+                        except:
+                            pass
+        
+        # Get vendor info - try entities first, then context
+        vendor_id = entities.get('vendor_id') or context.get('vendor_id', 'ace_padel_club')
+        
+        # If vendor_id is not found, try to get from vendor_name
+        if not vendor_id or vendor_id == 'ace_padel_club':
+            vendor_name = entities.get('vendor_name') or entities.get('vendor')
+            if vendor_name:
+                # This will be resolved asynchronously in generate_response
+                context['vendor_name'] = vendor_name
+        
+        # Get customer info
+        phone_number = context.get('phone_number', '')
+        
+        # Get duration (default to 1 hour if not specified)
+        duration_hours = context.get('selected_duration', 1.0)
+        
+        # Calculate end time based on duration
+        if slot_time and duration_hours:
+            try:
+                from datetime import datetime, timedelta
+                start_time = datetime.strptime(slot_time, '%H:%M')
+                end_time = start_time + timedelta(hours=duration_hours)
+                end_time_str = end_time.strftime('%H:%M')
+            except:
+                end_time_str = slot_time  # fallback
+        else:
+            end_time_str = slot_time
+            
+        booking_details = {
+            'vendor_id': vendor_id,
+            'date': date,  # Use the date we extracted (not from entities only)
+            'time': slot_time,
+            'end_time': end_time_str,
+            'duration_hours': duration_hours,
+            'customer_info': {
+                'phone': phone_number,
+                'name': context.get('customer_name', f'Customer {phone_number}'),
+                'booking_source': 'whatsapp_ai'
+            },
+            'selected_slot': selected_slot
+        }
+        
+        logger.info("=" * 70)
+        logger.info(f"📋 [extract_booking_details] FINAL EXTRACTED DETAILS:")
+        logger.info(f"   Vendor ID: {vendor_id}")
+        logger.info(f"   Date: {date}")
+        logger.info(f"   Time: {slot_time}")
+        logger.info(f"   End Time: {end_time_str}")
+        logger.info(f"   Phone: {phone_number}")
+        logger.info("=" * 70)
+        return booking_details
+
+    async def _create_booking(self, booking_details: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Actually create the booking in the database
+        This is how Gemini writes to the database - through this function
+        """
+        try:
+            logger.info("🔧 [_create_booking] Creating booking in database...")
+            
+            from database.availability_service import AvailabilityService
+            
+            availability_service = AvailabilityService()
+            
+            # Use the check_and_book_slot method (atomic booking with Firestore transaction)
+            result = await availability_service.check_and_book_slot(
+                vendor_id=booking_details['vendor_id'],
+                date=booking_details['date'],
+                time=booking_details['time'],
+                customer_info=booking_details['customer_info']
+            )
+            
+            logger.info(f"📊 [_create_booking] Booking result: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ [_create_booking] Error creating booking: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            return {
+                'success': False,
+                'error': f'Booking creation failed: {str(e)}'
+            }
     
     def _should_check_availability(self, intent: str, entities: Dict[str, Any]) -> bool:
         """
@@ -445,20 +769,35 @@ class NLUAgent:
                 logger.info(f"📅 [_check_database_availability] Date already in format: {date}")
             
             # Get vendor_id from entities or context
-            # First try to get from entities, then from context, or query by service_type
+            # First try to get from entities, then from vendor_name, or query by service_type
             vendor_id = entities.get("vendor_id")
             logger.info(f"🏢 [_check_database_availability] Looking for vendor_id...")
             
+            # If vendor_id not found, try to resolve from vendor_name
             if not vendor_id:
-                logger.info(f"   ⚠️  vendor_id not in entities, querying Firestore by service_type: {service_type}")
+                vendor_name = entities.get("vendor_name") or entities.get("vendor")
+                if vendor_name:
+                    logger.info(f"   🔍 Resolving vendor_id from vendor_name: '{vendor_name}'")
+                    vendor_id = await self._get_vendor_id_by_name(vendor_name)
+                    if vendor_id:
+                        logger.info(f"   ✅ Resolved vendor_id: {vendor_id}")
+                    else:
+                        logger.warning(f"   ⚠️  Could not resolve vendor_id from name: '{vendor_name}'")
+            
+            # If still no vendor_id, query by service_type
+            if not vendor_id:
+                logger.info(f"   ⚠️  vendor_id not found, querying Firestore by service_type: {service_type}")
                 # Try to get vendor_id from service_type by querying Firestore
                 try:
+                    from database.firestore_v2 import FirestoreV2
                     from app.firestore import firestore_db
                     service_type = entities.get("service_type", "padel").lower()
                     
-                    logger.info(f"   🔍 Querying Firestore: vendors collection where service_type == '{service_type}'")
-                    # Query Firestore for vendors with this service type
-                    vendors = await firestore_db.get_vendors_by_service(service_type)
+                    logger.info(f"   🔍 Querying Firestore: services collection where sport_type == '{service_type}'")
+                    # Use FirestoreV2.get_vendors_by_sport() which queries services collection correctly
+                    fs_v2 = FirestoreV2(firestore_db.db)
+                    vendors = await fs_v2.get_vendors_by_sport(service_type)
+                    
                     logger.info(f"   📊 Firestore query returned {len(vendors)} vendor(s)")
                     
                     if vendors:
@@ -484,7 +823,7 @@ class NLUAgent:
                         "available_slots": []
                     }
             else:
-                logger.info(f"   ✅ vendor_id found in entities: {vendor_id}")
+                logger.info(f"   ✅ vendor_id found: {vendor_id}")
             
             if not vendor_id:
                 logger.error("   ❌ vendor_id is still None after all attempts")
@@ -506,10 +845,28 @@ class NLUAgent:
             available_slots = await availability_service.get_available_slots(vendor_id, date)
             logger.info(f"📊 [_check_database_availability] DATABASE RESPONSE:")
             logger.info(f"   Slots returned: {len(available_slots)}")
+            
+            # If no slots found for requested date, check next 7 days
+            next_available_date = None
+            if not available_slots:
+                logger.info(f"   ⚠️  No slots for {date}, checking next 7 days...")
+                from datetime import datetime as dt, timedelta as td
+                base_date = dt.strptime(date, "%Y-%m-%d")
+                
+                for days_ahead in range(1, 8):
+                    check_date = (base_date + td(days=days_ahead)).strftime("%Y-%m-%d")
+                    logger.info(f"   🔍 Checking {check_date}...")
+                    future_slots = await availability_service.get_available_slots(vendor_id, check_date)
+                    if future_slots:
+                        available_slots = future_slots
+                        next_available_date = check_date
+                        logger.info(f"   ✅ Found {len(future_slots)} slots on {check_date}")
+                        break
+            
             if available_slots:
                 logger.info(f"   First slot example: {available_slots[0]}")
             else:
-                logger.info(f"   ⚠️  No slots returned from database")
+                logger.info(f"   ⚠️  No slots found in the next 7 days")
             
             # Format time range if provided
             time_filter = None
@@ -552,9 +909,14 @@ class NLUAgent:
             else:
                 logger.info(f"   ℹ️  No time filter, using all {len(available_slots)} slots")
             
+            # Use next available date if found, otherwise use requested date
+            actual_date = next_available_date if next_available_date else date
+            
             result = {
                 "success": True,
-                "date": date,
+                "date": actual_date,
+                "requested_date": date,
+                "next_available_date": next_available_date,  # Set if slots were found on different date
                 "vendor_id": vendor_id,
                 "available_slots": available_slots,
                 "total_available": len(available_slots),
@@ -586,9 +948,22 @@ class NLUAgent:
         if availability_data and availability_data.get("success"):
             slots = availability_data.get("available_slots", [])
             date = availability_data.get("date", "")
+            requested_date = availability_data.get("requested_date", date)
+            next_available_date = availability_data.get("next_available_date")
             
             if slots:
-                availability_info = f"""
+                # Check if we found slots on a different date than requested
+                if next_available_date and next_available_date != requested_date:
+                    availability_info = f"""
+REAL DATABASE AVAILABILITY DATA (use this actual data):
+⚠️ NOTE: No slots were available on the requested date ({requested_date}).
+✅ Found slots on the NEXT AVAILABLE DATE: {next_available_date}
+Available Slots: {len(slots)} slots found
+
+Slot Details for {next_available_date}:
+"""
+                else:
+                    availability_info = f"""
 REAL DATABASE AVAILABILITY DATA (use this actual data):
 Date: {date}
 Available Slots: {len(slots)} slots found
@@ -602,13 +977,15 @@ Slot Details:
                     availability_info += f"{i}. Time: {slot_time}, Price: Rs {price}/hour, ID: {slot_id}\n"
                 
                 availability_info += "\nPresent this information clearly to the user. Show times and prices."
+                if next_available_date:
+                    availability_info += f"\nMention that these are the next available slots on {next_available_date}."
             else:
                 availability_info = f"""
 REAL DATABASE AVAILABILITY DATA:
 Date: {date}
 Available Slots: 0 slots found
 
-The requested date/time has no available slots. Apologize and suggest alternatives (different date or time).
+The requested date/time has no available slots in the next 7 days. Apologize and suggest the user contact the venue directly.
 """
         elif availability_data and not availability_data.get("success"):
             availability_info = f"""
@@ -618,6 +995,23 @@ Error: {availability_data.get('error', 'Unknown error')}
 Apologize that you couldn't check availability right now and ask them to try again.
 """
         
+        # Add booking result information
+        booking_info = ""
+        if context.get('booking_result'):
+            booking = context['booking_result']
+            booking_info = f"""
+BOOKING SUCCESSFUL:
+- Booking ID: {booking.get('booking_id', 'N/A')}
+- Status: Confirmed
+- Your booking is confirmed and ready!
+"""
+        elif context.get('booking_error'):
+            booking_info = f"""
+BOOKING FAILED:
+- Error: {context['booking_error']}
+- Ask customer to try again or contact support
+"""
+        
         return f"""
             You are a friendly booking assistant for futsal courts and salons in Karachi.
 
@@ -625,12 +1019,15 @@ Intent: {intent}
 Entities: {entities}
 Context: {context}
 {availability_info if availability_info else ""}
+{booking_info if booking_info else ""}
 
 Generate a helpful, friendly response that:
 1. Matches the user's language style (Roman Urdu if they use "Aoa", "kal", "shaam" / English otherwise)
 2. Addresses the {intent} intent directly
 3. Uses the extracted entities naturally: {entities}
 4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
+5. {"If booking was just created: Confirm the booking with the booking ID and thank the customer" if booking_info and "SUCCESSFUL" in booking_info else ""}
+6. {"If booking failed: Apologize and suggest trying again or contacting support" if booking_info and "FAILED" in booking_info else ""}
 
 Response Guidelines:
 - Tone: Friendly, professional, helpful

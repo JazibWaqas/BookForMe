@@ -98,15 +98,41 @@ class FirestoreDB:
     async def get_available_slots(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
         """Get available slots for vendor on specific date"""
         try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            
             slots = []
-            docs = self.db.collection('availability_slots').where('vendor_id', '==', vendor_id).where('slot_date', '==', date).where('status', '==', 'available').stream()
+            # Query the 'slots' collection (not 'availability_slots')
+            # Using 'date' field (not 'slot_date') to match actual Firestore schema
+            query = self.db.collection('slots')\
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                .where(filter=FieldFilter('date', '==', date))\
+                .where(filter=FieldFilter('status', '==', 'available'))
+            
+            docs = query.stream()
             for doc in docs:
                 slot_data = doc.to_dict()
                 slot_data['id'] = doc.id
+                
+                # Normalize field names for consistency
+                # Extract time from start_time timestamp if present
+                if 'start_time' in slot_data and slot_data['start_time']:
+                    try:
+                        start_ts = slot_data['start_time']
+                        if hasattr(start_ts, 'strftime'):
+                            slot_data['slot_time'] = start_ts.strftime('%H:%M')
+                        else:
+                            slot_data['slot_time'] = str(start_ts)
+                    except:
+                        pass
+                
                 slots.append(slot_data)
-            return sorted(slots, key=lambda x: x.get('slot_time', ''))
+            
+            # Sort by start_time or slot_time
+            return sorted(slots, key=lambda x: x.get('slot_time', x.get('start_time', '')))
         except Exception as e:
             logger.error(f"Error getting available slots: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
     async def book_slot(self, vendor_id: str, date: str, time: str, customer_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -123,49 +149,86 @@ class FirestoreDB:
             Booking result
         """
         try:
-            # Use Firestore transaction for atomicity
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            from datetime import datetime as dt
+            
+            logger.info(f"🔧 [book_slot] Attempting to book: vendor={vendor_id}, date={date}, time={time}")
+            
+            # First, find matching slot by querying the slots collection
+            # Query by vendor_id, date, and status
+            query = self.db.collection('slots')\
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                .where(filter=FieldFilter('date', '==', date))\
+                .where(filter=FieldFilter('status', '==', 'available'))
+            
+            docs = list(query.stream())
+            logger.info(f"📊 [book_slot] Found {len(docs)} available slots for {date}")
+            
+            # Find the slot that matches the requested time
+            matching_slot = None
+            for doc in docs:
+                slot_data = doc.to_dict()
+                slot_start_time = slot_data.get('start_time')
+                
+                # Extract time from timestamp
+                if slot_start_time and hasattr(slot_start_time, 'strftime'):
+                    slot_time_str = slot_start_time.strftime('%H:%M')
+                else:
+                    slot_time_str = str(slot_start_time) if slot_start_time else ''
+                
+                logger.info(f"   Checking slot: {slot_time_str} vs requested: {time}")
+                
+                # Compare times
+                if slot_time_str == time:
+                    matching_slot = doc
+                    logger.info(f"   ✅ Found matching slot: {doc.id}")
+                    break
+            
+            if not matching_slot:
+                logger.warning(f"❌ [book_slot] No slot found for time: {time}")
+                return {'success': False, 'error': f'No slot available at {time}'}
+            
+            # Use transaction to prevent double-booking
             @firestore.transactional
-            def book_slot_transaction(transaction):
-                # Find the slot
-                slot_query = self.db.collection('availability_slots').where('vendor_id', '==', vendor_id).where('slot_date', '==', date).where('slot_time', '==', time).where('status', '==', 'available').limit(1)
-                slots = list(slot_query.stream())
+            def book_transaction(transaction):
+                slot_ref = matching_slot.reference
+                slot_doc = slot_ref.get(transaction=transaction)
                 
-                if not slots:
-                    return {'success': False, 'error': 'Slot not available'}
+                if not slot_doc.exists:
+                    return {'success': False, 'error': 'Slot not found'}
                 
-                slot_doc = slots[0]
-                slot_ref = slot_doc.reference
+                slot_data = slot_doc.to_dict()
+                current_status = slot_data.get('status')
                 
-                # Update slot status
-                transaction.update(slot_ref, {'status': 'booked'})
+                # Only book if slot is still available
+                if current_status != 'available':
+                    logger.warning(f"❌ Slot {matching_slot.id} is not available (status: {current_status})")
+                    return {'success': False, 'error': f'Slot is no longer available (current status: {current_status})'}
                 
-                # Create booking
-                booking_data = {
-                    'vendor_id': vendor_id,
-                    'slot_id': slot_doc.id,
+                # Update slot to confirmed status with customer info
+                # No separate bookings collection - the slot IS the booking
+                transaction.update(slot_ref, {
+                    'status': 'confirmed',  # Direct to confirmed (skipping payment)
+                    'user_id': customer_info.get('phone', ''),
                     'customer_name': customer_info.get('name', 'Unknown'),
                     'customer_phone': customer_info.get('phone', ''),
-                    'booking_source': 'whatsapp',
-                    'status': 'confirmed',
-                    'date': date,
-                    'time': time,
-                    'created_at': firestore.SERVER_TIMESTAMP
-                }
+                    'booking_source': customer_info.get('booking_source', 'whatsapp'),
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
                 
-                booking_ref = self.db.collection('bookings').document()
-                transaction.set(booking_ref, booking_data)
-                
-                return {'success': True, 'booking_id': booking_ref.id, 'slot_id': slot_doc.id}
+                logger.info(f"✅ [book_slot] Slot {matching_slot.id} confirmed for {customer_info.get('phone', '')}")
+                return {'success': True, 'booking_id': matching_slot.id, 'slot_id': matching_slot.id}
             
-            # Run transaction
+            # Execute transaction
             transaction = self.db.transaction()
-            result = book_slot_transaction(transaction)
+            result = book_transaction(transaction)
             
-            logger.info(f"Slot booked successfully: {result}")
             return result
             
         except Exception as e:
-            logger.error(f"Error booking slot: {e}")
+            logger.error(f"❌ [book_slot] Error booking slot: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {'success': False, 'error': f'Booking failed: {str(e)}'}
     
     # ============================================================================
@@ -173,26 +236,34 @@ class FirestoreDB:
     # ============================================================================
     
     async def get_booking(self, booking_id: str) -> Optional[Dict[str, Any]]:
-        """Get booking by ID"""
+        """Get booking by ID - bookings are confirmed slots"""
         try:
-            doc = self.db.collection('bookings').document(booking_id).get()
+            # Bookings are slots with status 'confirmed'
+            doc = self.db.collection('slots').document(booking_id).get()
             if doc.exists:
                 booking_data = doc.to_dict()
                 booking_data['id'] = doc.id
-                return booking_data
+                # Only return if it's a confirmed booking
+                if booking_data.get('status') in ['confirmed', 'completed']:
+                    return booking_data
             return None
         except Exception as e:
             logger.error(f"Error getting booking {booking_id}: {e}")
             return None
     
     async def get_vendor_bookings(self, vendor_id: str, date: str = None) -> List[Dict[str, Any]]:
-        """Get bookings for vendor"""
+        """Get bookings for vendor - bookings are confirmed slots"""
         try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            
             bookings = []
-            query = self.db.collection('bookings').where('vendor_id', '==', vendor_id)
+            # Query slots collection for confirmed bookings
+            query = self.db.collection('slots')\
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                .where(filter=FieldFilter('status', 'in', ['confirmed', 'completed']))
             
             if date:
-                query = query.where('date', '==', date)
+                query = query.where(filter=FieldFilter('date', '==', date))
             
             docs = query.stream()
             for doc in docs:
@@ -200,7 +271,7 @@ class FirestoreDB:
                 booking_data['id'] = doc.id
                 bookings.append(booking_data)
             
-            return sorted(bookings, key=lambda x: x.get('created_at', ''), reverse=True)
+            return sorted(bookings, key=lambda x: x.get('updated_at', ''), reverse=True)
         except Exception as e:
             logger.error(f"Error getting vendor bookings: {e}")
             return []

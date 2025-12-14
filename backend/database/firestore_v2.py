@@ -163,8 +163,12 @@ class FirestoreV2:
     
     async def get_vendor_services(self, vendor_id: str) -> List[Dict[str, Any]]:
         try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
             services = []
-            docs = self.db.collection(Collections.SERVICES).where('vendor_id', '==', vendor_id).where('active', '==', True).stream()
+            docs = self.db.collection(Collections.SERVICES)\
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                .where(filter=FieldFilter('active', '==', True))\
+                .stream()
             for doc in docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
@@ -188,8 +192,12 @@ class FirestoreV2:
     
     async def get_services_by_sport(self, sport_type: str) -> List[Dict[str, Any]]:
         try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
             services = []
-            docs = self.db.collection(Collections.SERVICES).where('sport_type', '==', sport_type).where('active', '==', True).stream()
+            docs = self.db.collection(Collections.SERVICES)\
+                .where(filter=FieldFilter('sport_type', '==', sport_type))\
+                .where(filter=FieldFilter('active', '==', True))\
+                .stream()
             for doc in docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
@@ -202,16 +210,27 @@ class FirestoreV2:
     
     async def get_available_slots(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
         try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
             slots = []
             docs = self.db.collection(Collections.SLOTS)\
-                .where('vendor_id', '==', vendor_id)\
-                .where('date', '==', date)\
-                .where('status', '==', SlotStatus.AVAILABLE.value)\
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                .where(filter=FieldFilter('date', '==', date))\
+                .where(filter=FieldFilter('status', '==', SlotStatus.AVAILABLE.value))\
                 .stream()
             
             for doc in docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
+                
+                # Normalize: extract time string from start_time timestamp
+                if 'start_time' in data and data['start_time']:
+                    try:
+                        start_ts = data['start_time']
+                        if hasattr(start_ts, 'strftime'):
+                            data['time'] = start_ts.strftime('%H:%M')
+                    except:
+                        pass
+                
                 slots.append(data)
             
             return sorted(slots, key=lambda x: x.get('start_time', datetime.min))
