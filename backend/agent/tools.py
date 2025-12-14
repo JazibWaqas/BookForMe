@@ -1,5 +1,5 @@
 """
-LangGraph Tools - Query hardcoded vendor data
+LangGraph Tools - Query Firestore database
 """
 
 import logging
@@ -9,12 +9,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data.ace_padel_club import (
-    get_vendor_data,
-    ALL_SLOTS,
-    PRICING,
-    PAYMENT_DETAILS
-)
+from database.firestore_v2 import FirestoreV2
+from app.firestore import firestore_db
 
 logger = logging.getLogger(__name__)
 
@@ -23,108 +19,144 @@ logger = logging.getLogger(__name__)
 from agent.booking_rules import check_slot_conflict, filter_conflicting_slots, validate_booking_duration
 
 
-def check_availability(date: str, time_range: Optional[Dict[str, str]] = None, duration_hours: Optional[float] = None) -> Dict[str, Any]:
+async def check_availability(
+    sport_type: str,
+    area: str,
+    date: str,
+    time_range: Optional[Dict[str, str]] = None
+) -> Dict[str, Any]:
     """
-    Check availability of slots for a specific date and optional time range
-    
+    Check availability of slots for sport type and area on specific date and optional time range
+
     Args:
+        sport_type: Type of sport (e.g., "padel", "tennis")
+        area: Area/location to search in (e.g., "DHA", "Gulberg")
         date: Date in YYYY-MM-DD format
         time_range: Optional dict with "start" and "end" times (HH:MM format)
-        duration_hours: Optional duration for conflict checking
-    
+
     Returns:
-        Dict with available slots and status
+        Dict with available slots from multiple vendors
     """
     try:
-        logger.info(f"Checking availability for date: {date}, time_range: {time_range}, duration: {duration_hours}")
-        
-        # Get slots for the date
-        if date not in ALL_SLOTS:
-            # Generate slots if date not in pre-generated data
-            from data.ace_padel_club import generate_slots_for_date
-            slots = generate_slots_for_date(date)
-        else:
-            slots = ALL_SLOTS[date]
-        
-        # Filter by time range if provided
-        if time_range:
-            start_time = time_range.get("start")
-            end_time = time_range.get("end")
-            
-            filtered_slots = []
-            for slot in slots:
-                slot_start = slot["slot_time"]
-                slot_end = slot["end_time"]
-                
-                # Check if slot overlaps with requested time range
-                if start_time and end_time:
-                    # Include slot if it starts within the range
-                    # Also include if slot end time is within range (for better coverage)
-                    if (slot_start >= start_time and slot_start < end_time) or \
-                       (slot_end > start_time and slot_end <= end_time):
-                        filtered_slots.append(slot)
-                elif start_time:
-                    # Only start time provided (e.g., "after 6pm")
-                    if slot_start >= start_time:
-                        filtered_slots.append(slot)
-            slots = filtered_slots
-        
-        # Filter only available slots
-        available_slots = [s for s in slots if s["status"] == "available"]
-        
-        # Get booked slots for conflict checking (agent rule: no overlaps allowed)
-        booked_slots = [s for s in slots if s["status"] in ["booked", "paid"]]
-        
-        # If duration specified, apply agent rule: filter out slots that would conflict
-        # This is a general booking rule - applies to all vendors
-        if duration_hours and available_slots:
-            available_slots = filter_conflicting_slots(available_slots, booked_slots, duration_hours)
-        
-        # Add duration options to each slot (30 mins, 1 hr, 1.5 hrs, 2 hrs)
-        for slot in available_slots:
-            price_per_hour = slot.get("price_per_hour", slot.get("price", 0))
-            slot["duration_options"] = [
-                {
-                    "duration_hours": 0.5,
-                    "duration_minutes": 30,
-                    "price": int(price_per_hour * 0.5),
-                    "discounted_price": int(price_per_hour * 0.5 * 0.8)
-                },
-                {
-                    "duration_hours": 1.0,
-                    "duration_minutes": 60,
-                    "price": int(price_per_hour * 1.0),
-                    "discounted_price": int(price_per_hour * 1.0 * 0.8)
-                },
-                {
-                    "duration_hours": 1.5,
-                    "duration_minutes": 90,
-                    "price": int(price_per_hour * 1.5),
-                    "discounted_price": int(price_per_hour * 1.5 * 0.8)
-                },
-                {
-                    "duration_hours": 2.0,
-                    "duration_minutes": 120,
-                    "price": int(price_per_hour * 2.0),
-                    "discounted_price": int(price_per_hour * 2.0 * 0.8)
-                }
-            ]
-        
+        logger.info(f"Checking availability for sport: {sport_type}, area: {area}, date: {date}, time_range: {time_range}")
+
+        # Initialize Firestore client
+        fs_client = FirestoreV2(firestore_db.db)
+
+        # Step 1: Get vendors by sport type and area
+        vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
+        vendors_by_area = await fs_client.get_vendors_by_area(area)
+
+        # Find intersection of vendors that match both sport and area
+        vendor_ids_by_sport = {v['id'] for v in vendors_by_sport}
+        vendor_ids_by_area = {v['id'] for v in vendors_by_area}
+        matching_vendor_ids = vendor_ids_by_sport.intersection(vendor_ids_by_area)
+
+        if not matching_vendor_ids:
+            logger.warning(f"No vendors found for sport '{sport_type}' in area '{area}'")
+            return {
+                "success": True,
+                "date": date,
+                "sport_type": sport_type,
+                "area": area,
+                "vendors": [],
+                "message": f"No vendors found offering {sport_type} in {area}"
+            }
+
+        # Step 2: For each matching vendor, get their services and available slots
+        vendors_data = []
+        for vendor_id in list(matching_vendor_ids)[:3]:  # Limit to 3 vendors as requested
+            try:
+                # Get vendor details
+                vendor = await fs_client.get_vendor(vendor_id)
+                if not vendor:
+                    continue
+
+                # Get vendor's services for this sport
+                services = await fs_client.get_vendor_services(vendor_id)
+                service = next((s for s in services if s.get('sport_type') == sport_type), None)
+                if not service:
+                    continue
+
+                # Get available slots for this vendor on the date
+                available_slots = await fs_client.get_available_slots(vendor_id, date)
+
+                # Filter slots by time range if provided
+                if time_range:
+                    start_time = time_range.get("start")
+                    end_time = time_range.get("end")
+
+                    filtered_slots = []
+                    for slot in available_slots:
+                        slot_start_str = slot.get("start_time", "")
+                        if isinstance(slot_start_str, datetime):
+                            slot_start = slot_start_str.strftime("%H:%M")
+                        else:
+                            slot_start = str(slot_start_str)[:5]  # Take HH:MM part
+
+                        if start_time and end_time:
+                            # Include slot if it starts within the range
+                            if start_time <= slot_start < end_time:
+                                filtered_slots.append(slot)
+                        elif start_time:
+                            # Only start time provided (e.g., "after 6pm")
+                            if slot_start >= start_time:
+                                filtered_slots.append(slot)
+                    available_slots = filtered_slots
+
+                # Format slots for response
+                formatted_slots = []
+                for slot in available_slots[:5]:  # Show up to 5 slots per vendor
+                    slot_start_str = slot.get("start_time", "")
+                    slot_end_str = slot.get("end_time", "")
+
+                    if isinstance(slot_start_str, datetime):
+                        slot_start = slot_start_str.strftime("%H:%M")
+                        slot_end = slot_end_str.strftime("%H:%M") if isinstance(slot_end_str, datetime) else slot_end_str
+                    else:
+                        slot_start = str(slot_start_str)[:5]
+                        slot_end = str(slot_end_str)[:5] if slot_end_str else ""
+
+                    formatted_slots.append({
+                        "time_slot": f"{slot_start} - {slot_end}",
+                        "price": int(slot.get("price", 0)),
+                        "resource_id": slot.get("resource_id", ""),
+                        "slot_id": slot.get("id", "")
+                    })
+
+                # Add vendor data if they have available slots
+                if formatted_slots:
+                    vendors_data.append({
+                        "vendor_id": vendor_id,
+                        "vendor_name": vendor.get("name", "Unknown Vendor"),
+                        "vendor_address": vendor.get("address", "Address not available"),
+                        "area": vendor.get("area", ""),
+                        "pricing": {
+                            "base_price": int(service.get("pricing", {}).get("base", 0)),
+                            "currency": "PKR"
+                        },
+                        "available_slots": formatted_slots
+                    })
+
+            except Exception as e:
+                logger.error(f"Error processing vendor {vendor_id}: {e}")
+                continue
+
         return {
             "success": True,
             "date": date,
-            "total_slots": len(slots),
-            "available_slots": available_slots,
-            "booked_slots": [s for s in slots if s["status"] == "booked"],
-            "paid_slots": [s for s in slots if s["status"] == "paid"]
+            "sport_type": sport_type,
+            "area": area,
+            "vendors": vendors_data,
+            "total_vendors": len(vendors_data)
         }
-        
+
     except Exception as e:
         logger.error(f"Error checking availability: {e}")
         return {
             "success": False,
             "error": str(e),
-            "available_slots": []
+            "vendors": []
         }
 
 

@@ -342,15 +342,17 @@ async def query_node(state: AgentState) -> AgentState:
         query_result = {"success": False}  # FIX: Initialize as dict, not None
         
         if intent == "availability_inquiry" or intent == "booking_request":
-            # Check availability
+            # Check availability - now requires sport_type and area
+            sport_type = entities.get("sport_type", "padel")  # Default to padel if not specified
+            area = entities.get("area", "DHA")  # Default to DHA if not specified
             date = entities.get("date")
             if not date:
                 # Default to today if no date
                 date = datetime.now().strftime("%Y-%m-%d")
-            
+
             time_range = entities.get("time_range")
-            
-            query_result = check_availability(date, time_range)
+
+            query_result = await check_availability(sport_type, area, date, time_range)
             
         elif intent == "price_inquiry":
             # Get pricing
@@ -465,18 +467,28 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 date = selected_date or entities.get("date") or datetime.now().strftime("%Y-%m-%d")
                 
                 try:
-                    slot_query = check_availability(date, {"start": slot_time, "end": end_time})
+                    # For slot-specific queries, we need sport_type and area from previous context
+                    sport_type = state.get("entities", {}).get("sport_type", "padel")
+                    area = state.get("entities", {}).get("area", "DHA")
+                    slot_query = await check_availability(sport_type, area, date, {"start": slot_time, "end": end_time})
                     actual_slot = None
-                    if slot_query.get("available_slots"):
-                        for s in slot_query["available_slots"]:
-                            if s["slot_time"] == slot_time:
-                                actual_slot = s
+                    selected_vendor = None
+
+                    # Find the slot across all vendors
+                    if slot_query.get("success") and slot_query.get("vendors"):
+                        for vendor in slot_query["vendors"]:
+                            for s in vendor.get("available_slots", []):
+                                if s["time_slot"].startswith(slot_time):
+                                    actual_slot = s
+                                    selected_vendor = vendor
+                                    break
+                            if actual_slot:
                                 break
                     
-                    if actual_slot:
+                    if actual_slot and selected_vendor:
                         duration_hours = selected_duration or 1.0  # Default to 1 hour
-                        price_per_hour = actual_slot.get("price_per_hour", actual_slot.get("price", 0))
-                        
+                        price_per_hour = selected_vendor.get("pricing", {}).get("base_price", actual_slot.get("price", 0))
+
                         from agent.duration import calculate_price_for_duration
                         price_info = calculate_price_for_duration(price_per_hour, duration_hours)
                         
@@ -513,63 +525,45 @@ async def generate_response_node(state: AgentState) -> AgentState:
         # Handle availability inquiry or booking request
         elif intent == "availability_inquiry" or intent == "booking_request":
             if query_result.get("success"):
-                available_slots = query_result.get("available_slots", [])
-                
-                if not available_slots:
-                    # No slots available, suggest alternatives
-                    date = entities.get("date", datetime.now().strftime("%Y-%m-%d"))
-                    try:
-                        alternatives = suggest_alternatives(date)
-                        
-                        if is_roman_urdu:
-                            response = "Sorry, requested time slot not available. Alternatives:\n"
-                        else:
-                            response = "Sorry, the requested time slot is not available. Here are alternatives:\n"
-                        
-                        for alt in alternatives.get("alternatives", [])[:3]:
-                            response += f"• {alt['time']} - Rs {alt['discounted_price']}/hour\n"
-                    except Exception as e:
-                        logger.error(f"Error getting alternatives: {e}")
-                        if is_roman_urdu:
-                            response = "Sorry, requested time slot available nahi hai."
-                        else:
-                            response = "Sorry, the requested time slot is not available."
+                vendors = query_result.get("vendors", [])
+
+                if not vendors:
+                    # No vendors found with available slots
+                    sport_type = query_result.get("sport_type", "requested sport")
+                    area = query_result.get("area", "requested area")
+                    message = query_result.get("message", f"No available slots found for {sport_type} in {area}")
+
+                    if is_roman_urdu:
+                        response = f"Sorry, {message}. Koi aur time ya area try karein?"
+                    else:
+                        response = f"Sorry, {message}. Please try a different time or area."
                 else:
-                    # Slots available
+                    # Display available vendors and their slots
                     if is_roman_urdu:
-                        response = "Han g! Slots available hain:\n\n"
+                        response = f"Great! Yeh {query_result.get('sport_type', 'sports')} ke liye {query_result.get('area', 'area')} mein available vendors hain:\n\n"
                     else:
-                        response = "Yes! Slots are available:\n\n"
-                    
-                    for slot in available_slots[:5]:  # Show max 5 slots
-                        response += f"• {slot['slot_time']} - {slot['end_time']}\n"
-                        
-                        # Show duration options if available
-                        duration_options = slot.get("duration_options", [])
-                        if duration_options:
-                            response += "  Duration options:\n"
-                            for opt in duration_options[:3]:  # Show first 3 options
-                                if opt["duration_hours"] == 0.5:
-                                    duration_str = "30 mins"
-                                elif opt["duration_hours"] == 1.0:
-                                    duration_str = "1 hour"
-                                elif opt["duration_hours"] == 1.5:
-                                    duration_str = "1.5 hours"
-                                elif opt["duration_hours"] == 2.0:
-                                    duration_str = "2 hours"
-                                else:
-                                    duration_str = f"{opt['duration_hours']} hours"
-                                
-                                response += f"    - {duration_str}: Rs {opt['discounted_price']}\n"
-                        else:
-                            # Fallback to hourly price
-                            response += f"  Price: Rs {slot.get('discounted_price', slot.get('price', 0))}/hour\n"
+                        response = f"Great! Here are available vendors for {query_result.get('sport_type', 'sports')} in {query_result.get('area', 'area')}:\n\n"
+
+                    for i, vendor in enumerate(vendors, 1):
+                        response += f"{i}. **{vendor['vendor_name']}**\n"
+                        response += f"   📍 Address: {vendor['vendor_address']}\n"
+                        response += f"   💰 Base Price: Rs {vendor['pricing']['base_price']}/hour\n"
+                        response += f"   🆔 Vendor ID: {vendor['vendor_id']}\n\n"
+
+                        # Show available time slots
+                        response += "   Available slots:\n"
+                        for slot in vendor['available_slots'][:3]:  # Show up to 3 slots per vendor
+                            response += f"   • {slot['time_slot']} - Rs {slot['price']}\n"
+
+                        if len(vendor['available_slots']) > 3:
+                            response += f"   ... and {len(vendor['available_slots']) - 3} more slots\n"
+
                         response += "\n"
-                    
+
                     if is_roman_urdu:
-                        response += "Kaunsa slot book karna hai?"
+                        response += "Kaunsa vendor aur slot select karna hai?"
                     else:
-                        response += "Which slot would you like to book?"
+                        response += "Which vendor and time slot would you like to book?"
             else:
                 error_msg = query_result.get("error", "Unknown error")
                 logger.error(f"Query failed: {error_msg}")

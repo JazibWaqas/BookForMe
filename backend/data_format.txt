@@ -1,0 +1,129 @@
+Collection name: services
+Example Document: ace_padel_service
+{
+active:true
+(boolean)
+duration_min:60
+(number)
+name:"Padel Court Booking"
+(string)
+pricing
+(map)
+base:2000
+(number)
+sport_type:"padel"
+(string)
+vendor_id:"ace_padel_dha"
+}
+
+Collection name: resources
+Example Document: ace_court_2
+{
+active:true
+(boolean)
+capacity:4
+(number)
+name:"Court 2"
+(string)
+vendor_id:"ace_padel_dha"
+(string)
+}
+
+Collection name: slots
+Example Document: ace_padel_dha_ace_court_2_2025-12-17_1200
+{
+created_at:December 14, 2025 at 12:10:19 AM UTC+5
+(timestamp)
+date:"2025-12-17"
+(string)
+end_time:December 17, 2025 at 6:00:00 PM UTC+5
+(timestamp)
+hold_expires_at:null
+(null)
+payment_id:null
+(null)
+price:2000
+(number)
+price_tier_used:"base"
+(string)
+resource_id:"ace_court_2"
+(string)
+service_id:"ace_padel_service"
+(string)
+start_time:December 17, 2025 at 5:00:00 PM UTC+5
+(timestamp)
+status:"available"
+(string)
+updated_at:December 14, 2025 at 12:10:19 AM UTC+5
+(timestamp)
+user_id:null
+(null)
+vendor_id:"ace_padel_dha"
+(string)
+}
+
+Collection name: vendors
+Example Document: ace_padel_dha
+{
+address:"Street 12, Phase 6, DHA, Karachi"
+(string)
+area:"DHA"
+(string)
+created_at:December 14, 2025 at 12:09:44 AM UTC+5
+(timestamp)
+default_payment_id:"ace_jazzcash"
+(string)
+description:"Premium padel facility with international-standard courts"
+(string)
+name:"Ace Padel Club"
+(string)
+operating_hours
+(map)
+fri
+(map)
+close:"00:00"
+(string)
+open:"07:00"
+(string)
+mon
+(map)
+close:"00:00"
+(string)
+open:"07:00"
+(string)
+sat
+(map)
+close:"00:00"
+(string)
+open:"08:00"
+(string)
+sun
+(map)
+close:"00:00"
+(string)
+open:"08:00"
+(string)
+thu
+(map)
+close:"00:00"
+(string)
+open:"07:00"
+(string)
+tue
+(map)
+close:"00:00"
+(string)
+open:"07:00"
+(string)
+wed
+(map)
+close:"00:00"
+(string)
+open:"07:00"
+(string)
+phone:"+92 321 1234567"
+(string)
+whatsapp_number:"+92 321 1234567"
+(string)
+}
+
