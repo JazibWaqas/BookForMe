@@ -509,6 +509,7 @@ class AuthService {
         email: vendorData.email,
         phone: vendorData.phone,
         category: vendorData.category,
+        service_type: vendorData.category, // Also set service_type for backend compatibility
         address: vendorData.address,
         description: vendorData.description || '',
         whatsapp_connected: false,
@@ -526,15 +527,25 @@ class AuthService {
         vendorDoc.location = vendorData.location;
       }
 
-      // Create vendor document in Firestore
-      await setDoc(doc(db, 'vendors', userId), vendorDoc);
-      
-      // Update user document with vendor_id
-      await setDoc(doc(db, 'users', userId), {
-        vendor_id: userId
-      }, { merge: true });
-
-      return true;
+      // Create vendor document via backend API (avoids Firestore permissions issues)
+      try {
+        const response = await apiClient.post('/api/vendors', {
+          ...vendorDoc,
+          user_id: userId,
+          id: userId
+        });
+        
+        if (response.data.success) {
+          return true;
+        } else {
+          console.error('Vendor creation failed:', response.data);
+          return false;
+        }
+      } catch (apiError: any) {
+        console.error('Error creating vendor via API:', apiError);
+        console.error('Error details:', apiError.response?.data || apiError.message);
+        return false;
+      }
     } catch (error) {
       console.error('Error creating vendor profile:', error);
       return false;

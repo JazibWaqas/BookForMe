@@ -57,19 +57,29 @@ export const getVendors = async (): Promise<Vendor[]> => {
 
 export const getVendorsByCategory = async (category: string): Promise<Vendor[]> => {
   try {
+    console.log('Fetching vendors for category:', category);
+    
+    // Try both service_type and category parameters
     const response = await apiClient.get(API_ENDPOINTS.vendors.list, {
       params: {
-        service_type: category
+        service_type: category,
+        category: category
       }
     });
     
+    console.log('Vendors API response:', response.data);
+    
     if (response.data.success && response.data.vendors) {
-      return response.data.vendors.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
+      const vendors = response.data.vendors.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
+      console.log(`Found ${vendors.length} vendors for category ${category}`);
+      return vendors;
     }
     
+    console.log('No vendors found in response');
     return [];
   } catch (error: any) {
     console.error('Error fetching vendors by category from backend:', error);
+    console.error('Error details:', error.response?.data || error.message);
     
     try {
       const { getVendorsBySportType } = await import('./services');

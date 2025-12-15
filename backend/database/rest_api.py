@@ -47,36 +47,45 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
     Get list of all vendors from Firestore
     
     Args:
-        service_type: Optional filter by service type (e.g., 'padel', 'tennis', 'futsal')
-        category: Optional filter by category (e.g., 'Padel Court', 'Tennis Court')
+        service_type: Optional filter by sport type (e.g., 'padel', 'futsal', 'cricket', 'pickleball')
+        category: Optional filter by sport type (same as service_type)
     
     Returns:
         List of vendors
     """
     try:
-        if not firestore_db.db:
-            raise HTTPException(status_code=500, detail="Firestore not initialized")
+        sport_filter = service_type or category
         
-        vendors = []
-        
-        # Build query
-        query = firestore_db.db.collection('vendors')
-        
-        # Apply filters
-        if service_type:
-            query = query.where('service_type', '==', service_type)
-        if category:
-            query = query.where('category', '==', category)
-        
-        # Execute query
-        docs = query.stream()
-        
-        for doc in docs:
-            vendor_data = doc.to_dict()
-            vendor_data['id'] = doc.id
-            vendors.append(vendor_data)
-        
-        logger.info(f"Retrieved {len(vendors)} vendors from Firestore")
+        if sport_filter:
+            # Filter by sport type - query through services collection
+            # Step 1: Get all services with matching sport_type
+            logger.info(f"Filtering by sport_type: {sport_filter}")
+            services = firestore_db.db.collection('services').where('sport_type', '==', sport_filter).stream()
+            vendor_ids = set()
+            for doc in services:
+                vendor_ids.add(doc.to_dict().get('vendor_id'))
+            
+            logger.info(f"Found {len(vendor_ids)} unique vendor_ids: {vendor_ids}")
+            
+            # Step 2: Get vendor details for each vendor_id
+            vendors = []
+            for vid in vendor_ids:
+                vendor = await firestore_db.get_vendor(vid)
+                if vendor:
+                    vendor['id'] = vid
+                    vendors.append(vendor)
+                else:
+                    logger.warning(f"Vendor {vid} not found")
+            
+            logger.info(f"Returning {len(vendors)} vendors")
+        else:
+            # Get all vendors
+            vendors = []
+            docs = firestore_db.db.collection('vendors').stream()
+            for doc in docs:
+                vendor_data = doc.to_dict()
+                vendor_data['id'] = doc.id
+                vendors.append(vendor_data)
         
         return {
             "success": True,
@@ -85,7 +94,7 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
         }
         
     except Exception as e:
-        logger.error(f"Error getting vendors: {e}")
+        logger.error(f"Error getting vendors: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get vendors: {str(e)}")
 
 
@@ -283,6 +292,44 @@ async def get_vendor_schedule(vendor_id: str, start_date: str, end_date: str):
     except Exception as e:
         logger.error(f"Error getting schedule: {e}")
         raise HTTPException(status_code=500, detail="Failed to get schedule")
+
+
+@router.post("/vendors")
+async def create_vendor(vendor_data: dict):
+    """
+    Create a new vendor
+    
+    Args:
+        vendor_data: Vendor information
+        
+    Returns:
+        Vendor creation result
+    """
+    try:
+        logger.info(f"Creating vendor: {vendor_data.get('business_name')}")
+        
+        vendor_id = vendor_data.get('user_id') or vendor_data.get('id')
+        if not vendor_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        # Remove id from data if present (we'll use it as document ID)
+        vendor_doc = {k: v for k, v in vendor_data.items() if k != 'id'}
+        vendor_doc['created_at'] = firestore.SERVER_TIMESTAMP
+        
+        # Create vendor document
+        firestore_db.db.collection('vendors').document(vendor_id).set(vendor_doc)
+        
+        logger.info(f"Vendor created: {vendor_id}")
+        
+        return {
+            "success": True,
+            "vendor_id": vendor_id,
+            "message": "Vendor created successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating vendor: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create vendor: {str(e)}")
 
 
 @router.post("/vendors/{vendor_id}/slots")
