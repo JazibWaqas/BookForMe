@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Vendor } from '../../types';
 import { getVendors, getVendorsByCategory } from '../../services/vendors';
 import { getCategories } from '../../services/services';
@@ -9,6 +10,14 @@ import { Category } from '../../types';
 import VendorCard from '../../components/VendorCard';
 import { COLORS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
+
+// Icon mapping for categories
+const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
+  padel: 'tennisball',
+  futsal: 'football',
+  cricket: 'baseball',
+  pickleball: 'tennisball-outline',
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -60,15 +69,16 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.greeting}>Hello</Text>
             <TouchableOpacity style={styles.locationRow}>
+              <Ionicons name="location" size={16} color={COLORS.primary} />
               <Text style={styles.location}>Karachi, DHA</Text>
-              <Text style={styles.locationArrow}>▼</Text>
+              <Ionicons name="chevron-down" size={14} color={COLORS.textMuted} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push('/(tabs)/profile')}
           >
-            <View style={styles.profileIconCircle} />
+            <Ionicons name="person-circle" size={40} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
@@ -76,6 +86,7 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/chatbot')}
           style={styles.searchBar}
         >
+          <Ionicons name="search" size={20} color={COLORS.textMuted} />
           <Text style={styles.searchText}>Search venues...</Text>
         </TouchableOpacity>
       </View>
@@ -107,11 +118,17 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/category/${cat.id}`)}
               >
                 <View style={styles.categoryContent}>
-                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <View style={styles.categoryIconContainer}>
+                    <Ionicons
+                      name={categoryIcons[cat.id] || 'tennisball'}
+                      size={32}
+                      color={COLORS.primary}
+                    />
+                  </View>
                   <Text style={styles.categoryName}>{cat.name}</Text>
                   <Text style={styles.categoryCount}>{cat.count} venues</Text>
                   <View style={styles.categoryArrow}>
-                    <Text style={styles.categoryArrowText}>→</Text>
+                    <Ionicons name="arrow-forward" size={16} color={COLORS.textMuted} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -321,6 +338,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 12,
   },
   searchText: {
     fontSize: 15,
@@ -331,11 +349,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    paddingTop: 28,
+    paddingVertical: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text,
     paddingHorizontal: 20,
     marginBottom: 16,
@@ -358,7 +376,7 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: 160,
-    height: 100,
+    height: 120,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: COLORS.surface,
@@ -370,9 +388,14 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'space-between',
   },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${COLORS.primary}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   categoryName: {
     fontSize: 16,

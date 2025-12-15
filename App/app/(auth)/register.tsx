@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -17,6 +18,9 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // Vendor-specific fields
   const [businessName, setBusinessName] = useState('');
   const [cnic, setCnic] = useState('');
@@ -43,7 +47,7 @@ export default function RegisterScreen() {
         lng: loc.coords.longitude,
       };
       setLocation(newLocation);
-      
+
       // Reverse geocode to get address
       const [addressResult] = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
@@ -95,10 +99,10 @@ export default function RegisterScreen() {
     }
 
     setLoading(true);
-    
+
     try {
       const result = await authService.register(email, password, name, phone, role);
-      
+
       if (result.success && result.user && result.token) {
         if (role === 'vendor') {
           const vendorData = {
@@ -113,7 +117,7 @@ export default function RegisterScreen() {
             description,
           };
           await authService.createVendorProfile(vendorData, result.user.id);
-          
+
           Alert.alert(
             'Success!',
             'Vendor account created successfully! Your account is pending verification.',
@@ -160,154 +164,259 @@ export default function RegisterScreen() {
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join BookForMe today</Text>
 
-        <View style={styles.roleToggle}>
-          <TouchableOpacity
-            style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
-            onPress={() => setRole('customer')}
-          >
-            <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
-              Customer
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-            onPress={() => setRole('vendor')}
-          >
-            <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
-              Vendor
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.roleToggle}>
+            <TouchableOpacity
+              style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
+              onPress={() => setRole('customer')}
+            >
+              <Ionicons
+                name="person"
+                size={24}
+                color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
+              />
+              <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
+                Customer
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+              onPress={() => setRole('vendor')}
+            >
+              <Ionicons
+                name="business"
+                size={24}
+                color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+              />
+              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
+                Vendor
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.form}>
-          <Input
-            label={role === 'vendor' ? "Owner Name *" : "Full Name *"}
-            placeholder="Enter your name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
-          {role === 'vendor' && (
-            <>
-              <Input
-                label="Business Name *"
-                placeholder="Enter business name"
-                value={businessName}
-                onChangeText={setBusinessName}
-                style={styles.input}
-              />
-              <Input
-                label="CNIC (Optional)"
-                placeholder="42101-1234567-1"
-                value={cnic}
-                onChangeText={setCnic}
-                keyboardType="numeric"
-                style={styles.input}
-              />
-              <View style={styles.categoryContainer}>
-                <Text style={styles.label}>Category *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                  {CATEGORIES.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryButton,
-                        category === cat.id && styles.categoryButtonActive,
-                      ]}
-                      onPress={() => setCategory(cat.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryText,
-                          category === cat.id && styles.categoryTextActive,
-                        ]}
-                      >
-                        {cat.icon} {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+          <View style={styles.form}>
+            {/* Name Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>{role === 'vendor' ? "Owner Name *" : "Full Name *"}</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter your name"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                />
               </View>
-              <Input
-                label="Business Address *"
-                placeholder="Enter business address"
-                value={address}
-                onChangeText={setAddress}
-                style={styles.input}
-                multiline
-              />
-              <Button
-                title={location ? "Update Location" : "Capture Location (Optional)"}
-                onPress={getCurrentLocation}
-                variant="outline"
-                loading={locationLoading}
-                style={styles.locationButton}
-              />
-              {location && (
-                <Text style={styles.locationText}>
-                  Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                </Text>
-              )}
-              <Input
-                label="Business Description"
-                placeholder="Describe your business (optional)"
-                value={description}
-                onChangeText={setDescription}
-                style={styles.input}
-                multiline
-                numberOfLines={3}
-              />
-            </>
-          )}
-          <Input
-            label="Email *"
-            placeholder="your@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            style={styles.input}
-          />
-          <Input
-            label="Phone Number *"
-            placeholder="+92 300 1234567"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
-          <Input
-            label="Password *"
-            placeholder="Create password (min 6 characters)"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={true}
-            style={styles.input}
-          />
-          <Input
-            label="Confirm Password *"
-            placeholder="Re-enter password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={true}
-            style={styles.input}
-          />
-        </View>
+            </View>
 
-        <Button
-          title="Sign Up"
-          onPress={handleRegister}
-          loading={loading}
-          variant="secondary"
-        />
+            {role === 'vendor' && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Business Name *</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="briefcase-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter business name"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={businessName}
+                      onChangeText={setBusinessName}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.linkText}>Login</Text>
-          </TouchableOpacity>
-        </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>CNIC (Optional)</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="card-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="42101-1234567-1"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={cnic}
+                      onChangeText={setCnic}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
 
-        <View style={{ height: 32 }} />
+                <View style={styles.categoryContainer}>
+                  <Text style={styles.label}>Category *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                    {CATEGORIES.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.categoryButton,
+                          category === cat.id && styles.categoryButtonActive,
+                        ]}
+                        onPress={() => setCategory(cat.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryText,
+                            category === cat.id && styles.categoryTextActive,
+                          ]}
+                        >
+                          {cat.icon} {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Business Address *</Text>
+                  <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }]}>
+                    <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                    <TextInput
+                      style={[styles.textInput, { height: 'auto' }]}
+                      placeholder="Enter business address"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={address}
+                      onChangeText={setAddress}
+                      multiline
+                    />
+                  </View>
+                </View>
+
+                <Button
+                  title={location ? "Update Location" : "Capture Location (Optional)"}
+                  onPress={getCurrentLocation}
+                  variant="outline"
+                  loading={locationLoading}
+                  style={styles.locationButton}
+                />
+                {location && (
+                  <Text style={styles.locationText}>
+                    Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </Text>
+                )}
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Business Description</Text>
+                  <View style={[styles.inputWrapper, { height: 'auto', minHeight: 80, paddingVertical: 12, alignItems: 'flex-start' }]}>
+                    <Ionicons name="document-text-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                    <TextInput
+                      style={[styles.textInput, { height: 'auto', textAlignVertical: 'top' }]}
+                      placeholder="Describe your business (optional)"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={description}
+                      onChangeText={setDescription}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="your@email.com"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            {/* Phone Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Phone Number *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="call-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="+92 300 1234567"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Create password (min 6 chars)"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Confirm Password *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Re-enter password"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <Button
+            title="Sign Up"
+            onPress={handleRegister}
+            loading={loading}
+            variant="secondary"
+          />
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.linkText}>Login</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ height: 32 }} />
         </View>
       </ScrollView>
     </LinearGradient>
@@ -346,28 +455,59 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderWidth: 2,
-    borderColor: '#4b5563',
+    borderColor: COLORS.border,
     borderRadius: 12,
     alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    gap: 8,
   },
   roleButtonActive: {
-    borderColor: '#4ade80',
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
   },
   roleText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   roleTextActive: {
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   form: {
     marginBottom: 24,
     gap: 16,
   },
-  input: {
-    marginBottom: 0,
+  inputContainer: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+    height: '100%',
+  },
+  eyeIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
   footer: {
     flexDirection: 'row',
@@ -376,21 +516,15 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
   linkText: {
     fontSize: 14,
-    color: '#4ade80',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   categoryContainer: {
     marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
   },
   categoryScroll: {
     marginHorizontal: -4,

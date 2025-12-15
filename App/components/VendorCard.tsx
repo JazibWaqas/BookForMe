@@ -36,7 +36,7 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
           )}
         </View>
         <View style={styles.footer}>
-          <Text style={styles.price}>{vendor.price_range || 'PKR 1200/hr'}</Text>
+          <Text style={styles.price}>View Pricing →</Text>
           {onBookPress && (
             <TouchableOpacity
               onPress={(e) => {

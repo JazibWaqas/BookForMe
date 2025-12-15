@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -12,6 +13,7 @@ export default function LoginScreen() {
   const [role, setRole] = useState<'customer' | 'vendor'>('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -22,13 +24,13 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    
+
     try {
       const result = await authService.login(email, password);
-      
+
       if (result.success && result.user && result.token) {
         const userRole = result.user.role || 'customer';
-        
+
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
         } else {
@@ -46,13 +48,13 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    
+
     try {
       const result = await authService.loginWithGoogle();
-      
+
       if (result.success && result.user && result.token) {
         const userRole = result.user.role || 'customer';
-        
+
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
         } else {
@@ -90,6 +92,11 @@ export default function LoginScreen() {
               style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
               onPress={() => setRole('customer')}
             >
+              <Ionicons
+                name="person"
+                size={24}
+                color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
+              />
               <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
                 Customer
               </Text>
@@ -101,6 +108,11 @@ export default function LoginScreen() {
               style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
               onPress={() => setRole('vendor')}
             >
+              <Ionicons
+                name="business"
+                size={24}
+                color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+              />
               <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
                 Vendor
               </Text>
@@ -111,22 +123,50 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <Input
-              label="Email"
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              style={styles.input}
-            />
-            <Input
-              label="Password"
-              placeholder="Enter password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={true}
-              style={styles.input}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="your@email.com"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter password"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
@@ -248,6 +288,38 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 24,
     gap: 20,
+  },
+  inputContainer: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+    height: '100%',
+  },
+  eyeIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
   input: {
     marginBottom: 0,
