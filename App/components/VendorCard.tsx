@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Vendor } from '../types';
 import Card from './ui/Card';
-import { getCourtImage } from '../constants/images';
+import { getVendorImage } from '../constants/vendorImages';
 import { COLORS } from '../constants/colors';
 
 interface VendorCardProps {
@@ -14,12 +14,12 @@ interface VendorCardProps {
 export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardProps) {
   const vendorName = vendor.name || vendor.business_name || 'Unknown';
   const vendorArea = vendor.area || vendor.location || '';
-  const imageUrl = getCourtImage(vendor.category || 'padel', parseInt(vendor.id, 36) % 4);
-  
+  const imageSource = getVendorImage(vendor.id);
+
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
       <Image
-        source={{ uri: imageUrl }}
+        source={imageSource}
         style={styles.image}
         resizeMode="cover"
       />
@@ -38,7 +38,7 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
         <View style={styles.footer}>
           <Text style={styles.price}>{vendor.price_range || 'PKR 1200/hr'}</Text>
           {onBookPress && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
                 onBookPress();
