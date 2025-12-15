@@ -179,7 +179,7 @@ export default function MyBookingsScreen() {
                         <Card key={booking.id} style={styles.bookingCard}>
                             {/* Status Badge */}
                             <View style={styles.bookingHeader}>
-                                <Text style={styles.bookingId}>#{booking.id}</Text>
+                                <Text style={styles.bookingId}>Booking #{booking.id.slice(-8).toUpperCase()}</Text>
                                 <View style={[styles.statusBadge, { borderColor: getStatusColor(booking.status) }]}>
                                     <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
                                         {getStatusText(booking.status)}
@@ -356,22 +356,26 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 12,
+        flexWrap: 'wrap',
+        gap: 8,
     },
     bookingId: {
         fontSize: 12,
         fontWeight: '600',
         color: COLORS.textMuted,
+        flex: 1,
     },
     statusBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderWidth: 1,
-        borderRadius: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderWidth: 1.5,
+        borderRadius: 8,
+        backgroundColor: 'rgba(0,0,0,0.05)',
     },
     statusText: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '700',
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
     },
     countdownContainer: {
         marginBottom: 12,

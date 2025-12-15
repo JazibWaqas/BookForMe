@@ -96,25 +96,65 @@ class FirestoreDB:
     # ============================================================================
     
     async def get_available_slots(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
-        """Get available slots for vendor on specific date"""
+        """Get available slots for vendor on specific date with optimized batch queries"""
         try:
             from google.cloud.firestore_v1.base_query import FieldFilter
             
-            slots = []
-            # Query the 'slots' collection (not 'availability_slots')
-            # Using 'date' field (not 'slot_date') to match actual Firestore schema
+            # Query slots
             query = self.db.collection('slots')\
                 .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
                 .where(filter=FieldFilter('date', '==', date))\
                 .where(filter=FieldFilter('status', '==', 'available'))
             
             docs = query.stream()
+            slots = []
+            resource_ids = set()
+            service_ids = set()
+            
+            # First pass: collect all slot data and unique IDs
             for doc in docs:
                 slot_data = doc.to_dict()
                 slot_data['id'] = doc.id
+                slots.append(slot_data)
                 
-                # Normalize field names for consistency
-                # Extract time from start_time timestamp if present
+                if 'resource_id' in slot_data and slot_data['resource_id']:
+                    resource_ids.add(slot_data['resource_id'])
+                if 'service_id' in slot_data and slot_data['service_id']:
+                    service_ids.add(slot_data['service_id'])
+            
+            # Batch fetch all resources (single query per resource)
+            resources_map = {}
+            for resource_id in resource_ids:
+                try:
+                    resource_doc = self.db.collection('resources').document(resource_id).get()
+                    if resource_doc.exists:
+                        resource_data = resource_doc.to_dict()
+                        resources_map[resource_id] = resource_data.get('resource_name', f"Court {resource_id}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch resource {resource_id}: {e}")
+                    resources_map[resource_id] = f"Court {resource_id}"
+            
+            # Batch fetch all services (single query per service)
+            services_map = {}
+            for service_id in service_ids:
+                try:
+                    service_doc = self.db.collection('services').document(service_id).get()
+                    if service_doc.exists:
+                        service_data = service_doc.to_dict()
+                        services_map[service_id] = service_data.get('service_name', 'Court Rental')
+                except Exception as e:
+                    logger.warning(f"Could not fetch service {service_id}: {e}")
+                    services_map[service_id] = 'Court Rental'
+            
+            # Second pass: enrich slots with resource and service names from maps
+            for slot_data in slots:
+                if 'resource_id' in slot_data and slot_data['resource_id']:
+                    slot_data['resource_name'] = resources_map.get(slot_data['resource_id'], f"Court {slot_data['resource_id']}")
+                
+                if 'service_id' in slot_data and slot_data['service_id']:
+                    slot_data['service_name'] = services_map.get(slot_data['service_id'], 'Court Rental')
+                
+                # Normalize time field
                 if 'start_time' in slot_data and slot_data['start_time']:
                     try:
                         start_ts = slot_data['start_time']
@@ -124,10 +164,8 @@ class FirestoreDB:
                             slot_data['slot_time'] = str(start_ts)
                     except:
                         pass
-                
-                slots.append(slot_data)
             
-            # Sort by start_time or slot_time
+            # Sort by start_time
             return sorted(slots, key=lambda x: x.get('slot_time', x.get('start_time', '')))
         except Exception as e:
             logger.error(f"Error getting available slots: {e}")

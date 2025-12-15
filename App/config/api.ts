@@ -16,10 +16,10 @@ const getLocalIP = (): string => {
 export const API_CONFIG = {
   // Development URL - change localhost to your IP if testing on physical device
   development: `http://${getLocalIP()}:8000`,
-  
+
   // Production URL - update this when deploying
   production: process.env.EXPO_PUBLIC_API_URL || 'https://your-backend-url.com',
-  
+
   // Staging URL (optional)
   staging: process.env.EXPO_PUBLIC_STAGING_URL || 'https://staging.your-backend-url.com',
 };
@@ -29,12 +29,12 @@ export const getApiBaseUrl = (): string => {
   if (__DEV__) {
     return API_CONFIG.development;
   }
-  
+
   // Check for staging environment
   if (process.env.EXPO_PUBLIC_ENV === 'staging') {
     return API_CONFIG.staging;
   }
-  
+
   return API_CONFIG.production;
 };
 
@@ -52,7 +52,7 @@ export const API_ENDPOINTS = {
     changePassword: '/api/auth/change-password',
     setPassword: '/api/auth/set-password',
   },
-  
+
   // Vendors
   vendors: {
     list: '/api/vendors',
@@ -60,24 +60,24 @@ export const API_ENDPOINTS = {
     availability: (id: string) => `/api/vendors/${id}/availability`,
     bookings: (id: string) => `/api/vendors/${id}/bookings`,
   },
-  
+
   // Bookings
   bookings: {
     create: '/api/bookings',
     get: (id: string) => `/api/bookings/${id}`,
     list: '/api/bookings',
   },
-  
+
   // Slots
   slots: {
     lock: (slotId: string) => `/api/slots/${slotId}/lock`,
   },
-  
+
   // Payments
   payments: {
     submit: '/api/payments',
   },
-  
+
   // Health check
   health: '/health',
 };

@@ -59,7 +59,7 @@ class AuthService {
         await this.setToken(response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('userRole', response.data.user.role || role);
-        
+
         return {
           success: true,
           token: response.data.token,
@@ -73,14 +73,14 @@ class AuthService {
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      
+
       if (error.response?.status === 400) {
         return {
           success: false,
           error: error.response.data?.detail || error.response.data?.error || 'Registration failed. Please check your information.'
         };
       }
-      
+
       if (error.response?.status === 409 || error.message?.includes('already')) {
         return {
           success: false,
@@ -112,10 +112,18 @@ class AuthService {
         };
       }
 
+      console.log('=== LOGIN ATTEMPT ===');
+      console.log('API Base URL:', apiClient.defaults.baseURL);
+      console.log('Login endpoint:', API_ENDPOINTS.auth.login);
+      console.log('Full URL:', `${apiClient.defaults.baseURL}${API_ENDPOINTS.auth.login}`);
+      console.log('Email:', email);
+
       const response = await apiClient.post(API_ENDPOINTS.auth.login, {
         email,
         password
       });
+
+      console.log('Login response received:', response.status);
 
       if (response.data.success) {
         await this.setToken(response.data.token);
@@ -134,10 +142,20 @@ class AuthService {
         };
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      console.error('Error response:', error.response?.data);
+      console.error('=== LOGIN ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Error config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+        timeout: error.config?.timeout,
+      });
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response data:', error.response?.data);
       console.error('Request data:', { email, password: '***' });
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
@@ -149,18 +167,32 @@ class AuthService {
         const validationError = error.response?.data?.detail || error.response?.data;
         return {
           success: false,
-          error: Array.isArray(validationError) 
+          error: Array.isArray(validationError)
             ? validationError.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ')
-            : typeof validationError === 'string' 
-              ? validationError 
+            : typeof validationError === 'string'
+              ? validationError
               : 'Invalid request format. Please check your email and password.'
         };
       }
 
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
+      if (error.code === 'ECONNREFUSED') {
         return {
           success: false,
-          error: 'Network error. Please check your connection and try again.'
+          error: `Cannot connect to server at ${apiClient.defaults.baseURL}. Please ensure the backend is running.`
+        };
+      }
+
+      if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+        return {
+          success: false,
+          error: 'Connection timeout. Please check your network connection.'
+        };
+      }
+
+      if (error.message?.includes('Network Error') || error.message?.includes('Network request failed')) {
+        return {
+          success: false,
+          error: `Network error connecting to ${apiClient.defaults.baseURL}. Please check:\n1. Backend server is running\n2. Firewall allows connections\n3. You're on the same network`
         };
       }
 
@@ -190,7 +222,7 @@ class AuthService {
         await this.setToken(response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
-        
+
         return {
           success: true,
           token: response.data.token,
@@ -204,7 +236,7 @@ class AuthService {
       };
     } catch (error: any) {
       console.error('Phone login error:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
@@ -230,9 +262,9 @@ class AuthService {
     try {
       // Try env variable first, fallback to hardcoded value
       const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '330764738815-dq8dstvtsruk6rd25tpmm32632lm1igo.apps.googleusercontent.com';
-      
+
       console.log('Google Client ID:', clientId ? `${clientId.substring(0, 20)}...` : 'NOT SET');
-      
+
       if (!clientId) {
         return {
           success: false,
@@ -276,7 +308,7 @@ class AuthService {
       }
 
       const { id_token } = result.params;
-      
+
       if (!id_token) {
         return {
           success: false,
@@ -375,7 +407,7 @@ class AuthService {
     } catch (error: any) {
       console.error('Google login error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      
+
       if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
         return {
           success: false,
@@ -464,7 +496,7 @@ class AuthService {
     try {
       const { getDoc, doc } = await import('firebase/firestore');
       const { db } = await import('./firebase');
-      
+
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -534,7 +566,7 @@ class AuthService {
           user_id: userId,
           id: userId
         });
-        
+
         if (response.data.success) {
           return true;
         } else {

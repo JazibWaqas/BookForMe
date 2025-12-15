@@ -5,7 +5,7 @@ Handles slot locking, payment, and confirmation using Firestore transactions
 
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from google.cloud import firestore
 
 from database.schema import (
@@ -48,7 +48,7 @@ class SlotService:
                     current_status = slot_data.get('status')
                     return {'success': False, 'error': f'Slot is not available (current: {current_status})'}
                 
-                hold_expires = datetime.now() + timedelta(minutes=HOLD_EXPIRY_MINUTES)
+                hold_expires = datetime.now(timezone.utc) + timedelta(minutes=HOLD_EXPIRY_MINUTES)
                 
                 transaction.update(slot_ref, {
                     'status': SlotStatus.LOCKED.value,
@@ -149,7 +149,7 @@ class SlotService:
                     return {'success': False, 'error': 'Slot is locked by another user'}
                 
                 hold_expires = slot_data.get('hold_expires_at')
-                if hold_expires and datetime.now() > hold_expires:
+                if hold_expires and datetime.now(timezone.utc) > hold_expires:
                     transaction.update(slot_ref, {
                         'status': SlotStatus.AVAILABLE.value,
                         'user_id': None,
@@ -384,7 +384,7 @@ class SlotService:
         Should be run periodically via Cloud Function or cron
         """
         try:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             expired_count = 0
             
             docs = self.db.collection(Collections.SLOTS)\
@@ -439,7 +439,7 @@ class SlotService:
             
             if status == SlotStatus.LOCKED.value:
                 hold_expires = slot_data.get('hold_expires_at')
-                if hold_expires and datetime.now() > hold_expires:
+                if hold_expires and datetime.now(timezone.utc) > hold_expires:
                     slot_ref.update({
                         'status': SlotStatus.AVAILABLE.value,
                         'user_id': None,

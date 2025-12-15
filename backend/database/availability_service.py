@@ -28,25 +28,16 @@ class AvailabilityService:
             target_date: Date in YYYY-MM-DD format
             
         Returns:
-            List of available slots with time and price
+            List of available slots with complete data
         """
         try:
             logger.info(f"Getting available slots for vendor {vendor_id} on {target_date}")
             
             slots = await self.db.get_available_slots(vendor_id, target_date)
             
-            # Format results
-            available_slots = []
-            for slot in slots:
-                available_slots.append({
-                    'slot_id': slot['id'],
-                    'time': slot.get('slot_time', ''),
-                    'price': float(slot.get('price', 0.0)),
-                    'status': slot.get('status', 'available')
-                })
-            
-            logger.info(f"Found {len(available_slots)} available slots")
-            return available_slots
+            # Return complete slot data (don't filter fields)
+            logger.info(f"Found {len(slots)} available slots")
+            return slots
             
         except Exception as e:
             logger.error(f"Error getting available slots: {e}")
