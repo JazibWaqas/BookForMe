@@ -1,39 +1,114 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { authService } from '../../services/auth';
+import { getUserBookings } from '../../services/bookings';
+import { format } from 'date-fns';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [bookingsCount, setBookingsCount] = useState(0);
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
 
-  // Check user role when screen is focused
+  // Check user role and load data when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      const checkUserRole = async () => {
+      const loadUserData = async () => {
         setLoading(true);
-        const role = await AsyncStorage.getItem('userRole');
-        if (role === 'vendor') {
-          // Redirect vendor to vendor dashboard
-          router.replace('/vendor-dashboard');
-        } else {
+        try {
+          const role = await AsyncStorage.getItem('userRole');
+          if (role === 'vendor') {
+            // Redirect vendor to vendor dashboard
+            router.replace('/vendor-dashboard');
+            return;
+          }
+
           setUserRole(role as 'customer' | 'vendor' | null);
+
+          // Fetch user profile
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          }
+
+          // Fetch bookings for statistics
+          const bookings = await getUserBookings();
+          setBookingsCount(bookings.length);
+
+          // Get recent 3 bookings
+          const recent = bookings
+            .filter(b => b.status === 'confirmed' || b.status === 'completed')
+            .slice(0, 3);
+          setRecentBookings(recent);
+
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        } finally {
           setLoading(false);
         }
       };
-      checkUserRole();
+      loadUserData();
     }, [router])
   );
+
+  const formatBookingDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return format(date, 'MMM d, yyyy');
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatBookingTime = (timeStr: string) => {
+    try {
+      if (!timeStr) return '';
+
+      // If it's an ISO timestamp, extract the time part
+      if (timeStr.includes('T')) {
+        const timePart = timeStr.split('T')[1].split('+')[0].split('-')[0];
+        const [hours, minutes] = timePart.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      }
+
+      // Simple HH:MM format
+      if (timeStr?.includes(':')) {
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      }
+      return timeStr;
+    } catch {
+      return timeStr;
+    }
+  };
 
   // Show loading state while checking role
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: COLORS.textMuted }}>Loading...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ color: COLORS.textMuted, marginTop: 12 }}>Loading profile...</Text>
       </View>
     );
   }
@@ -49,23 +124,27 @@ export default function ProfileScreen() {
         <Card style={styles.profileCard}>
           <View style={styles.avatarSection}>
             <View style={styles.avatar}>
-              <View style={styles.avatarInner} />
+              <View style={styles.avatarInner}>
+                <Text style={styles.avatarText}>
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.userName}>John Doe</Text>
-            <Text style={styles.userEmail}>john.doe@email.com</Text>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userEmail}>{user?.email || user?.phone || 'No email'}</Text>
           </View>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statValue}>{bookingsCount}</Text>
               <Text style={styles.statLabel}>Bookings</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>3</Text>
+              <Text style={styles.statValue}>0</Text>
               <Text style={styles.statLabel}>Saved</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>450</Text>
+              <Text style={styles.statValue}>{bookingsCount * 50}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
           </View>
@@ -73,16 +152,31 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Bookings</Text>
-          {[1, 2, 3].map((i) => (
-            <Card key={i} style={styles.bookingCard}>
-              <View style={styles.bookingHeader}>
-                <Text style={styles.bookingTitle}>Elite Padel Club</Text>
-                <Text style={styles.bookingStatus}>Confirmed</Text>
-              </View>
-              <Text style={styles.bookingDate}>Nov {i}, 2024 • 6:00 PM</Text>
-              <Text style={styles.bookingPrice}>PKR 1,200</Text>
+          {recentBookings.length === 0 ? (
+            <Card style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No bookings yet</Text>
+              <Text style={styles.emptySubtext}>Book a court to get started!</Text>
             </Card>
-          ))}
+          ) : (
+            recentBookings.map((booking, i) => (
+              <Card key={booking.id || i} style={styles.bookingCard}>
+                <View style={styles.bookingHeader}>
+                  <Text style={styles.bookingTitle}>
+                    {booking.vendor?.name || booking.vendor?.business_name || 'Venue'}
+                  </Text>
+                  <Text style={[styles.bookingStatus, {
+                    color: booking.status === 'confirmed' ? COLORS.success : COLORS.primary
+                  }]}>
+                    {booking.status === 'confirmed' ? 'Confirmed' : 'Completed'}
+                  </Text>
+                </View>
+                <Text style={styles.bookingDate}>
+                  {formatBookingDate(booking.date)} • {formatBookingTime(booking.time || booking.start_time)}
+                </Text>
+                <Text style={styles.bookingPrice}>PKR {booking.amount || 0}</Text>
+              </Card>
+            ))
+          )}
         </View>
 
         <View style={styles.section}>
@@ -180,6 +274,13 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   userName: {
     fontSize: 18,
@@ -219,6 +320,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
+  },
+  emptyCard: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
   },
   bookingCard: {
     marginBottom: 12,

@@ -97,6 +97,19 @@ export default function MyBookingsScreen() {
 
     const formatTime = (timeStr: string) => {
         try {
+            if (!timeStr) return '';
+
+            // If it's an ISO timestamp, extract the time part
+            if (timeStr.includes('T')) {
+                const timePart = timeStr.split('T')[1].split('+')[0].split('-')[0];
+                const [hours, minutes] = timePart.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                return `${displayHour}:${minutes} ${ampm}`;
+            }
+
+            // Simple HH:MM format
             if (timeStr.includes(':')) {
                 const [hours, minutes] = timeStr.split(':');
                 const hour = parseInt(hours);

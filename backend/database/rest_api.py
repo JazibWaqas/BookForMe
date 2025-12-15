@@ -16,6 +16,7 @@ from app.firestore import firestore_db
 import os
 import uuid
 from pathlib import Path
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -606,14 +607,53 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                     if payment_doc.exists:
                         payment = payment_doc.to_dict()
                 
+                # Format timestamps to strings
+                start_time = slot_data.get('start_time')
+                end_time = slot_data.get('end_time')
+                
+                logger.info(f"Slot {doc.id}: start_time type={type(start_time)}, value={start_time}")
+                
+                # Convert Firestore timestamps to time strings (HH:MM format)
+                # Add Pakistan timezone offset (UTC+5)
+                time_str = None
+                if start_time:
+                    if hasattr(start_time, 'strftime'):
+                        # Add 5 hours for Pakistan timezone
+                        pakistan_time = start_time + timedelta(hours=5)
+                        time_str = pakistan_time.strftime('%H:%M')
+                    elif isinstance(start_time, str):
+                        time_str = start_time
+                
+                start_time_str = None
+                end_time_str = None
+                if start_time:
+                    if hasattr(start_time, 'isoformat'):
+                        # Add 5 hours for Pakistan timezone
+                        pakistan_time = start_time + timedelta(hours=5)
+                        start_time_str = pakistan_time.isoformat()
+                    elif isinstance(start_time, str):
+                        start_time_str = start_time
+                        
+                if end_time:
+                    if hasattr(end_time, 'isoformat'):
+                        # Add 5 hours for Pakistan timezone
+                        pakistan_time = end_time + timedelta(hours=5)
+                        end_time_str = pakistan_time.isoformat()
+                    elif isinstance(end_time, str):
+                        end_time_str = end_time
+                
+                logger.info(f"Formatted time_str={time_str}, start_time_str={start_time_str}")
+                
                 booking = {
                     'id': doc.id,
                     'slot_id': doc.id,
                     'vendor_id': slot_data.get('vendor_id'),
                     'date': slot_data.get('date'),
-                    'start_time': slot_data.get('start_time'),
-                    'end_time': slot_data.get('end_time'),
+                    'time': time_str,
+                    'start_time': start_time_str,
+                    'end_time': end_time_str,
                     'status': slot_data.get('status'),
+                    'amount': slot_data.get('price', 0),
                     'vendor': vendor,
                     'payment': payment,
                     'created_at': slot_data.get('created_at')

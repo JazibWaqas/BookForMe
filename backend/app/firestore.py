@@ -154,12 +154,15 @@ class FirestoreDB:
                 if 'service_id' in slot_data and slot_data['service_id']:
                     slot_data['service_name'] = services_map.get(slot_data['service_id'], 'Court Rental')
                 
-                # Normalize time field
+                # Normalize time field with Pakistan timezone
                 if 'start_time' in slot_data and slot_data['start_time']:
                     try:
+                        from datetime import timedelta
                         start_ts = slot_data['start_time']
                         if hasattr(start_ts, 'strftime'):
-                            slot_data['slot_time'] = start_ts.strftime('%H:%M')
+                            # Add 5 hours for Pakistan timezone
+                            pakistan_time = start_ts + timedelta(hours=5)
+                            slot_data['slot_time'] = pakistan_time.strftime('%H:%M')
                         else:
                             slot_data['slot_time'] = str(start_ts)
                     except:
