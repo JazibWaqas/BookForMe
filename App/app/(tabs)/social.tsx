@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -46,9 +47,9 @@ export default function SocialScreen() {
   ];
 
   const matches = [
-    { id: '1', sport: '🏸 Padel', type: 'casual', date: 'Tomorrow', time: '6:00 PM', location: 'DHA Courts', players: 2, maxPlayers: 4, host: 'Ahmed', hostAvatar: 'https://i.pravatar.cc/150?img=12' },
-    { id: '2', sport: '🎾 Tennis', type: 'ranked', date: 'Dec 1', time: '8:00 AM', location: 'Courtside', players: 3, maxPlayers: 4, host: 'Sara', hostAvatar: 'https://i.pravatar.cc/150?img=5' },
-    { id: '3', sport: '🏸 Badminton', type: 'casual', date: 'Dec 2', time: '7:00 PM', location: 'Sports Arena', players: 1, maxPlayers: 2, host: 'Bilal', hostAvatar: 'https://i.pravatar.cc/150?img=33' },
+    { id: '1', sport: 'Padel', type: 'casual', date: 'Tomorrow', time: '6:00 PM', location: 'DHA Courts', players: 2, maxPlayers: 4, host: 'Ahmed', hostAvatar: 'https://i.pravatar.cc/150?img=12' },
+    { id: '2', sport: 'Tennis', type: 'ranked', date: 'Dec 1', time: '8:00 AM', location: 'Courtside', players: 3, maxPlayers: 4, host: 'Sara', hostAvatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: '3', sport: 'Badminton', type: 'casual', date: 'Dec 2', time: '7:00 PM', location: 'Sports Arena', players: 1, maxPlayers: 2, host: 'Bilal', hostAvatar: 'https://i.pravatar.cc/150?img=33' },
   ];
 
   const chats = [
@@ -66,6 +67,13 @@ export default function SocialScreen() {
     { rank: 5, name: 'Omar Shah', avatar: 'https://i.pravatar.cc/150?img=51', matches: 64, points: 1820, sport: 'Tennis', winRate: 61 },
   ];
 
+  const tabs = [
+    { id: 'forum', label: 'Forum', icon: 'newspaper-outline' },
+    { id: 'matches', label: 'Matches', icon: 'tennisball-outline' },
+    { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
+    { id: 'leaderboard', label: 'Ranking', icon: 'trophy-outline' },
+  ];
+
   return (
     <View style={styles.container}>
       {/* Header with Gradient */}
@@ -78,19 +86,20 @@ export default function SocialScreen() {
 
       {/* Tabs */}
       <View style={styles.tabBar}>
-        {(['forum', 'matches', 'chats', 'leaderboard'] as const).map((tab) => (
+        {tabs.map((tab) => (
           <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id as any)}
+            style={[styles.tab, activeTab === tab.id && styles.tabActive]}
           >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-              {tab === 'forum' && '📰'}
-              {tab === 'matches' && '⚔️'}
-              {tab === 'chats' && '💬'}
-              {tab === 'leaderboard' && '🏆'}
-              {' '}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            <Ionicons
+              name={tab.icon as any}
+              size={20}
+              color={activeTab === tab.id ? COLORS.textDark : COLORS.textMuted}
+              style={{ marginBottom: 4 }}
+            />
+            <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+              {tab.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -115,12 +124,14 @@ export default function SocialScreen() {
               </View>
               <View style={styles.createPostActions}>
                 <TouchableOpacity style={styles.postActionButton}>
-                  <Text style={styles.postActionText}>📷 Photo</Text>
+                  <Ionicons name="image-outline" size={20} color={COLORS.primary} />
+                  <Text style={styles.postActionText}>Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.postActionButton}>
-                  <Text style={styles.postActionText}>📍 Location</Text>
+                  <Ionicons name="location-outline" size={20} color={COLORS.primary} />
+                  <Text style={styles.postActionText}>Location</Text>
                 </TouchableOpacity>
-                <Button title="Post" variant="secondary" style={styles.postButton} onPress={() => {}} />
+                <Button title="Post" variant="secondary" style={styles.postButton} onPress={() => { }} />
               </View>
             </Card>
 
@@ -136,7 +147,7 @@ export default function SocialScreen() {
                     </View>
                   </View>
                   <TouchableOpacity>
-                    <Text style={styles.moreButton}>⋯</Text>
+                    <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.textMuted} />
                   </TouchableOpacity>
                 </View>
 
@@ -149,15 +160,22 @@ export default function SocialScreen() {
 
                 <View style={styles.postActions}>
                   <TouchableOpacity style={styles.actionButton}>
+                    <Ionicons
+                      name={post.liked ? "heart" : "heart-outline"}
+                      size={20}
+                      color={post.liked ? COLORS.error : COLORS.textMuted}
+                    />
                     <Text style={[styles.actionText, post.liked && styles.actionTextLiked]}>
-                      {post.liked ? '❤️' : '🤍'} Like
+                      Like
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionText}>💬 Comment</Text>
+                    <Ionicons name="chatbubble-outline" size={20} color={COLORS.textMuted} />
+                    <Text style={styles.actionText}>Comment</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionText}>↗️ Share</Text>
+                    <Ionicons name="share-social-outline" size={20} color={COLORS.textMuted} />
+                    <Text style={styles.actionText}>Share</Text>
                   </TouchableOpacity>
                 </View>
               </Card>
@@ -170,15 +188,18 @@ export default function SocialScreen() {
           <View>
             {/* Search & Create */}
             <View style={styles.matchHeader}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="🔍 Search matches..."
-                placeholderTextColor={COLORS.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search matches..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
               <TouchableOpacity style={styles.createMatchButton}>
-                <Text style={styles.createMatchText}>+ Create</Text>
+                <Ionicons name="add" size={24} color={COLORS.textDark} />
               </TouchableOpacity>
             </View>
 
@@ -209,17 +230,18 @@ export default function SocialScreen() {
                       </View>
                     </View>
                     <View style={styles.playersIndicator}>
+                      <Ionicons name="people" size={14} color={COLORS.textDark} style={{ marginRight: 4 }} />
                       <Text style={styles.playersText}>{match.players}/{match.maxPlayers}</Text>
                     </View>
                   </View>
 
                   <View style={styles.matchDetails}>
                     <View style={styles.matchDetailRow}>
-                      <Text style={styles.matchIcon}>📅</Text>
+                      <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
                       <Text style={styles.matchDetailText}>{match.date} • {match.time}</Text>
                     </View>
                     <View style={styles.matchDetailRow}>
-                      <Text style={styles.matchIcon}>📍</Text>
+                      <Ionicons name="location-outline" size={16} color={COLORS.primary} />
                       <Text style={styles.matchDetailText}>{match.location}</Text>
                     </View>
                   </View>
@@ -243,13 +265,16 @@ export default function SocialScreen() {
         {activeTab === 'chats' && (
           <View>
             {/* Search */}
-            <TextInput
-              style={styles.searchInput}
-              placeholder="🔍 Search messages..."
-              placeholderTextColor={COLORS.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+            <View style={[styles.searchContainer, { marginBottom: 16 }]}>
+              <Ionicons name="search" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search messages..."
+                placeholderTextColor={COLORS.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
 
             {/* Chats */}
             {chats.map((chat) => (
@@ -309,7 +334,7 @@ export default function SocialScreen() {
               </View>
 
               <View style={[styles.podiumItem, styles.podiumWinner]}>
-                <Text style={styles.crown}>👑</Text>
+                <Ionicons name="trophy" size={32} color="#FFD700" style={{ marginBottom: 8 }} />
                 <Image source={{ uri: leaderboard[0].avatar }} style={styles.podiumAvatarLarge} />
                 <View style={styles.podiumRank1}>
                   <Text style={styles.podiumRankText}>1</Text>
@@ -393,11 +418,16 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   tabActive: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   tabText: {
     fontSize: 11,
@@ -442,6 +472,10 @@ const styles = StyleSheet.create({
   },
   postActionButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   postActionText: {
     fontSize: 13,
@@ -450,6 +484,7 @@ const styles = StyleSheet.create({
   },
   postButton: {
     paddingHorizontal: 24,
+    height: 36,
   },
   postCard: {
     marginBottom: 16,
@@ -479,10 +514,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
   },
-  moreButton: {
-    fontSize: 20,
-    color: COLORS.textMuted,
-  },
   postContent: {
     fontSize: 14,
     color: COLORS.text,
@@ -507,7 +538,10 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 8,
   },
   actionText: {
@@ -522,29 +556,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
-    marginTop: 16,
+    marginTop: 8,
   },
-  searchInput: {
+  searchContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: COLORS.text,
     borderWidth: 1,
     borderColor: COLORS.border,
+    height: 48,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    height: '100%',
   },
   createMatchButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
-    paddingHorizontal: 20,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  createMatchText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textDark,
   },
   filtersScroll: {
     marginBottom: 16,
@@ -605,8 +642,10 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   playersIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
@@ -623,9 +662,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  matchIcon: {
-    fontSize: 16,
   },
   matchDetailText: {
     fontSize: 13,
@@ -749,10 +785,6 @@ const styles = StyleSheet.create({
   podiumWinner: {
     marginBottom: 20,
   },
-  crown: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
   podiumAvatar: {
     width: 60,
     height: 60,
@@ -800,15 +832,14 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   podiumName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 2,
   },
   podiumPoints: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontSize: 12,
+    color: COLORS.textMuted,
   },
   leaderboardCard: {
     marginBottom: 12,
@@ -823,18 +854,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
   },
   rankNumber: {
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.textMuted,
-    width: 32,
+    width: 30,
   },
   playerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   playerName: {
     fontSize: 15,
@@ -849,12 +879,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   points: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
   },
   pointsLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.textMuted,
   },
 });

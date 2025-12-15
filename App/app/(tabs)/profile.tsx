@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -113,22 +114,34 @@ export default function ProfileScreen() {
     );
   }
 
+  const menuItems = [
+    { icon: 'person-outline', label: 'Edit Profile', route: '/profile/edit' },
+    { icon: 'notifications-outline', label: 'Notifications', route: '/notifications' },
+    { icon: 'card-outline', label: 'Payment Methods', route: '/payments' },
+    { icon: 'help-circle-outline', label: 'Help & Support', route: '/support' },
+  ];
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-        <Text style={styles.subtitle}>Manage your account</Text>
+        <TouchableOpacity style={styles.settingsButton}>
+          <Ionicons name="settings-outline" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.profileCard}>
           <View style={styles.avatarSection}>
-            <View style={styles.avatar}>
-              <View style={styles.avatarInner}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
+              <TouchableOpacity style={styles.editAvatarButton}>
+                <Ionicons name="camera" size={16} color="#FFF" />
+              </TouchableOpacity>
             </View>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
             <Text style={styles.userEmail}>{user?.email || user?.phone || 'No email'}</Text>
@@ -136,14 +149,23 @@ export default function ProfileScreen() {
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
+                <Ionicons name="calendar" size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.statValue}>{bookingsCount}</Text>
               <Text style={styles.statLabel}>Bookings</Text>
             </View>
             <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                <Ionicons name="heart" size={20} color="#3b82f6" />
+              </View>
               <Text style={styles.statValue}>0</Text>
               <Text style={styles.statLabel}>Saved</Text>
             </View>
             <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="trophy" size={20} color="#f59e0b" />
+              </View>
               <Text style={styles.statValue}>{bookingsCount * 50}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
@@ -151,74 +173,98 @@ export default function ProfileScreen() {
         </Card>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Bookings</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Bookings</Text>
+            <TouchableOpacity onPress={() => router.push('/bookings')}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
           {recentBookings.length === 0 ? (
             <Card style={styles.emptyCard}>
+              <Ionicons name="calendar-outline" size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyText}>No bookings yet</Text>
               <Text style={styles.emptySubtext}>Book a court to get started!</Text>
+              <Button
+                title="Find a Court"
+                onPress={() => router.push('/(tabs)/home')}
+                style={{ marginTop: 16, minWidth: 150 }}
+                variant="outline"
+              />
             </Card>
           ) : (
             recentBookings.map((booking, i) => (
               <Card key={booking.id || i} style={styles.bookingCard}>
                 <View style={styles.bookingHeader}>
-                  <Text style={styles.bookingTitle}>
-                    {booking.vendor?.name || booking.vendor?.business_name || 'Venue'}
-                  </Text>
-                  <Text style={[styles.bookingStatus, {
-                    color: booking.status === 'confirmed' ? COLORS.success : COLORS.primary
+                  <View style={styles.bookingInfo}>
+                    <Text style={styles.bookingTitle}>
+                      {booking.vendor?.name || booking.vendor?.business_name || 'Venue'}
+                    </Text>
+                    <View style={styles.bookingDateRow}>
+                      <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
+                      <Text style={styles.bookingDate}>
+                        {formatBookingDate(booking.date)} • {formatBookingTime(booking.time || booking.start_time)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statusBadge, {
+                    backgroundColor: booking.status === 'confirmed' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(59, 130, 246, 0.1)'
                   }]}>
-                    {booking.status === 'confirmed' ? 'Confirmed' : 'Completed'}
-                  </Text>
+                    <Text style={[styles.statusText, {
+                      color: booking.status === 'confirmed' ? COLORS.success : COLORS.primary
+                    }]}>
+                      {booking.status === 'confirmed' ? 'Confirmed' : 'Completed'}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.bookingDate}>
-                  {formatBookingDate(booking.date)} • {formatBookingTime(booking.time || booking.start_time)}
-                </Text>
-                <Text style={styles.bookingPrice}>PKR {booking.amount || 0}</Text>
               </Card>
             ))
           )}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => router.push('/bookings')}
-          >
-            <Card style={styles.settingCard}>
-              <View style={styles.settingRow}>
-                <Text style={styles.settingLabel}>My Bookings</Text>
-                <Text style={styles.settingArrow}>→</Text>
-              </View>
-            </Card>
-          </TouchableOpacity>
-          {[
-            { label: 'Edit Profile' },
-            { label: 'Notifications' },
-            { label: 'Payment Methods' },
-            { label: 'Help & Support' },
-          ].map((item, i) => (
-            <TouchableOpacity key={i} style={styles.settingItem}>
-              <Card style={styles.settingCard}>
-                <View style={styles.settingRow}>
-                  <Text style={styles.settingLabel}>{item.label}</Text>
-                  <Text style={styles.settingArrow}>→</Text>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/bookings')}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name="calendar-outline" size={20} color={COLORS.text} />
                 </View>
-              </Card>
+                <Text style={styles.menuItemLabel}>My Bookings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
             </TouchableOpacity>
-          ))}
+
+            {menuItems.map((item, i) => (
+              <TouchableOpacity key={i} style={styles.menuItem}>
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name={item.icon as any} size={20} color={COLORS.text} />
+                  </View>
+                  <Text style={styles.menuItemLabel}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <Button
           title="Sign Out"
           variant="outline"
+          style={styles.signOutButton}
+          textStyle={styles.signOutText}
+          icon={<Ionicons name="log-out-outline" size={20} color={COLORS.error} style={{ marginRight: 8 }} />}
           onPress={async () => {
             await AsyncStorage.removeItem('userRole');
             router.replace('/(auth)/login');
           }}
         />
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -230,62 +276,80 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: COLORS.background,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: COLORS.text,
   },
-  subtitle: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+  settingsButton: {
+    padding: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 20,
   },
   profileCard: {
-    marginBottom: 20,
+    marginBottom: 24,
+    padding: 24,
   },
   avatarSection: {
     alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    position: 'relative',
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    backgroundColor: COLORS.surface,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-  },
-  avatarInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 100,
+    height: 100,
     backgroundColor: COLORS.primary,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: COLORS.surface,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarText: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.text,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
+  userName: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
+    marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
@@ -293,93 +357,143 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: 16,
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text,
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
     color: COLORS.textMuted,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: COLORS.primary,
     fontWeight: '600',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
   },
   emptyCard: {
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
   },
   emptySubtext: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.textMuted,
+    textAlign: 'center',
   },
   bookingCard: {
     marginBottom: 12,
+    padding: 16,
   },
   bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  bookingInfo: {
+    flex: 1,
   },
   bookingTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 4,
   },
-  bookingStatus: {
-    fontSize: 12,
-    color: COLORS.primary,
+  bookingDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   bookingDate: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textMuted,
   },
-  bookingPrice: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  settingItem: {
-    marginBottom: 12,
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  settingCard: {
-    padding: 0,
+  menuContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
   },
-  settingRow: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  settingLabel: {
-    fontSize: 14,
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuItemLabel: {
+    fontSize: 15,
+    fontWeight: '500',
     color: COLORS.text,
   },
-  settingArrow: {
-    fontSize: 14,
-    color: COLORS.textMuted,
+  signOutButton: {
+    marginTop: 8,
+    borderColor: COLORS.error,
+  },
+  signOutText: {
+    color: COLORS.error,
   },
 });
 

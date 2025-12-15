@@ -10,6 +10,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  textStyle?: any;
+  icon?: React.ReactNode;
 }
 
 export default function Button({
@@ -18,14 +20,24 @@ export default function Button({
   variant = 'primary',
   loading = false,
   disabled = false,
-  style
+  style,
+  textStyle: customTextStyle,
+  icon
 }: ButtonProps) {
   const textStyle = [
     styles.text,
     variant === 'primary' && styles.primaryText,
     variant === 'secondary' && styles.secondaryText,
     variant === 'outline' && styles.outlineText,
+    customTextStyle,
   ];
+
+  const content = (
+    <>
+      {icon}
+      <Text style={textStyle}>{title}</Text>
+    </>
+  );
 
   if (variant === 'secondary') {
     return (
@@ -43,7 +55,7 @@ export default function Button({
           {loading ? (
             <ActivityIndicator color={COLORS.textDark} />
           ) : (
-            <Text style={textStyle}>{title}</Text>
+            content
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -62,12 +74,12 @@ export default function Button({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      style={buttonStyle}
+      style={[buttonStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.text} />
       ) : (
-        <Text style={textStyle}>{title}</Text>
+        content
       )}
     </TouchableOpacity>
   );
