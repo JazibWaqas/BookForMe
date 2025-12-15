@@ -77,7 +77,7 @@ class BookingAgent:
                 "selected_duration": None,
                 "selected_date": None,
                 "booking_in_progress": False,
-                "vendor_id": "ace_padel_club",
+                "vendor_id": None,
                 "vendor_data": None,
                 "query_result": None,
                 "response": ""

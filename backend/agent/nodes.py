@@ -70,21 +70,38 @@ def normalize_date(date_text: str) -> str:
     elif "day after tomorrow" in date_lower or "parson" in date_lower:
         day_after = today + timedelta(days=2)
         return day_after.strftime("%Y-%m-%d")
-    else:
-        # Try to parse as day name (find next occurrence)
-        day_names = {
-            "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-            "friday": 4, "saturday": 5, "sunday": 6
-        }
-        for day_name, day_num in day_names.items():
-            if day_name in date_lower:
-                days_ahead = day_num - today.weekday()
-                if days_ahead <= 0:
-                    days_ahead += 7
-                target_date = today + timedelta(days=days_ahead)
-                return target_date.strftime("%Y-%m-%d")
+    
+    # Try to parse full date formats like "December 15, 2025" or "15 December 2025"
+    date_formats = [
+        '%B %d, %Y',      # "December 15, 2025"
+        '%d %B %Y',       # "15 December 2025"
+        '%B %d %Y',       # "December 15 2025"
+        '%m/%d/%Y',       # "12/15/2025"
+        '%d/%m/%Y',       # "15/12/2025"
+    ]
+    
+    for fmt in date_formats:
+        try:
+            parsed = datetime.strptime(date_text, fmt)
+            return parsed.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    
+    # Try to parse as day name (find next occurrence)
+    day_names = {
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4, "saturday": 5, "sunday": 6
+    }
+    for day_name, day_num in day_names.items():
+        if day_name in date_lower:
+            days_ahead = day_num - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = today + timedelta(days=days_ahead)
+            return target_date.strftime("%Y-%m-%d")
     
     # Default to today if can't parse
+    logger.warning(f"⚠️  Could not parse date '{date_text}', defaulting to today")
     return today.strftime("%Y-%m-%d")
 
 def normalize_time(time_text: str) -> Dict[str, str]:

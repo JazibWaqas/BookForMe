@@ -63,6 +63,27 @@ class NLUAgent:
             logger.info("🔍 [extract_intent] Parsing Gemini response...")
             result = self._parse_intent_response(response)
             
+            # Post-process: Validate customer_name is only from current message
+            if result.get('entities', {}).get('customer_name'):
+                customer_name = result['entities']['customer_name']
+                message_lower = message.lower()
+                # Check if name appears in current message
+                name_parts = customer_name.lower().split()
+                name_in_message = any(part in message_lower for part in name_parts if len(part) > 2)
+                
+                # Check for explicit name patterns
+                explicit_patterns = [
+                    f"my name is {customer_name.lower()}",
+                    f"i am {customer_name.lower()}",
+                    f"i'm {customer_name.lower()}",
+                    f"name is {customer_name.lower()}",
+                ]
+                has_explicit_pattern = any(pattern in message_lower for pattern in explicit_patterns)
+                
+                if not name_in_message and not has_explicit_pattern:
+                    logger.warning(f"⚠️  customer_name '{customer_name}' not found in current message, removing it")
+                    result['entities']['customer_name'] = None
+            
             logger.info(f"✅ [extract_intent] RESULT:")
             logger.info(f"   Intent: {result.get('intent')} (confidence: {result.get('confidence', 0.0)})")
             logger.info(f"   Entities: {result.get('entities')}")
@@ -190,8 +211,11 @@ class NLUAgent:
             - service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
             - date: tomorrow, today, specific date, "kal", "aaj"
             - time: 6-9, evening, morning, "shaam", "raat", specific time
-            - customer_name: Full name or first name if mentioned
+            - customer_name: Full name or first name - ONLY if explicitly mentioned in the CURRENT message (e.g., "My name is X", "I am X", or just "X" where X is clearly a name). DO NOT extract names from conversation history. If no name is mentioned in the current message, set customer_name to null.
 
+            CRITICAL: Only extract customer_name if the user explicitly provides it in the CURRENT message. Do NOT infer names from conversation history or previous messages. If the current message does not contain a name, customer_name must be null.
+
+            
             Respond in JSON format:
             {{
                 "intent": "booking_request",
@@ -346,8 +370,8 @@ class NLUAgent:
             if intent in ["confirmation", "booking_request"] and has_details:
                 logger.info("🎯 [generate_response] BOOKING DETECTED - Creating booking...")
                 
-                # Resolve vendor_id from vendor_name if needed
-                vendor_name = context.get('vendor_name') or entities.get('vendor_name') or entities.get('vendor')
+                # Resolve vendor_id from vendor_name if needed (check vendor_name, vendor, and venue fields)
+                vendor_name = context.get('vendor_name') or entities.get('vendor_name') or entities.get('vendor') or entities.get('venue')
                 if vendor_name and (not context.get('vendor_id') or context.get('vendor_id') == 'ace_padel_club'):
                     logger.info(f"🔍 [generate_response] Resolving vendor_id for name: '{vendor_name}'")
                     resolved_vendor_id = await self._get_vendor_id_by_name(vendor_name)
@@ -355,6 +379,8 @@ class NLUAgent:
                         context['vendor_id'] = resolved_vendor_id
                         entities['vendor_id'] = resolved_vendor_id
                         logger.info(f"✅ [generate_response] Resolved vendor_id: {resolved_vendor_id}")
+                    else:
+                        logger.warning(f"⚠️  [generate_response] Could not resolve vendor_id for name: '{vendor_name}'")
                 
                 booking_details = self._extract_booking_details(entities, context)
                 booking_result = await self._create_booking(booking_details)
@@ -550,23 +576,122 @@ class NLUAgent:
                     else:
                         logger.info(f"   ❌ No time pattern matched in this message")
         
-        # If slot_time is not in HH:MM format, try to normalize it
-        if slot_time and not isinstance(slot_time, str):
-            slot_time = str(slot_time)
-        
-        # Normalize slot_time to HH:MM format if needed
+        # Normalize slot_time to HH:MM format (24-hour)
         if slot_time:
             import re
-            # Check if it's already in HH:MM format
-            if not re.match(r'^\d{2}:\d{2}$', slot_time):
-                # Try to extract time from various formats
-                from agent.nodes import normalize_time
-                normalized = normalize_time(slot_time)
-                if normalized:
-                    slot_time = normalized.get('start', slot_time)
+            slot_time_str = str(slot_time).strip()
+            
+            # Check if it's already in HH:MM format (24-hour)
+            if re.match(r'^\d{2}:\d{2}$', slot_time_str):
+                slot_time = slot_time_str
+                logger.info(f"   ✅ Time already in HH:MM format: {slot_time}")
+            else:
+                # Handle "HH:MM AM/PM" format (e.g., "12:00 PM", "09:00 AM")
+                am_pm_pattern_with_colon = r'(\d{1,2}):(\d{2})\s*(am|pm)'
+                am_pm_match = re.search(am_pm_pattern_with_colon, slot_time_str, re.IGNORECASE)
+                if am_pm_match:
+                    hour = int(am_pm_match.group(1))
+                    minute = int(am_pm_match.group(2))
+                    period = am_pm_match.group(3).lower()
+                    
+                    # Convert to 24-hour format
+                    if period == 'pm' and hour < 12:
+                        hour += 12
+                    elif period == 'am' and hour == 12:
+                        hour = 0
+                    
+                    slot_time = f"{hour:02d}:{minute:02d}"
+                    logger.info(f"   ✅ Converted '{slot_time_str}' to '{slot_time}' (24-hour format)")
+                else:
+                    # Handle "X am" or "X pm" format WITHOUT colon (e.g., "11 am", "12 pm", "9 pm", "3 pm")
+                    am_pm_pattern_no_colon = r'(\d{1,2})\s*(am|pm)'
+                    am_pm_match_no_colon = re.search(am_pm_pattern_no_colon, slot_time_str, re.IGNORECASE)
+                    if am_pm_match_no_colon:
+                        hour = int(am_pm_match_no_colon.group(1))
+                        period = am_pm_match_no_colon.group(2).lower()
+                        
+                        # Convert to 24-hour format
+                        if period == 'pm' and hour < 12:
+                            hour += 12
+                        elif period == 'am' and hour == 12:
+                            hour = 0
+                        
+                        slot_time = f"{hour:02d}:00"
+                        logger.info(f"   ✅ Converted '{slot_time_str}' to '{slot_time}' (24-hour format, no colon)")
+                    else:
+                        # Try to extract time from various formats using normalize_time
+                        from agent.nodes import normalize_time
+                        normalized = normalize_time(slot_time_str)
+                        if normalized:
+                            slot_time = normalized.get('start', slot_time_str)
+                            logger.info(f"   ✅ Normalized '{slot_time_str}' to '{slot_time}' using normalize_time")
+                        else:
+                            # If normalization fails, try to extract just the time part
+                            # Handle cases like "12:00 PM - 01:00 PM" -> extract start time
+                            time_range_match = re.search(r'(\d{1,2}):(\d{2})', slot_time_str)
+                            if time_range_match:
+                                hour = int(time_range_match.group(1))
+                                minute = int(time_range_match.group(2))
+                                # Check if PM is mentioned anywhere in the string
+                                if 'pm' in slot_time_str.lower() and hour < 12:
+                                    hour += 12
+                                elif 'am' in slot_time_str.lower() and hour == 12:
+                                    hour = 0
+                                slot_time = f"{hour:02d}:{minute:02d}"
+                                logger.info(f"   ✅ Extracted time from range '{slot_time_str}' -> '{slot_time}'")
+                            else:
+                                logger.warning(f"   ⚠️  Could not normalize time: '{slot_time_str}', using as-is")
+                                slot_time = slot_time_str
         
-        # Get date - try multiple sources
+        # Get date - try multiple sources and normalize to YYYY-MM-DD format
         date = entities.get('date') or context.get('selected_date')
+        
+        # Normalize date if it's in text format (e.g., "December 15, 2025")
+        if date:
+            import re
+            from datetime import datetime
+            
+            date_str = str(date).strip()
+            
+            # Check if already in YYYY-MM-DD format
+            if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+                date = date_str
+                logger.info(f"   ✅ Date already in YYYY-MM-DD format: {date}")
+            else:
+                # Try to parse various date formats
+                date_formats = [
+                    ('%B %d, %Y', r'(\w+)\s+(\d{1,2}),\s+(\d{4})'),  # "December 15, 2025"
+                    ('%d %B %Y', r'(\d{1,2})\s+(\w+)\s+(\d{4})'),     # "15 December 2025"
+                    ('%B %d %Y', r'(\w+)\s+(\d{1,2})\s+(\d{4})'),     # "December 15 2025"
+                ]
+                
+                parsed_date = None
+                for fmt, pattern in date_formats:
+                    match = re.search(pattern, date_str, re.IGNORECASE)
+                    if match:
+                        try:
+                            # Reconstruct date string for parsing
+                            if fmt == '%B %d, %Y':
+                                date_to_parse = f"{match.group(1)} {match.group(2)}, {match.group(3)}"
+                            elif fmt == '%d %B %Y':
+                                date_to_parse = f"{match.group(1)} {match.group(2)} {match.group(3)}"
+                            else:
+                                date_to_parse = f"{match.group(1)} {match.group(2)} {match.group(3)}"
+                            
+                            parsed = datetime.strptime(date_to_parse, fmt)
+                            parsed_date = parsed.strftime('%Y-%m-%d')
+                            logger.info(f"   ✅ Converted date '{date_str}' to '{parsed_date}'")
+                            break
+                        except Exception as e:
+                            logger.debug(f"   ⚠️  Failed to parse date with format {fmt}: {e}")
+                            continue
+                
+                if parsed_date:
+                    date = parsed_date
+                else:
+                    logger.warning(f"   ⚠️  Could not normalize date: '{date_str}', using as-is")
+        
+        # If still no date, extract from conversation history
         if not date:
             conversation_history = context.get('conversation_history', [])
             for msg in reversed(conversation_history[-5:]):
@@ -586,14 +711,23 @@ class NLUAgent:
                             pass
         
         # Get vendor info - try entities first, then context
-        vendor_id = entities.get('vendor_id') or context.get('vendor_id', 'ace_padel_club')
+        vendor_id = entities.get('vendor_id') or context.get('vendor_id')
         
-        # If vendor_id is not found, try to get from vendor_name
-        if not vendor_id or vendor_id == 'ace_padel_club':
-            vendor_name = entities.get('vendor_name') or entities.get('vendor')
+        # If vendor_id is not found, try to get from vendor_name or venue
+        if not vendor_id:
+            vendor_name = entities.get('vendor_name') or entities.get('vendor') or entities.get('venue')
             if vendor_name:
-                # This will be resolved asynchronously in generate_response
-                context['vendor_name'] = vendor_name
+                # Use vendor_id from context if it was resolved earlier
+                vendor_id = context.get('vendor_id')
+                if not vendor_id:
+                    # Store vendor_name for async resolution in generate_response
+                    context['vendor_name'] = vendor_name
+                    logger.info(f"   📝 Stored vendor_name '{vendor_name}' for resolution")
+        
+        # Fallback to default only if absolutely no vendor info
+        if not vendor_id:
+            vendor_id = 'ace_padel_club'
+            logger.warning(f"   ⚠️  No vendor_id found, using default: {vendor_id}")
         
         # Get customer info
         phone_number = context.get('phone_number', '')

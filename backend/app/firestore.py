@@ -162,7 +162,25 @@ class FirestoreDB:
                 .where(filter=FieldFilter('status', '==', 'available'))
             
             docs = list(query.stream())
-            logger.info(f"📊 [book_slot] Found {len(docs)} available slots for {date}")
+            logger.info(f"📊 [book_slot] Found {len(docs)} available slots for vendor={vendor_id}, date={date}")
+            
+            # Log all available slot times for debugging
+            available_times = []
+            for doc in docs:
+                slot_data = doc.to_dict()
+                slot_start_time = slot_data.get('start_time')
+                
+                # Extract time from timestamp
+                if slot_start_time and hasattr(slot_start_time, 'strftime'):
+                    slot_time_str = slot_start_time.strftime('%H:%M')
+                else:
+                    slot_time_str = str(slot_start_time) if slot_start_time else ''
+                
+                available_times.append(slot_time_str)
+                logger.info(f"   Available slot: {slot_time_str} (slot_id: {doc.id}, status: {slot_data.get('status', 'unknown')})")
+            
+            logger.info(f"📋 [book_slot] All available times: {available_times}")
+            logger.info(f"🔍 [book_slot] Looking for time: '{time}'")
             
             # Find the slot that matches the requested time
             matching_slot = None
@@ -176,17 +194,17 @@ class FirestoreDB:
                 else:
                     slot_time_str = str(slot_start_time) if slot_start_time else ''
                 
-                logger.info(f"   Checking slot: {slot_time_str} vs requested: {time}")
-                
-                # Compare times
+                # Compare times (exact match)
                 if slot_time_str == time:
                     matching_slot = doc
-                    logger.info(f"   ✅ Found matching slot: {doc.id}")
+                    logger.info(f"   ✅ Found matching slot: {doc.id} at {slot_time_str}")
                     break
             
             if not matching_slot:
                 logger.warning(f"❌ [book_slot] No slot found for time: {time}")
-                return {'success': False, 'error': f'No slot available at {time}'}
+                logger.warning(f"   Available times were: {available_times}")
+                logger.warning(f"   Requested time format: '{time}' (type: {type(time).__name__})")
+                return {'success': False, 'error': f'No slot available at {time}. Available times: {", ".join(available_times) if available_times else "none"}'}
             
             # Use transaction to prevent double-booking
             @firestore.transactional

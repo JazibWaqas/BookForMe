@@ -1,5 +1,5 @@
 """
-Verify the recent booking: Smash Padel Clifton, Dec 15, 2025, 12:00 PM
+Verify latest booking: Golden Court DHA, Dec 15, 2025, 11:00 AM
 """
 import asyncio
 import sys
@@ -13,26 +13,25 @@ if backend_dir not in sys.path:
 from app.firestore import firestore_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-async def verify_booking():
+async def verify():
     print("\n" + "=" * 70)
-    print("VERIFYING RECENT BOOKING STATUS")
+    print("VERIFYING SLOT STATUS IN DATABASE")
     print("=" * 70)
     print("\nLooking for:")
-    print("  Vendor: smash_padel_clifton")
+    print("  Vendor: golden_court_dha")
     print("  Date: 2025-12-15")
-    print("  Time: 12:00 (12 PM)")
+    print("  Time: 11:00 (11 AM)")
     print("\n" + "-" * 70)
     
     query = firestore_db.db.collection('slots')\
-        .where(filter=FieldFilter('vendor_id', '==', 'smash_padel_clifton'))\
+        .where(filter=FieldFilter('vendor_id', '==', 'golden_court_dha'))\
         .where(filter=FieldFilter('date', '==', '2025-12-15'))\
         .limit(50)
     
     docs = list(query.stream())
-    print(f"\nFound {len(docs)} slots for smash_padel_clifton on 2025-12-15\n")
+    print(f"\nFound {len(docs)} slots for golden_court_dha on 2025-12-15\n")
     
-    found_target = False
-    
+    found = False
     for doc in docs:
         data = doc.to_dict()
         start_time = data.get('start_time')
@@ -47,31 +46,27 @@ async def verify_booking():
         
         status = data.get('status', 'unknown')
         
-        if time_str == '12:00':
-            found_target = True
-            print(f">>> TARGET SLOT FOUND (12:00 PM):")
-            print(f"   Slot ID: {doc.id}")
-            print(f"   Status: {status.upper()}")
-            print(f"   Time: {time_str}")
-            print(f"   Vendor ID: {data.get('vendor_id', 'N/A')}")
-            print(f"   Date: {data.get('date', 'N/A')}")
+        if time_str == '11:00':
+            found = True
+            print(f">>> TARGET SLOT FOUND (11:00 AM):")
+            print(f"    Slot ID: {doc.id}")
+            print(f"    Status: {status.upper()}")
+            print(f"    Time: {time_str}")
+            print(f"    Price: Rs {data.get('price', 'N/A')}")
             
             if status == 'confirmed':
-                print(f"\n   ✅ [SUCCESS] STATUS IS CONFIRMED!")
-                print(f"   Customer Name: {data.get('customer_name', 'N/A')}")
-                print(f"   Customer Phone: {data.get('customer_phone', 'N/A')}")
-                print(f"   Booking Source: {data.get('booking_source', 'N/A')}")
-                print(f"   Updated At: {data.get('updated_at', 'N/A')}")
+                print(f"\n    ✅ SUCCESS! STATUS IS 'CONFIRMED'")
+                print(f"    Customer Name: {data.get('customer_name', 'N/A')}")
+                print(f"    Customer Phone: {data.get('customer_phone', 'N/A')}")
+                print(f"    Booking Source: {data.get('booking_source', 'N/A')}")
+                print(f"    Updated At: {data.get('updated_at', 'N/A')}")
             else:
-                print(f"\n   ❌ [FAILED] STATUS IS '{status.upper()}' (Expected: confirmed)")
-                print(f"   This means the booking was NOT written to database correctly!")
-            
+                print(f"\n    ❌ Status is '{status}' (Expected: confirmed)")
             print()
             break
     
-    if not found_target:
-        print("[X] 12:00 PM slot NOT FOUND!")
-        print("   Checking all slots for this date...")
+    if not found:
+        print("[!] 11:00 AM slot NOT FOUND. Showing all slots:")
         for doc in docs[:10]:
             data = doc.to_dict()
             start_time = data.get('start_time')
@@ -85,4 +80,4 @@ async def verify_booking():
     print("=" * 70)
 
 if __name__ == "__main__":
-    asyncio.run(verify_booking())
+    asyncio.run(verify())
