@@ -1,6 +1,8 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, collection, CollectionReference, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Vendor, Booking, Slot, Service, User } from '../types';
 
 const firebaseConfig = {
@@ -18,7 +20,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 const app: FirebaseApp = initializeApp(firebaseConfig);
 export const db: Firestore = getFirestore(app);
-export const auth: Auth = getAuth(app);
+export const auth: Auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+export const storage: FirebaseStorage = getStorage(app);
 
 enableIndexedDbPersistence(db).catch((err) => {
   if (err.code == 'failed-precondition') {

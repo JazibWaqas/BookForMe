@@ -3,11 +3,11 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { CATEGORIES } from '../../constants/categories';
+import { authService } from '../../services/auth';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -113,44 +113,58 @@ export default function RegisterScreen() {
 
     setLoading(true);
     
-    // Store user role and vendor data
-    await AsyncStorage.setItem('userRole', role);
-    if (role === 'vendor') {
-      const vendorData = {
-        businessName,
-        ownerName: name,
-        email,
-        phone,
-        cnic,
-        category,
-        address,
-        location,
-        description,
-      };
-      await AsyncStorage.setItem('vendorProfile', JSON.stringify(vendorData));
-    }
-    
-    setTimeout(() => {
+    try {
+      const result = await authService.register(email, password, name, phone, role);
+      
+      if (result.success && result.user && result.token) {
+        if (role === 'vendor') {
+          const vendorData = {
+            businessName,
+            ownerName: name,
+            email,
+            phone,
+            cnic,
+            category,
+            address,
+            location,
+            description,
+          };
+          await authService.createVendorProfile(vendorData, result.user.id);
+          
+          Alert.alert(
+            'Success!',
+            'Vendor account created successfully! Your account is pending verification.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.replace('/vendor-dashboard');
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Success!',
+            'Account created successfully!',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.replace('/(tabs)/home');
+                },
+              },
+            ]
+          );
+        }
+      } else {
+        Alert.alert('Registration Failed', result.error || 'Please check your information and try again.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Success!',
-        role === 'vendor' 
-          ? 'Vendor account created successfully! Your account is pending verification.'
-          : 'Account created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (role === 'vendor') {
-                router.replace('/vendor-dashboard');
-              } else {
-                router.replace('/(auth)/login');
-              }
-            },
-          },
-        ]
-      );
-    }, 1000);
+    }
   };
 
   return (

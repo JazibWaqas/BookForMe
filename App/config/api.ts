@@ -6,9 +6,10 @@
 // Get the local IP address for development (useful for device testing)
 // You can manually set this or use environment variables
 const getLocalIP = (): string => {
-  // For development, you can manually set your computer's IP
-  // Example: return '192.168.1.100';
-  return 'localhost';
+  // For development, use your computer's IP address if testing on physical device
+  // Or use 'localhost' if testing on emulator/simulator
+  // From your Expo output, your IP is: 192.168.100.67
+  return process.env.EXPO_PUBLIC_API_HOST || '192.168.100.67';
 };
 
 // Environment-based configuration
@@ -67,6 +68,16 @@ export const API_ENDPOINTS = {
     list: '/api/bookings',
   },
   
+  // Slots
+  slots: {
+    lock: (slotId: string) => `/api/slots/${slotId}/lock`,
+  },
+  
+  // Payments
+  payments: {
+    submit: '/api/payments',
+  },
+  
   // Health check
   health: '/health',
 };
@@ -75,4 +86,52 @@ export const API_ENDPOINTS = {
 export const buildApiUrl = (endpoint: string): string => {
   return `${API_BASE_URL}${endpoint}`;
 };
+
+// Create axios instance with base configuration
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to automatically add token
+apiClient.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error getting token for request:', error);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle 401 (token expired)
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear auth data
+      try {
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem('userRole');
+      } catch (storageError) {
+        console.error('Error clearing auth data:', storageError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 

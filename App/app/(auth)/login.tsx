@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { authService } from '../../services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -22,16 +23,51 @@ export default function LoginScreen() {
 
     setLoading(true);
     
-    setTimeout(async () => {
-      // Store user role in AsyncStorage
-      await AsyncStorage.setItem('userRole', role);
-      setLoading(false);
-      if (role === 'customer') {
-        router.replace('/(tabs)/home');
+    try {
+      const result = await authService.login(email, password);
+      
+      if (result.success && result.user && result.token) {
+        const userRole = result.user.role || 'customer';
+        
+        if (userRole === 'customer') {
+          router.replace('/(tabs)/home');
+        } else {
+          router.replace('/vendor-dashboard');
+        }
       } else {
-        router.replace('/vendor-dashboard');
+        Alert.alert('Login Failed', result.error || 'Please check your credentials and try again.');
       }
-    }, 1000);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    
+    try {
+      const result = await authService.loginWithGoogle();
+      
+      if (result.success && result.user && result.token) {
+        const userRole = result.user.role || 'customer';
+        
+        if (userRole === 'customer') {
+          router.replace('/(tabs)/home');
+        } else {
+          router.replace('/vendor-dashboard');
+        }
+      } else {
+        if (result.error !== 'Google Sign-In cancelled') {
+          Alert.alert('Google Sign-In Failed', result.error || 'Please try again.');
+        }
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -112,21 +148,12 @@ export default function LoginScreen() {
           <View style={styles.socialButtons}>
             <TouchableOpacity
               style={[styles.socialButton, styles.googleButton]}
-              onPress={async () => {
-                // TODO: Implement Google login
-                Alert.alert('Coming Soon', 'Google login will be available soon');
-              }}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || loading}
             >
-              <Text style={styles.socialButtonText}>🔵 Continue with Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.socialButton, styles.facebookButton]}
-              onPress={async () => {
-                // TODO: Implement Facebook login
-                Alert.alert('Coming Soon', 'Facebook login will be available soon');
-              }}
-            >
-              <Text style={styles.facebookButtonText}>📘 Continue with Facebook</Text>
+              <Text style={styles.socialButtonText}>
+                {googleLoading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
             </TouchableOpacity>
           </View>
 

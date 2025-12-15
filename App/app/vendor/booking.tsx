@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../services/firebase';
+import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { authService } from '../../services/auth';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -62,14 +67,45 @@ export default function BookingScreen() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleLockSlot = () => {
+  const handleLockSlot = async () => {
     if (!name || !phone || !email) {
       Alert.alert('Missing Info', 'Please fill in all customer details');
       return;
     }
 
-    // Lock the slot and move to payment
-    setStep('payment');
+    if (!slotId) {
+      Alert.alert('Error', 'Slot ID is missing');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user || !user.id) {
+        Alert.alert('Error', 'Please login to continue');
+        router.replace('/(auth)/login');
+        return;
+      }
+
+      const response = await apiClient.post(`/api/slots/${slotId}/lock`);
+
+      if (response.data.success) {
+        const expiresInMinutes = response.data.expires_in_minutes || 10;
+        setCountdown(expiresInMinutes * 60);
+        setStep('payment');
+      } else {
+        Alert.alert('Error', response.data.error || 'Failed to lock slot. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error locking slot:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.detail || error.message || 'Failed to lock slot. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pickImage = async () => {
@@ -99,36 +135,66 @@ export default function BookingScreen() {
       return;
     }
 
-    // Simulate upload and AI verification
+    if (!slotId) {
+      Alert.alert('Error', 'Slot ID is missing');
+      return;
+    }
+
     setVerificationStatus('uploading');
+    setLoading(true);
 
-    setTimeout(() => {
-      setVerificationStatus('analyzing');
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user || !user.id) {
+        Alert.alert('Error', 'Please login to continue');
+        router.replace('/(auth)/login');
+        return;
+      }
 
-      setTimeout(() => {
-        // Simulate AI verification result (80% success rate for demo)
-        const isVerified = Math.random() > 0.2;
-        setVerificationStatus(isVerified ? 'verified' : 'rejected');
+      const filename = `payments/${user.id}/${slotId}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
 
-        if (isVerified) {
-          setTimeout(() => {
-            setStep('confirmed');
-          }, 1500);
-        }
-      }, 2000);
-    }, 1000);
+      const response = await fetch(screenshot);
+      const blob = await response.blob();
+
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const paymentResponse = await apiClient.post('/api/payments', {
+        slot_id: slotId,
+        screenshot_url: downloadURL,
+        amount_claimed: total
+      });
+
+      if (paymentResponse.data.success) {
+        setVerificationStatus('verified');
+        setTimeout(() => {
+          setStep('confirmed');
+        }, 1500);
+      } else {
+        setVerificationStatus('rejected');
+        Alert.alert('Error', paymentResponse.data.error || 'Failed to submit payment. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error uploading payment:', error);
+      setVerificationStatus('rejected');
+      Alert.alert(
+        'Error',
+        error.response?.data?.detail || error.message || 'Failed to upload payment. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusMessage = () => {
     switch (verificationStatus) {
       case 'uploading':
         return { text: 'Uploading screenshot...', color: COLORS.textMuted };
-      case 'analyzing':
-        return { text: 'AI analyzing payment...', color: COLORS.primary };
       case 'verified':
-        return { text: 'Payment verified! ✓', color: COLORS.success };
+        return { text: 'Payment uploaded! Booking confirmed.', color: COLORS.success };
       case 'rejected':
-        return { text: 'Verification failed. Please upload a clearer screenshot.', color: COLORS.error };
+        return { text: 'Upload failed. Please try again.', color: COLORS.error };
       default:
         return { text: 'Upload your payment screenshot', color: COLORS.textMuted };
     }

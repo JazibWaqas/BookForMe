@@ -1,87 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { getUserBookings } from '../../services/bookings';
+import { Booking } from '../../types';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { format } from 'date-fns';
 
 type BookingStatus = 'locked' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
-
-interface Booking {
-    id: string;
-    vendorName: string;
-    category: string;
-    date: string;
-    time: string;
-    amount: number;
-    status: BookingStatus;
-    lockExpiresAt?: Date;
-    paymentUploaded?: boolean;
-}
 
 export default function MyBookingsScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
     const [countdown, setCountdown] = useState<{ [key: string]: number }>({});
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock bookings data
-    const [bookings] = useState<Booking[]>([
-        {
-            id: 'BK001',
-            vendorName: 'Elite Padel Club',
-            category: 'Padel Court',
-            date: 'Dec 1, 2024',
-            time: '6:00 PM',
-            amount: 1500,
-            status: 'locked',
-            lockExpiresAt: new Date(Date.now() + 8 * 60 * 1000), // 8 minutes from now
-            paymentUploaded: false,
-        },
-        {
-            id: 'BK002',
-            vendorName: 'City Sports Complex',
-            category: 'Futsal Court',
-            date: 'Dec 2, 2024',
-            time: '8:00 PM',
-            amount: 2000,
-            status: 'pending',
-            paymentUploaded: true,
-        },
-        {
-            id: 'BK003',
-            vendorName: 'Golden Court',
-            category: 'Padel Court',
-            date: 'Dec 3, 2024',
-            time: '7:00 PM',
-            amount: 1800,
-            status: 'confirmed',
-        },
-        {
-            id: 'BK004',
-            vendorName: 'DHA Sports Arena',
-            category: 'Cricket Pitch',
-            date: 'Nov 25, 2024',
-            time: '5:00 PM',
-            amount: 3000,
-            status: 'completed',
-        },
-    ]);
+    useEffect(() => {
+        loadBookings();
+    }, []);
 
-    // Countdown timer for locked slots
+    const loadBookings = async () => {
+        setLoading(true);
+        try {
+            const userBookings = await getUserBookings();
+            setBookings(userBookings);
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const interval = setInterval(() => {
             const newCountdown: { [key: string]: number } = {};
-
             bookings.forEach((booking) => {
-                if (booking.status === 'locked' && booking.lockExpiresAt) {
-                    const remaining = Math.max(0, Math.floor((booking.lockExpiresAt.getTime() - Date.now()) / 1000));
-                    newCountdown[booking.id] = remaining;
+                if (booking.status === 'locked') {
+                    newCountdown[booking.id] = 600;
                 }
             });
-
             setCountdown(newCountdown);
         }, 1000);
-
         return () => clearInterval(interval);
     }, [bookings]);
 
@@ -91,7 +52,7 @@ export default function MyBookingsScreen() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const getStatusColor = (status: BookingStatus) => {
+    const getStatusColor = (status: string) => {
         switch (status) {
             case 'locked':
                 return COLORS.warning;
@@ -108,7 +69,7 @@ export default function MyBookingsScreen() {
         }
     };
 
-    const getStatusText = (status: BookingStatus) => {
+    const getStatusText = (status: string) => {
         switch (status) {
             case 'locked':
                 return 'SLOT LOCKED';
@@ -122,6 +83,30 @@ export default function MyBookingsScreen() {
                 return 'CANCELLED';
             default:
                 return (status as string).toUpperCase();
+        }
+    };
+
+    const formatDate = (dateStr: string) => {
+        try {
+            const date = new Date(dateStr);
+            return format(date, 'MMM d, yyyy');
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const formatTime = (timeStr: string) => {
+        try {
+            if (timeStr.includes(':')) {
+                const [hours, minutes] = timeStr.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                return `${displayHour}:${minutes} ${ampm}`;
+            }
+            return timeStr;
+        } catch {
+            return timeStr;
         }
     };
 
@@ -166,7 +151,12 @@ export default function MyBookingsScreen() {
             </View>
 
             <ScrollView style={styles.content}>
-                {displayBookings.length === 0 ? (
+                {loading ? (
+                    <View style={styles.emptyState}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={styles.emptyText}>Loading bookings...</Text>
+                    </View>
+                ) : displayBookings.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyIcon}>📅</Text>
                         <Text style={styles.emptyText}>No {activeTab} bookings</Text>
@@ -208,37 +198,37 @@ export default function MyBookingsScreen() {
                             )}
 
                             {/* Booking Details */}
-                            <Text style={styles.vendorName}>{booking.vendorName}</Text>
-                            <Text style={styles.category}>{booking.category}</Text>
+                            <Text style={styles.vendorName}>{booking.vendor?.business_name || booking.vendor?.name || 'Unknown Vendor'}</Text>
+                            <Text style={styles.category}>{booking.vendor?.category || 'Sports Court'}</Text>
 
                             <View style={styles.detailsRow}>
                                 <View style={styles.detailItem}>
                                     <Text style={styles.detailLabel}>Date</Text>
-                                    <Text style={styles.detailValue}>{booking.date}</Text>
+                                    <Text style={styles.detailValue}>{formatDate(booking.date)}</Text>
                                 </View>
                                 <View style={styles.detailItem}>
                                     <Text style={styles.detailLabel}>Time</Text>
-                                    <Text style={styles.detailValue}>{booking.time}</Text>
+                                    <Text style={styles.detailValue}>{formatTime(booking.time || booking.start_time || '')}</Text>
                                 </View>
                                 <View style={styles.detailItem}>
                                     <Text style={styles.detailLabel}>Amount</Text>
-                                    <Text style={styles.amountValue}>PKR {booking.amount}</Text>
+                                    <Text style={styles.amountValue}>PKR {booking.amount || 0}</Text>
                                 </View>
                             </View>
 
                             {/* Action Buttons */}
                             <View style={styles.actions}>
-                                {booking.status === 'locked' && !booking.paymentUploaded && (
+                                {booking.status === 'locked' && (
                                     <Button
-                                        title="Upload Payment"
+                                        title="Complete Payment"
                                         onPress={() => router.push({
-                                            pathname: '/payment/upload',
+                                            pathname: '/vendor/booking',
                                             params: {
-                                                bookingId: booking.id,
-                                                vendorName: booking.vendorName,
-                                                amount: booking.amount.toString(),
+                                                slotId: booking.slot_id,
+                                                vendorId: booking.vendor_id,
+                                                vendorName: booking.vendor?.business_name || 'Vendor',
                                                 date: booking.date,
-                                                time: booking.time,
+                                                time: booking.time || booking.start_time || '',
                                             },
                                         })}
                                         variant="secondary"

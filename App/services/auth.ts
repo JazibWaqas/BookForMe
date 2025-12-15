@@ -1,12 +1,15 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { signInWithCredential, GoogleAuthProvider, signOut as firebaseSignOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { User as UserType } from '../types';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Import API configuration
-import { API_BASE_URL, buildApiUrl, API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, apiClient } from '../config/api';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export type UserData = UserType;
 
@@ -22,130 +25,163 @@ class AuthService {
 
   async register(email: string, password: string, name: string, phone: string, role: 'customer' | 'vendor' = 'customer'): Promise<AuthResponse> {
     try {
-      // Option 1: Use Firebase Auth directly
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-
-      // Option 2: Also register with backend API for additional user data
-      try {
-        const response = await axios.post(buildApiUrl(API_ENDPOINTS.auth.register), {
-          email,
-          password,
-          name,
-          phone,
-          role
-        });
-
-        if (response.data.success) {
-          // Store token and user data
-          await this.setToken(response.data.token);
-          await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-          await AsyncStorage.setItem('userRole', role);
-          
-          return {
-            success: true,
-            token: response.data.token,
-            user: response.data.user
-          };
-        }
-      } catch (apiError: any) {
-        // If backend registration fails, still allow Firebase auth
-        console.warn('Backend registration failed, using Firebase only:', apiError.message);
+      if (!email || !password || !name || !phone) {
+        return {
+          success: false,
+          error: 'All fields are required'
+        };
       }
 
-      // Fallback: Use Firebase Auth only
-      const userData: UserData = {
-        id: firebaseUser.uid,
-        email: firebaseUser.email || email,
+      if (password.length < 6) {
+        return {
+          success: false,
+          error: 'Password must be at least 6 characters'
+        };
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return {
+          success: false,
+          error: 'Please enter a valid email address'
+        };
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.auth.register, {
+        email,
+        password,
         name,
         phone,
-        role,
-        created_at: new Date().toISOString()
-      };
+        role
+      });
 
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      await AsyncStorage.setItem('userRole', role);
-
-      return {
-        success: true,
-        user: userData
-      };
+      if (response.data.success) {
+        await this.setToken(response.data.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+        await AsyncStorage.setItem('userRole', response.data.user.role || role);
+        
+        return {
+          success: true,
+          token: response.data.token,
+          user: response.data.user
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.error || 'Registration failed'
+        };
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
+      
+      if (error.response?.status === 400) {
+        return {
+          success: false,
+          error: error.response.data?.detail || error.response.data?.error || 'Registration failed. Please check your information.'
+        };
+      }
+      
+      if (error.response?.status === 409 || error.message?.includes('already')) {
+        return {
+          success: false,
+          error: 'Email or phone number already registered'
+        };
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        };
+      }
+
+      const errorMessage = error.response?.data?.detail || error.response?.data?.error || error.message || 'Registration failed. Please try again.';
       return {
         success: false,
-        error: error.message || 'Registration failed'
+        error: typeof errorMessage === 'string' ? errorMessage : String(errorMessage)
       };
     }
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      // Option 1: Use backend API (preferred for full user data)
-      try {
-        const response = await axios.post(buildApiUrl(API_ENDPOINTS.auth.login), {
-          email,
-          password
-        });
-
-        if (response.data.success) {
-          await this.setToken(response.data.token);
-          await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-          await AsyncStorage.setItem('userRole', response.data.user.role);
-          
-          // Also sign in with Firebase Auth for consistency
-          try {
-            await signInWithEmailAndPassword(auth, email, password);
-          } catch (firebaseError) {
-            console.warn('Firebase sign-in failed, continuing with backend auth:', firebaseError);
-          }
-
-          return {
-            success: true,
-            token: response.data.token,
-            user: response.data.user
-          };
-        }
-      } catch (apiError: any) {
-        // Fallback to Firebase Auth if backend is unavailable
-        console.warn('Backend login failed, trying Firebase:', apiError.message);
+      if (!email || !password) {
+        return {
+          success: false,
+          error: 'Email and password are required'
+        };
       }
 
-      // Option 2: Fallback to Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      const response = await apiClient.post(API_ENDPOINTS.auth.login, {
+        email,
+        password
+      });
 
-      // Get user data from Firestore
-      const userData = await this.getUserFromFirestore(firebaseUser.uid);
-      
-      if (userData) {
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        await AsyncStorage.setItem('userRole', userData.role);
+      if (response.data.success) {
+        await this.setToken(response.data.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+        await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
+
+        return {
+          success: true,
+          token: response.data.token,
+          user: response.data.user
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.error || 'Login failed'
+        };
       }
-
-      return {
-        success: true,
-        user: userData || {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: '',
-          phone: '',
-          role: 'customer',
-          created_at: new Date().toISOString()
-        }
-      };
     } catch (error: any) {
       console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Request data:', { email, password: '***' });
+      
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Invalid email or password'
+        };
+      }
+
+      if (error.response?.status === 422) {
+        const validationError = error.response?.data?.detail || error.response?.data;
+        return {
+          success: false,
+          error: Array.isArray(validationError) 
+            ? validationError.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ')
+            : typeof validationError === 'string' 
+              ? validationError 
+              : 'Invalid request format. Please check your email and password.'
+        };
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        };
+      }
+
+      const errorMessage = error.response?.data?.detail || error.response?.data?.error || error.message || 'Login failed. Please try again.';
       return {
         success: false,
-        error: error.message || 'Login failed'
+        error: typeof errorMessage === 'string' ? errorMessage : String(errorMessage)
       };
     }
   }
 
   async loginWithPhone(phone: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await axios.post(buildApiUrl(API_ENDPOINTS.auth.loginPhone), {
+      if (!phone || !password) {
+        return {
+          success: false,
+          error: 'Phone and password are required'
+        };
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.auth.loginPhone, {
         phone,
         password
       });
@@ -153,7 +189,7 @@ class AuthService {
       if (response.data.success) {
         await this.setToken(response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-        await AsyncStorage.setItem('userRole', response.data.user.role);
+        await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
         
         return {
           success: true,
@@ -168,16 +204,196 @@ class AuthService {
       };
     } catch (error: any) {
       console.error('Phone login error:', error);
+      
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Invalid phone or password'
+        };
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        };
+      }
+
       return {
         success: false,
-        error: error.response?.data?.detail || error.message || 'Login failed'
+        error: error.response?.data?.detail || error.response?.data?.error || error.message || 'Login failed'
+      };
+    }
+  }
+
+  async loginWithGoogle(): Promise<AuthResponse> {
+    try {
+      // Try env variable first, fallback to hardcoded value
+      const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '330764738815-dq8dstvtsruk6rd25tpmm32632lm1igo.apps.googleusercontent.com';
+      
+      console.log('Google Client ID:', clientId ? `${clientId.substring(0, 20)}...` : 'NOT SET');
+      
+      if (!clientId) {
+        return {
+          success: false,
+          error: 'Google Sign-In not configured.'
+        };
+      }
+
+      const redirectUri = AuthSession.makeRedirectUri({
+        useProxy: true,
+      });
+
+      const discovery = {
+        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenEndpoint: 'https://oauth2.googleapis.com/token',
+        revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+      };
+
+      const request = new AuthSession.AuthRequest({
+        clientId: clientId,
+        scopes: ['openid', 'profile', 'email'],
+        responseType: AuthSession.ResponseType.IdToken,
+        redirectUri: redirectUri,
+        usePKCE: false,
+      });
+
+      const result = await request.promptAsync(discovery);
+
+      if (result.type !== 'success') {
+        console.error('Google Sign-In result:', result);
+        if (result.type === 'cancel') {
+          return {
+            success: false,
+            error: 'Google Sign-In cancelled'
+          };
+        }
+        const errorMsg = result.error?.message || result.error?.code || 'Unknown error';
+        return {
+          success: false,
+          error: `Google Sign-In failed: ${errorMsg}`
+        };
+      }
+
+      const { id_token } = result.params;
+      
+      if (!id_token) {
+        return {
+          success: false,
+          error: 'Failed to get Google authentication token'
+        };
+      }
+
+      const credential = GoogleAuthProvider.credential(id_token);
+      const firebaseUserCredential = await signInWithCredential(auth, credential);
+      const firebaseUser = firebaseUserCredential.user;
+
+      if (!firebaseUser.email) {
+        return {
+          success: false,
+          error: 'Google account does not have an email address'
+        };
+      }
+
+      const googleUserInfo = {
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || '',
+        phone: firebaseUser.phoneNumber || '',
+      };
+
+      let backendUser;
+      let token;
+
+      const generateSecurePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        let password = '';
+        for (let i = 0; i < 32; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      };
+
+      const securePassword = generateSecurePassword();
+      const emailHash = googleUserInfo.email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const phoneNumber = googleUserInfo.phone || `+92${3000000000 + (emailHash % 7000000000)}`;
+
+      try {
+        const registerResponse = await apiClient.post(API_ENDPOINTS.auth.register, {
+          email: googleUserInfo.email,
+          password: securePassword,
+          name: googleUserInfo.name || 'Google User',
+          phone: phoneNumber,
+          role: 'customer'
+        });
+
+        if (registerResponse.data.success) {
+          backendUser = registerResponse.data.user;
+          token = registerResponse.data.token;
+        } else {
+          const errorMsg = registerResponse.data.error || '';
+          if (errorMsg.includes('already') || errorMsg.includes('registered') || errorMsg.includes('Email already')) {
+            return {
+              success: false,
+              error: 'An account with this email already exists. Please use email/password login instead.'
+            };
+          }
+          return {
+            success: false,
+            error: errorMsg || 'Failed to create account'
+          };
+        }
+      } catch (registerError: any) {
+        const errorDetail = registerError.response?.data?.detail || '';
+        if (registerError.response?.status === 400 && (errorDetail.includes('already') || errorDetail.includes('registered') || errorDetail.includes('Email already'))) {
+          return {
+            success: false,
+            error: 'An account with this email already exists. Please use email/password login instead.'
+          };
+        }
+        return {
+          success: false,
+          error: errorDetail || registerError.response?.data?.error || 'Failed to create account with Google'
+        };
+      }
+
+      if (token && backendUser) {
+        await this.setToken(token);
+        await AsyncStorage.setItem('userData', JSON.stringify(backendUser));
+        await AsyncStorage.setItem('userRole', backendUser.role || 'customer');
+
+        return {
+          success: true,
+          token: token,
+          user: backendUser
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Failed to authenticate with backend'
+      };
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        };
+      }
+
+      const errorMessage = error.message || error.error?.message || 'Google Sign-In failed. Please try again.';
+      return {
+        success: false,
+        error: typeof errorMessage === 'string' ? errorMessage : String(errorMessage)
       };
     }
   }
 
   async logout(): Promise<void> {
     try {
-      await signOut(auth);
+      await firebaseSignOut(auth);
       await this.clearToken();
       await AsyncStorage.removeItem('userData');
       await AsyncStorage.removeItem('userRole');
@@ -196,6 +412,33 @@ class AuthService {
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
+    }
+  }
+
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return false;
+      }
+
+      try {
+        const response = await apiClient.get(API_ENDPOINTS.auth.me);
+        if (response.data.success && response.data.user) {
+          await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+          return true;
+        }
+        return false;
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          await this.logout();
+          return false;
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      return false;
     }
   }
 

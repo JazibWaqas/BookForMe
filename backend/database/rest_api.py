@@ -5,8 +5,13 @@ Handles REST API endpoints for frontend integration
 
 import logging
 from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
+from pydantic import BaseModel
+from google.cloud import firestore
 from database.availability_service import AvailabilityService
+from database.slot_service import SlotService
+from database.firestore_v2 import FirestoreV2
+from database.auth_service import AuthService
 from app.firestore import firestore_db
 
 logger = logging.getLogger(__name__)
@@ -16,6 +21,24 @@ router = APIRouter(prefix="/api", tags=["REST API"])
 
 # Initialize services
 availability_service = AvailabilityService()
+slot_service = SlotService(firestore_db.db)
+firestore_v2 = FirestoreV2(firestore_db.db)
+auth_service = AuthService(firestore_db.db)
+
+
+def get_current_user_id(authorization: str = Header(None)) -> str:
+    """Extract user_id from JWT token"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = auth_service.verify_token(token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return payload.get("sub")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 
 @router.get("/vendors")
@@ -288,3 +311,169 @@ async def create_availability_slots(vendor_id: str, date: str, slots: List[Dict[
     except Exception as e:
         logger.error(f"Error creating slots: {e}")
         raise HTTPException(status_code=500, detail="Failed to create slots")
+
+
+@router.post("/slots/{slot_id}/lock")
+async def lock_slot(slot_id: str, user_id: str = Depends(get_current_user_id)):
+    """
+    Lock a slot for 10 minutes
+    
+    Args:
+        slot_id: Slot ID to lock
+        user_id: User ID (from JWT token)
+        
+    Returns:
+        Lock confirmation with expiry time
+    """
+    try:
+        logger.info(f"Locking slot {slot_id} for user {user_id}")
+        
+        result = slot_service.lock_slot(slot_id, user_id, "app")
+        
+        if result['success']:
+            return {
+                "success": True,
+                "slot_id": slot_id,
+                "expires_in_minutes": result.get('expires_in_minutes', 10),
+                "hold_expires_at": result.get('hold_expires_at').isoformat() if result.get('hold_expires_at') else None
+            }
+        else:
+            raise HTTPException(status_code=400, detail=result.get('error', 'Failed to lock slot'))
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error locking slot: {e}")
+        raise HTTPException(status_code=500, detail="Failed to lock slot")
+
+
+class PaymentRequest(BaseModel):
+    slot_id: str
+    screenshot_url: str
+    amount_claimed: Optional[float] = None
+
+
+@router.post("/payments")
+async def submit_payment(payment_data: PaymentRequest, user_id: str = Depends(get_current_user_id)):
+    """
+    Submit payment screenshot and confirm booking
+    
+    Args:
+        payment_data: Payment information (slot_id, screenshot_url, amount_claimed)
+        user_id: User ID (from JWT token)
+        
+    Returns:
+        Payment confirmation
+    """
+    try:
+        logger.info(f"Submitting payment for slot {payment_data.slot_id} by user {user_id}")
+        
+        slot = await firestore_v2.get_slot(payment_data.slot_id)
+        if not slot:
+            raise HTTPException(status_code=404, detail="Slot not found")
+        
+        if slot.get('user_id') != user_id:
+            raise HTTPException(status_code=403, detail="This slot is not locked by you")
+        
+        if slot.get('status') != 'locked':
+            raise HTTPException(status_code=400, detail=f"Slot is not locked (current: {slot.get('status')})")
+        
+        vendor_id = slot.get('vendor_id')
+        if not vendor_id:
+            raise HTTPException(status_code=400, detail="Slot has no vendor_id")
+        
+        payment_doc = {
+            'slot_id': payment_data.slot_id,
+            'user_id': user_id,
+            'vendor_id': vendor_id,
+            'screenshot_url': payment_data.screenshot_url,
+            'amount_claimed': payment_data.amount_claimed,
+            'status': 'pending',
+            'created_at': firestore.SERVER_TIMESTAMP
+        }
+        
+        payment_ref = firestore_db.db.collection('payments').add(payment_doc)
+        payment_id = payment_ref[1].id
+        
+        payment_result = slot_service.submit_payment(payment_data.slot_id, user_id, payment_id)
+        
+        if not payment_result['success']:
+            raise HTTPException(status_code=400, detail=payment_result.get('error', 'Failed to submit payment'))
+        
+        confirm_result = slot_service.confirm_booking(payment_data.slot_id, vendor_id)
+        
+        if not confirm_result['success']:
+            logger.warning(f"Payment submitted but confirmation failed: {confirm_result.get('error')}")
+        
+        return {
+            "success": True,
+            "payment_id": payment_id,
+            "slot_id": payment_data.slot_id,
+            "status": "confirmed",
+            "message": "Payment submitted and booking confirmed"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit payment")
+
+
+@router.get("/bookings")
+async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
+    """
+    Get all bookings for the current user
+    
+    Args:
+        user_id: User ID (from JWT token)
+        
+    Returns:
+        List of user bookings
+    """
+    try:
+        logger.info(f"Getting bookings for user {user_id}")
+        
+        slots_query = firestore_db.db.collection('slots').where('user_id', '==', user_id)
+        slots_docs = slots_query.stream()
+        
+        bookings = []
+        for doc in slots_docs:
+            slot_data = doc.to_dict()
+            slot_data['id'] = doc.id
+            
+            booking_statuses = ['locked', 'pending', 'confirmed', 'completed', 'cancelled']
+            if slot_data.get('status') in booking_statuses:
+                vendor = None
+                if slot_data.get('vendor_id'):
+                    vendor = await firestore_v2.get_vendor(slot_data.get('vendor_id'))
+                
+                payment = None
+                if slot_data.get('payment_id'):
+                    payment_doc = await firestore_db.db.collection('payments').document(slot_data.get('payment_id')).get()
+                    if payment_doc.exists:
+                        payment = payment_doc.to_dict()
+                
+                booking = {
+                    'id': doc.id,
+                    'slot_id': doc.id,
+                    'vendor_id': slot_data.get('vendor_id'),
+                    'date': slot_data.get('date'),
+                    'start_time': slot_data.get('start_time'),
+                    'end_time': slot_data.get('end_time'),
+                    'status': slot_data.get('status'),
+                    'vendor': vendor,
+                    'payment': payment,
+                    'created_at': slot_data.get('created_at')
+                }
+                bookings.append(booking)
+        
+        return {
+            "success": True,
+            "bookings": bookings,
+            "count": len(bookings)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user bookings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get bookings")
