@@ -3,40 +3,52 @@ import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, I
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Vendor } from '../../types';
-import { getSportsVendors, getVendorsByCategory } from '../../services/vendors';
-import { CATEGORIES } from '../../constants/categories';
+import { getVendors, getVendorsByCategory } from '../../services/vendors';
+import { getCategories } from '../../services/services';
+import { Category } from '../../types';
 import VendorCard from '../../components/VendorCard';
 import { COLORS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [padelVendors, setPadelVendors] = useState<Vendor[]>([]);
   const [futsalVendors, setFutsalVendors] = useState<Vendor[]>([]);
+  const [cricketVendors, setCricketVendors] = useState<Vendor[]>([]);
+  const [pickleballVendors, setPickleballVendors] = useState<Vendor[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const loadVendors = async () => {
+  const loadData = async () => {
     setLoading(true);
-    const [all, padel, futsal] = await Promise.all([
-      getSportsVendors(),
-      getVendorsByCategory('Padel Court'),
-      getVendorsByCategory('Futsal Court'),
-    ]);
-    setAllVendors(all);
-    setPadelVendors(padel);
-    setFutsalVendors(futsal);
-    setLoading(false);
+    try {
+      const [cats, padel, futsal, cricket, pickleball] = await Promise.all([
+        getCategories(),
+        getVendorsByCategory('padel'),
+        getVendorsByCategory('futsal'),
+        getVendorsByCategory('cricket'),
+        getVendorsByCategory('pickleball'),
+      ]);
+      setCategories(cats);
+      setPadelVendors(padel);
+      setFutsalVendors(futsal);
+      setCricketVendors(cricket);
+      setPickleballVendors(pickleball);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadVendors();
+    loadData();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadVendors();
+    await loadData();
     setRefreshing(false);
   };
 
@@ -88,13 +100,14 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesScroll}
           >
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={styles.categoryCard}
                 onPress={() => router.push(`/category/${cat.id}`)}
               >
                 <View style={styles.categoryContent}>
+                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
                   <Text style={styles.categoryName}>{cat.name}</Text>
                   <Text style={styles.categoryCount}>{cat.count} venues</Text>
                   <View style={styles.categoryArrow}>
@@ -148,6 +161,60 @@ export default function HomeScreen() {
               contentContainerStyle={styles.vendorsScroll}
             >
               {futsalVendors.slice(0, 5).map((vendor) => (
+                <View key={vendor.id} style={styles.vendorCardWrapper}>
+                  <VendorCard
+                    vendor={vendor}
+                    onPress={() => router.push(`/vendor/${vendor.id}`)}
+                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Cricket Nets - Horizontal Scroll */}
+        {cricketVendors.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Cricket Nets</Text>
+              <TouchableOpacity onPress={() => router.push('/category/cricket')}>
+                <Text style={styles.viewAll}>View All →</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.vendorsScroll}
+            >
+              {cricketVendors.slice(0, 5).map((vendor) => (
+                <View key={vendor.id} style={styles.vendorCardWrapper}>
+                  <VendorCard
+                    vendor={vendor}
+                    onPress={() => router.push(`/vendor/${vendor.id}`)}
+                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Pickleball Courts - Horizontal Scroll */}
+        {pickleballVendors.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Pickleball Courts</Text>
+              <TouchableOpacity onPress={() => router.push('/category/pickleball')}>
+                <Text style={styles.viewAll}>View All →</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.vendorsScroll}
+            >
+              {pickleballVendors.slice(0, 5).map((vendor) => (
                 <View key={vendor.id} style={styles.vendorCardWrapper}>
                   <VendorCard
                     vendor={vendor}
@@ -302,6 +369,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     justifyContent: 'space-between',
+  },
+  categoryIcon: {
+    fontSize: 24,
+    marginBottom: 4,
   },
   categoryName: {
     fontSize: 16,

@@ -12,7 +12,9 @@ interface VendorCardProps {
 }
 
 export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardProps) {
-  const imageUrl = getCourtImage(vendor.category, parseInt(vendor.id, 36) % 4);
+  const vendorName = vendor.name || vendor.business_name || 'Unknown';
+  const vendorArea = vendor.area || vendor.location || '';
+  const imageUrl = getCourtImage(vendor.category || 'padel', parseInt(vendor.id, 36) % 4);
   
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
@@ -24,8 +26,8 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={1}>{vendor.business_name}</Text>
-            <Text style={styles.meta}>{vendor.category} • {vendor.location}</Text>
+            <Text style={styles.name} numberOfLines={1}>{vendorName}</Text>
+            <Text style={styles.meta}>{vendorArea}</Text>
           </View>
           {vendor.rating && (
             <View style={styles.rating}>

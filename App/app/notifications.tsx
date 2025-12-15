@@ -82,7 +82,7 @@ export default function NotificationsScreen() {
         {notifications.map((notification) => (
           <Card
             key={notification.id}
-            style={[styles.notificationCard, !notification.read && styles.notificationCardUnread]}
+            style={StyleSheet.flatten([styles.notificationCard, !notification.read && styles.notificationCardUnread])}
           >
             <View style={styles.notificationRow}>
               <View style={styles.notificationContent}>

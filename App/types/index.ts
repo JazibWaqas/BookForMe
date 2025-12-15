@@ -2,27 +2,37 @@
 
 export interface Vendor {
   id: string;
-  business_name: string;
-  category: string;
-  location: string;
-  address: string;
+  name: string;
+  area: string;
+  address?: string;
   phone: string;
-  email: string;
-  whatsapp_connected: boolean;
+  email?: string;
+  whatsapp_number?: string;
+  whatsapp_connected?: boolean;
   whatsapp_phone?: string;
-  sheets_connected: boolean;
+  sheets_connected?: boolean;
   sheets_id?: string;
   operating_hours?: OperatingHours;
-  created_at: string;
+  created_at?: string;
   images?: string[];
   rating?: number;
   review_count?: number;
   price_range?: string;
   description?: string;
   amenities?: string[];
+  category?: string;
+  location?: string;
+  business_name?: string;
 }
 
 export interface OperatingHours {
+  mon?: { open: string; close: string };
+  tue?: { open: string; close: string };
+  wed?: { open: string; close: string };
+  thu?: { open: string; close: string };
+  fri?: { open: string; close: string };
+  sat?: { open: string; close: string };
+  sun?: { open: string; close: string };
   monday?: { open: string; close: string };
   tuesday?: { open: string; close: string };
   wednesday?: { open: string; close: string };
@@ -35,10 +45,19 @@ export interface OperatingHours {
 export interface Service {
   id: string;
   vendor_id: string;
-  service_name: string;
-  duration_minutes: number;
-  price: number;
+  service_name?: string;
+  name?: string;
+  sport_type: 'padel' | 'futsal' | 'cricket' | 'pickleball';
+  duration_min?: number;
+  duration_minutes?: number;
+  pricing?: {
+    base: number;
+    peak?: number;
+    discount?: number;
+  };
+  price?: number;
   description?: string;
+  active?: boolean;
 }
 
 export interface Slot {

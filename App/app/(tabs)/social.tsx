@@ -120,7 +120,7 @@ export default function SocialScreen() {
                 <TouchableOpacity style={styles.postActionButton}>
                   <Text style={styles.postActionText}>📍 Location</Text>
                 </TouchableOpacity>
-                <Button title="Post" variant="secondary" style={styles.postButton} />
+                <Button title="Post" variant="secondary" style={styles.postButton} onPress={() => {}} />
               </View>
             </Card>
 

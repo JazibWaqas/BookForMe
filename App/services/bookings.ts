@@ -11,7 +11,11 @@ export const getAvailableSlots = async (vendorId: string, date: string): Promise
       where('status', '==', 'available')
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Slot));
+    return snapshot.docs.map(docSnapshot => {
+      const data = docSnapshot.data();
+      const { id: _, ...dataWithoutId } = data;
+      return { id: docSnapshot.id, ...dataWithoutId } as Slot;
+    });
   } catch (error) {
     console.error('Error fetching available slots:', error);
     return [];
@@ -22,7 +26,11 @@ export const getUserBookings = async (userPhone: string): Promise<Booking[]> => 
   try {
     const q = query(bookingsCollection, where('customer_phone', '==', userPhone));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
+    return snapshot.docs.map(docSnapshot => {
+      const data = docSnapshot.data();
+      const { id: _, ...dataWithoutId } = data;
+      return { id: docSnapshot.id, ...dataWithoutId } as Booking;
+    });
   } catch (error) {
     console.error('Error fetching user bookings:', error);
     return [];
@@ -31,11 +39,12 @@ export const getUserBookings = async (userPhone: string): Promise<Booking[]> => 
 
 export const createBooking = async (bookingData: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<string | null> => {
   try {
+    const { id, ...dataWithoutId } = bookingData as any;
     const docRef = await addDoc(bookingsCollection, {
-      ...bookingData,
+      ...dataWithoutId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    });
+    } as any);
     return docRef.id;
   } catch (error) {
     console.error('Error creating booking:', error);

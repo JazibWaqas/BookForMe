@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Vendor } from '../../types';
-import { getSportsVendors, getVendorsByCategory } from '../../services/vendors';
+import { getVendorsByCategory } from '../../services/vendors';
 import VendorCard from '../../components/VendorCard';
 import { COLORS } from '../../constants/colors';
 
@@ -19,18 +19,14 @@ export default function CategoryListingScreen() {
 
   const loadVendors = async () => {
     setLoading(true);
-    let data: Vendor[] = [];
-    
-    if (category === 'padel') {
-      data = await getVendorsByCategory('Padel Court');
-    } else if (category === 'futsal') {
-      data = await getVendorsByCategory('Futsal Court');
-    } else {
-      data = await getSportsVendors();
+    try {
+      const data = await getVendorsByCategory(category || '');
+      setVendors(data);
+    } catch (error) {
+      console.error('Error loading vendors:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setVendors(data);
-    setLoading(false);
   };
 
   return (
@@ -45,7 +41,11 @@ export default function CategoryListingScreen() {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.title}>
-              {category === 'padel' ? 'Padel Courts' : category === 'futsal' ? 'Futsal Courts' : 'Sports Courts'}
+              {category === 'padel' ? 'Padel Courts' : 
+               category === 'futsal' ? 'Futsal Courts' : 
+               category === 'cricket' ? 'Cricket Nets' :
+               category === 'pickleball' ? 'Pickleball Courts' :
+               'Sports Courts'}
             </Text>
             <Text style={styles.subtitle}>{vendors.length} venues available</Text>
           </View>

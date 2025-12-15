@@ -117,7 +117,10 @@ export default function VendorProfileScreen() {
       setLocation(newLocation);
       
       // Reverse geocode to get address
-      const [addressResult] = await Location.reverseGeocodeAsync(newLocation);
+      const [addressResult] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
       if (addressResult) {
         const formattedAddress = `${addressResult.street || ''} ${addressResult.city || ''} ${addressResult.region || ''}`.trim();
         if (formattedAddress) {

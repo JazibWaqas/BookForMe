@@ -42,7 +42,7 @@ export default function VendorDetailScreen() {
       pathname: '/vendor/booking',
       params: {
         vendorId: vendor.id,
-        vendorName: vendor.business_name,
+        vendorName: vendor.name || vendor.business_name || '',
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         slotId: 'slot_' + selectedTime.replace(':', ''),
@@ -68,8 +68,8 @@ export default function VendorDetailScreen() {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.title}>{vendor.business_name}</Text>
-          <Text style={styles.subtitle}>{vendor.category} • {vendor.location}</Text>
+          <Text style={styles.title}>{vendor.name || vendor.business_name || 'Unknown'}</Text>
+          <Text style={styles.subtitle}>{vendor.area || vendor.location || ''}</Text>
         </View>
       </View>
 
@@ -89,7 +89,7 @@ export default function VendorDetailScreen() {
             {[0, 1, 2, 3].map((index) => (
               <Image
                 key={index}
-                source={{ uri: getCourtImage(vendor.category, index) }}
+                source={{ uri: getCourtImage(vendor.category || 'padel', index) }}
                 style={styles.venueImage}
                 resizeMode="cover"
               />

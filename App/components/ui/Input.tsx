@@ -10,6 +10,8 @@ interface InputProps {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   style?: ViewStyle;
+  multiline?: boolean;
+  numberOfLines?: number;
 }
 
 export default function Input({
@@ -19,7 +21,9 @@ export default function Input({
   placeholder,
   secureTextEntry = false,
   keyboardType = 'default',
-  style
+  style,
+  multiline = false,
+  numberOfLines
 }: InputProps) {
   return (
     <View style={style}>
@@ -35,7 +39,9 @@ export default function Input({
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
-        style={styles.input}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        style={[styles.input, multiline && styles.inputMultiline]}
       />
     </View>
   );
@@ -58,5 +64,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text,
     backgroundColor: COLORS.surface,
+  },
+  inputMultiline: {
+    height: 'auto',
+    minHeight: 56,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
 });
