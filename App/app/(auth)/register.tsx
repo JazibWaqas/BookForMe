@@ -62,12 +62,6 @@ export default function RegisterScreen() {
     setLocationLoading(false);
   };
 
-  const validateCNIC = (cnicValue: string): boolean => {
-    // CNIC format: XXXXX-XXXXXXX-X
-    const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
-    return cnicRegex.test(cnicValue);
-  };
-
   const handleRegister = async () => {
     if (role === 'customer') {
       if (!name || !email || !phone || !password || !confirmPassword) {
@@ -75,22 +69,11 @@ export default function RegisterScreen() {
         return;
       }
     } else {
-      if (!name || !email || !phone || !password || !confirmPassword || !businessName || !cnic || !address || !category) {
+      if (!name || !email || !phone || !password || !confirmPassword || !businessName || !address || !category) {
         Alert.alert('Error', 'Please fill in all required fields');
         return;
       }
-
-      // Validate CNIC format
-      if (!validateCNIC(cnic)) {
-        Alert.alert('Error', 'Please enter a valid CNIC format (XXXXX-XXXXXXX-X)');
-        return;
-      }
-
-      // Validate location
-      if (!location) {
-        Alert.alert('Error', 'Please capture your business location');
-        return;
-      }
+      // CNIC and location are optional - no validation needed
     }
 
     // Validate email format
@@ -123,10 +106,10 @@ export default function RegisterScreen() {
             ownerName: name,
             email,
             phone,
-            cnic,
+            cnic: cnic || undefined,
             category,
             address,
-            location,
+            location: location || undefined,
             description,
           };
           await authService.createVendorProfile(vendorData, result.user.id);
@@ -214,7 +197,7 @@ export default function RegisterScreen() {
                 style={styles.input}
               />
               <Input
-                label="CNIC *"
+                label="CNIC (Optional)"
                 placeholder="42101-1234567-1"
                 value={cnic}
                 onChangeText={setCnic}
@@ -254,7 +237,7 @@ export default function RegisterScreen() {
                 multiline
               />
               <Button
-                title={location ? "Update Location" : "Capture Location *"}
+                title={location ? "Update Location" : "Capture Location (Optional)"}
                 onPress={getCurrentLocation}
                 variant="outline"
                 loading={locationLoading}

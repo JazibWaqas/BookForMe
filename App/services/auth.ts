@@ -496,29 +496,35 @@ class AuthService {
     ownerName: string;
     email: string;
     phone: string;
-    cnic: string;
     category: string;
     address: string;
-    location: { lat: number; lng: number };
+    cnic?: string;
+    location?: { lat: number; lng: number };
     description?: string;
   }, userId: string): Promise<boolean> {
     try {
-      const vendorDoc = {
+      const vendorDoc: any = {
         business_name: vendorData.businessName,
         owner_name: vendorData.ownerName,
         email: vendorData.email,
         phone: vendorData.phone,
-        cnic: vendorData.cnic,
         category: vendorData.category,
         address: vendorData.address,
-        location: vendorData.location,
         description: vendorData.description || '',
         whatsapp_connected: false,
         sheets_connected: false,
         created_at: new Date().toISOString(),
-        status: 'pending', // Pending verification
+        status: 'active', // Auto-approve for easier registration
         user_id: userId,
       };
+
+      // Add optional fields if provided
+      if (vendorData.cnic) {
+        vendorDoc.cnic = vendorData.cnic;
+      }
+      if (vendorData.location) {
+        vendorDoc.location = vendorData.location;
+      }
 
       // Create vendor document in Firestore
       await setDoc(doc(db, 'vendors', userId), vendorDoc);
