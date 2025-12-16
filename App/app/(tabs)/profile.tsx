@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,10 @@ export default function ProfileScreen() {
   
   // Calculate derived data
   const bookingsCount = allBookings.length;
+  const completedBookings = allBookings.filter((b: any) => b.status === 'completed').length;
+  const upcomingBookings = allBookings.filter((b: any) => 
+    b.status === 'confirmed' || b.status === 'pending'
+  ).length;
   const recentBookings = allBookings
     .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
     .slice(0, 3);
@@ -100,18 +104,78 @@ export default function ProfileScreen() {
     );
   }
 
-  const menuItems = [
-    { icon: 'person-outline', label: 'Edit Profile', route: '/profile/edit' },
+  const menuItems: Array<{ icon: string; label: string; action?: string; route?: string }> = [
+    { icon: 'person-outline', label: 'Edit Profile', action: 'edit' },
     { icon: 'notifications-outline', label: 'Notifications', route: '/notifications' },
-    { icon: 'card-outline', label: 'Payment Methods', route: '/payments' },
-    { icon: 'help-circle-outline', label: 'Help & Support', route: '/support' },
+    { icon: 'help-circle-outline', label: 'Help & Support', action: 'support' },
+    { icon: 'information-circle-outline', label: 'About', action: 'about' },
   ];
+
+  const handleMenuAction = (action?: string, route?: string) => {
+    if (route) {
+      router.push(route as any);
+      return;
+    }
+
+    switch (action) {
+      case 'edit':
+        Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+        break;
+      case 'support':
+        Alert.alert(
+          'Help & Support',
+          'Need help? Contact us:\n\nEmail: support@bookforme.pk\nPhone: +92 300 1234567\n\nWe\'re here to help!'
+        );
+        break;
+      case 'about':
+        Alert.alert(
+          'About BookForMe',
+          'Version 1.0.0\n\nYour one-stop platform for booking sports venues in Karachi.\n\n© 2025 BookForMe'
+        );
+        break;
+    }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authService.logout();
+              await AsyncStorage.removeItem('userRole');
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Error signing out:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity style={styles.settingsButton}>
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => Alert.alert(
+            'Settings',
+            'Choose an option',
+            [
+              { text: 'Edit Profile', onPress: () => handleMenuAction('edit') },
+              { text: 'About', onPress: () => handleMenuAction('about') },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          )}
+        >
           <Ionicons name="settings-outline" size={24} color={COLORS.text} />
         </TouchableOpacity>
       </View>
@@ -125,7 +189,10 @@ export default function ProfileScreen() {
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.editAvatarButton}>
+              <TouchableOpacity 
+                style={styles.editAvatarButton}
+                onPress={() => Alert.alert('Change Photo', 'Profile photo upload feature coming soon!')}
+              >
                 <Ionicons name="camera" size={16} color="#FFF" />
               </TouchableOpacity>
             </View>
@@ -134,26 +201,32 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.statsRow}>
-            <View style={styles.statItem}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push('/bookings')}
+            >
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
                 <Ionicons name="calendar" size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.statValue}>{bookingsCount}</Text>
-              <Text style={styles.statLabel}>Bookings</Text>
-            </View>
-            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{upcomingBookings}</Text>
+              <Text style={styles.statLabel}>Upcoming</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push('/bookings')}
+            >
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                <Ionicons name="heart" size={20} color="#3b82f6" />
+                <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               </View>
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>Saved</Text>
-            </View>
+              <Text style={styles.statValue}>{completedBookings}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </TouchableOpacity>
             <View style={styles.statItem}>
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                <Ionicons name="trophy" size={20} color="#f59e0b" />
+                <Ionicons name="calendar-outline" size={20} color="#f59e0b" />
               </View>
-              <Text style={styles.statValue}>{bookingsCount * 50}</Text>
-              <Text style={styles.statLabel}>Points</Text>
+              <Text style={styles.statValue}>{bookingsCount}</Text>
+              <Text style={styles.statLabel}>Total</Text>
             </View>
           </View>
         </Card>
@@ -225,7 +298,11 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             {menuItems.map((item, i) => (
-              <TouchableOpacity key={i} style={styles.menuItem}>
+              <TouchableOpacity 
+                key={i} 
+                style={styles.menuItem}
+                onPress={() => handleMenuAction(item.action, item.route)}
+              >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
                     <Ionicons name={item.icon as any} size={20} color={COLORS.text} />
@@ -244,10 +321,7 @@ export default function ProfileScreen() {
           style={styles.signOutButton}
           textStyle={styles.signOutText}
           icon={<Ionicons name="log-out-outline" size={20} color={COLORS.error} style={{ marginRight: 8 }} />}
-          onPress={async () => {
-            await AsyncStorage.removeItem('userRole');
-            router.replace('/(auth)/login');
-          }}
+          onPress={handleSignOut}
         />
 
         <View style={{ height: 40 }} />

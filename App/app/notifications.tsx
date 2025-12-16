@@ -1,54 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Card from '../components/ui/Card';
 import { COLORS } from '../constants/colors';
+
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'booking',
-      title: 'Booking Confirmed',
-      message: 'Your booking at Golden Court Padel Club for Nov 24, 10:00 AM has been confirmed.',
-      time: '2 hours ago',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'promo',
-      title: '20% Off Weekend Slots',
-      message: 'Book any weekend slot this week and get 20% off!',
-      time: '5 hours ago',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'social',
-      title: 'New Match Request',
-      message: 'Ahmed Khan wants to play Padel with you on Saturday.',
-      time: '1 day ago',
-      read: true,
-    },
-    {
-      id: 4,
-      type: 'booking',
-      title: 'Booking Reminder',
-      message: 'Your booking at City Sports Complex is tomorrow at 3:00 PM.',
-      time: '1 day ago',
-      read: true,
-    },
-    {
-      id: 5,
-      type: 'social',
-      title: 'New Forum Reply',
-      message: 'Someone replied to your post in the Padel Community forum.',
-      time: '2 days ago',
-      read: true,
-    },
-  ];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const markAsRead = (id: number) => {
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    ));
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -73,29 +54,52 @@ export default function NotificationsScreen() {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity style={styles.markAllButton}>
-          <Text style={styles.markAllText}>Mark all read</Text>
+        <TouchableOpacity 
+          style={styles.markAllButton}
+          onPress={markAllAsRead}
+          disabled={unreadCount === 0}
+        >
+          <Text style={[styles.markAllText, unreadCount === 0 && { opacity: 0.5 }]}>
+            Mark all read
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
-        {notifications.map((notification) => (
-          <Card
-            key={notification.id}
-            style={StyleSheet.flatten([styles.notificationCard, !notification.read && styles.notificationCardUnread])}
-          >
-            <View style={styles.notificationRow}>
-              <View style={styles.notificationContent}>
-                <View style={styles.notificationHeader}>
-                  <Text style={styles.notificationTitle}>{notification.title}</Text>
-                  {!notification.read && <View style={styles.unreadDot} />}
-                </View>
-                <Text style={styles.notificationMessage}>{notification.message}</Text>
-                <Text style={styles.notificationTime}>{notification.time}</Text>
-              </View>
-            </View>
-          </Card>
-        ))}
+        {notifications.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="notifications-off-outline" size={64} color={COLORS.textMuted} />
+            <Text style={styles.emptyTitle}>No notifications yet</Text>
+            <Text style={styles.emptySubtext}>
+              We'll notify you when something important happens
+            </Text>
+          </View>
+        ) : (
+          <>
+            {notifications.map((notification) => (
+              <TouchableOpacity
+                key={notification.id}
+                onPress={() => markAsRead(notification.id)}
+                activeOpacity={0.7}
+              >
+                <Card
+                  style={StyleSheet.flatten([styles.notificationCard, !notification.read && styles.notificationCardUnread])}
+                >
+                  <View style={styles.notificationRow}>
+                    <View style={styles.notificationContent}>
+                      <View style={styles.notificationHeader}>
+                        <Text style={styles.notificationTitle}>{notification.title}</Text>
+                        {!notification.read && <View style={styles.unreadDot} />}
+                      </View>
+                      <Text style={styles.notificationMessage}>{notification.message}</Text>
+                      <Text style={styles.notificationTime}>{notification.time}</Text>
+                    </View>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -190,6 +194,25 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 11,
     color: COLORS.textMuted,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

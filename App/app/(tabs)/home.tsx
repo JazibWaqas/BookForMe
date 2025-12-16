@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image, ActivityIndicator, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Use React Query hooks - data is cached and shared across app
   const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useCategories();
@@ -29,6 +30,58 @@ export default function HomeScreen() {
   
   const loading = categoriesLoading || padelLoading || futsalLoading || cricketLoading || pickleballLoading;
   const [refreshing, setRefreshing] = useState(false);
+
+  // Combine all vendors for search
+  const allVendors = useMemo(() => 
+    [...padelVendors, ...futsalVendors, ...cricketVendors, ...pickleballVendors],
+    [padelVendors, futsalVendors, cricketVendors, pickleballVendors]
+  );
+
+  // Filter vendors based on search query
+  const filteredVendors = useMemo(() => {
+    if (!searchQuery.trim()) return allVendors;
+    
+    const query = searchQuery.toLowerCase();
+    return allVendors.filter(vendor => 
+      vendor.name?.toLowerCase().includes(query) ||
+      vendor.area?.toLowerCase().includes(query) ||
+      vendor.address?.toLowerCase().includes(query) ||
+      vendor.category?.toLowerCase().includes(query)
+    );
+  }, [allVendors, searchQuery]);
+
+  // Also filter each sport category for the horizontal lists
+  const filteredPadelVendors = useMemo(() => {
+    if (!searchQuery.trim()) return padelVendors;
+    const query = searchQuery.toLowerCase();
+    return padelVendors.filter(v => 
+      v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
+    );
+  }, [padelVendors, searchQuery]);
+
+  const filteredFutsalVendors = useMemo(() => {
+    if (!searchQuery.trim()) return futsalVendors;
+    const query = searchQuery.toLowerCase();
+    return futsalVendors.filter(v => 
+      v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
+    );
+  }, [futsalVendors, searchQuery]);
+
+  const filteredCricketVendors = useMemo(() => {
+    if (!searchQuery.trim()) return cricketVendors;
+    const query = searchQuery.toLowerCase();
+    return cricketVendors.filter(v => 
+      v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
+    );
+  }, [cricketVendors, searchQuery]);
+
+  const filteredPickleballVendors = useMemo(() => {
+    if (!searchQuery.trim()) return pickleballVendors;
+    const query = searchQuery.toLowerCase();
+    return pickleballVendors.filter(v => 
+      v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
+    );
+  }, [pickleballVendors, searchQuery]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -72,13 +125,23 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/chatbot')}
-          style={styles.searchBar}
-        >
+        <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={COLORS.textMuted} />
-          <Text style={styles.searchText}>Search venues...</Text>
-        </TouchableOpacity>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search venues..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -93,171 +156,203 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Categories - Horizontal Scroll */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Browse by Sport</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesScroll}
-          >
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.categoryCard}
-                onPress={() => router.push(`/category/${cat.id}`)}
-              >
-                <View style={styles.categoryContent}>
-                  <View style={styles.categoryIconContainer}>
-                    <Ionicons
-                      name={categoryIcons[cat.id] || 'tennisball'}
-                      size={32}
-                      color={COLORS.primary}
+        {/* Search Results */}
+        {searchQuery.trim() ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {filteredVendors.length} {filteredVendors.length === 1 ? 'venue' : 'venues'} found
+            </Text>
+            {filteredVendors.length > 0 ? (
+              <View style={styles.searchResults}>
+                {filteredVendors.map((vendor) => (
+                  <View key={vendor.id} style={styles.searchResultCard}>
+                    <VendorCard
+                      vendor={vendor}
+                      onPress={() => router.push(`/vendor/${vendor.id}`)}
+                      onBookPress={() => router.push(`/vendor/${vendor.id}`)}
                     />
                   </View>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Text style={styles.categoryCount}>{cat.count} venues</Text>
-                  <View style={styles.categoryArrow}>
-                    <Ionicons name="arrow-forward" size={16} color={COLORS.textMuted} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Padel Courts - Horizontal Scroll */}
-        {padelVendors.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Padel Courts</Text>
-              <TouchableOpacity onPress={() => router.push('/category/padel')}>
-                <Text style={styles.viewAll}>View All →</Text>
-              </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptySearch}>
+                <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptySearchText}>No venues found</Text>
+                <Text style={styles.emptySearchSubtext}>
+                  Try searching with a different keyword
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <>
+            {/* Categories - Horizontal Scroll */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Browse by Sport</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScroll}
+              >
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.categoryCard}
+                    onPress={() => router.push(`/category/${cat.id}`)}
+                  >
+                    <View style={styles.categoryContent}>
+                      <View style={styles.categoryIconContainer}>
+                        <Ionicons
+                          name={categoryIcons[cat.id] || 'tennisball'}
+                          size={32}
+                          color={COLORS.primary}
+                        />
+                      </View>
+                      <Text style={styles.categoryName}>{cat.name}</Text>
+                      <Text style={styles.categoryCount}>{cat.count} venues</Text>
+                      <View style={styles.categoryArrow}>
+                        <Ionicons name="arrow-forward" size={16} color={COLORS.textMuted} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.vendorsScroll}
-            >
-              {padelVendors.slice(0, 5).map((vendor) => (
-                <View key={vendor.id} style={styles.vendorCardWrapper}>
-                  <VendorCard
-                    vendor={vendor}
-                    onPress={() => router.push(`/vendor/${vendor.id}`)}
-                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
-        {/* Futsal Courts - Horizontal Scroll */}
-        {futsalVendors.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Futsal Courts</Text>
-              <TouchableOpacity onPress={() => router.push('/category/futsal')}>
-                <Text style={styles.viewAll}>View All →</Text>
-              </TouchableOpacity>
+            {/* Padel Courts - Horizontal Scroll */}
+            {filteredPadelVendors.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Padel Courts</Text>
+                  <TouchableOpacity onPress={() => router.push('/category/padel')}>
+                    <Text style={styles.viewAll}>View All →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vendorsScroll}
+                >
+                  {filteredPadelVendors.slice(0, 5).map((vendor) => (
+                    <View key={vendor.id} style={styles.vendorCardWrapper}>
+                      <VendorCard
+                        vendor={vendor}
+                        onPress={() => router.push(`/vendor/${vendor.id}`)}
+                        onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Futsal Courts - Horizontal Scroll */}
+            {filteredFutsalVendors.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Futsal Courts</Text>
+                  <TouchableOpacity onPress={() => router.push('/category/futsal')}>
+                    <Text style={styles.viewAll}>View All →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vendorsScroll}
+                >
+                  {filteredFutsalVendors.slice(0, 5).map((vendor) => (
+                    <View key={vendor.id} style={styles.vendorCardWrapper}>
+                      <VendorCard
+                        vendor={vendor}
+                        onPress={() => router.push(`/vendor/${vendor.id}`)}
+                        onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Cricket Nets - Horizontal Scroll */}
+            {filteredCricketVendors.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Cricket Nets</Text>
+                  <TouchableOpacity onPress={() => router.push('/category/cricket')}>
+                    <Text style={styles.viewAll}>View All →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vendorsScroll}
+                >
+                  {filteredCricketVendors.slice(0, 5).map((vendor) => (
+                    <View key={vendor.id} style={styles.vendorCardWrapper}>
+                      <VendorCard
+                        vendor={vendor}
+                        onPress={() => router.push(`/vendor/${vendor.id}`)}
+                        onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Pickleball Courts - Horizontal Scroll */}
+            {filteredPickleballVendors.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Pickleball Courts</Text>
+                  <TouchableOpacity onPress={() => router.push('/category/pickleball')}>
+                    <Text style={styles.viewAll}>View All →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vendorsScroll}
+                >
+                  {filteredPickleballVendors.slice(0, 5).map((vendor) => (
+                    <View key={vendor.id} style={styles.vendorCardWrapper}>
+                      <VendorCard
+                        vendor={vendor}
+                        onPress={() => router.push(`/vendor/${vendor.id}`)}
+                        onBookPress={() => router.push(`/vendor/${vendor.id}`)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Quick Actions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Quick Access</Text>
+              <View style={styles.quickActions}>
+                <TouchableOpacity
+                  style={styles.actionCard}
+                  onPress={() => router.push('/(tabs)/chatbot')}
+                >
+                  <Text style={styles.actionLabel}>AI Assistant</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionCard}
+                  onPress={() => router.push('/(tabs)/social')}
+                >
+                  <Text style={styles.actionLabel}>Find Players</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionCard}
+                  onPress={() => router.push('/notifications')}
+                >
+                  <Text style={styles.actionLabel}>Notifications</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.vendorsScroll}
-            >
-              {futsalVendors.slice(0, 5).map((vendor) => (
-                <View key={vendor.id} style={styles.vendorCardWrapper}>
-                  <VendorCard
-                    vendor={vendor}
-                    onPress={() => router.push(`/vendor/${vendor.id}`)}
-                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
+          </>
         )}
-
-        {/* Cricket Nets - Horizontal Scroll */}
-        {cricketVendors.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Cricket Nets</Text>
-              <TouchableOpacity onPress={() => router.push('/category/cricket')}>
-                <Text style={styles.viewAll}>View All →</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.vendorsScroll}
-            >
-              {cricketVendors.slice(0, 5).map((vendor) => (
-                <View key={vendor.id} style={styles.vendorCardWrapper}>
-                  <VendorCard
-                    vendor={vendor}
-                    onPress={() => router.push(`/vendor/${vendor.id}`)}
-                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Pickleball Courts - Horizontal Scroll */}
-        {pickleballVendors.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Pickleball Courts</Text>
-              <TouchableOpacity onPress={() => router.push('/category/pickleball')}>
-                <Text style={styles.viewAll}>View All →</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.vendorsScroll}
-            >
-              {pickleballVendors.slice(0, 5).map((vendor) => (
-                <View key={vendor.id} style={styles.vendorCardWrapper}>
-                  <VendorCard
-                    vendor={vendor}
-                    onPress={() => router.push(`/vendor/${vendor.id}`)}
-                    onBookPress={() => router.push(`/vendor/${vendor.id}`)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => router.push('/(tabs)/chatbot')}
-            >
-              <Text style={styles.actionLabel}>AI Assistant</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => router.push('/(tabs)/social')}
-            >
-              <Text style={styles.actionLabel}>Find Players</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => router.push('/notifications')}
-            >
-              <Text style={styles.actionLabel}>Notifications</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -330,10 +425,36 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     gap: 12,
   },
-  searchText: {
+  searchInput: {
     fontSize: 15,
-    color: COLORS.textMuted,
+    color: COLORS.text,
     flex: 1,
+    height: '100%',
+  },
+  searchResults: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  searchResultCard: {
+    marginBottom: 16,
+  },
+  emptySearch: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptySearchText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 16,
+  },
+  emptySearchSubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 8,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
