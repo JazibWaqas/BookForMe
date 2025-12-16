@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getUserBookings } from '../../services/bookings';
 import { Booking } from '../../types';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { format } from 'date-fns';
+import { useUserBookings } from '../../hooks/useQueries';
 
 type BookingStatus = 'locked' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
@@ -14,26 +14,16 @@ export default function MyBookingsScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
     const [countdown, setCountdown] = useState<{ [key: string]: number }>({});
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [loading, setLoading] = useState(true);
+    
+    // Use React Query for bookings - cached and fast
+    const { data: bookings = [], isLoading: loading, isFetching, refetch } = useUserBookings();
 
+    // Refetch on focus to get latest data
     useFocusEffect(
         useCallback(() => {
-            loadBookings();
-        }, [])
+            refetch();
+        }, [refetch])
     );
-
-    const loadBookings = async () => {
-        setLoading(true);
-        try {
-            const userBookings = await getUserBookings();
-            setBookings(userBookings);
-        } catch (error) {
-            console.error('Error loading bookings:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -126,7 +116,7 @@ export default function MyBookingsScreen() {
     };
 
     const upcomingBookings = bookings.filter(b =>
-        b.status === 'locked' || b.status === 'pending' || b.status === 'confirmed'
+        b.status === 'pending' || b.status === 'confirmed'
     );
 
     const pastBookings = bookings.filter(b =>
@@ -152,7 +142,7 @@ export default function MyBookingsScreen() {
                     onPress={() => setActiveTab('upcoming')}
                 >
                     <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-                        Upcoming ({upcomingBookings.length})
+                        Confirmed ({upcomingBookings.length})
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -164,6 +154,14 @@ export default function MyBookingsScreen() {
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Show subtle loading indicator when refetching */}
+            {isFetching && !loading && (
+                <View style={styles.refetchingBar}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.refetchingText}>Updating...</Text>
+                </View>
+            )}
 
             <ScrollView style={styles.content}>
                 {loading ? (
@@ -268,7 +266,7 @@ export default function MyBookingsScreen() {
                     ))
                 )}
 
-                <View style={{ height: 32 }} />
+                <View style={{ height: 100 }} />
             </ScrollView>
         </View>
     );
@@ -479,6 +477,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelText: {
+        fontSize: 13,
+        color: COLORS.textMuted,
+        fontWeight: '500',
+    },
+    refetchingBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        backgroundColor: COLORS.backgroundLight,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        gap: 8,
+    },
+    refetchingText: {
         fontSize: 13,
         color: COLORS.textMuted,
         fontWeight: '500',

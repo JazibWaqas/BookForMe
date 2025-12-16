@@ -7,8 +7,8 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
-import { getUserBookings } from '../../services/bookings';
 import { format } from 'date-fns';
+import { useCurrentUser, useUserBookings } from '../../hooks/useQueries';
 
 interface UserProfile {
   id: string;
@@ -21,50 +21,36 @@ interface UserProfile {
 export default function ProfileScreen() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [bookingsCount, setBookingsCount] = useState(0);
-  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  
+  // Use React Query hooks for data fetching with caching
+  const { data: user, isLoading: userLoading, refetch: refetchUser } = useCurrentUser();
+  const { data: allBookings = [], isLoading: bookingsLoading, refetch: refetchBookings } = useUserBookings();
+  
+  const loading = userLoading || bookingsLoading;
+  
+  // Calculate derived data
+  const bookingsCount = allBookings.length;
+  const recentBookings = allBookings
+    .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
+    .slice(0, 3);
 
-  // Check user role and load data when screen is focused
+  // Check user role, redirect if vendor, and refetch data on focus
   useFocusEffect(
     React.useCallback(() => {
-      const loadUserData = async () => {
-        setLoading(true);
-        try {
-          const role = await AsyncStorage.getItem('userRole');
-          if (role === 'vendor') {
-            // Redirect vendor to vendor dashboard
-            router.replace('/vendor-dashboard');
-            return;
-          }
-
-          setUserRole(role as 'customer' | 'vendor' | null);
-
-          // Fetch user profile
-          const currentUser = await authService.getCurrentUser();
-          if (currentUser) {
-            setUser(currentUser);
-          }
-
-          // Fetch bookings for statistics
-          const bookings = await getUserBookings();
-          setBookingsCount(bookings.length);
-
-          // Get recent 3 bookings
-          const recent = bookings
-            .filter(b => b.status === 'confirmed' || b.status === 'completed')
-            .slice(0, 3);
-          setRecentBookings(recent);
-
-        } catch (error) {
-          console.error('Error loading user data:', error);
-        } finally {
-          setLoading(false);
+      const checkRoleAndRefresh = async () => {
+        const role = await AsyncStorage.getItem('userRole');
+        if (role === 'vendor') {
+          router.replace('/vendor-dashboard');
+          return;
         }
+        setUserRole(role as 'customer' | 'vendor' | null);
+        
+        // Force refetch user data to ensure it's current
+        refetchUser();
+        refetchBookings();
       };
-      loadUserData();
-    }, [router])
+      checkRoleAndRefresh();
+    }, [router, refetchUser, refetchBookings])
   );
 
   const formatBookingDate = (dateStr: string) => {

@@ -13,9 +13,7 @@ import {
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { format, addDays } from 'date-fns';
 import { Vendor } from '../../types';
-import { getVendorById } from '../../services/vendors';
 import {
-  getAvailableSlots,
   lockSlot,
   formatSlotTime,
   formatPrice,
@@ -26,6 +24,7 @@ import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { getVendorImage } from '../../constants/vendorImages';
 import { getCourtImage } from '../../constants/images';
+import { useVendor, useAvailableSlotsOptimized } from '../../hooks/useQueries';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,140 +33,80 @@ export default function VendorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // State
-  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [resourceGroups, setResourceGroups] = useState<ResourceGroup[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<SlotDetails | null>(null);
   const [lockedSlotId, setLockedSlotId] = useState<string | null>(null);
   const [lockExpiry, setLockExpiry] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'amenities' | 'reviews' | 'location'>('amenities');
-  const [loading, setLoading] = useState(true);
-  const [slotsLoading, setSlotsLoading] = useState(false);
   const [lockingSlot, setLockingSlot] = useState<string | null>(null);
   const [expandedResources, setExpandedResources] = useState<Set<string>>(new Set());
 
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lockedSlotIdRef = useRef<string | null>(lockedSlotId);
+
+  // Use React Query for vendor and slots - automatic caching and refetching
+  const { data: vendor, isLoading: vendorLoading } = useVendor(id as string);
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const { 
+    data: resourceGroups = [], 
+    isLoading: slotsLoading,
+    refetch: refetchSlots 
+  } = useAvailableSlotsOptimized(
+    id as string, 
+    dateStr, 
+    true, // enabled
+    !lockedSlotId // autoRefetch - only when no slot is locked
+  );
+
+  const loading = vendorLoading;
 
   // Keep ref in sync with state
   useEffect(() => {
     lockedSlotIdRef.current = lockedSlotId;
   }, [lockedSlotId]);
 
-  const loadVendor = async () => {
-    try {
-      setLoading(true);
-      const data = await getVendorById(id as string);
-      setVendor(data);
-    } catch (error) {
-      console.error('Error loading vendor:', error);
-      Alert.alert('Error', 'Failed to load vendor details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSlots = useCallback(async (isFocusRefresh = false) => {
-    if (!vendor) return;
-
-    try {
-      if (!isFocusRefresh) setSlotsLoading(true); // Don't show loading on background/focus refresh
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const { resources } = await getAvailableSlots(vendor.id, dateStr);
-      setResourceGroups(resources);
-
-      // If we have a lockedSlotId, check if it's still valid/locked by us
-      // If the backend says it's 'booked' or 'available' (meaning lock expired), we should clear our local state
-      // Use REF to avoid dependency cycles or stale closures in callback
-      const currentLockedId = lockedSlotIdRef.current;
-      if (currentLockedId) {
-        let slotStillLocked = false;
-        let slotBooked = false;
-
-        resources.forEach(group => {
-          const slot = group.slots.find(s => s.id === currentLockedId);
-          if (slot) {
-            if (slot.status === 'locked') slotStillLocked = true;
-            if (slot.status !== 'available' && slot.status !== 'locked') slotBooked = true;
-          }
-        });
-
-        // If the slot is now booked (completed payment) OR available (expired externally), clear local lock
-        if (slotBooked || (!slotStillLocked && isFocusRefresh)) {
-          setLockedSlotId(null);
-          setSelectedSlot(null);
-          setLockExpiry(null);
-          setCountdown(0);
-        }
-      }
-
-      // Auto-expand first resource
-      // Only auto-expand if we haven't expanded anything yet
-      if (resources.length > 0) {
-        setExpandedResources(prev => {
-          if (prev.size === 0) {
-            return new Set([resources[0].resource_id]);
-          }
-          return prev;
-        });
-      }
-    } catch (error) {
-      console.error('Error loading slots:', error);
-      if (!isFocusRefresh) Alert.alert('Error', 'Failed to load available slots. Please try again.');
-    } finally {
-      if (!isFocusRefresh) setSlotsLoading(false);
-    }
-  }, [vendor, selectedDate]);
-
-  // Load vendor data
+  // Check slot status when data refetches - only clear if slot becomes unavailable
   useEffect(() => {
-    if (id) {
-      loadVendor();
-    }
-  }, [id]);
+    if (!lockedSlotId || !resourceGroups.length) return;
+    
+    let slotFound = false;
+    let slotBooked = false;
+    let slotStillLocked = false;
+    let foundSlot: SlotDetails | null = null;
 
-  // Load slots when date changes
+    resourceGroups.forEach(group => {
+      const slot = group.slots.find((s: SlotDetails) => s.id === lockedSlotId);
+      if (slot) {
+        slotFound = true;
+        foundSlot = slot;
+        if (slot.status === 'locked') slotStillLocked = true;
+        if (slot.status === 'booked' || slot.status === 'confirmed') slotBooked = true;
+      }
+    });
+
+    // Only update selectedSlot if we found the slot and it's still locked
+    // This prevents clearing selection when data refetches
+    if (foundSlot && slotStillLocked && !selectedSlot) {
+      setSelectedSlot(foundSlot);
+    }
+
+    // Only clear if slot is definitively booked/unavailable
+    if (slotFound && (slotBooked || (!slotStillLocked && foundSlot?.status !== 'available'))) {
+      setLockedSlotId(null);
+      setSelectedSlot(null);
+      setLockExpiry(null);
+      setCountdown(0);
+    }
+  }, [resourceGroups, lockedSlotId]);
+
+  // Auto-expand first resource when data loads
   useEffect(() => {
-    if (vendor && !lockedSlotId) {
-      loadSlots();
+    if (resourceGroups.length > 0 && expandedResources.size === 0) {
+      setExpandedResources(new Set([resourceGroups[0].resource_id]));
     }
-  }, [vendor, selectedDate, loadSlots]);
-
-  // Refresh slots when screen gains focus
-  // This handles the case where a user books a slot and returns to this screen
-  // We need to check if our 'locked' slot is now 'booked'
-  useFocusEffect(
-    useCallback(() => {
-      if (vendor) {
-        // We always reload slots to get the latest status
-        // Pass true to indicate this is a focus refresh
-        loadSlots(true);
-      }
-    }, [vendor, loadSlots])
-  );
-
-  // Setup auto-refresh (every 30 seconds when no slot is locked)
-  useEffect(() => {
-    if (vendor && !lockedSlotId) {
-      refreshIntervalRef.current = setInterval(() => {
-        loadSlots();
-      }, 30000);
-    } else {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-    };
-  }, [vendor, lockedSlotId, loadSlots]);
+  }, [resourceGroups]);
 
   // Countdown timer for locked slot
   useEffect(() => {
@@ -231,20 +170,16 @@ export default function VendorDetailScreen() {
       const result = await lockSlot(slot.id);
 
       if (result.success && result.hold_expires_at) {
+        // Set slot as selected immediately for instant UI feedback
         setSelectedSlot(slot);
         setLockedSlotId(slot.id);
         setLockExpiry(new Date(result.hold_expires_at));
-
-        // Update the slot status in the UI
-        setResourceGroups(prev => prev.map(group => ({
-          ...group,
-          slots: group.slots.map(s =>
-            s.id === slot.id ? { ...s, status: 'locked' as const } : s
-          )
-        })));
+        
+        // React Query will auto-refetch in background (45s interval)
+        // No need to manually refetch - let it happen naturally
       } else {
         Alert.alert('Slot Unavailable', result.error || 'This slot is no longer available. Please select another.');
-        await loadSlots(); // Refresh slots
+        refetchSlots(); // Only refetch on error
       }
     } catch (error) {
       console.error('Error locking slot:', error);
@@ -264,7 +199,7 @@ export default function VendorDetailScreen() {
           setLockedSlotId(null);
           setLockExpiry(null);
           setCountdown(0);
-          loadSlots();
+          refetchSlots();
         }
       }]
     );
@@ -425,9 +360,13 @@ export default function VendorDetailScreen() {
                   {expandedResources.has(resource.resource_id) && (
                     <View style={styles.slotsGrid}>
                       {resource.slots.map((slot) => {
-                        const isSelected = selectedSlot?.id === slot.id;
-                        const isLocked = slot.status === 'locked' && !isSelected;
-                        const isBooked = slot.status !== 'available' && slot.status !== 'locked';
+                        // Check if this slot is selected/locked by current user
+                        const isSelectedByUser = lockedSlotId === slot.id;
+                        const isSelected = selectedSlot?.id === slot.id || isSelectedByUser;
+                        
+                        // Slot is locked by someone else if status is 'locked' and it's not our locked slot
+                        const isLockedByOthers = slot.status === 'locked' && !isSelectedByUser;
+                        const isBooked = slot.status === 'booked' || slot.status === 'confirmed';
                         const isLocking = lockingSlot === slot.id;
 
                         return (
@@ -436,10 +375,10 @@ export default function VendorDetailScreen() {
                             style={[
                               styles.slotCard,
                               isSelected && styles.slotCardSelected,
-                              (isBooked || isLocked) && styles.slotCardDisabled,
+                              (isBooked || isLockedByOthers) && styles.slotCardDisabled,
                             ]}
                             onPress={() => handleSlotClick(slot)}
-                            disabled={isBooked || isLocked || isLocking}
+                            disabled={isBooked || isLockedByOthers || isLocking}
                           >
                             {isLocking ? (
                               <ActivityIndicator size="small" color={COLORS.primary} />
@@ -451,7 +390,7 @@ export default function VendorDetailScreen() {
                                 <Text style={[
                                   styles.slotTime,
                                   isSelected && styles.slotTimeSelected,
-                                  (isBooked || isLocked) && styles.slotTimeDisabled,
+                                  (isBooked || isLockedByOthers) && styles.slotTimeDisabled,
                                 ]}>
                                   {formatSlotTime(slot.start_time, slot.end_time)}
                                 </Text>
@@ -526,7 +465,7 @@ export default function VendorDetailScreen() {
           </View>
         </View>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );

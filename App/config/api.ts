@@ -99,11 +99,44 @@ export const apiClient = axios.create({
   },
 });
 
+// Memory cache for token to avoid AsyncStorage reads on every request
+let tokenCache: { token: string | null; timestamp: number } | null = null;
+const TOKEN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedToken = async (): Promise<string | null> => {
+  const now = Date.now();
+  
+  // Return cached token if still valid
+  if (tokenCache && (now - tokenCache.timestamp) < TOKEN_CACHE_DURATION) {
+    return tokenCache.token;
+  }
+  
+  // Fetch from AsyncStorage and cache it
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    tokenCache = { token, timestamp: now };
+    return token;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
+// Clear token cache (call this on logout)
+export const clearTokenCache = () => {
+  tokenCache = null;
+};
+
+// Update token cache (call this on login to immediately cache new token)
+export const updateTokenCache = (token: string) => {
+  tokenCache = { token, timestamp: Date.now() };
+};
+
 // Request interceptor to automatically add token
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = await getCachedToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -122,7 +155,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth data
+      // Token expired or invalid - clear auth data and cache
+      clearTokenCache();
       try {
         await AsyncStorage.removeItem('authToken');
         await AsyncStorage.removeItem('userData');
