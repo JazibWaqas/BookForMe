@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -43,12 +43,13 @@ export default function BookingScreen() {
   const [loading, setLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
-  const priceNum = parseFloat(price || '0');
+  const priceVal = Array.isArray(price) ? price[0] : price;
+  const priceNum = parseFloat(priceVal || '0');
   const total = priceNum;
 
   // Initialize countdown from holdExpiresAt
   useEffect(() => {
-    if (holdExpiresAt) {
+    if (holdExpiresAt && !bookingConfirmed) {
       const updateCountdown = () => {
         const expiry = new Date(holdExpiresAt);
         const now = new Date();
@@ -56,7 +57,7 @@ export default function BookingScreen() {
         const seconds = Math.max(0, Math.floor(diff / 1000));
         setCountdown(seconds);
 
-        if (seconds === 0 && !bookingConfirmed) {
+        if (seconds === 0) {
           handleExpiry();
         }
       };
@@ -120,17 +121,27 @@ export default function BookingScreen() {
       }
 
       // Create FormData for multipart upload
+      // Create FormData for multipart upload
       const formData = new FormData();
 
       // Add the image file
       const uriParts = screenshot.split('.');
       const fileType = uriParts[uriParts.length - 1];
+      const fileName = `payment_${slotId}_${Date.now()}.${fileType}`;
 
-      formData.append('file', {
-        uri: screenshot,
-        name: `payment_${slotId}_${Date.now()}.${fileType}`,
-        type: `image/${fileType}`,
-      } as any);
+      if (Platform.OS === 'web') {
+        // On web, we need to convert the URI to a Blob
+        const response = await fetch(screenshot);
+        const blob = await response.blob();
+        formData.append('file', blob, fileName);
+      } else {
+        // On mobile, we append the file object directly
+        formData.append('file', {
+          uri: screenshot,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+      }
 
       formData.append('slot_id', slotId);
       formData.append('amount_claimed', total.toString());
@@ -232,13 +243,18 @@ export default function BookingScreen() {
             <Card>
               <Text style={styles.cardTitle}>Payment Instructions</Text>
               <Text style={styles.instructionText}>
-                1. Transfer {formatPrice(total)} to the vendor's account
+                1. Transfer <Text style={{ fontWeight: '700', color: COLORS.primary }}>{formatPrice(total)}</Text> to the vendor's account:
+              </Text>
+              <View style={{ backgroundColor: COLORS.background, padding: 8, borderRadius: 6, marginBottom: 8 }}>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Bank: Meezan Bank</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Title: {vendorName}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Account: 0101-0101234567</Text>
+              </View>
+              <Text style={styles.instructionText}>
+                2. Take a screenshot of the transaction receipt.
               </Text>
               <Text style={styles.instructionText}>
-                2. Take a screenshot of the transaction
-              </Text>
-              <Text style={styles.instructionText}>
-                3. Upload the screenshot below
+                3. Upload the payment proof below to confirm your booking.
               </Text>
             </Card>
 
@@ -304,20 +320,20 @@ export default function BookingScreen() {
               </View>
               <Text style={styles.successTitle}>Booking Confirmed!</Text>
               <Text style={styles.successMessage}>
-                Your payment has been verified. Waiting for vendor confirmation.
+                Your payment has been uploaded. Your slot is successfully booked!
               </Text>
             </View>
 
             <Card>
               <Text style={styles.cardTitle}>What's Next?</Text>
               <Text style={styles.nextStepText}>
-                • Vendor will confirm your booking within 10 minutes
+                • Check "My Bookings" for details
               </Text>
               <Text style={styles.nextStepText}>
-                • You'll receive a confirmation notification
+                • Arrive at the venue on time
               </Text>
               <Text style={styles.nextStepText}>
-                • Check "My Bookings" to track status
+                • Have a great game!
               </Text>
             </Card>
 

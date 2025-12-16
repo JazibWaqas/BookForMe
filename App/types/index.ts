@@ -80,13 +80,16 @@ export interface Booking {
   service_id: string;
   date: string;
   time: string;
+  start_time?: string;
+  end_time?: string;
   source: 'app' | 'whatsapp' | 'manual';
-  status: 'confirmed' | 'cancelled' | 'completed' | 'pending';
+  status: 'confirmed' | 'cancelled' | 'completed' | 'pending' | 'locked';
   created_at: string;
   updated_at: string;
   service?: Service;
   vendor?: Vendor;
   amount?: number;
+  price?: number;
 }
 
 export interface User {

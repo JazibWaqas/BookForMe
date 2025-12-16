@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getUserBookings } from '../../services/bookings';
 import { Booking } from '../../types';
 import Card from '../../components/ui/Card';
@@ -17,9 +17,11 @@ export default function MyBookingsScreen() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadBookings();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadBookings();
+        }, [])
+    );
 
     const loadBookings = async () => {
         setLoading(true);
@@ -57,7 +59,7 @@ export default function MyBookingsScreen() {
             case 'locked':
                 return COLORS.warning;
             case 'pending':
-                return COLORS.primary;
+                return COLORS.success;
             case 'confirmed':
                 return COLORS.success;
             case 'completed':
@@ -74,9 +76,9 @@ export default function MyBookingsScreen() {
             case 'locked':
                 return 'SLOT LOCKED';
             case 'pending':
-                return 'PENDING APPROVAL';
+                return 'BOOKED';
             case 'confirmed':
-                return 'CONFIRMED';
+                return 'BOOKED';
             case 'completed':
                 return 'COMPLETED';
             case 'cancelled':
@@ -248,13 +250,7 @@ export default function MyBookingsScreen() {
                                     />
                                 )}
 
-                                {booking.status === 'pending' && (
-                                    <View style={styles.pendingInfo}>
-                                        <Text style={styles.pendingText}>
-                                            ✓ Payment uploaded. Waiting for vendor confirmation...
-                                        </Text>
-                                    </View>
-                                )}
+
 
                                 {booking.status === 'confirmed' && (
                                     <TouchableOpacity style={styles.viewDetailsButton}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { format, addDays } from 'date-fns';
 import { Vendor } from '../../types';
 import { getVendorById } from '../../services/vendors';
@@ -24,6 +24,7 @@ import {
 import { ResourceGroup, SlotDetails } from '../../types/booking';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { getVendorImage } from '../../constants/vendorImages';
 import { getCourtImage } from '../../constants/images';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,6 +50,77 @@ export default function VendorDetailScreen() {
 
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lockedSlotIdRef = useRef<string | null>(lockedSlotId);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    lockedSlotIdRef.current = lockedSlotId;
+  }, [lockedSlotId]);
+
+  const loadVendor = async () => {
+    try {
+      setLoading(true);
+      const data = await getVendorById(id as string);
+      setVendor(data);
+    } catch (error) {
+      console.error('Error loading vendor:', error);
+      Alert.alert('Error', 'Failed to load vendor details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSlots = useCallback(async (isFocusRefresh = false) => {
+    if (!vendor) return;
+
+    try {
+      if (!isFocusRefresh) setSlotsLoading(true); // Don't show loading on background/focus refresh
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const { resources } = await getAvailableSlots(vendor.id, dateStr);
+      setResourceGroups(resources);
+
+      // If we have a lockedSlotId, check if it's still valid/locked by us
+      // If the backend says it's 'booked' or 'available' (meaning lock expired), we should clear our local state
+      // Use REF to avoid dependency cycles or stale closures in callback
+      const currentLockedId = lockedSlotIdRef.current;
+      if (currentLockedId) {
+        let slotStillLocked = false;
+        let slotBooked = false;
+
+        resources.forEach(group => {
+          const slot = group.slots.find(s => s.id === currentLockedId);
+          if (slot) {
+            if (slot.status === 'locked') slotStillLocked = true;
+            if (slot.status !== 'available' && slot.status !== 'locked') slotBooked = true;
+          }
+        });
+
+        // If the slot is now booked (completed payment) OR available (expired externally), clear local lock
+        if (slotBooked || (!slotStillLocked && isFocusRefresh)) {
+          setLockedSlotId(null);
+          setSelectedSlot(null);
+          setLockExpiry(null);
+          setCountdown(0);
+        }
+      }
+
+      // Auto-expand first resource
+      // Only auto-expand if we haven't expanded anything yet
+      if (resources.length > 0) {
+        setExpandedResources(prev => {
+          if (prev.size === 0) {
+            return new Set([resources[0].resource_id]);
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading slots:', error);
+      if (!isFocusRefresh) Alert.alert('Error', 'Failed to load available slots. Please try again.');
+    } finally {
+      if (!isFocusRefresh) setSlotsLoading(false);
+    }
+  }, [vendor, selectedDate]);
 
   // Load vendor data
   useEffect(() => {
@@ -62,7 +134,20 @@ export default function VendorDetailScreen() {
     if (vendor && !lockedSlotId) {
       loadSlots();
     }
-  }, [vendor, selectedDate]);
+  }, [vendor, selectedDate, loadSlots]);
+
+  // Refresh slots when screen gains focus
+  // This handles the case where a user books a slot and returns to this screen
+  // We need to check if our 'locked' slot is now 'booked'
+  useFocusEffect(
+    useCallback(() => {
+      if (vendor) {
+        // We always reload slots to get the latest status
+        // Pass true to indicate this is a focus refresh
+        loadSlots(true);
+      }
+    }, [vendor, loadSlots])
+  );
 
   // Setup auto-refresh (every 30 seconds when no slot is locked)
   useEffect(() => {
@@ -82,7 +167,7 @@ export default function VendorDetailScreen() {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [vendor, lockedSlotId]);
+  }, [vendor, lockedSlotId, loadSlots]);
 
   // Countdown timer for locked slot
   useEffect(() => {
@@ -112,40 +197,6 @@ export default function VendorDetailScreen() {
       }
     };
   }, [lockExpiry]);
-
-  const loadVendor = async () => {
-    try {
-      setLoading(true);
-      const data = await getVendorById(id as string);
-      setVendor(data);
-    } catch (error) {
-      console.error('Error loading vendor:', error);
-      Alert.alert('Error', 'Failed to load vendor details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSlots = async () => {
-    if (!vendor) return;
-
-    try {
-      setSlotsLoading(true);
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const { resources } = await getAvailableSlots(vendor.id, dateStr);
-      setResourceGroups(resources);
-
-      // Auto-expand first resource
-      if (resources.length > 0 && expandedResources.size === 0) {
-        setExpandedResources(new Set([resources[0].resource_id]));
-      }
-    } catch (error) {
-      console.error('Error loading slots:', error);
-      Alert.alert('Error', 'Failed to load available slots. Please try again.');
-    } finally {
-      setSlotsLoading(false);
-    }
-  };
 
   const handleSlotClick = async (slot: SlotDetails) => {
     if (slot.status !== 'available') return;
@@ -281,33 +332,12 @@ export default function VendorDetailScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Image Slider */}
-        <View style={styles.imageSliderContainer}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={(e) => {
-              const slideIndex = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
-              setCurrentImageIndex(slideIndex);
-            }}
-            scrollEventThrottle={16}
-          >
-            {[0, 1, 2, 3].map((index) => (
-              <Image
-                key={index}
-                source={{ uri: getCourtImage(vendor.category || 'padel', index) }}
-                style={styles.venueImage}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
-          <View style={styles.paginationDots}>
-            {[0, 1, 2, 3].map((index) => (
-              <View key={index} style={[styles.dot, currentImageIndex === index && styles.dotActive]} />
-            ))}
-          </View>
-        </View>
+        {/* Single Vendor Image */}
+        <Image
+          source={getVendorImage(vendor.id)}
+          style={styles.venueImage}
+          resizeMode="cover"
+        />
 
         {/* Venue Info */}
         <View style={styles.card}>
