@@ -353,6 +353,12 @@ class NLUAgent:
                 logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
                 availability_data = await self._check_database_availability(entities)
                 logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
+
+                # Update context with resolved vendor_id from availability check
+                if availability_data and availability_data.get('success') and availability_data.get('vendor_id'):
+                    context['vendor_id'] = availability_data['vendor_id']
+                    entities['vendor_id'] = availability_data['vendor_id']
+                    logger.info(f"✅ [generate_response] Updated context with resolved vendor_id: {availability_data['vendor_id']}")
             else:
                 logger.info("⏭️  [generate_response] Skipping database check - not all details present")
             

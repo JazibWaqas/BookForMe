@@ -6,7 +6,15 @@ Mimics WhatsApp workflow exactly - uses the same WhatsAppAgent
 import asyncio
 import sys
 import os
+import logging
 from datetime import datetime
+
+# Configure complete logging to show all logs in terminal
+logging.basicConfig(
+    level=logging.DEBUG,  # Show ALL logs (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 # Add backend directory to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))

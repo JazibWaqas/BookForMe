@@ -13,26 +13,13 @@ from nlu.agent import NLUAgent
 
 logger = logging.getLogger(__name__)
 
-# Debug logging configuration
-DEBUG_LOG_PATH = r"c:\Users\LENOVO\Desktop\Fyp\.cursor\debug.log"
+# Debug logging configuration - disabled for terminal logging
+DEBUG_LOG_PATH = None  # Disabled - all logs now go to terminal
 
 def debug_log(hypothesis_id: str, location: str, message: str, data: dict = None):
-    """Write debug log entry"""
-    try:
-        import time
-        log_entry = {
-            "sessionId": "debug-session",
-            "runId": "run1",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data or {},
-            "timestamp": int(time.time() * 1000)
-        }
-        with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry) + "\n")
-    except Exception:
-        pass  # Silently fail if logging fails
+    """Write debug log entry - disabled for terminal mode"""
+    # Disabled to avoid file I/O issues and focus on terminal logging
+    pass
 
 # Initialize NLU agent
 nlu_agent = NLUAgent()
