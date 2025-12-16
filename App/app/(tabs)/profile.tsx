@@ -23,10 +23,11 @@ export default function ProfileScreen() {
   const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
   
   // Use React Query hooks for data fetching with caching
-  const { data: user, isLoading: userLoading, refetch: refetchUser } = useCurrentUser();
-  const { data: allBookings = [], isLoading: bookingsLoading, refetch: refetchBookings } = useUserBookings();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { data: allBookings = [], isLoading: bookingsLoading } = useUserBookings();
   
-  const loading = userLoading || bookingsLoading;
+  // Only wait for user data, bookings can load async
+  const loading = userLoading;
   
   // Calculate derived data
   const bookingsCount = allBookings.length;
@@ -38,23 +39,19 @@ export default function ProfileScreen() {
     .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
     .slice(0, 3);
 
-  // Check user role, redirect if vendor, and refetch data on focus
+  // Check user role and redirect if vendor
   useFocusEffect(
     React.useCallback(() => {
-      const checkRoleAndRefresh = async () => {
+      const checkRole = async () => {
         const role = await AsyncStorage.getItem('userRole');
         if (role === 'vendor') {
           router.replace('/vendor-dashboard');
           return;
         }
         setUserRole(role as 'customer' | 'vendor' | null);
-        
-        // Force refetch user data to ensure it's current
-        refetchUser();
-        refetchBookings();
       };
-      checkRoleAndRefresh();
-    }, [router, refetchUser, refetchBookings])
+      checkRole();
+    }, [router])
   );
 
   const formatBookingDate = (dateStr: string) => {
@@ -204,28 +201,30 @@ export default function ProfileScreen() {
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => router.push('/bookings')}
+              disabled={bookingsLoading}
             >
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
                 <Ionicons name="calendar" size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.statValue}>{upcomingBookings}</Text>
+              <Text style={styles.statValue}>{bookingsLoading ? '-' : upcomingBookings}</Text>
               <Text style={styles.statLabel}>Upcoming</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => router.push('/bookings')}
+              disabled={bookingsLoading}
             >
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               </View>
-              <Text style={styles.statValue}>{completedBookings}</Text>
+              <Text style={styles.statValue}>{bookingsLoading ? '-' : completedBookings}</Text>
               <Text style={styles.statLabel}>Completed</Text>
             </TouchableOpacity>
             <View style={styles.statItem}>
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
                 <Ionicons name="calendar-outline" size={20} color="#f59e0b" />
               </View>
-              <Text style={styles.statValue}>{bookingsCount}</Text>
+              <Text style={styles.statValue}>{bookingsLoading ? '-' : bookingsCount}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
           </View>
@@ -239,7 +238,12 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {recentBookings.length === 0 ? (
+          {bookingsLoading ? (
+            <Card style={styles.emptyCard}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.emptySubtext}>Loading bookings...</Text>
+            </Card>
+          ) : recentBookings.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Ionicons name="calendar-outline" size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyText}>No bookings yet</Text>

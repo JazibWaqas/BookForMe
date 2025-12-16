@@ -92,7 +92,8 @@ export function useCurrentUser() {
             const response = await apiClient.get(API_ENDPOINTS.auth.me);
             return response.data.user;
         },
-        staleTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 30 * 60 * 1000, // 30 minutes - user data rarely changes
+        gcTime: 60 * 60 * 1000, // 1 hour
     });
 }
 
@@ -104,8 +105,9 @@ export function useUserBookings() {
             const response = await apiClient.get(API_ENDPOINTS.bookings.list);
             return response.data.bookings || [];
         },
-        staleTime: 0, // Always consider stale so refetch works properly
-        gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+        staleTime: 2 * 60 * 1000, // 2 minutes - use cache aggressively for speed
+        gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+        refetchOnWindowFocus: false, // Don't auto-refetch on focus
     });
 }
 

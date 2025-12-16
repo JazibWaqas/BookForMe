@@ -16,14 +16,10 @@ export default function MyBookingsScreen() {
     const [countdown, setCountdown] = useState<{ [key: string]: number }>({});
     
     // Use React Query for bookings - cached and fast
-    const { data: bookings = [], isLoading: loading, isFetching, refetch } = useUserBookings();
+    const { data: bookings = [], isLoading: loading, isFetching } = useUserBookings();
 
-    // Refetch on focus to get latest data
-    useFocusEffect(
-        useCallback(() => {
-            refetch();
-        }, [refetch])
-    );
+    // No refetch on focus - prioritize speed over freshness
+    // Data is invalidated after booking payment, which is what matters
 
     useEffect(() => {
         const interval = setInterval(() => {
