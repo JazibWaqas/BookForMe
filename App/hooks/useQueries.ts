@@ -83,3 +83,98 @@ export function usePrefetchVendor() {
         });
     };
 }
+
+// Hook to fetch current user profile
+export function useCurrentUser() {
+    return useQuery({
+        queryKey: ['user', 'me'] as const,
+        queryFn: async () => {
+            const response = await apiClient.get(API_ENDPOINTS.auth.me);
+            return response.data.user;
+        },
+        staleTime: 10 * 60 * 1000, // 10 minutes
+    });
+}
+
+// Hook to fetch user bookings
+export function useUserBookings() {
+    return useQuery({
+        queryKey: ['bookings', 'user'] as const,
+        queryFn: async () => {
+            const response = await apiClient.get(API_ENDPOINTS.bookings.list);
+            return response.data.bookings || [];
+        },
+        staleTime: 0, // Always consider stale so refetch works properly
+        gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    });
+}
+
+// Hook to fetch categories
+export function useCategories() {
+    return useQuery({
+        queryKey: ['categories'] as const,
+        queryFn: async () => {
+            const response = await apiClient.get('/api/categories');
+            return response.data.categories || [];
+        },
+        staleTime: 30 * 60 * 1000, // 30 minutes - categories don't change often
+    });
+}
+
+// Hook to fetch available slots with smart refetching
+export function useAvailableSlotsOptimized(vendorId: string, date: string, enabled: boolean = true, autoRefetch: boolean = true) {
+    return useQuery({
+        queryKey: queryKeys.slots.byVendor(vendorId, date),
+        queryFn: async () => {
+            const response = await apiClient.get(
+                API_ENDPOINTS.vendors.availability(vendorId),
+                { params: { date } }
+            );
+            
+            // Group slots by resource
+            const slots = response.data.available_slots || [];
+            const resourceMap = new Map();
+            
+            slots.forEach((slot: any) => {
+                const key = slot.resource_id;
+                if (!resourceMap.has(key)) {
+                    resourceMap.set(key, {
+                        resource_id: slot.resource_id,
+                        resource_name: slot.resource_name || `Court ${slot.resource_id}`,
+                        service_id: slot.service_id,
+                        service_name: slot.service_name || 'Court Rental',
+                        slots: [],
+                        availableCount: 0,
+                    });
+                }
+                
+                const group = resourceMap.get(key);
+                group.slots.push({
+                    id: slot.slot_id || slot.id,
+                    slot_id: slot.slot_id || slot.id,
+                    vendor_id: vendorId,
+                    service_id: slot.service_id,
+                    service_name: slot.service_name,
+                    resource_id: slot.resource_id,
+                    resource_name: slot.resource_name,
+                    date: date,
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                    price: slot.price,
+                    status: slot.status || 'available',
+                    price_tier_used: slot.price_tier_used,
+                });
+                
+                if (slot.status === 'available') {
+                    group.availableCount++;
+                }
+            });
+            
+            return Array.from(resourceMap.values());
+        },
+        enabled: enabled && !!vendorId && !!date,
+        staleTime: 30 * 1000, // 30 seconds - slots change frequently
+        refetchInterval: autoRefetch ? 45 * 1000 : false, // Only auto-refetch when not locked
+        refetchOnWindowFocus: false, // Disable focus refetch to prevent interrupting user actions
+    });
+}

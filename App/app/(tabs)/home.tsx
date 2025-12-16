@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Vendor } from '../../types';
-import { getVendors, getVendorsByCategory } from '../../services/vendors';
-import { getCategories } from '../../services/services';
-import { Category } from '../../types';
+import { Vendor, Category } from '../../types';
 import VendorCard from '../../components/VendorCard';
 import { COLORS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
+import { useCategories, useVendorsBySport } from '../../hooks/useQueries';
 
 // Icon mapping for categories
 const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
@@ -21,45 +19,37 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [padelVendors, setPadelVendors] = useState<Vendor[]>([]);
-  const [futsalVendors, setFutsalVendors] = useState<Vendor[]>([]);
-  const [cricketVendors, setCricketVendors] = useState<Vendor[]>([]);
-  const [pickleballVendors, setPickleballVendors] = useState<Vendor[]>([]);
+  
+  // Use React Query hooks - data is cached and shared across app
+  const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useCategories();
+  const { data: padelVendors = [], isLoading: padelLoading, refetch: refetchPadel } = useVendorsBySport('padel');
+  const { data: futsalVendors = [], isLoading: futsalLoading, refetch: refetchFutsal } = useVendorsBySport('futsal');
+  const { data: cricketVendors = [], isLoading: cricketLoading, refetch: refetchCricket } = useVendorsBySport('cricket');
+  const { data: pickleballVendors = [], isLoading: pickleballLoading, refetch: refetchPickleball } = useVendorsBySport('pickleball');
+  
+  const loading = categoriesLoading || padelLoading || futsalLoading || cricketLoading || pickleballLoading;
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [cats, padel, futsal, cricket, pickleball] = await Promise.all([
-        getCategories(),
-        getVendorsByCategory('padel'),
-        getVendorsByCategory('futsal'),
-        getVendorsByCategory('cricket'),
-        getVendorsByCategory('pickleball'),
-      ]);
-      setCategories(cats);
-      setPadelVendors(padel);
-      setFutsalVendors(futsal);
-      setCricketVendors(cricket);
-      setPickleballVendors(pickleball);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await Promise.all([
+      refetchCategories(),
+      refetchPadel(),
+      refetchFutsal(),
+      refetchCricket(),
+      refetchPickleball(),
+    ]);
     setRefreshing(false);
   };
+
+  if (loading && categories.length === 0) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ marginTop: 12, color: COLORS.textMuted }}>Loading venues...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

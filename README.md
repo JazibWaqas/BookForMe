@@ -64,6 +64,8 @@ Open App → Browse/Search → Select Slot → Book → Upload Payment Proof →
 ### Frontend
 - **User App**: React Native (Expo) with TypeScript
 - **Web Dashboard**: React + TypeScript (Vite) - Separate project in `frontend/`
+- **State Management**: TanStack React Query v5 for server state caching
+- **Performance**: Memory-cached token retrieval, optimistic updates
 
 ### Backend
 - **API Server**: Python FastAPI (Async)
@@ -80,6 +82,13 @@ Open App → Browse/Search → Select Slot → Book → Upload Payment Proof →
 - **Backend**: Docker + Google Cloud Run / Railway
 - **Frontend**: Vercel / Netlify
 - **Mobile**: Expo Go (Development) → App Store / Play Store (Production)
+
+### Performance Optimizations
+- **Token Caching**: In-memory cache (5 min TTL) to avoid AsyncStorage reads on every API call
+- **React Query**: Automatic background refetching, data persistence, and request deduplication
+- **Batch Queries**: Backend uses Firestore batch queries to eliminate N+1 problems
+- **Smart Polling**: Auto-refresh slots every 45s only when no slot is locked
+- **Stale-While-Revalidate**: Cached data shown instantly while fresh data loads in background
 
 ---
 
@@ -446,7 +455,12 @@ workflow.add_node("process_booking", process_booking_node)
 - [ ] End-to-end booking flow
 - [ ] Double-booking prevention testing
 - [ ] Bilingual NLU testing
-- [ ] Performance optimization
+- [x] Performance optimization
+  - [x] Token caching with memory layer
+  - [x] React Query integration for data caching
+  - [x] Eliminate N+1 database queries
+  - [x] Smart slot refetching (45s interval)
+  - [x] Background data revalidation
 
 ---
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../services/firebase';
@@ -9,12 +10,14 @@ import { authService } from '../../services/auth';
 import { formatSlotTime, formatPrice, formatCountdown } from '../../services/bookings';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { queryClient } from '../../providers/QueryProvider';
 import { COLORS } from '../../constants/colors';
 
 type VerificationStatus = 'idle' | 'uploading' | 'verified' | 'rejected';
 
 export default function BookingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     slotId,
     vendorId,
@@ -156,6 +159,10 @@ export default function BookingScreen() {
       if (paymentResponse.data.success) {
         setVerificationStatus('verified');
         setBookingConfirmed(true);
+        
+        // Force immediate refetch of slots and bookings to show updated data
+        await queryClient.refetchQueries({ queryKey: ['slots'] });
+        await queryClient.refetchQueries({ queryKey: ['bookings'] });
       } else {
         setVerificationStatus('rejected');
         Alert.alert('Error', paymentResponse.data.error || 'Failed to submit payment. Please try again.');
@@ -189,7 +196,7 @@ export default function BookingScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
@@ -199,7 +206,7 @@ export default function BookingScreen() {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         {/* Booking Summary */}
         <Card>
           <Text style={styles.cardTitle}>Booking Summary</Text>
@@ -245,10 +252,10 @@ export default function BookingScreen() {
               <Text style={styles.instructionText}>
                 1. Transfer <Text style={{ fontWeight: '700', color: COLORS.primary }}>{formatPrice(total)}</Text> to the vendor's account:
               </Text>
-              <View style={{ backgroundColor: COLORS.background, padding: 8, borderRadius: 6, marginBottom: 8 }}>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Bank: Meezan Bank</Text>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Title: {vendorName}</Text>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13 }}>Account: 0101-0101234567</Text>
+              <View style={{ backgroundColor: COLORS.backgroundLight, padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text, marginBottom: 4 }}>Bank: Meezan Bank</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text, marginBottom: 4 }}>Title: {vendorName}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text }}>Account: 0101-0101234567</Text>
               </View>
               <Text style={styles.instructionText}>
                 2. Take a screenshot of the transaction receipt.
@@ -351,8 +358,6 @@ export default function BookingScreen() {
             </TouchableOpacity>
           </>
         )}
-
-        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
@@ -368,7 +373,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -457,8 +461,9 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 14,
-    color: COLORS.textMuted,
-    marginBottom: 8,
+    color: COLORS.text,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   uploadBox: {
     borderWidth: 2,
@@ -576,10 +581,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
+    marginBottom: 80,
   },
   secondaryButtonText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    fontWeight: '500',
+    fontSize: 15,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

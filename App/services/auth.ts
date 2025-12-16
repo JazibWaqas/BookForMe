@@ -5,7 +5,7 @@ import { User as UserType } from '../types';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Import API configuration
-import { API_ENDPOINTS, apiClient } from '../config/api';
+import { API_ENDPOINTS, apiClient, clearTokenCache, updateTokenCache } from '../config/api';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -130,6 +130,17 @@ class AuthService {
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
 
+        // Update token cache immediately so next requests work
+        updateTokenCache(response.data.token);
+
+        // Clear React Query cache on login to ensure fresh data for new user
+        try {
+          const { queryClient } = await import('../providers/QueryProvider');
+          queryClient.clear();
+        } catch (e) {
+          console.log('Could not clear query cache:', e);
+        }
+
         return {
           success: true,
           token: response.data.token,
@@ -222,6 +233,17 @@ class AuthService {
         await this.setToken(response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
+
+        // Update token cache immediately
+        updateTokenCache(response.data.token);
+
+        // Clear React Query cache on login
+        try {
+          const { queryClient } = await import('../providers/QueryProvider');
+          queryClient.clear();
+        } catch (e) {
+          console.log('Could not clear query cache:', e);
+        }
 
         return {
           success: true,
@@ -426,9 +448,14 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       await firebaseSignOut(auth);
+      clearTokenCache();
       await this.clearToken();
       await AsyncStorage.removeItem('userData');
       await AsyncStorage.removeItem('userRole');
+      
+      // Clear React Query cache on logout
+      const { queryClient } = await import('../providers/QueryProvider');
+      queryClient.clear();
     } catch (error) {
       console.error('Logout error:', error);
     }

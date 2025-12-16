@@ -65,8 +65,7 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
         sport_filter = service_type or category
         
         if sport_filter:
-            # Filter by sport type - query through services collection
-            # Step 1: Get all services with matching sport_type
+            # Filter by sport type - OPTIMIZED: batch fetch vendors
             logger.info(f"Filtering by sport_type: {sport_filter}")
             services = firestore_db.db.collection('services').where('sport_type', '==', sport_filter).stream()
             vendor_ids = set()
@@ -75,15 +74,20 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
             
             logger.info(f"Found {len(vendor_ids)} unique vendor_ids: {vendor_ids}")
             
-            # Step 2: Get vendor details for each vendor_id
+            # OPTIMIZATION: Batch fetch all vendors in one query using 'in' operator
+            # Firestore 'in' supports up to 10 items, so we batch if needed
             vendors = []
-            for vid in vendor_ids:
-                vendor = await firestore_db.get_vendor(vid)
-                if vendor:
-                    vendor['id'] = vid
-                    vendors.append(vendor)
-                else:
-                    logger.warning(f"Vendor {vid} not found")
+            vendor_ids_list = list(vendor_ids)
+            
+            # Process in batches of 10 (Firestore limitation)
+            for i in range(0, len(vendor_ids_list), 10):
+                batch_ids = vendor_ids_list[i:i+10]
+                vendor_docs = firestore_db.db.collection('vendors').where('__name__', 'in', batch_ids).stream()
+                
+                for doc in vendor_docs:
+                    vendor_data = doc.to_dict()
+                    vendor_data['id'] = doc.id
+                    vendors.append(vendor_data)
             
             logger.info(f"Returning {len(vendors)} vendors")
         else:
@@ -138,6 +142,41 @@ async def get_vendor(vendor_id: str):
     except Exception as e:
         logger.error(f"Error getting vendor: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get vendor: {str(e)}")
+
+
+@router.get("/categories")
+async def get_categories():
+    """
+    Get all service categories
+    
+    Returns:
+        List of categories with vendor counts
+    """
+    try:
+        # Define available categories
+        categories = [
+            {'id': 'padel', 'name': 'Padel', 'count': 0},
+            {'id': 'futsal', 'name': 'Futsal', 'count': 0},
+            {'id': 'cricket', 'name': 'Cricket', 'count': 0},
+            {'id': 'pickleball', 'name': 'Pickleball', 'count': 0},
+        ]
+        
+        # Count vendors for each category
+        for category in categories:
+            services = firestore_db.db.collection('services').where('sport_type', '==', category['id']).stream()
+            vendor_ids = set()
+            for doc in services:
+                vendor_ids.add(doc.to_dict().get('vendor_id'))
+            category['count'] = len(vendor_ids)
+        
+        return {
+            "success": True,
+            "categories": categories
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting categories: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get categories: {str(e)}")
 
 
 @router.get("/sport-courts")
@@ -548,22 +587,29 @@ async def submit_payment(payment_data: PaymentRequest, user_id: str = Depends(ge
         payment_ref = firestore_db.db.collection('payments').add(payment_doc)
         payment_id = payment_ref[1].id
         
+        # Submit payment - this changes slot from 'locked' to 'pending'
         payment_result = slot_service.submit_payment(payment_data.slot_id, user_id, payment_id)
         
         if not payment_result['success']:
             raise HTTPException(status_code=400, detail=payment_result.get('error', 'Failed to submit payment'))
         
+        # Auto-confirm booking immediately after payment submission
+        # In MVP, we auto-confirm. In production, vendor would manually confirm.
         confirm_result = slot_service.confirm_booking(payment_data.slot_id, vendor_id)
         
-        if not confirm_result['success']:
-            logger.warning(f"Payment submitted but confirmation failed: {confirm_result.get('error')}")
+        final_status = 'pending'  # Default to pending if confirm fails
+        if confirm_result['success']:
+            final_status = 'confirmed'
+            logger.info(f"Payment submitted and booking auto-confirmed for slot {payment_data.slot_id}")
+        else:
+            logger.warning(f"Payment submitted but auto-confirmation failed: {confirm_result.get('error')}. Status remains 'pending'")
         
         return {
             "success": True,
             "payment_id": payment_id,
             "slot_id": payment_data.slot_id,
-            "status": "confirmed",
-            "message": "Payment submitted and booking confirmed"
+            "status": final_status,
+            "message": f"Payment submitted and booking {final_status}"
         }
         
     except HTTPException:
