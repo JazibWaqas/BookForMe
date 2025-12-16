@@ -1,251 +1,256 @@
-# BookForMe Mobile App (React Native + Expo)
+# BookForMe Mobile App - React Native + Expo
 
-## Overview
-This is the React Native mobile application for BookForMe, built with Expo Router and NativeWind (Tailwind CSS).
-
-## Tech Stack
-- **React Native** - Mobile framework
-- **Expo** - Development platform
-- **Expo Router** - File-based navigation
-- **NativeWind** - Tailwind CSS for React Native
-- **TypeScript** - Type safety
-- **Firebase/Firestore** - Real-time database
-- **date-fns** - Date utilities
-
-## Project Structure
-
-```
-App/
-├── app/                          # Expo Router screens
-│   ├── _layout.tsx              # Root navigation layout
-│   ├── index.tsx                # Entry point (redirects to home)
-│   ├── (auth)/                  # Authentication screens
-│   │   ├── login.tsx            # Login with role toggle
-│   │   └── register.tsx         # Customer registration
-│   ├── (tabs)/                  # Main tab navigation
-│   │   ├── _layout.tsx          # Bottom tab bar
-│   │   ├── home.tsx             # Home screen (Foodpanda-style)
-│   │   ├── chatbot.tsx          # AI assistant chat
-│   │   ├── social.tsx           # Social hub (forum, matches, leaderboard)
-│   │   └── profile.tsx          # User profile & settings
-│   ├── vendor/                  # Vendor-related screens
-│   │   ├── [id].tsx             # Vendor detail with slot picker
-│   │   └── booking.tsx          # Booking & payment flow
-│   ├── category/                
-│   │   └── [category].tsx       # Category listing with filters
-│   ├── vendor-dashboard/        # Vendor management
-│   │   ├── index.tsx            # Dashboard overview
-│   │   ├── calendar.tsx         # Calendar view of bookings
-│   │   └── bookings.tsx         # Manage all bookings
-│   └── notifications.tsx        # Notifications screen
-│
-├── components/                   # Reusable components
-│   ├── ui/                      # Base UI components
-│   │   ├── Button.tsx           # Styled button with variants
-│   │   ├── Card.tsx             # Card container
-│   │   ├── Input.tsx            # Form input
-│   │   └── Badge.tsx            # Status badges
-│   ├── VendorCard.tsx           # Vendor listing card
-│   ├── CategoryScroll.tsx       # Horizontal category scroller
-│   ├── TimeSlotPicker.tsx       # Date & time slot selector
-│   └── QuickActionGrid.tsx      # Quick action buttons
-│
-├── services/                     # API & Firebase services
-│   ├── firebase.ts              # Firestore configuration
-│   ├── vendors.ts               # Vendor CRUD operations
-│   └── bookings.ts              # Booking operations
-│
-├── types/                        # TypeScript type definitions
-│   └── index.ts                 # All app types
-│
-├── constants/                    # App constants
-│   ├── colors.ts                # Color scheme
-│   └── categories.ts            # Category definitions
-│
-├── utils/                        # Utility functions
-├── hooks/                        # Custom React hooks
-├── tailwind.config.js           # NativeWind configuration
-├── babel.config.js              # Babel with NativeWind plugin
-├── global.css                   # Tailwind imports
-└── app.json                     # Expo configuration
-```
-
-## Key Features
-
-### Customer Flow
-1. **Authentication** - Login/Register with role selection
-2. **Home Screen** - Foodpanda-style with:
-   - Location header
-   - Search bar
-   - Quick actions (AI Assistant, Find Match, My Bookings)
-   - Horizontal category scroll
-   - Trending venues with real Firestore data
-   - Upcoming bookings
-3. **Category Listing** - Filterable venue list with sidebar filters
-4. **Vendor Detail** - Full venue info with:
-   - Image slider (placeholder)
-   - Ratings & reviews
-   - Time slot picker with availability
-   - Amenities tabs
-5. **Booking Flow** - Complete booking with:
-   - Customer details form
-   - Payment summary
-   - Payment method selection
-6. **AI Chatbot** - Conversational assistant
-7. **Social Hub** - Forum, matches, chats, leaderboard
-8. **Profile** - User info, booking history, settings
-
-### Vendor Flow
-1. **Dashboard** - Analytics & recent activity
-2. **Calendar** - Visual booking calendar
-3. **Bookings** - Manage all bookings with filters
-
-## Navigation Structure
-
-```
-Index (/) → Redirects to Home
-│
-├── (auth)/
-│   ├── login
-│   └── register
-│
-└── (tabs)/                     # Bottom tabs
-    ├── home                    # Main entry
-    ├── chatbot
-    ├── social
-    └── profile
-    
-    From home →
-    ├── /category/[category]    # Sports, gaming, etc.
-    │   └── /vendor/[id]        # Vendor detail
-    │       └── /vendor/booking # Booking flow
-    │
-    └── /notifications          # Notifications list
-    
-    Vendor Dashboard →
-    └── /vendor-dashboard/
-        ├── index               # Overview
-        ├── calendar            # Calendar view
-        └── bookings            # Manage bookings
-```
-
-## Firestore Integration
-
-### Collections
-- **vendors** - Business information, ratings, prices
-- **bookings** - Customer bookings with status
-- **slots** - Available time slots
-- **services** - Service offerings
-
-### Services
-- `getVendors()` - Fetch all vendors
-- `getSportsVendors()` - Filter sports courts (Paddle, Futsal)
-- `getVendorById(id)` - Single vendor details
-- `getAvailableSlots(vendorId, date)` - Check availability
-- `createBooking(data)` - Create new booking
-
-## Styling with NativeWind
-
-Uses Tailwind utility classes:
-```tsx
-<View className="flex-1 bg-[#1a1a1a] px-5 py-5">
-  <Text className="text-lg font-semibold text-gray-100">Title</Text>
-</View>
-```
-
-### Design System
-- **Background**: `bg-[#1a1a1a]`, `bg-[#1f1f1f]`
-- **Borders**: `border-2 border-gray-600 border-dashed`
-- **Text**: `text-gray-100`, `text-gray-400`, `text-gray-500`
-- **Primary Color**: `text-primary` (#4ade80 - green)
-- **Secondary Color**: `text-secondary` (#fbbf24 - yellow)
-
-## Running the App
-
-### Development
-```bash
-cd App
-npm start
-```
-Then:
-- Press `i` for iOS simulator
-- Press `a` for Android emulator
-- Scan QR code with Expo Go app on your phone
-
-### Build for Production
-```bash
-# iOS
-eas build --platform ios
-
-# Android
-eas build --platform android
-```
-
-## Environment Setup
-
-No environment variables needed for basic functionality. Firebase config is in `services/firebase.ts`.
-
-For production:
-- Set up Expo EAS
-- Configure app signing
-- Add proper Firebase credentials
-
-## Current Focus: Sports Courts
-
-The app is currently optimized for Sports Courts (Paddle, Futsal). The home screen filters to show only sports venues using:
-```typescript
-const vendors = await getSportsVendors(); // Filters by category
-```
-
-## Next Steps
-
-1. **Authentication** - Implement real auth (currently placeholder)
-2. **Slot Management** - Load real slots from Firestore
-3. **Payment Integration** - Add payment gateway
-4. **Push Notifications** - Expo notifications
-5. **Image Upload** - Vendor images
-6. **Reviews** - Rating system
-7. **Real-time Updates** - Firestore snapshots
-8. **Offline Support** - AsyncStorage caching
-
-## Development Notes
-
-- All screens use dark theme (#1a1a1a)
-- Follows wireframe designs from `wireframes/` folder
-- Components are modular and reusable
-- Uses TypeScript for type safety
-- Real Firestore data integration ready
-- Placeholder images used (can be replaced)
-
-## Troubleshooting
-
-**Metro bundler errors:**
-```bash
-npm start -- --reset-cache
-```
-
-**NativeWind not working:**
-```bash
-rm -rf node_modules
-npm install
-npm start -- --reset-cache
-```
-
-**Navigation issues:**
-```bash
-# Check that Expo Router is properly configured in app.json
-```
-
-## Contributing
-
-Follow existing patterns:
-- Use NativeWind for styling
-- Keep components in `components/`
-- Use Expo Router conventions
-- Type everything with TypeScript
-- Follow the wireframe designs
+**Last Updated**: January 15, 2025  
+**Status**: Core Features Complete, Social Features In Progress  
+**Progress**: ~70% Complete
 
 ---
 
-**Built with ❤️ for BookForMe**
+## 🎯 Core Vision
 
+The mobile app provides a **centralized marketplace** for users to browse, search, and book sports courts and services in Karachi. It shares the same Firestore database as the WhatsApp AI agent, ensuring real-time availability synchronization.
+
+**Key Features**:
+- Browse vendors by category (Padel, Futsal, Cricket, Pickleball)
+- Real-time slot availability
+- Booking flow with payment upload
+- AI-powered search assistant
+- Social hub (forum, matches, leaderboard)
+
+---
+
+## ✅ What's Done (As of January 15, 2025)
+
+### Core Booking Flow ✅
+- ✅ Vendor browsing with React Query caching
+- ✅ Category-based filtering
+- ✅ Search functionality (name, area, address)
+- ✅ Vendor detail pages
+- ✅ Slot selection with availability display
+- ✅ Booking confirmation flow
+- ✅ Payment screenshot upload
+- ✅ Booking history (My Bookings page)
+- ✅ Profile page with stats
+
+### Performance Optimizations ✅
+- ✅ In-memory token caching (5 min TTL)
+- ✅ React Query for data caching
+- ✅ Background refetching (45s interval for slots)
+- ✅ Optimistic updates
+- ✅ Request deduplication
+
+### UI/UX ✅
+- ✅ Dark theme design
+- ✅ Safe area handling
+- ✅ Keyboard avoidance
+- ✅ Loading states and skeletons
+- ✅ Error handling
+
+---
+
+## 🚧 What Needs to Be Done
+
+### High Priority
+1. **Social Features Backend Integration** (Target: January 25, 2025)
+   - Connect forum posts to backend API
+   - Implement match creation/joining
+   - Connect leaderboard to backend
+   - Real-time chat messaging
+
+2. **Push Notifications** (Target: January 30, 2025)
+   - Expo Notifications setup
+   - Booking reminders
+   - Payment status updates
+   - Match invitations
+
+### Medium Priority
+1. **Image Upload** - Vendor photos and payment screenshots
+2. **Offline Support** - AsyncStorage caching
+3. **Analytics** - User behavior tracking
+
+---
+
+## 🏗️ Project Structure
+
+```
+App/
+├── app/                    # Expo Router screens
+│   ├── (auth)/            # Login, Register
+│   ├── (tabs)/            # Home, Chatbot, Social, Profile
+│   ├── vendor/             # Vendor detail, Booking flow
+│   ├── bookings/           # My Bookings
+│   └── vendor-dashboard/   # Vendor management
+│
+├── components/             # Reusable components
+│   ├── ui/                # Base UI (Button, Card, Input, Badge)
+│   ├── VendorCard.tsx
+│   ├── CategoryScroll.tsx
+│   └── TimeSlotPicker.tsx
+│
+├── services/               # API clients
+│   ├── auth.ts            # Authentication
+│   ├── vendors.ts         # Vendor queries
+│   ├── bookings.ts         # Booking operations
+│   └── api.ts             # Axios configuration
+│
+├── hooks/                  # Custom React hooks
+│   └── useQueries.ts      # React Query hooks
+│
+├── types/                  # TypeScript definitions
+│   ├── index.ts
+│   └── booking.ts
+│
+└── constants/              # App constants
+    ├── colors.ts
+    ├── categories.ts
+    └── images.ts
+```
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: React Native (Expo)
+- **Navigation**: Expo Router (file-based)
+- **State Management**: TanStack React Query v5
+- **Styling**: StyleSheet (no NativeWind currently)
+- **TypeScript**: Full type safety
+- **API Client**: Axios with interceptors
+
+---
+
+## 🚀 Development
+
+### Setup
+```bash
+cd App
+npm install
+npm start
+```
+
+### Run on Device
+- **iOS**: Press `i` in terminal or scan QR with Expo Go
+- **Android**: Press `a` in terminal or scan QR with Expo Go
+
+### Environment
+- **API Base URL**: Configured in `config/api.ts`
+- **Backend**: `https://jhat-production.up.railway.app` (production)
+- **Local**: `http://localhost:8000` (development)
+
+---
+
+## 📱 Key Screens
+
+### Home (`app/(tabs)/home.tsx`)
+- Search bar with real-time filtering
+- Category scroll (Browse by Sport)
+- Featured vendors by sport
+- Quick actions (AI Assistant, My Bookings)
+
+### Vendor Detail (`app/vendor/[id].tsx`)
+- Vendor information
+- Resource selection (courts)
+- Date picker
+- Slot grid with availability
+- Booking button
+
+### Booking Flow (`app/vendor/booking.tsx`)
+- Booking summary
+- Payment instructions
+- Screenshot upload
+- Confirmation
+
+### My Bookings (`app/bookings/index.tsx`)
+- Upcoming bookings tab
+- Past bookings tab
+- Status badges (Pending, Confirmed, Completed)
+- Payment upload action
+
+### Profile (`app/(tabs)/profile.tsx`)
+- User information
+- Booking stats (Upcoming, Completed, Total)
+- Recent bookings
+- Settings and sign out
+
+---
+
+## 🔑 Key Implementation Details
+
+### React Query Hooks (`hooks/useQueries.ts`)
+
+**Vendor Queries**:
+```typescript
+const { data: vendors } = useVendors();
+const { data: padelVendors } = useVendorsBySport('padel');
+const { data: vendor } = useVendor(vendorId);
+```
+
+**Slot Queries**:
+```typescript
+const { data: slots, refetch } = useAvailableSlotsOptimized(vendorId, date);
+// Auto-refetches every 45s when no slot is locked
+```
+
+**Booking Queries**:
+```typescript
+const { data: bookings } = useUserBookings();
+// Refetches on window focus, 2 min stale time
+```
+
+### Token Caching (`config/api.ts`)
+
+In-memory cache reduces AsyncStorage reads:
+```typescript
+const tokenCache = {
+  token: string | null,
+  expiresAt: number
+};
+// Cache TTL: 5 minutes
+```
+
+### Performance Optimizations
+
+1. **Token Caching**: In-memory cache (5 min TTL)
+2. **React Query**: Automatic caching and deduplication
+3. **Smart Polling**: Slots refetch every 45s only when needed
+4. **Background Refetch**: Fresh data loads while showing cached data
+5. **Optimistic Updates**: UI updates immediately, syncs in background
+
+---
+
+## 🐛 Known Issues
+
+1. **Profile Page**: Slow on first load (partially fixed with async loading)
+2. **Bookings Page**: Takes 5-10 seconds to update after payment upload
+3. **Slot Selection**: UI state sometimes out of sync with backend
+
+---
+
+## 📚 Additional Documentation
+
+- **Development Guide**: `DEVELOPMENT_GUIDE.md` - Detailed development instructions
+- **Backend API**: See `backend/README.md` for API documentation
+
+---
+
+## 🧪 Testing
+
+### Manual Testing Checklist
+- [ ] Vendor browsing loads correctly
+- [ ] Search filters vendors properly
+- [ ] Slot selection works
+- [ ] Booking flow completes
+- [ ] Payment upload succeeds
+- [ ] Bookings page shows latest bookings
+- [ ] Profile page loads user data
+
+### Performance Testing
+- [ ] Home page loads in < 2 seconds
+- [ ] Vendor detail loads in < 1 second
+- [ ] Slot selection is instant
+- [ ] Booking confirmation is fast
+
+---
+
+**Last Updated**: January 15, 2025  
+**Maintained By**: Mobile App Team

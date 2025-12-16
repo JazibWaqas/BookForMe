@@ -1,485 +1,460 @@
 # BookForMe - AI-Powered Service Booking Platform
 
-## 🎯 Core Concept & Business Logic
+**Last Updated**: January 15, 2025  
+**Status**: MVP Development Phase  
+**Version**: 1.0.0-beta
 
-**BookForMe** is a two-sided marketplace for service bookings (padel courts, salons, cricket pitches, etc.) in Karachi, Pakistan. It solves the problem of "informal WhatsApp bookings" by providing a centralized platform for users and an automated AI receptionist for vendors.
+---
 
-### The Problem
+## 🎯 Core Vision
+
+**BookForMe** is a two-sided marketplace solving the "informal WhatsApp booking problem" in Karachi, Pakistan. We provide:
+
+1. **User App** (React Native) - Centralized marketplace for browsing and booking sports courts, salons, and services
+2. **Vendor AI Receptionist** (WhatsApp) - Automated booking agent that handles 24/7 booking requests via WhatsApp Business API
+3. **Shared Backend** (FastAPI + Firestore) - Single source of truth ensuring no double-bookings
+
+### The Problem We Solve
+
 Vendors in Karachi currently manage bookings manually via WhatsApp, leading to:
 - Double bookings
-- Missed messages
+- Missed messages  
 - No centralized availability tracking
 - Time-consuming manual coordination
 
-### The Solution
-A dual-app architecture that provides:
-- **User App**: Centralized marketplace for browsing and booking services
-- **Vendor AI Receptionist**: Automated WhatsApp agent that handles booking requests 24/7
+### Our Solution
+
+A dual-app architecture where both the mobile app and WhatsApp agent read/write to the same Firestore database, with **Optimistic Concurrency Control (OCC)** preventing double-bookings using Firestore transactions.
 
 ---
 
-## 🏗️ Dual-App Architecture
+## 🏗️ Architecture
 
-The system consists of **two distinct client applications** that share a single backend and database (Firestore). They work independently but are synchronized via the shared data layer.
-
-### 1. User App (React Native + Expo)
-
-**Role**: A centralized marketplace (like Booking.com or Foodpanda)
-
-**Features**:
-- Browse vendors by category and location
-- Check real-time availability
-- Book slots with instant confirmation
-- Upload payment proof screenshots
-- Intelligent Chatbot for natural language search (e.g., "Find me a cheap court in DHA")
-
-**User Flow**:
 ```
-Open App → Browse/Search → Select Slot → Book → Upload Payment Proof → Confirmed
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Mobile App     │────▶│   FastAPI        │◀────│  WhatsApp       │
+│  (React Native) │     │   Backend        │     │  AI Agent       │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                               │    ▲
+                               │    │
+                        ┌──────▼────┴──────┐
+                        │   Firestore DB    │
+                        │ (Single Source of │
+                        │      Truth)       │
+                        └───────────────────┘
 ```
 
-**Technology**: React Native (Expo) + TypeScript
+**Key Principle**: Both apps use the same `/slots` collection. When a user locks a slot, it's locked for everyone (app and WhatsApp) via Firestore transactions.
 
 ---
 
-### 2. Vendor AI Receptionist (WhatsApp Interface)
-
-**Role**: An automated agent that lives on the Vendor's WhatsApp Business account. It intercepts messages to handle the manual booking workload.
-
-**Philosophy**: **"No Dashboard Required."** Vendors can manage everything via chat, though a Vendor Dashboard App exists for power users.
-
-**Features**:
-- Understands intent (Greeting vs. Booking)
-- Negotiates times and availability
-- Checks live database availability
-- Validates payment screenshots via OCR
-- Handles bilingual conversations (Roman Urdu/English)
-
-**Technology**: WhatsApp Business API (Meta) + LangGraph + Gemini AI
-
----
-
-## 🛠️ Technical Stack (MVP Phase)
+## 🛠️ Technology Stack
 
 ### Frontend
-- **User App**: React Native (Expo) with TypeScript
-- **Web Dashboard**: React + TypeScript (Vite) - Separate project in `frontend/`
-- **State Management**: TanStack React Query v5 for server state caching
-- **Performance**: Memory-cached token retrieval, optimistic updates
+- **Mobile App**: React Native (Expo) + TypeScript
+- **State Management**: TanStack React Query v5 (caching, background refetch)
+- **Performance**: In-memory token cache, optimistic updates, smart polling
 
 ### Backend
 - **API Server**: Python FastAPI (Async)
 - **Database**: Google Cloud Firestore (NoSQL)
-- **AI Orchestration**: LangGraph (Python) for stateful agent workflows
-- **AI Model (MVP)**: Gemini 1.5 Flash (via API)
-  - *Note: Will migrate to Qwen 2.5-7B-Instruct later for better Roman Urdu performance*
+- **AI Orchestration**: LangGraph (stateful agent workflows)
+- **AI Model**: Gemini 1.5 Flash (NLU + Vision OCR)
 
-### Messaging & Integration
-- **WhatsApp**: Meta Business API (Production) or Twilio (Sandbox testing)
-- **OCR**: Gemini Flash Vision (Multimodal prompt for payment validation)
+### Messaging
+- **WhatsApp**: Meta Business API (Production)
+- **OCR**: Gemini Vision API (payment screenshot validation)
 
 ### Deployment
-- **Backend**: Docker + Google Cloud Run / Railway
-- **Frontend**: Vercel / Netlify
-- **Mobile**: Expo Go (Development) → App Store / Play Store (Production)
-
-### Performance Optimizations
-- **Token Caching**: In-memory cache (5 min TTL) to avoid AsyncStorage reads on every API call
-- **React Query**: Automatic background refetching, data persistence, and request deduplication
-- **Batch Queries**: Backend uses Firestore batch queries to eliminate N+1 problems
-- **Smart Polling**: Auto-refresh slots every 45s only when no slot is locked
-- **Stale-While-Revalidate**: Cached data shown instantly while fresh data loads in background
+- **Backend**: Railway (`https://jhat-production.up.railway.app`)
+- **Mobile**: Expo Go (Dev) → App Store/Play Store (Production)
 
 ---
 
-## 🤖 Critical AI Agent Workflow (The "Receptionist")
+## ✅ What's Done (As of January 15, 2025)
 
-The AI Agent follows a strict **ReAct (Reason + Act) loop** implemented in LangGraph.
+### Backend Infrastructure ✅
+- FastAPI backend with modular structure
+- Railway deployment (live and operational)
+- Firestore database connected and operational
+- Meta WhatsApp Business API integrated
+- LangGraph agent workflow implemented (`backend/agent/graph.py`)
+- Firestore transactions for OCC (`backend/database/slot_service.py`)
 
-### Workflow Steps
+### Booking System ✅
+- Slot locking mechanism (10-minute hold)
+- Payment upload endpoint (`/api/payments/upload`)
+- Booking confirmation flow
+- Double-booking prevention via transactions
+- Real-time slot availability queries
 
-#### 1. Ingest
-- Webhook receives a WhatsApp message
-- Extract phone number and message text
+### Mobile App ✅
+- Vendor browsing with React Query caching
+- Category-based filtering (Padel, Futsal, Cricket, Pickleball)
+- Search functionality (name, area, address)
+- Vendor detail pages with slot selection
+- Booking flow with payment upload
+- Profile page with booking history
+- Performance optimizations (token caching, background refetch)
 
-#### 2. Reason (Intent Classification)
-Using Gemini NLU to classify intent:
-- **Is it a Greeting?** → Reply politely, offer services
-- **Is it a Booking Query?** → Extract slots (Date, Time, Duration)
-- **Is it a Payment Proof?** → Trigger OCR tool
-
-#### 3. Tool Calling (The "Doing" Part)
-
-**If Intent = Booking:**
-```python
-# Call availability check tool
-slot_status = check_availability(vendor_id, timestamp)
-
-if slot_status == AVAILABLE:
-    lock_slot(vendor_id, timestamp)  # Hold slot
-    request_payment(amount, booking_id)
-elif slot_status == BOOKED:
-    suggest_alternatives(vendor_id, date)
-```
-
-**If Intent = Payment Proof:**
-```python
-# Extract payment details via OCR
-payment_data = ocr_extract(image)
-if payment_data.amount == booking.amount:
-    confirm_booking(booking_id)
-else:
-    request_correction()
-```
-
-#### 4. Payment Validation (Human-in-the-Loop)
-
-1. User sends screenshot
-2. Agent uses Gemini Vision OCR to verify amount matches booking price
-3. Agent sends screenshot to Vendor for final confirmation (optional for MVP, mandatory for final)
-4. Vendor confirms → Booking finalized
-
-#### 5. Finalize
-
-- Write Booking document to Firestore (using transaction)
-- Send confirmation message to User
-- Update availability slots
+### AI Agent ✅
+- LangGraph state machine (`backend/agent/graph.py`)
+- Intent classification via Gemini NLU
+- Entity extraction (date, time, service type)
+- Tool calling for availability checks
+- WhatsApp webhook integration
 
 ---
 
-## 🔒 Key Architectural Constraints
+## 🚧 What Needs to Be Done
 
-### 1. Optimistic Concurrency Control
+### High Priority
+1. **Payment OCR Integration** - Connect Gemini Vision API to payment upload flow
+2. **Automated Hold Expiry** - Cloud Function to release expired locks
+3. **Timezone Fix** - Ensure `start_time` stored in UTC (currently naive datetime)
+4. **Composite Indexes** - Verify/create Firestore indexes for vendor queries
 
-**CRITICAL**: We MUST use Firestore Transactions for all booking writes.
+### Medium Priority
+1. **Bilingual NLU Enhancement** - Improve Roman Urdu/English code-switching
+2. **Matchmaking System** - Elo-based ranked match queue
+3. **Social Features** - Forum, matches, leaderboard (UI exists, needs backend)
+4. **Vendor Dashboard** - Complete booking management UI
 
-**Logic**:
-```python
-@firestore.transactional
-def book_slot(transaction, slot_id):
-    slot = firestore.get(slot_id)
-    if slot.status == AVAILABLE:
-        slot.status = BOOKED
-        transaction.update(slot)
-        return True
-    else:
-        return False  # Slot was booked between read and write
-```
-
-**Why**: Prevents the App User and WhatsApp User from booking the same slot at the same second.
-
-### 2. Shared Database
-
-The User App and AI Agent **MUST** read from the exact same availability collection in Firestore. There is no separate database for the agent.
-
-**Collections**:
-- `vendors/` - Vendor information
-- `availability_slots/` - Time slots (shared between app and agent)
-- `bookings/` - Customer bookings
-- `conversation_states/` - WhatsApp conversation state
-
-### 3. Bilingual NLU
-
-The agent must handle **Roman Urdu** (e.g., "Bhai 7 baje ka slot hai?") and **English** code-switching robustly.
-
-**Examples**:
-- "Kal sham ka slot chahiye" (Roman Urdu)
-- "I need a slot tomorrow evening" (English)
-- "Bhai 5 baje ka time hai?" (Mixed)
+### Low Priority
+1. **Analytics Tracking** - User behavior and conversion funnels
+2. **Push Notifications** - Expo Notifications integration
+3. **Image Upload** - Vendor photos and payment screenshots
 
 ---
 
-## 📁 Project Structure
+## 📁 Repository Navigation - Quick Context Guide
+
+**Need to find something? Use this map:**
+
+### 🎯 Core Documentation (Start Here)
+- **`README.md`** (this file) - Project overview, architecture, quick start
+- **`PROJECT_STATUS.md`** - What's done, what needs doing, with dates
+- **`DATABASE_CONTEXT.md`** - Critical database issues (timezone, indexes, OCC)
+
+### 📱 Mobile App (`App/`)
+- **`App/README.md`** - Mobile app structure, features, development guide
+- **Key Code**:
+  - `App/app/(tabs)/home.tsx` - Home screen with vendor browsing
+  - `App/app/vendor/[id].tsx` - Vendor detail with slot selection
+  - `App/app/vendor/booking.tsx` - Booking flow
+  - `App/hooks/useQueries.ts` - React Query hooks (caching logic)
+  - `App/config/api.ts` - API client with token caching
+
+### 🔧 Backend (`backend/`)
+- **`backend/README.md`** - Backend architecture, API endpoints, status
+- **`backend/agent/README.md`** - LangGraph workflow, nodes, state, tools
+- **`backend/database/README.md`** - Firestore operations, OCC, critical issues
+- **`backend/nlu/README.md`** - Intent classification, entity extraction, prompts
+- **`backend/whatsapp/README.md`** - Webhook handler, Meta API integration
+- **`backend/app/README.md`** - FastAPI app structure
+- **`backend/scripts/README.md`** - Utility scripts documentation
+
+**Key Code**:
+- `backend/agent/graph.py` - LangGraph workflow definition
+- `backend/agent/nodes.py` - Agent node functions (intent, query, response)
+- `backend/database/slot_service.py` - Slot locking/booking with OCC ⭐
+- `backend/database/rest_api.py` - REST API endpoints
+- `backend/nlu/agent.py` - Gemini NLU integration
+- `backend/whatsapp/webhook.py` - WhatsApp webhook handler
+
+### 🗄️ Database (`backend/database/`)
+- **`backend/database/DATABASE_DOCUMENTATION.md`** - Complete schema reference (1100+ lines)
+- **`backend/database/README.md`** - Implementation context, critical issues
+- **Critical Issues** (see `DATABASE_CONTEXT.md`):
+  - Timezone bug: `seed/slot_generator.py:76` - naive datetime
+  - Missing indexes: Composite indexes not verified
+  - Hold expiry: Not automated (needs Cloud Function)
+
+### 📚 Reference Materials
+- **`wireframes/README.md`** - UI wireframe reference
+- **`backend/conversations/README.md`** - Conversation analysis and prompts
+- **`FYP Refrence Projects/`** - Reference projects (archive candidates)
+
+---
+
+## 🗺️ Quick Context Finder - Where to Look
+
+### Before Starting Any Work
+
+**CRITICAL - Read First**:
+1. **`DATABASE_CONTEXT.md`** - Timezone bugs, missing indexes, hold expiry issues
+2. **`PROJECT_STATUS.md`** - What's actually done vs. what needs doing
+3. **Folder README** - Context for the area you're working on
+
+### Implementing Features
+
+**Booking/Slot Operations**:
+→ `backend/database/README.md` - OCC patterns, transaction examples
+→ `backend/database/slot_service.py` - Reference implementation
+→ `DATABASE_CONTEXT.md` - Critical issues to avoid
+
+**AI Agent Workflow**:
+→ `backend/agent/README.md` - LangGraph structure, nodes, state
+→ `backend/nlu/README.md` - Intent classification, prompts
+→ `backend/agent/nodes.py` - Response generation (hardcoded)
+
+**Mobile App Features**:
+→ `App/README.md` - Component structure, React Query patterns
+→ `App/hooks/useQueries.ts` - Data fetching hooks
+→ Existing screens - Copy patterns from similar features
+
+**Database Queries**:
+→ `backend/database/DATABASE_DOCUMENTATION.md` - Complete schema
+→ `backend/database/README.md` - Query patterns, indexing
+→ `DATABASE_CONTEXT.md` - Timezone/indexing issues
+
+### Fixing Bugs
+
+**Timezone Issues**:
+→ `DATABASE_CONTEXT.md` Issue #1 → `backend/database/seed/slot_generator.py:76`
+
+**Slow Queries**:
+→ `DATABASE_CONTEXT.md` Issue #2 → Check Firestore indexes
+
+**Expired Locks**:
+→ `DATABASE_CONTEXT.md` Issue #3 → `backend/database/slot_service.py:381`
+
+**Agent Misunderstanding**:
+→ `backend/nlu/README.md` → Update prompts in `backend/nlu/agent.py`
+
+### Understanding Architecture
+
+**System Overview**:
+→ This file (`README.md`) - Architecture diagram
+→ `PROJECT_STATUS.md` - Implementation status
+
+**Backend Details**:
+→ `backend/README.md` - API endpoints, structure
+→ `backend/agent/README.md` - LangGraph workflow
+→ `backend/database/README.md` - Database operations
+
+**Database Schema**:
+→ `backend/database/DATABASE_DOCUMENTATION.md` - Complete reference (1100+ lines)
+→ `DATABASE_CONTEXT.md` - Critical implementation issues
+
+---
+
+## 📋 Documentation Structure
+
+**One README per folder** - Each provides complete context for that area:
 
 ```
 JHAT/
-├── App/                          # React Native Mobile App (User App)
-│   ├── App.tsx                  # Main app component
-│   ├── package.json             # React Native dependencies
-│   └── src/                     # App source code
+├── README.md                    # This file - navigation & overview
+├── PROJECT_STATUS.md             # Progress tracking with dates
+├── DATABASE_CONTEXT.md           # Critical database issues
 │
-├── backend/                      # FastAPI Backend
-│   ├── app/                     # Main application
-│   │   ├── main.py             # FastAPI app entry point
-│   │   ├── config.py           # Environment settings
-│   │   └── firestore.py        # Database connection
-│   │
-│   ├── whatsapp/               # WhatsApp Agent Module
-│   │   ├── agent.py            # LangGraph state machine
-│   │   ├── service.py          # WhatsApp API integration
-│   │   └── webhook.py          # Webhook handler
-│   │
-│   ├── nlu/                    # Natural Language Understanding
-│   │   ├── agent.py            # Gemini NLU integration
-│   │   └── state_manager.py    # Conversation state
-│   │
-│   ├── database/               # Database Operations
-│   │   ├── availability_service.py  # Booking logic
-│   │   └── rest_api.py        # REST API endpoints
-│   │
-│   └── scripts/                # Testing & setup scripts
+├── App/
+│   └── README.md                # Mobile app context
 │
-├── frontend/                    # React Web Dashboard (Separate)
-│   ├── src/
-│   │   ├── components/        # UI components
-│   │   ├── pages/             # Main pages
-│   │   └── services/          # API client
+├── backend/
+│   ├── README.md                # Backend overview
+│   ├── agent/README.md          # LangGraph agent context
+│   ├── database/
+│   │   ├── README.md            # Database operations context
+│   │   └── DATABASE_DOCUMENTATION.md  # Complete schema (reference)
+│   ├── nlu/README.md            # NLU module context
+│   ├── whatsapp/README.md       # WhatsApp integration context
+│   ├── app/README.md            # FastAPI app context
+│   └── scripts/README.md         # Utility scripts
 │
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Docker configuration
-├── app.py                      # Railway deployment entry point
-└── PROJECT_STATUS.md          # Development progress tracking
+├── wireframes/README.md          # Wireframe reference
+└── backend/conversations/README.md  # Conversation analysis
 ```
+
+**Total**: ~15 essential MD files (down from 49)
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- Expo CLI (`npm install -g expo-cli`)
-- Google Cloud account (for Firestore)
-- Meta Developer account (for WhatsApp Business API)
-- Gemini API key
+## 🚀 Quick Start
 
 ### Backend Setup
-
 ```bash
-# 1. Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 2. Set up environment variables
+# Set environment variables
 cp .env.example .env
 # Edit .env with your API keys
 
-# 3. Initialize Firestore
-python backend/scripts/init_firestore.py
-
-# 4. Start backend server
+# Start server
 uvicorn backend.app.main:app --reload
 ```
 
 ### Mobile App Setup
-
 ```bash
-# 1. Navigate to App directory
 cd App
-
-# 2. Install dependencies (already done)
 npm install
-
-# 3. Start Expo development server
 npm start
-
-# 4. Scan QR code with Expo Go app (iOS/Android)
+# Scan QR code with Expo Go app
 ```
 
-### Web Dashboard Setup
-
+### Database Setup
 ```bash
-# 1. Navigate to frontend directory
-cd frontend
+# Initialize Firestore with sample data
+python backend/scripts/init_firestore.py
 
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
-npm run dev
+# Populate with test data
+python backend/scripts/seed_all.py
 ```
 
 ---
 
-## 🔑 Environment Variables
+## 📊 Current Progress
 
-Create `.env` file in root directory:
+- **Backend**: 85% Complete (LangGraph implemented, transactions working)
+- **Mobile App**: 70% Complete (Core booking flow functional)
+- **AI Agent**: 60% Complete (LangGraph working, needs OCR integration)
+- **Payment OCR**: 0% Complete (Not started)
+- **Social Features**: 30% Complete (UI exists, backend incomplete)
 
-```bash
-# FastAPI Configuration
-APP_NAME=BookForMe Backend
-DEBUG=True
-PORT=8000
+**Overall MVP Progress**: ~65% Complete
 
-# AI/NLU (Gemini API)
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-1.5-flash
+---
 
-# WhatsApp (Meta Business API)
-WHATSAPP_ACCESS_TOKEN=your_meta_access_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-WHATSAPP_VERIFY_TOKEN=your_verify_token
+## 🔑 Critical Technical Details
 
-# Firestore (Google Cloud)
-FIRESTORE_PROJECT_ID=your-firestore-project-id
-FIRESTORE_CREDENTIALS_FILE=./backend/credentials/firestore-service-account.json
-GOOGLE_APPLICATION_CREDENTIALS=./backend/credentials/firestore-service-account.json
-
-# Logging
-LOG_LEVEL=INFO
+### Optimistic Concurrency Control
+All booking writes use Firestore transactions to prevent double-bookings:
+```python
+@firestore.transactional
+def lock_slot(transaction, slot_id, user_id):
+    slot = firestore.get(slot_id)
+    if slot.status == AVAILABLE:
+        slot.status = LOCKED
+        transaction.update(slot)
 ```
+
+### Slot State Machine
+```
+available → locked (10 min) → pending (payment uploaded) → confirmed (vendor approves) → completed
+```
+
+### Shared Database
+Both mobile app and WhatsApp agent read/write to `/slots` collection. Consistency guaranteed via transactions.
+
+---
+
+## 🎯 Quick Context for Implementation Work
+
+**Essential context before starting any feature:**
+
+### Critical Issues (Must Know)
+- **Timezone Bug**: `start_time` stored as naive datetime → See `DATABASE_CONTEXT.md` Issue #1
+- **Missing Indexes**: Composite indexes not verified → See `DATABASE_CONTEXT.md` Issue #2  
+- **Hold Expiry**: Not automated → See `DATABASE_CONTEXT.md` Issue #3
+
+### Key Patterns (Copy These)
+
+**Transaction Pattern** (for slot operations):
+```python
+# See: backend/database/slot_service.py:37
+@firestore.transactional
+def lock_slot(transaction, slot_id, user_id):
+    slot_ref = db.collection('slots').document(slot_id)
+    slot_doc = slot_ref.get(transaction=transaction)
+    if slot_doc.get('status') != 'available':
+        return {'success': False}
+    transaction.update(slot_ref, {'status': 'locked'})
+```
+
+**React Query Pattern** (for mobile app):
+```typescript
+// See: App/hooks/useQueries.ts
+const { data, isLoading } = useVendors();
+// Auto-cached, background refetch, deduplication
+```
+
+**LangGraph Node Pattern**:
+```python
+# See: backend/agent/nodes.py:161
+async def classify_intent_node(state: AgentState) -> AgentState:
+    nlu_result = await nlu_agent.extract_intent(message, history)
+    return {**state, "current_intent": nlu_result["intent"]}
+```
+
+### File Locations (Where to Edit)
+
+**Slot Operations**: `backend/database/slot_service.py`
+**REST API**: `backend/database/rest_api.py`
+**LangGraph Agent**: `backend/agent/graph.py`, `backend/agent/nodes.py`
+**NLU Prompts**: `backend/nlu/agent.py` (lines 109-191)
+**Mobile Screens**: `App/app/(tabs)/`, `App/app/vendor/`
+**React Query Hooks**: `App/hooks/useQueries.ts`
+
+### Common Gotchas
+
+1. **Always use UTC timestamps** - Never naive datetime
+2. **Always use transactions** - For any slot status change
+3. **Check hold expiry** - Before accepting payment
+4. **Verify indexes exist** - Before deploying queries
+5. **State mutation** - LangGraph nodes return new state, don't mutate
+
+---
+
+## 📚 Documentation Quick Reference
+
+**Essential docs (read in this order):**
+
+1. **`DATABASE_CONTEXT.md`** ⚠️ **READ FIRST** - Critical issues (timezone, indexes)
+2. **`PROJECT_STATUS.md`** - What's done vs. what needs doing (with dates)
+3. **Folder READMEs** - Context for specific area:
+   - `backend/agent/README.md` - LangGraph workflow
+   - `backend/database/README.md` - Database operations  
+   - `backend/nlu/README.md` - Intent classification
+   - `App/README.md` - Mobile app structure
+
+**Complete References** (use as needed):
+- `backend/database/DATABASE_DOCUMENTATION.md` - Full schema (1100+ lines)
+- `wireframes/README.md` - UI wireframe reference
 
 ---
 
 ## 🧪 Testing
 
-### Test Backend API
-
+### Backend API
 ```bash
 # Health check
 curl http://localhost:8000/health
 
-# Test WhatsApp webhook
-curl -X POST http://localhost:8000/test-webhook \
-  -H "Content-Type: application/json" \
-  -d '{"test": "message"}'
+# Test slot locking
+curl -X POST http://localhost:8000/api/slots/{slot_id}/lock \
+  -H "Authorization: Bearer {token}"
 ```
 
-### Test Mobile App
-
-```bash
-cd App
-npm start
-# Scan QR code with Expo Go app
-```
-
-### Test WhatsApp Agent
-
-1. Set up ngrok: `ngrok http 8000`
-2. Configure webhook URL in Meta Developer Console
-3. Send WhatsApp message to your business number
-4. Check server logs for processing
+### Mobile App
+- Test on Expo Go app (iOS/Android)
+- Test booking flow end-to-end
+- Verify slot locking prevents double-booking
 
 ---
 
-## 📊 API Endpoints
+## 📞 Resources
 
-### WhatsApp Webhook
-- `GET /webhook/whatsapp` - Webhook verification
-- `POST /webhook/whatsapp` - Receive WhatsApp messages
-
-### REST API (for User App & Web Dashboard)
-- `GET /api/vendors` - Get all vendors
-- `GET /api/vendors/{id}` - Get vendor details
-- `GET /api/vendors/{id}/availability` - Get available slots
-- `POST /api/bookings` - Create booking
-- `GET /api/bookings/{id}` - Get booking details
-- `POST /api/bookings/{id}/payment` - Upload payment proof
-
-### Health & Info
-- `GET /health` - Health check
-- `GET /` - API information
-
----
-
-## 👨‍💻 Developer Guidelines
-
-### TypeScript Standards
-
-**Strict TypeScript**: All frontend data models must be typed interfaces.
-
-```typescript
-// Example: types/index.ts
-interface Booking {
-  id: string;
-  vendorId: string;
-  userId: string;
-  slotId: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  amount: number;
-  paymentProof?: string;
-}
-```
-
-### Clean Architecture
-
-Keep separation of concerns:
-
-```
-backend/
-├── routes/          # API route handlers
-├── services/        # Business logic
-└── dao/            # Database access (Data Access Object)
-```
-
-### Agent State Management
-
-**Use LangGraph's StateGraph** to manage conversation history. Do not rely on stateless LLM calls for multi-turn booking flows.
-
-```python
-from langgraph.graph import StateGraph, START, END
-
-# Define state
-class AgentState(TypedDict):
-    messages: List[str]
-    user_phone: str
-    intent: str
-    entities: Dict[str, Any]
-    conversation_history: List[Dict]
-
-# Build graph
-workflow = StateGraph(AgentState)
-workflow.add_node("classify_intent", classify_intent_node)
-workflow.add_node("check_availability", check_availability_node)
-workflow.add_node("process_booking", process_booking_node)
-```
-
----
-
-## 🎯 MVP Roadmap
-
-### Phase 1: Core Infrastructure ✅
-- [x] FastAPI backend setup
-- [x] Firestore database connection
-- [x] WhatsApp webhook integration
-- [x] Gemini NLU integration
-- [x] LangGraph installation
-
-### Phase 2: AI Agent (In Progress)
-- [ ] Implement LangGraph state machine
-- [ ] Intent classification with Gemini
-- [ ] Entity extraction (date, time, service)
-- [ ] Availability checking tool
-- [ ] Payment OCR with Gemini Vision
-
-### Phase 3: User App
-- [ ] Vendor browsing interface
-- [ ] Availability display
-- [ ] Booking flow
-- [ ] Payment proof upload
-- [ ] Chatbot integration
-
-### Phase 4: Integration & Testing
-- [ ] End-to-end booking flow
-- [ ] Double-booking prevention testing
-- [ ] Bilingual NLU testing
-- [x] Performance optimization
-  - [x] Token caching with memory layer
-  - [x] React Query integration for data caching
-  - [x] Eliminate N+1 database queries
-  - [x] Smart slot refetching (45s interval)
-  - [x] Background data revalidation
-
----
-
-## 📞 Support & Resources
-
-- **Repository**: [GitHub](https://github.com/JazibWaqas/JHAT)
+- **Repository**: https://github.com/JazibWaqas/JHAT
 - **Backend API Docs**: `http://localhost:8000/docs` (Swagger UI)
 - **Firestore Console**: [Google Cloud Console](https://console.cloud.google.com/firestore)
 - **Meta Developer**: [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp)
 
 ---
 
-## 📝 License
+## 🎯 Success Criteria
 
-This project is part of a Final Year Project (FYP) at [Your University].
+MVP is complete when:
+- ✅ User can browse and book via Mobile App (DONE)
+- ✅ User can book via WhatsApp Agent (DONE)
+- ✅ No double-bookings occur (DONE - tested)
+- ⏳ Payment validation works via OCR (IN PROGRESS)
+- ⏳ Bilingual conversations work robustly (PARTIAL)
+- ✅ Booking confirmations sent (DONE)
 
 ---
 
-**Last Updated**: January 2025  
-**Status**: MVP Development Phase  
-**Next Milestone**: LangGraph Agent Implementation
-
+**Last Updated**: January 15, 2025  
+**Maintained By**: Development Team  
+**Questions?** Check folder-specific README files for detailed documentation.
