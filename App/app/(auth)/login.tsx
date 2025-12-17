@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,13 +77,22 @@ export default function LoginScreen() {
       colors={[COLORS.background, COLORS.backgroundLight]}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>BookForMe</Text>
-          <Text style={styles.tagline}>Book Sports Venues Instantly</Text>
-        </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.logo}>BookForMe</Text>
+            <Text style={styles.tagline}>Book Sports Venues Instantly</Text>
+          </View>
 
-        <View style={styles.content}>
+          <View style={styles.content}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Choose your role and login</Text>
 
@@ -203,8 +212,11 @@ export default function LoginScreen() {
               <Text style={styles.linkText}>Sign up</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={{ height: 40 }} />
         </View>
       </ScrollView>
+    </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -215,6 +227,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   header: {
     paddingTop: 80,

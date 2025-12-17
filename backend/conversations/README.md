@@ -1,66 +1,96 @@
-# Real Conversation Analysis & Agent Development Guide
+# Conversations - Analysis & Agent Development
 
-This folder contains real WhatsApp conversations, analysis, and comprehensive guides for developing the BookForMe AI agent.
+**Last Updated**: January 15, 2025  
+**Purpose**: Real WhatsApp conversation analysis and AI agent prompt development
 
-## 📁 Folder Structure
+---
+
+## 🎯 Overview
+
+This folder contains:
+- **Real WhatsApp conversations** - Actual user interactions for analysis
+- **Conversation patterns** - Common flows and use cases
+- **Prompt templates** - Gemini prompts for intent classification and entity extraction
+- **Analysis guides** - How to improve NLU based on conversations
+
+---
+
+## 📁 Structure
 
 ```
 conversations/
-├── README.md                          # This file
-├── examples/                          # Real conversation examples
-│   ├── conversation_1_simple_booking.txt
-│   ├── conversation_2_multi_turn.txt
-│   ├── conversation_3_pricing_inquiry.txt
-│   ├── conversation_4_payment_flow.txt
-│   └── conversation_5_slot_unavailable.txt
-├── analysis/                          # Pattern analysis
-│   ├── conversation_patterns.md       # Common patterns extracted
-│   ├── entity_extraction_guide.md     # How to extract entities
-│   └── language_patterns.md           # Roman Urdu/English patterns
-├── prompts/                           # Prompt templates
-│   ├── intent_classification.md       # Intent prompts
-│   ├── entity_extraction.md           # Entity extraction prompts
-│   ├── response_generation.md         # Response generation prompts
-│   └── booking_flow_prompts.md        # Booking-specific prompts
-└── patterns/                          # Conversation patterns
-    ├── initial_messages.md            # Types of first messages
-    ├── booking_flow.md                # Complete booking flow
-    └── use_cases.md                   # All use cases to handle
-
+├── examples/              # Real conversation examples (.txt files)
+├── patterns/              # Conversation flow patterns
+│   ├── booking_flow.md
+│   ├── initial_messages.md
+│   └── use_cases.md
+├── prompts/              # Gemini prompt templates
+│   ├── intent_classification.md
+│   ├── entity_extraction.md
+│   └── response_generation.md
+└── analysis/             # Analysis guides
+    ├── conversation_patterns.md
+    ├── entity_extraction_guide.md
+    └── language_patterns.md
 ```
 
-## 🎯 Purpose
+---
 
-These conversations serve as:
-1. **Training Data** - Real examples of how customers communicate
-2. **Prompt Engineering** - Base for creating effective NLU prompts
-3. **Flow Validation** - Ensure agent handles all real scenarios
-4. **Testing** - Use as test cases for agent responses
+## 📚 Key Files
 
-## 📊 Key Insights from Real Conversations
+### Conversation Examples (`examples/`)
+Real WhatsApp conversations showing:
+- Simple booking requests
+- Multi-turn conversations
+- Pricing inquiries
+- Payment flows
+- Slot unavailability scenarios
+- Complex pricing negotiations
 
-### Language Patterns
-- **Roman Urdu is dominant**: "Aoa", "mujhe", "karna hai", "mil jayega"
-- **Code-switching is natural**: Mix of English and Urdu in same message
-- **Abbreviations common**: "Aoa" (As-salamu alaykum), "Han g" (Haan ji)
+### Patterns (`patterns/`)
+Documented conversation flows:
+- **booking_flow.md**: Complete booking conversation flow
+- **initial_messages.md**: Common greeting patterns
+- **use_cases.md**: Various use case scenarios
 
-### Booking Flow Patterns
-1. Availability check → Price inquiry → Booking confirmation → Payment
-2. Often customers provide all info in first message
-3. Agent asks for missing pieces (name, payment proof)
-4. Payment details shared as structured text
-5. Payment proof sent as image/screenshot
+### Prompts (`prompts/`)
+Gemini prompt templates used in `backend/nlu/agent.py`:
+- **intent_classification.md**: How to classify user intent
+- **entity_extraction.md**: How to extract entities (date, time, service)
+- **response_generation.md**: How to generate responses
 
-### Entity Extraction Challenges
-- Date references: "tomorrow", "Friday", "next Wednesday"
-- Time ranges: "6-9", "7:30-9", "between 6-9"
-- Service types: "padel", "paddle", "futsal", "cricket"
-- Pricing: Complex calculations (8-hour blocks, hourly rates, discounts)
+### Analysis (`analysis/`)
+Guides for improving NLU:
+- **conversation_patterns.md**: Common patterns in conversations
+- **entity_extraction_guide.md**: How to improve entity extraction
+- **language_patterns.md**: Roman Urdu/English patterns
 
-## 🚀 How to Use
+---
 
-1. **For NLU Development**: See `prompts/` folder for Gemini prompt templates
-2. **For Flow Design**: See `patterns/booking_flow.md` for state machine design
-3. **For Testing**: Use examples as test cases
-4. **For Prompt Engineering**: Base prompts on real patterns in `analysis/`
+## 🔧 Usage
 
+### For NLU Development
+1. Review `examples/` to understand real user behavior
+2. Check `patterns/` for common flows
+3. Update prompts in `backend/nlu/agent.py` based on `prompts/` templates
+4. Test with `backend/scripts/chat_terminal.py`
+
+### For Agent Improvement
+1. Analyze `analysis/conversation_patterns.md` for common issues
+2. Update intent classification prompts based on patterns
+3. Improve entity extraction using `analysis/entity_extraction_guide.md`
+4. Test bilingual support with `analysis/language_patterns.md`
+
+---
+
+## 📝 Notes
+
+- **Real Conversations**: Examples are from actual WhatsApp interactions
+- **Prompt Templates**: Used by `NLUAgent` in `backend/nlu/agent.py`
+- **Patterns**: Help identify common user behaviors
+- **Analysis**: Guides for continuous improvement
+
+---
+
+**Last Updated**: January 15, 2025  
+**Maintained By**: AI Agent Team

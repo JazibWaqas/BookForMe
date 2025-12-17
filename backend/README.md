@@ -1,442 +1,352 @@
-# BookForMe Backend - AI WhatsApp Booking Bot
+# BookForMe Backend - FastAPI + LangGraph AI Agent
 
-## 🎯 **Project Overview**
+**Last Updated**: January 15, 2025  
+**Status**: Production Ready (Core Features Complete)  
+**Deployment**: Railway (`https://jhat-production.up.railway.app`)
 
-**BookForMe** is an AI-powered WhatsApp booking bot for informal services in Karachi (futsal courts, salons). This backend acts as an autonomous "Auto-Receptionist" that:
+---
 
-- ✅ Handles WhatsApp bookings via natural language (Roman Urdu/English)
-- ✅ Uses Firestore for simple, scalable database operations
-- ✅ Provides REST APIs for the frontend dashboard
-- ✅ Prevents double-bookings with Firestore transactions
-- ✅ Maintains conversation state for multi-turn WhatsApp interactions
+## 🎯 Core Vision
 
-## 🏗️ **System Architecture**
+The backend serves as the **single source of truth** for both the mobile app and WhatsApp AI agent. It ensures:
+- **No double-bookings** via Firestore transactions (Optimistic Concurrency Control)
+- **Real-time availability** synchronized across all clients
+- **AI-powered booking** via LangGraph state machine
+- **Payment validation** via Gemini Vision OCR (planned)
+
+---
+
+## 🏗️ Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  WhatsApp User  │────▶│   FastAPI Agent  │◀────│  Frontend App  │
-└─────────────────┘     │    (Backend)     │     └─────────────────┘
-                        └──────────────────┘
-                               │    ▲
-                               │    │
-                        ┌──────▼────┴──────┐
-                        │   Firestore DB   │
-                        │ (Source of Truth)│
-                        └──────────────────┘
+WhatsApp Webhook → LangGraph Agent → Firestore Database
+Mobile App API  → REST Endpoints  → Firestore Database
 ```
 
-**Two Input Channels:**
-1. **WhatsApp Channel**: Twilio webhook → NLU (Gemini) → Firestore
-2. **Web App Channel**: REST API → Firestore
+**Key Components**:
+1. **LangGraph Agent** (`agent/`) - Stateful conversation workflow
+2. **Database Layer** (`database/`) - Firestore operations with OCC
+3. **NLU Module** (`nlu/`) - Gemini API integration for intent/entity extraction
+4. **WhatsApp Handler** (`whatsapp/`) - Meta Business API webhook
 
-## 📁 **Project Structure**
+---
+
+## ✅ What's Done (As of January 15, 2025)
+
+### Infrastructure ✅
+- FastAPI backend with async support
+- Railway deployment configured
+- Firestore connection operational
+- Meta WhatsApp Business API integrated
+- Environment configuration complete
+
+### LangGraph Agent ✅
+- **State Machine**: `agent/graph.py` - LangGraph workflow implemented
+- **Nodes**: `agent/nodes.py` - Intent classification, query, response generation
+- **Tools**: `agent/tools.py` - Availability checking, pricing queries
+- **State**: `agent/state.py` - TypedDict state structure
+
+### Booking System ✅
+- **Slot Locking**: `database/slot_service.py` - 10-minute hold mechanism
+- **Transactions**: All writes use `@firestore.transactional` decorator
+- **Payment Upload**: `/api/payments/upload` endpoint functional
+- **Booking Confirmation**: Vendor approval flow implemented
+- **Double-Booking Prevention**: Tested and working
+
+### Database Operations ✅
+- **Slot Management**: Create, lock, release, confirm, cancel
+- **Vendor Queries**: Filter by sport, area, category
+- **User Bookings**: Query by user_id with status filters
+- **Batch Queries**: Eliminated N+1 problems
+
+### API Endpoints ✅
+- `GET /api/vendors` - List all vendors
+- `GET /api/vendors/{id}` - Vendor details
+- `GET /api/vendors/{id}/availability` - Available slots
+- `POST /api/slots/{id}/lock` - Lock slot (10 min)
+- `POST /api/payments/upload` - Upload payment screenshot
+- `GET /api/bookings` - User bookings
+- `POST /webhook/whatsapp` - WhatsApp message handler
+
+---
+
+## 🚧 What Needs to Be Done
+
+### Critical (High Priority)
+1. **Payment OCR Integration** - Connect Gemini Vision API to payment upload
+   - **Status**: Not started
+   - **Files**: `database/payment_upload.py` needs OCR call
+   - **Target**: January 20, 2025
+
+2. **Automated Hold Expiry** - Cloud Function to release expired locks
+   - **Status**: Function exists (`slot_service.cleanup_expired_locks()`), not scheduled
+   - **Target**: January 18, 2025
+
+3. **Timezone Fix** - Store `start_time` in UTC (currently naive datetime)
+   - **Status**: Bug identified in `database/seed/slot_generator.py`
+   - **Target**: January 17, 2025
+
+4. **Composite Indexes** - Verify Firestore indexes for vendor queries
+   - **Status**: Indexes documented but not verified
+   - **Target**: January 16, 2025
+
+### Important (Medium Priority)
+1. **Bilingual NLU Enhancement** - Improve Roman Urdu/English handling
+   - **Status**: Basic support exists, needs refinement
+   - **Files**: `nlu/agent.py` - Intent classification prompts
+
+2. **Matchmaking System** - Elo-based ranked match queue
+   - **Status**: Schema exists, no queries implemented
+   - **Target**: February 1, 2025
+
+3. **Error Handling** - Graceful handling of unclear messages
+   - **Status**: Basic error handling exists, needs improvement
+
+### Nice to Have (Low Priority)
+1. **Analytics Endpoints** - User behavior tracking
+2. **Caching Layer** - Redis for frequently accessed data
+3. **Rate Limiting** - Prevent API abuse
+
+---
+
+## 📁 Project Structure
 
 ```
 backend/
-├── README.md                    # This comprehensive guide
-├── requirements.txt             # Python dependencies
-├── .env.example                # Environment variables template
-├── .gitignore                  # Git ignore rules
+├── agent/                  # LangGraph AI Agent
+│   ├── graph.py           # Main workflow definition
+│   ├── nodes.py           # Agent node functions
+│   ├── state.py           # State structure
+│   └── tools.py           # Database query tools
 │
-├── app/                        # Main application
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI app (imports from modules)
-│   ├── config.py               # Settings (Firestore, Gemini, Twilio)
-│   └── firestore.py            # Firestore database operations
+├── database/               # Firestore Operations
+│   ├── slot_service.py    # Slot locking/booking (OCC)
+│   ├── rest_api.py        # REST API endpoints
+│   ├── firestore_v2.py    # Firestore client wrapper
+│   ├── auth_service.py    # Authentication
+│   └── DATABASE_DOCUMENTATION.md  # Complete schema reference
 │
-├── whatsapp/                   # WhatsApp Channel Module
-│   ├── __init__.py
-│   ├── agent.py                # WhatsApp conversation state machine
-│   ├── service.py              # Twilio integration
-│   └── webhook.py              # Webhook handler
+├── nlu/                    # Natural Language Understanding
+│   ├── agent.py           # Gemini NLU integration
+│   └── state_manager.py   # Conversation state
 │
-├── nlu/                        # NLU Module
-│   ├── __init__.py
-│   ├── agent.py                # Gemini NLU integration
-│   └── state_manager.py        # Conversation state management
+├── whatsapp/               # WhatsApp Integration
+│   ├── webhook.py         # Webhook handler
+│   ├── service.py         # Meta API client
+│   └── agent.py           # Legacy agent (being migrated)
 │
-├── database/                   # Database Module
-│   ├── __init__.py
-│   ├── availability_service.py # Firestore availability checking
-│   └── rest_api.py             # REST API endpoints
+├── app/                    # FastAPI Application
+│   ├── main.py            # App entry point
+│   ├── config.py          # Settings
+│   └── firestore.py       # Database connection
 │
-├── ai_logic/                   # AI Logic Module
-│   ├── __init__.py
-│   ├── conversation_optimizer.py # Conversation optimization
-│   └── error_handler.py        # AI error handling
-│
-└── scripts/                    # Setup and testing
-    ├── setup.py                # One-command setup
-    ├── init_firestore.py       # Initialize database with sample data
-    ├── test_workflow.py         # Test complete workflow
-    └── test_components.py       # Test individual components
-```
-
-## 👥 **Team Assignments & Responsibilities**
-
-### **Jazib: WhatsApp Channel Lead** 📱
-**Your Module:** `whatsapp/` folder
-**Your Files:**
-- `whatsapp/agent.py` - WhatsApp conversation state machine
-- `whatsapp/service.py` - Twilio integration
-- `whatsapp/webhook.py` - Webhook handler
-
-**Your Responsibilities:**
-- Implement WhatsApp webhook handler
-- Build 6-state conversation machine
-- Integrate with Twilio for message sending
-- Handle conversation flow: greeting → service → date → time → confirm → complete
-
-**Your Tasks:**
-1. Create Twilio integration in `whatsapp/service.py`
-2. Test WhatsApp webhook with ngrok
-3. Implement message sending via Twilio
-4. Test complete conversation flow
-5. Handle 6-state conversation machine
-
-**Testing Your Module:**
-```bash
-python -c "from whatsapp.agent import WhatsAppAgent; print('WhatsApp Agent ready')"
-python scripts/test_components.py  # Test WhatsApp module
+└── scripts/                # Utility Scripts
+    ├── init_firestore.py  # Initialize database
+    ├── seed_all.py        # Populate sample data
+    ├── chat_terminal.py    # Test agent locally
+    └── README.md          # Script documentation
 ```
 
 ---
 
-### **Ahmad: NLU & Conversation Lead** 🧠
-**Your Module:** `nlu/` folder
-**Your Files:**
-- `nlu/agent.py` - Gemini API integration
-- `nlu/state_manager.py` - Conversation state management
+## 🔑 Key Technical Details
 
-**Your Responsibilities:**
-- Implement Gemini API integration
-- Build intent extraction (greeting, booking, confirmation, etc.)
-- Build entity extraction (date, time, service type, customer name)
-- Handle Roman Urdu/English mixed language support
+### Optimistic Concurrency Control
 
-**Your Tasks:**
-1. Test Gemini API connection
-2. Implement intent extraction (greeting, booking, confirmation)
-3. Implement entity extraction (date, time, service, customer name)
-4. Test Roman Urdu/English mixed language support
-5. Test conversation state management
+All slot writes use Firestore transactions:
 
-**Testing Your Module:**
-```bash
-python -c "from nlu.agent import NLUAgent; print('NLU Agent ready')"
-python scripts/test_components.py  # Test NLU module
+```python
+@firestore.transactional
+def lock_slot(self, slot_id: str, user_id: str):
+    slot_ref = self.db.collection('slots').document(slot_id)
+    slot_doc = slot_ref.get(transaction=transaction)
+    
+    if slot_doc.get('status') != 'available':
+        return {'success': False, 'error': 'Slot not available'}
+    
+    transaction.update(slot_ref, {
+        'status': 'locked',
+        'user_id': user_id,
+        'hold_expires_at': datetime.now(timezone.utc) + timedelta(minutes=10)
+    })
 ```
+
+**Why**: Prevents mobile app user and WhatsApp user from booking the same slot simultaneously.
+
+### LangGraph Workflow
+
+```
+START → classify_intent → query → generate_response → END
+```
+
+**State Structure** (`agent/state.py`):
+- `messages`: List of conversation messages
+- `current_intent`: Classified intent (greeting, booking_request, etc.)
+- `entities`: Extracted entities (date, time, service_type)
+- `query_result`: Results from database queries
+- `response`: Generated response text
+
+### Slot State Machine
+
+```
+available → locked (10 min) → pending (payment) → confirmed (vendor) → completed
+                ↓
+            cancelled
+```
+
+**Transitions**:
+- `available → locked`: User selects slot (10-minute hold)
+- `locked → pending`: Payment screenshot uploaded
+- `pending → confirmed`: Vendor approves payment
+- `pending → cancelled`: Vendor rejects or user cancels
+- `confirmed → completed`: Session finished
 
 ---
 
-### **Taha: Database & Frontend Integration Lead** 🗄️
-**Your Module:** `database/` folder
-**Your Files:**
-- `database/availability_service.py` - Firestore availability checking
-- `database/rest_api.py` - REST API endpoints
+## 🚀 Development Workflow
 
-**Your Responsibilities:**
-- Implement Firestore database operations
-- Build availability checking with Firestore transactions
-- Create REST API endpoints for frontend
-- Handle booking creation and confirmation
-- Connect backend to frontend dashboard
-
-**Your Tasks:**
-1. Test Firestore connection and setup
-2. Test database operations (CRUD)
-3. Test Firestore transactions (prevent double-booking)
-4. Test REST API endpoints for frontend
-5. Connect backend to frontend dashboard
-6. Handle booking creation and confirmation
-
-**Testing Your Module:**
+### Local Development
 ```bash
-python -c "from database.availability_service import AvailabilityService; print('Database ready')"
-python scripts/test_components.py  # Test Database module
-```
+# Install dependencies
+pip install -r requirements.txt
 
----
-
-### **Taqi: AI Logic & NLU Lead** 🤖
-**Your Module:** `ai_logic/` folder
-**Your Files:**
-- `ai_logic/conversation_optimizer.py` - Conversation optimization
-- `ai_logic/error_handler.py` - AI error handling
-
-**Your Responsibilities:**
-- Enhance AI conversation logic
-- Improve NLU processing with Gemini
-- Optimize conversation state management
-- Handle complex AI workflows and error cases
-
-**Your Tasks:**
-1. Enhance AI conversation logic
-2. Improve NLU processing with Gemini
-3. Optimize conversation state management
-4. Handle complex AI workflows and error cases
-5. Improve Roman Urdu/English understanding
-6. Optimize conversation flow and user experience
-
-**Testing Your Module:**
-```bash
-python -c "from ai_logic.conversation_optimizer import ConversationOptimizer; print('AI Logic ready')"
-python scripts/test_components.py  # Test AI Logic module
-```
-
-## 🚀 **Development Workflow**
-
-### **Phase 1: Setup & Testing (Everyone)**
-```bash
-# 1. Setup environment
-python scripts/setup.py
-
-# 2. Configure API keys
-cp .env.example .env
-# Edit .env with your API keys
-
-# 3. Initialize database
-python scripts/init_firestore.py
-
-# 4. Test individual components
-python scripts/test_components.py
-```
-
-### **Phase 2: Individual Development**
-Each team member works on their assigned module:
-- **Jazib**: WhatsApp integration and conversation flow
-- **Ahmad**: NLU processing and conversation state
-- **Taha**: Database operations and REST API
-- **Taqi**: AI logic enhancement and optimization
-
-### **Phase 3: Integration Testing**
-```bash
-# Test complete workflow
-python scripts/test_workflow.py
+# Set environment variables
+export GEMINI_API_KEY=your_key
+export FIRESTORE_PROJECT_ID=your_project
+export WHATSAPP_ACCESS_TOKEN=your_token
 
 # Start server
-uvicorn app.main:app --reload
+uvicorn backend.app.main:app --reload
+```
+
+### Testing Agent Locally
+```bash
+# Test LangGraph agent
+python backend/scripts/chat_terminal.py
+
+# Test NLU only
+python backend/scripts/chat.py
+```
+
+### Database Operations
+```bash
+# Initialize Firestore
+python backend/scripts/init_firestore.py
+
+# Seed sample data
+python backend/scripts/seed_all.py
+
+# Check database status
+python backend/scripts/check_db.py
+```
+
+---
+
+## 📊 API Documentation
+
+### REST Endpoints
+
+**Vendors**:
+- `GET /api/vendors` - List all vendors
+- `GET /api/vendors/{id}` - Get vendor details
+- `GET /api/vendors/{id}/availability?date=YYYY-MM-DD` - Get available slots
+
+**Slots**:
+- `POST /api/slots/{id}/lock` - Lock slot (requires auth)
+- `GET /api/slots/{id}` - Get slot details
+
+**Bookings**:
+- `GET /api/bookings` - Get user bookings (requires auth)
+- `POST /api/bookings` - Create booking (requires auth)
+
+**Payments**:
+- `POST /api/payments/upload` - Upload payment screenshot (multipart/form-data)
+
+**WhatsApp**:
+- `GET /webhook/whatsapp` - Webhook verification
+- `POST /webhook/whatsapp` - Receive messages
+
+**Health**:
+- `GET /health` - Health check
+
+### Authentication
+
+Most endpoints require JWT token in `Authorization` header:
+```
+Authorization: Bearer {jwt_token}
+```
+
+---
+
+## 🐛 Known Issues
+
+1. **Timezone Storage**: `start_time` stored as naive datetime (should be UTC)
+   - **Impact**: May cause incorrect slot times in different timezones
+   - **Fix**: Update `database/seed/slot_generator.py` to use UTC
+
+2. **Hold Expiry**: Background cleanup job not automated
+   - **Impact**: Expired locks persist until manual check
+   - **Fix**: Create Cloud Function to run `cleanup_expired_locks()` every 5 minutes
+
+3. **Composite Indexes**: Not verified in Firestore
+   - **Impact**: Vendor queries may be slow at scale
+   - **Fix**: Verify/create indexes in Firestore Console
+
+---
+
+## 📚 Additional Documentation
+
+- **Database Schema**: `database/DATABASE_DOCUMENTATION.md` - Complete reference
+- **AI Agent Architecture**: `AI_AGENT_ARCHITECTURE.md` - Component locations
+- **Scripts Guide**: `scripts/README.md` - Utility script documentation
+
+---
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+# Test database operations
+python backend/scripts/test_booking_db.py
+
+# Test NLU agent
+python backend/scripts/test_nlu.py
+
+# Test complete workflow
+python backend/scripts/test_workflow.py
+```
+
+### Integration Tests
+```bash
+# Test API endpoints
+python backend/scripts/test_api.py
 
 # Test WhatsApp webhook
-ngrok http 8000
+curl -X POST http://localhost:8000/webhook/whatsapp \
+  -H "Content-Type: application/json" \
+  -d '{"entry": [{"changes": [{"value": {"messages": [{"text": {"body": "test"}}]}}]}]}'
 ```
 
-### **Phase 4: End-to-End Testing**
-1. Complete WhatsApp conversation flow
-2. Test booking creation and confirmation
-3. Test double-booking prevention
-4. Test frontend integration
+---
 
-## 🔧 **API Endpoints**
+## 🔒 Security Considerations
 
-### **WhatsApp Webhook**
-```
-POST /webhook/whatsapp
-```
-Receives WhatsApp messages via Twilio webhook
+1. **JWT Tokens**: All authenticated endpoints validate JWT
+2. **Firestore Rules**: Server-side validation (no client-side rules)
+3. **Transaction Safety**: All writes use transactions to prevent race conditions
+4. **API Keys**: Stored in environment variables, never committed
 
-### **REST API (for Frontend)**
-```
-GET  /api/vendors                    # Get all vendors
-GET  /api/vendors/{id}/availability  # Get available slots
-POST /api/bookings                   # Create booking
-GET  /api/vendors/{id}/bookings      # Get vendor bookings
-```
+---
 
-### **Health Check**
-```
-GET  /health                         # Health check
-GET  /                              # API information
-```
+## 📈 Performance Optimizations
 
-## 🔑 **Environment Variables**
+1. **Batch Queries**: Eliminated N+1 problems in vendor queries
+2. **React Query**: Frontend caching reduces backend load
+3. **Async Operations**: Non-blocking AI calls
+4. **Connection Pooling**: Firestore client reuse
 
-Create `.env` file with:
+---
 
-```bash
-# FastAPI Configuration
-APP_NAME=BookForMe Backend
-DEBUG=True
-PORT=8000
-
-# AI/NLU (Gemini API)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-pro-latest
-
-# WhatsApp via Twilio
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=whatsapp:+14155238886
-
-# Firestore (Google Cloud)
-FIRESTORE_PROJECT_ID=your-firestore-project-id
-FIRESTORE_CREDENTIALS_FILE=./credentials/firestore-service-account.json
-
-# Logging
-LOG_LEVEL=INFO
-```
-
-## 🧪 **Testing Strategy**
-
-### **Individual Component Testing**
-```bash
-# Test each module independently
-python -c "from whatsapp.agent import WhatsAppAgent; print('WhatsApp ready')"
-python -c "from nlu.agent import NLUAgent; print('NLU ready')"
-python -c "from database.availability_service import AvailabilityService; print('Database ready')"
-python -c "from ai_logic.conversation_optimizer import ConversationOptimizer; print('AI Logic ready')"
-```
-
-### **Complete System Testing**
-```bash
-# Test all components together
-python scripts/test_components.py
-
-# Test complete workflow
-python scripts/test_workflow.py
-```
-
-### **WhatsApp Integration Testing**
-```bash
-# Start server
-uvicorn app.main:app --reload
-
-# Expose webhook
-ngrok http 8000
-
-# Test with WhatsApp messages
-```
-
-## 📱 **WhatsApp Integration**
-
-### **Twilio Setup:**
-1. Create Twilio account
-2. Enable WhatsApp sandbox
-3. Get sandbox number and credentials
-4. Set webhook URL to your ngrok URL + `/webhook/whatsapp`
-
-### **Test WhatsApp Flow:**
-1. Send message to Twilio sandbox number
-2. Check server logs for message processing
-3. Verify response is sent back
-
-## 🔥 **Firestore Setup**
-
-### **Google Cloud Setup:**
-1. Create Google Cloud project
-2. Enable Firestore API
-3. Create service account
-4. Download credentials JSON
-5. Place in `./credentials/firestore-service-account.json`
-
-### **Database Collections:**
-```
-vendors/                    # Vendor information
-availability_slots/         # Time slots for booking
-bookings/                   # Customer bookings
-conversation_states/        # WhatsApp conversation state
-```
-
-## 🎯 **Core Features**
-
-### **WhatsApp Conversation Flow:**
-1. **Greeting** - Welcome message and service selection
-2. **Service Selection** - Choose futsal, salon, etc.
-3. **Date Selection** - Pick booking date
-4. **Time Selection** - Choose available time slot
-5. **Confirmation** - Confirm booking details
-6. **Complete** - Booking created and confirmed
-
-### **AI Capabilities:**
-- **Natural Language Understanding** - Roman Urdu/English mixed language
-- **Intent Recognition** - booking, greeting, confirmation, etc.
-- **Entity Extraction** - date, time, service, customer name
-- **Conversation State Management** - Multi-turn conversations
-- **Error Handling** - Graceful handling of unclear messages
-
-### **Database Operations:**
-- **Atomic Transactions** - Prevent double-bookings
-- **Real-time Updates** - Frontend updates automatically
-- **Simple Queries** - Easy availability checking
-- **Scalable Storage** - Handles growth automatically
-
-## 🚨 **Troubleshooting**
-
-### **Common Issues:**
-
-**1. Firestore Connection Failed:**
-- Check `FIRESTORE_PROJECT_ID` in `.env`
-- Verify credentials file path
-- Ensure Firestore API is enabled
-
-**2. Gemini API Error:**
-- Check `GEMINI_API_KEY` in `.env`
-- Verify API key is valid
-- Check API quota limits
-
-**3. Twilio Webhook Not Working:**
-- Verify ngrok is running
-- Check webhook URL in Twilio console
-- Ensure server is running on correct port
-
-**4. WhatsApp Messages Not Received:**
-- Check Twilio sandbox setup
-- Verify phone number format
-- Check server logs for errors
-
-## 📊 **Development Progress Tracking**
-
-### **Jazib: WhatsApp Channel**
-- [ ] Create Twilio integration in `whatsapp/service.py`
-- [ ] Test WhatsApp webhook with ngrok
-- [ ] Implement message sending via Twilio
-- [ ] Test complete conversation flow
-
-### **Ahmad: NLU & Conversation**
-- [ ] Test Gemini API connection
-- [ ] Implement intent extraction
-- [ ] Test Roman Urdu/English processing
-- [ ] Test conversation state management
-
-### **Taha: Database & Frontend Integration**
-- [ ] Test Firestore connection
-- [ ] Test database operations
-- [ ] Test transaction functionality
-- [ ] Test REST API endpoints
-- [ ] Connect backend to frontend
-
-### **Taqi: AI Logic & NLU**
-- [ ] Enhance AI conversation logic
-- [ ] Improve NLU processing
-- [ ] Optimize conversation state management
-- [ ] Handle complex AI workflows
-
-## 🎉 **Success Criteria**
-
-Your backend is working when:
-- ✅ Server starts without errors
-- ✅ WhatsApp webhook receives messages
-- ✅ NLU agent understands Roman Urdu/English
-- ✅ Firestore stores and retrieves data
-- ✅ Bookings are created successfully
-- ✅ Frontend can query availability
-- ✅ No double-bookings occur
-
-## 📞 **Getting Help**
-
-If you encounter issues:
-1. Check server logs for error messages
-2. Verify all environment variables are set
-3. Test individual components using test scripts
-4. Check Firestore console for data
-5. Review this README for setup instructions
-
-## 🚀 **Ready to Build!**
-
-Each team member can now:
-1. **Work independently** on their assigned module
-2. **No merge conflicts** - Each person owns their files
-3. **Easy integration** - Modules connect through main app
-4. **Simple testing** - Test individual modules or complete system
-
-**Let's build your AI WhatsApp booking bot!** 🎉
+**Last Updated**: January 15, 2025  
+**Maintained By**: Backend Team  
+**Questions?** Check `database/DATABASE_DOCUMENTATION.md` for schema details.
