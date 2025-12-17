@@ -417,7 +417,7 @@ class NLUAgent:
             logger.error(f"❌ [generate_response] ERROR: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
-            return "API RUN OUT HAHAHAH!"
+            return "Internet/Network Issue. Please try again."
     
     def _has_complete_booking_details(self, entities: Dict[str, Any], context: Dict[str, Any]) -> bool:
         """
