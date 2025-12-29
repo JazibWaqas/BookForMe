@@ -1,8 +1,8 @@
 # BookForMe - Project Status & Roadmap
 
-**Last Updated**: January 15, 2025  
+**Last Updated**: December 29, 2025  
 **Current Phase**: MVP Development - Core Features Complete  
-**Overall Progress**: ~65% Complete
+**Overall Progress**: ~70% Complete
 
 ---
 
@@ -32,6 +32,8 @@
 - ✅ Booking confirmation flow
 - ✅ Double-booking prevention (tested)
 - ✅ Real-time availability queries
+- ✅ Timezone-aware UTC storage (December 29, 2025)
+- ✅ Firestore composite indexes (December 29, 2025)
 
 ### Mobile App Core ✅ (Completed: January 2025)
 - ✅ Vendor browsing with React Query
@@ -69,15 +71,18 @@
 
 ### Critical (Week 1: January 15-22, 2025)
 
-#### 1. Timezone Fix (Target: January 17, 2025)
-- [ ] Update `database/seed/slot_generator.py` to store UTC timestamps
-- [ ] Migrate existing slots to UTC
-- [ ] Test timezone conversions
+#### 1. Timezone Fix ✅ (Completed: December 29, 2025)
+- [x] Update `database/seed/slot_generator.py` to store UTC timestamps
+- [x] Migrate existing slots to UTC (wiped and reseeded)
+- [x] Test timezone conversions
+- [x] Remove all manual `+5 hours` workarounds
+- [x] Fix WhatsApp agent timezone display
 
-#### 2. Composite Indexes (Target: January 16, 2025)
-- [ ] Verify Firestore indexes exist
-- [ ] Create missing indexes (`vendor_id` + `date` + `status`)
-- [ ] Test query performance
+#### 2. Composite Indexes ✅ (Completed: December 29, 2025)
+- [x] Verify Firestore indexes exist
+- [x] Create missing indexes (`vendor_id` + `date` + `status`)
+- [x] Test query performance (improved from ~9s to ~3-4s)
+- [x] Deploy index via Google Cloud Console
 
 #### 3. Payment OCR (Target: January 20, 2025)
 - [ ] Integrate Gemini Vision API
@@ -132,10 +137,10 @@
 
 ## 📊 Progress Breakdown
 
-### Backend: 85% Complete
+### Backend: 90% Complete
 - ✅ Infrastructure: 100%
-- ✅ Booking System: 90%
-- ✅ AI Agent: 70%
+- ✅ Booking System: 95% (timezone fix + indexes completed)
+- ✅ AI Agent: 75% (timezone display fixed)
 - ⏳ Payment OCR: 0%
 - ⏳ Automation: 50%
 
@@ -151,7 +156,7 @@
 - ⏳ Bilingual Support: 50%
 - ⏳ OCR Integration: 0%
 
-### Overall MVP: ~65% Complete
+### Overall MVP: ~70% Complete
 
 ---
 
@@ -252,6 +257,6 @@ MVP is complete when:
 
 ---
 
-**Last Updated**: January 15, 2025  
-**Next Review**: January 22, 2025  
-**Target MVP Completion**: February 1, 2025
+**Last Updated**: December 29, 2025  
+**Next Review**: January 5, 2026  
+**Target MVP Completion**: February 1, 2026

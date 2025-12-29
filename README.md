@@ -1,6 +1,6 @@
 # BookForMe - AI-Powered Service Booking Platform
 
-**Last Updated**: January 15, 2025  
+**Last Updated**: December 29, 2025  
 **Status**: MVP Development Phase  
 **Version**: 1.0.0-beta
 
@@ -111,8 +111,6 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 ### High Priority
 1. **Payment OCR Integration** - Connect Gemini Vision API to payment upload flow
 2. **Automated Hold Expiry** - Cloud Function to release expired locks
-3. **Timezone Fix** - Ensure `start_time` stored in UTC (currently naive datetime)
-4. **Composite Indexes** - Verify/create Firestore indexes for vendor queries
 
 ### Medium Priority
 1. **Bilingual NLU Enhancement** - Improve Roman Urdu/English code-switching
@@ -345,9 +343,9 @@ Both mobile app and WhatsApp agent read/write to `/slots` collection. Consistenc
 **Essential context before starting any feature:**
 
 ### Critical Issues (Must Know)
-- **Timezone Bug**: `start_time` stored as naive datetime → See `DATABASE_CONTEXT.md` Issue #1
-- **Missing Indexes**: Composite indexes not verified → See `DATABASE_CONTEXT.md` Issue #2  
 - **Hold Expiry**: Not automated → See `DATABASE_CONTEXT.md` Issue #3
+- **Timezone Fix**: ✅ Completed (December 29, 2025) - All datetimes now stored as UTC
+- **Composite Indexes**: ✅ Completed (December 29, 2025) - Firestore indexes created and deployed
 
 ### Key Patterns (Copy These)
 
@@ -455,6 +453,6 @@ MVP is complete when:
 
 ---
 
-**Last Updated**: January 15, 2025  
+**Last Updated**: December 29, 2025  
 **Maintained By**: Development Team  
 **Questions?** Check folder-specific README files for detailed documentation.
