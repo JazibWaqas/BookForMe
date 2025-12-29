@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from data.ace_padel_club import PRICING, PAYMENT_DETAILS, get_vendor_data
 import sys
 import os
+import pytz
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.firestore_v2 import FirestoreV2
@@ -84,6 +85,7 @@ async def check_availability(
 
                 # Filter slots by time range if provided
                 if time_range:
+                    PKT = pytz.timezone('Asia/Karachi')
                     start_time = time_range.get("start")
                     end_time = time_range.get("end")
 
@@ -91,7 +93,9 @@ async def check_availability(
                     for slot in available_slots:
                         slot_start_str = slot.get("start_time", "")
                         if isinstance(slot_start_str, datetime):
-                            slot_start = slot_start_str.strftime("%H:%M")
+                            # Convert UTC to PKT before filtering
+                            slot_start_pkt = slot_start_str.astimezone(PKT) if slot_start_str.tzinfo else slot_start_str
+                            slot_start = slot_start_pkt.strftime("%H:%M")
                         else:
                             slot_start = str(slot_start_str)[:5]  # Take HH:MM part
 
@@ -107,13 +111,21 @@ async def check_availability(
 
                 # Format slots for response
                 formatted_slots = []
+                PKT = pytz.timezone('Asia/Karachi')
                 for slot in available_slots[:5]:  # Show up to 5 slots per vendor
                     slot_start_str = slot.get("start_time", "")
                     slot_end_str = slot.get("end_time", "")
 
                     if isinstance(slot_start_str, datetime):
-                        slot_start = slot_start_str.strftime("%H:%M")
-                        slot_end = slot_end_str.strftime("%H:%M") if isinstance(slot_end_str, datetime) else slot_end_str
+                        # Convert UTC to PKT before formatting for WhatsApp users
+                        slot_start_pkt = slot_start_str.astimezone(PKT) if slot_start_str.tzinfo else slot_start_str
+                        slot_start = slot_start_pkt.strftime("%H:%M")
+                        
+                        if isinstance(slot_end_str, datetime):
+                            slot_end_pkt = slot_end_str.astimezone(PKT) if slot_end_str.tzinfo else slot_end_str
+                            slot_end = slot_end_pkt.strftime("%H:%M")
+                        else:
+                            slot_end = slot_end_str
                     else:
                         slot_start = str(slot_start_str)[:5]
                         slot_end = str(slot_end_str)[:5] if slot_end_str else ""

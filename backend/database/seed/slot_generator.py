@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import uuid
+import pytz
 
 from database.schema import (
     SlotStatus, PriceTier, SLOT_DURATION_MINUTES, SLOT_GENERATION_DAYS
@@ -19,6 +20,8 @@ from database.seed.vendors_data import (
     get_vendor_resources, get_vendor_service
 )
 
+
+PKT = pytz.timezone('Asia/Karachi')
 
 WEEKDAY_MAP = {
     0: "mon",
@@ -73,7 +76,8 @@ def generate_slots_for_resource(
     base_price = service.get("pricing", {}).get("base", 1500)
     
     while current_hour < close_h or (current_hour == close_h and current_min < close_m):
-        start_time = datetime(date.year, date.month, date.day, current_hour, current_min)
+        start_time_pkt = PKT.localize(datetime(date.year, date.month, date.day, current_hour, current_min))
+        start_time = start_time_pkt.astimezone(pytz.utc)
         end_time = start_time + timedelta(minutes=duration)
         
         if end_time.hour > close_h or (end_time.hour == close_h and end_time.minute > close_m):

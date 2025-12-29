@@ -660,13 +660,10 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                 logger.info(f"Slot {doc.id}: start_time type={type(start_time)}, value={start_time}")
                 
                 # Convert Firestore timestamps to time strings (HH:MM format)
-                # Add Pakistan timezone offset (UTC+5)
                 time_str = None
                 if start_time:
                     if hasattr(start_time, 'strftime'):
-                        # Add 5 hours for Pakistan timezone
-                        pakistan_time = start_time + timedelta(hours=5)
-                        time_str = pakistan_time.strftime('%H:%M')
+                        time_str = start_time.strftime('%H:%M')
                     elif isinstance(start_time, str):
                         time_str = start_time
                 
@@ -674,17 +671,13 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                 end_time_str = None
                 if start_time:
                     if hasattr(start_time, 'isoformat'):
-                        # Add 5 hours for Pakistan timezone
-                        pakistan_time = start_time + timedelta(hours=5)
-                        start_time_str = pakistan_time.isoformat()
+                        start_time_str = start_time.isoformat()
                     elif isinstance(start_time, str):
                         start_time_str = start_time
                         
                 if end_time:
                     if hasattr(end_time, 'isoformat'):
-                        # Add 5 hours for Pakistan timezone
-                        pakistan_time = end_time + timedelta(hours=5)
-                        end_time_str = pakistan_time.isoformat()
+                        end_time_str = end_time.isoformat()
                     elif isinstance(end_time, str):
                         end_time_str = end_time
                 
