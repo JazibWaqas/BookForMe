@@ -40,8 +40,11 @@ def parse_time(time_str: str) -> tuple:
 
 
 def generate_slot_id(vendor_id: str, resource_id: str, date: str, time: str) -> str:
+    date_clean = date.replace("-", "")
     time_clean = time.replace(":", "")
-    return f"{vendor_id}_{resource_id}_{date}_{time_clean}"
+    vendor_short = vendor_id.split("_")[0][:3]
+    resource_short = resource_id.split("_")[-1][:2]
+    return f"{date_clean}_{time_clean}_{vendor_short}_{resource_short}"
 
 
 def get_hours_for_day(operating_hours: dict, date: datetime) -> tuple:
@@ -76,15 +79,19 @@ def generate_slots_for_resource(
     base_price = service.get("pricing", {}).get("base", 1500)
     
     while current_hour < close_h or (current_hour == close_h and current_min < close_m):
-        start_time_pkt = PKT.localize(datetime(date.year, date.month, date.day, current_hour, current_min))
-        start_time = start_time_pkt.astimezone(pytz.utc)
-        end_time = start_time + timedelta(minutes=duration)
+        time_str = f"{current_hour:02d}:{current_min:02d}"
         
-        if end_time.hour > close_h or (end_time.hour == close_h and end_time.minute > close_m):
+        end_min = current_min + duration
+        end_hour = current_hour
+        while end_min >= 60:
+            end_min -= 60
+            end_hour += 1
+        
+        if end_hour > close_h or (end_hour == close_h and end_min > close_m):
             if close_h < 24:
                 break
         
-        time_str = f"{current_hour:02d}:{current_min:02d}"
+        end_time_str = f"{end_hour:02d}:{end_min:02d}"
         slot_id = generate_slot_id(vendor_id, resource_id, date_str, time_str)
         
         slot = {
@@ -92,11 +99,10 @@ def generate_slots_for_resource(
             "vendor_id": vendor_id,
             "service_id": service["id"],
             "resource_id": resource_id,
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": time_str,
+            "end_time": end_time_str,
             "date": date_str,
             "price": base_price,
-            "price_tier_used": PriceTier.BASE.value,
             "status": SlotStatus.AVAILABLE.value,
             "user_id": None,
             "payment_id": None,
@@ -191,11 +197,13 @@ def apply_test_states(slots: List[Dict[str, Any]], users_data: list) -> List[Dic
     
     for slot in slots:
         slot_date = datetime.strptime(slot["date"], "%Y-%m-%d")
+        slot_time = slot["start_time"]
+        slot_hour = int(slot_time.split(":")[0])
         
         if slot_date.date() == now.date() and slot["status"] == SlotStatus.AVAILABLE.value:
-            if not locked_slot and slot["start_time"].hour >= now.hour + 1:
+            if not locked_slot and slot_hour >= now.hour + 1:
                 locked_slot = slot
-            elif not pending_slot and slot["start_time"].hour >= now.hour + 2:
+            elif not pending_slot and slot_hour >= now.hour + 2:
                 pending_slot = slot
             elif len(confirmed_slots) < 3:
                 confirmed_slots.append(slot)
