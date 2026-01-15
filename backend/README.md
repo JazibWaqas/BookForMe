@@ -1,8 +1,8 @@
 # BookForMe Backend - FastAPI + LangGraph AI Agent
 
-**Last Updated**: January 15, 2025  
-**Status**: Production Ready (Core Features Complete)  
-**Deployment**: Railway (`https://jhat-production.up.railway.app`)
+**Last Updated**: December 29, 2025
+**Status**: Production Ready (Core Features Complete)
+**Deployment**: Render (`https://jhat-to9p.onrender.com`)
 
 ---
 

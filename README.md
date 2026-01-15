@@ -66,7 +66,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - **OCR**: Gemini Vision API (payment screenshot validation)
 
 ### Deployment
-- **Backend**: Railway (`https://jhat-production.up.railway.app`)
+- **Backend**: Render (`https://jhat-to9p.onrender.com`)
 - **Mobile**: Expo Go (Dev) → App Store/Play Store (Production)
 
 ---
@@ -75,7 +75,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 
 ### Backend Infrastructure ✅
 - FastAPI backend with modular structure
-- Railway deployment (live and operational)
+- Render deployment (live and operational)
 - Firestore database connected and operational
 - Meta WhatsApp Business API integrated
 - LangGraph agent workflow implemented (`backend/agent/graph.py`)
