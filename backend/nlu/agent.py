@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from openai import OpenAI
 from app.config import settings
 from nlu.usage_tracker import UsageTracker
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -444,6 +445,7 @@ class NLUAgent:
             logger.info(f"✅ [generate_response] Response generated: {response[:100]}...")
             logger.info("=" * 70)
             
+            response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL).strip()
             return response.strip()
             
         except Exception as e:
