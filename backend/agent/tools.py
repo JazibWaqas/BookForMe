@@ -224,54 +224,85 @@ def get_vendor_info() -> Dict[str, Any]:
         }
 
 
-def suggest_alternatives(date: str, requested_time: Optional[str] = None) -> Dict[str, Any]:
+async def suggest_alternatives(
+    vendor_id: str,
+    date: str,
+    requested_time: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Suggest alternative slots when requested slot is unavailable
+    Uses Firestore to fetch real availability data
     
     Args:
+        vendor_id: Vendor ID to get alternatives for
         date: Date in YYYY-MM-DD format
-        requested_time: Optional requested time (HH:MM)
+        requested_time: Optional requested time (HH:MM) for sorting by proximity
     
     Returns:
         Dict with alternative slot suggestions
     """
     try:
-        logger.info(f"Suggesting alternatives for {date} at {requested_time}")
+        logger.info(f"Suggesting alternatives for vendor={vendor_id}, date={date}, time={requested_time}")
         
-        # Get all slots for the date
-        if date not in ALL_SLOTS:
-            from data.ace_padel_club import generate_slots_for_date
-            slots = generate_slots_for_date(date)
-        else:
-            slots = ALL_SLOTS[date]
+        fs_client = FirestoreV2(firestore_db.db)
         
-        # Get available slots
-        available = [s for s in slots if s["status"] == "available"]
+        available_slots = await fs_client.get_available_slots(vendor_id, date)
         
-        # If specific time requested, find closest alternatives
+        if not available_slots:
+            return {
+                "success": True,
+                "date": date,
+                "vendor_id": vendor_id,
+                "alternatives": [],
+                "message": "No available slots for this date"
+            }
+        
+        PKT = pytz.timezone('Asia/Karachi')
+        
+        def parse_slot_time(slot):
+            start = slot.get("start_time")
+            if isinstance(start, datetime):
+                return start.astimezone(PKT) if start.tzinfo else PKT.localize(start)
+            try:
+                return datetime.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
+            except:
+                return None
+        
+        slots_with_time = [(s, parse_slot_time(s)) for s in available_slots]
+        slots_with_time = [(s, t) for s, t in slots_with_time if t is not None]
+        
         if requested_time:
-            # Find slots around the requested time
-            alternatives = []
-            for slot in available[:5]:  # Top 5 alternatives
-                alternatives.append({
-                    "time": f"{slot['slot_time']} - {slot['end_time']}",
-                    "price": slot["price"],
-                    "discounted_price": slot["discounted_price"]
-                })
+            try:
+                req_dt = datetime.strptime(f"{date} {requested_time}", "%Y-%m-%d %H:%M")
+                slots_with_time.sort(key=lambda x: abs((x[1] - req_dt).total_seconds()))
+            except:
+                pass
         else:
-            # Return all available slots
-            alternatives = [
-                {
-                    "time": f"{s['slot_time']} - {s['end_time']}",
-                    "price": s["price"],
-                    "discounted_price": s["discounted_price"]
-                }
-                for s in available[:10]  # Top 10 alternatives
-            ]
+            slots_with_time.sort(key=lambda x: x[1])
+        
+        alternatives = []
+        for slot, slot_time in slots_with_time[:5]:
+            start_str = slot_time.strftime("%H:%M")
+            end = slot.get("end_time")
+            if isinstance(end, datetime):
+                end_pkt = end.astimezone(PKT) if end.tzinfo else end
+                end_str = end_pkt.strftime("%H:%M")
+            else:
+                end_str = str(end)[:5] if end else ""
+            
+            alternatives.append({
+                "time": f"{start_str} - {end_str}",
+                "slot_time": start_str,
+                "end_time": end_str,
+                "price": int(slot.get("price", 0)),
+                "slot_id": slot.get("id", ""),
+                "resource_id": slot.get("resource_id", "")
+            })
         
         return {
             "success": True,
             "date": date,
+            "vendor_id": vendor_id,
             "alternatives": alternatives
         }
         

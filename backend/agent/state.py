@@ -1,5 +1,6 @@
 """
 Agent State Definition for LangGraph
+Industry-standard state with confirmation flow support
 """
 
 from typing import TypedDict, List, Dict, Any, Optional
@@ -9,28 +10,43 @@ class AgentState(TypedDict):
     """State maintained throughout the agent conversation"""
     
     # Conversation history
-    messages: List[Dict[str, str]]  # [{role: "user"/"assistant", content: "..."}]
+    messages: List[Dict[str, str]]
     
     # User information
     user_phone: str
     
-    # Current conversation state
-    current_intent: str  # greeting, availability_inquiry, price_inquiry, booking_request, etc.
-    entities: Dict[str, Any]  # {date, time, service_type, etc.}
+    # Intent & Entities (from NLU)
+    current_intent: str
+    entities: Dict[str, Any]
     
-    # Booking context (tracks what user is booking)
-    selected_slot: Optional[Dict[str, Any]]  # Selected slot info
-    selected_duration: Optional[float]  # Selected duration in hours
-    selected_date: Optional[str]  # Selected date
-    booking_in_progress: bool  # Whether user is in booking flow
+    # Booking Context
+    selected_slot: Optional[Dict[str, Any]]
+    selected_duration: Optional[float]
+    selected_date: Optional[str]
+    booking_in_progress: bool
     
-    # Vendor context (always Ace Padel Club for testing)
-    vendor_id: str  # Always "ace_padel_club"
-    vendor_data: Optional[Dict[str, Any]]  # Vendor info, pricing, etc.
+    # Vendor Context
+    vendor_id: str
+    vendor_name: Optional[str]
+    vendor_data: Optional[Dict[str, Any]]
     
-    # Query results
-    query_result: Optional[Dict[str, Any]]  # Results from tool execution
+    # Query Results
+    query_result: Optional[Dict[str, Any]]
+    
+    # Confirmation Flow State
+    awaiting_confirmation: bool
+    confirmation_type: Optional[str]
+    pending_booking: Optional[Dict[str, Any]]
+    booking_result: Optional[Dict[str, Any]]
+    user_confirmed: Optional[bool]
+    confirmation_action: Optional[str]
+    
+    # Validation
+    missing_fields: Optional[List[str]]
+    requires_clarification: bool
+    
+    # Error Handling
+    error: Optional[Dict[str, Any]]
     
     # Response
-    response: str  # Final response to send to user
-
+    response: str
