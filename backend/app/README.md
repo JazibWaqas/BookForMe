@@ -36,7 +36,9 @@ app.include_router(whatsapp_router, prefix="/webhook")
 **Purpose**: Environment variables and settings
 
 **Key Settings**:
-- `GEMINI_API_KEY` - Gemini API key
+- `GROQ_API_KEY` - Groq API key (required for NLU)
+- `GROQ_MODEL` - Groq model name (default: "qwen/qwen3-32b")
+- `GEMINI_API_KEY` - Gemini API key (optional, deprecated)
 - `FIRESTORE_PROJECT_ID` - Firestore project ID
 - `WHATSAPP_ACCESS_TOKEN` - Meta WhatsApp token
 - `WHATSAPP_PHONE_NUMBER_ID` - Meta phone number ID
@@ -92,7 +94,16 @@ Allows requests from:
 
 ---
 
-**Last Updated**: January 15, 2025  
+## 🔄 Recent Changes
+
+**January 18, 2025 - Groq Migration**
+- Added `GROQ_API_KEY` and `GROQ_MODEL` configuration settings
+- NLU module now uses Groq (Qwen 3 32B) instead of Gemini
+- Legacy Gemini support maintained but deprecated
+
+---
+
+**Last Updated**: January 18, 2025  
 **Maintained By**: Backend Team  
 **Key Files**: `main.py`, `config.py`, `firestore.py`
 

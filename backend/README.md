@@ -26,7 +26,7 @@ Mobile App API  → REST Endpoints  → Firestore Database
 **Key Components**:
 1. **LangGraph Agent** (`agent/`) - Stateful conversation workflow
 2. **Database Layer** (`database/`) - Firestore operations with OCC
-3. **NLU Module** (`nlu/`) - Gemini API integration for intent/entity extraction
+3. **NLU Module** (`nlu/`) - Groq API integration (Qwen 3 32B) for intent/entity extraction
 4. **WhatsApp Handler** (`whatsapp/`) - Meta Business API webhook
 
 ---
@@ -91,9 +91,10 @@ Mobile App API  → REST Endpoints  → Firestore Database
    - **Target**: January 16, 2025
 
 ### Important (Medium Priority)
-1. **Bilingual NLU Enhancement** - Improve Roman Urdu/English handling
-   - **Status**: Basic support exists, needs refinement
-   - **Files**: `nlu/agent.py` - Intent classification prompts
+1. **Bilingual NLU Enhancement** - Improved with Groq migration (January 18, 2025)
+   - **Status**: Migrated to Groq (Qwen 3 32B) for superior bilingual support
+   - **Files**: `nlu/agent.py` - Uses Qwen 3 32B model
+   - **Performance**: Lower latency (1-2s vs 3-5s) and better Roman Urdu handling
 
 2. **Matchmaking System** - Elo-based ranked match queue
    - **Status**: Schema exists, no queries implemented

@@ -128,14 +128,14 @@ async def test_firestore():
         return True  # Don't fail the test - Firestore is optional
 
 async def test_nlu_agent():
-    """Test NLU agent with Gemini API"""
+    """Test NLU agent with Groq API"""
     print("\n🧠 Testing NLU Agent")
     print("=" * 20)
     
     try:
         from nlu.agent import NLUAgent
         
-        # Test Gemini API connection
+        # Test Groq API connection
         agent = NLUAgent()
         print("✅ NLU Agent initialized successfully")
         
@@ -156,7 +156,7 @@ async def test_nlu_agent():
         
     except Exception as e:
         print(f"❌ NLU Agent test failed: {e}")
-        print("   Check your GEMINI_API_KEY in .env file")
+        print("   Check your GROQ_API_KEY in .env file")
         return False
 
 async def test_whatsapp_agent():

@@ -1,29 +1,35 @@
 """
-NLU Agent - Natural Language Understanding using Gemini API
+NLU Agent - Natural Language Understanding using Groq (Qwen 3 32B)
 Handles intent extraction and entity recognition for Roman Urdu/English mixed language
 """
 
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from openai import OpenAI
 from app.config import settings
+from nlu.usage_tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
 
+# Initialize usage tracker
+usage_tracker = UsageTracker()
+
 
 class NLUAgent:
-    """Natural Language Understanding agent using Gemini API"""
+    """Natural Language Understanding agent using Groq (Qwen 3 32B)"""
     
     def __init__(self):
-        """Initialize NLU agent with Gemini"""
+        """Initialize NLU agent with Groq"""
         try:
-            # Configure Gemini API
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
-            logger.info(f"NLU Agent initialized with Gemini model: {settings.GEMINI_MODEL}")
+            # Configure Groq API (OpenAI-compatible)
+            self.client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=settings.GROQ_API_KEY
+            )
+            logger.info(f"NLU Agent initialized with Groq model: {settings.GROQ_MODEL}")
         except Exception as e:
-            logger.error(f"Failed to initialize Gemini: {e}")
+            logger.error(f"Failed to initialize Groq: {e}")
             raise
     
     async def extract_intent(self, message: str, conversation_history: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -49,18 +55,18 @@ class NLUAgent:
             context = self._build_context(conversation_history)
             logger.info(f"   Context built: {len(context)} characters")
             
-            # Create prompt for Gemini
+            # Create prompt for Groq
             logger.info("📝 [extract_intent] Creating intent classification prompt...")
             prompt = self._create_intent_prompt(message, context)
             logger.info(f"   Prompt created: {len(prompt)} characters")
             
-            # Get response from Gemini
-            logger.info("🤖 [extract_intent] Calling Gemini API...")
-            response = await self._call_gemini(prompt)
-            logger.info(f"   Gemini response received: {len(response)} characters")
+            # Get response from Groq
+            logger.info("[extract_intent] Calling Groq API...")
+            response = await self._call_groq(prompt, json_format=True)
+            logger.info(f"   Groq response received: {len(response)} characters")
             
-            # Parse Gemini response
-            logger.info("🔍 [extract_intent] Parsing Gemini response...")
+            # Parse Groq response
+            logger.info("🔍 [extract_intent] Parsing Groq response...")
             result = self._parse_intent_response(response)
             
             # Post-process: Validate customer_name is only from current message
@@ -117,8 +123,8 @@ class NLUAgent:
             # Create entity extraction prompt
             prompt = self._create_entity_prompt(message, intent)
             
-            # Get response from Gemini
-            response = await self._call_gemini(prompt)
+            # Get response from Groq (no JSON format for text generation)
+            response = await self._call_groq(prompt, json_format=False)
             
             # Parse entities
             entities = self._parse_entity_response(response)
@@ -258,27 +264,54 @@ class NLUAgent:
             }}
             """
     
-    async def _call_gemini(self, prompt: str) -> str:
-        """Call Gemini API with prompt"""
-        logger.info(f"🤖 [_call_gemini] Calling Gemini API...")
-        logger.info(f"   Model: {settings.GEMINI_MODEL}")
+    async def _call_groq(self, prompt: str, json_format: bool = False) -> str:
+        """Call Groq API with prompt"""
+        logger.info(f"[_call_groq] Calling Groq API...")
+        logger.info(f"   Model: {settings.GROQ_MODEL}")
         logger.info(f"   Prompt length: {len(prompt)} characters")
         try:
             import asyncio
-            # Run the synchronous Gemini call in a thread pool
-            logger.info(f"   ⏳ Sending request to Gemini...")
+            # Run the synchronous Groq call in a thread pool
+            logger.info(f"   Sending request to Groq...")
+            
+            # Build request params
+            request_params = {
+                "model": settings.GROQ_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3
+            }
+            
+            # Only use json_object format if requested and prompt contains "json"
+            if json_format and "json" in prompt.lower():
+                request_params["response_format"] = {"type": "json_object"}
+            
             response = await asyncio.get_event_loop().run_in_executor(
-                None, self.model.generate_content, prompt
+                None,
+                lambda: self.client.chat.completions.create(**request_params)
             )
-            response_text = response.text
-            logger.info(f"   ✅ Gemini response received: {len(response_text)} characters")
+            response_text = response.choices[0].message.content
+            
+            # Track token usage
+            if hasattr(response, 'usage') and response.usage:
+                prompt_tokens = response.usage.prompt_tokens or 0
+                completion_tokens = response.usage.completion_tokens or 0
+                total_tokens = response.usage.total_tokens or 0
+                
+                usage_tracker.record_call(prompt_tokens, completion_tokens, total_tokens)
+                
+                logger.info(f"   Groq response received: {len(response_text)} characters")
+                logger.info(f"   Tokens: {total_tokens} (prompt: {prompt_tokens}, completion: {completion_tokens})")
+            else:
+                logger.info(f"   Groq response received: {len(response_text)} characters")
+            
             return response_text
         except Exception as e:
-            logger.error(f"   ❌ Gemini API error: {e}")
+            logger.error(f"   Groq API error: {e}")
             raise
     
     def _parse_intent_response(self, response: str) -> Dict[str, Any]:
-        """Parse Gemini response for intent extraction"""
+        """Parse Groq response for intent extraction"""
+        # TODO: Replace regex with Pydantic model validation in next phase
         try:
             # Try to extract JSON from response
             import json
@@ -307,7 +340,7 @@ class NLUAgent:
             }
     
     def _parse_entity_response(self, response: str) -> Dict[str, Any]:
-        """Parse Gemini response for entity extraction"""
+        """Parse Groq response for entity extraction"""
         try:
             import json
             import re
@@ -405,9 +438,9 @@ class NLUAgent:
             logger.info("📝 [generate_response] Creating response prompt...")
             prompt = self._create_response_prompt(intent, entities, context, availability_data)
             
-            # Get response from Gemini
-            logger.info("🤖 [generate_response] Calling Gemini to generate response...")
-            response = await self._call_gemini(prompt)
+            # Get response from Groq (no JSON format for text generation)
+            logger.info("[generate_response] Calling Groq to generate response...")
+            response = await self._call_groq(prompt, json_format=False)
             logger.info(f"✅ [generate_response] Response generated: {response[:100]}...")
             logger.info("=" * 70)
             
@@ -740,6 +773,7 @@ class NLUAgent:
         
         # Get duration (default to 1 hour if not specified)
         duration_hours = context.get('selected_duration', 1.0)
+        # TODO: Implement 120-minute consecutive slot check
         
         # Calculate end time based on duration
         if slot_time and duration_hours:
@@ -780,7 +814,7 @@ class NLUAgent:
     async def _create_booking(self, booking_details: Dict[str, Any]) -> Dict[str, Any]:
         """
         Actually create the booking in the database
-        This is how Gemini writes to the database - through this function
+        This is how the NLU agent writes to the database - through this function
         """
         try:
             logger.info("🔧 [_create_booking] Creating booking in database...")
