@@ -1,45 +1,18 @@
-/**
- * API Configuration
- * Centralized configuration for backend API endpoints
- */
+import Constants from 'expo-constants';
 
-// Get the local IP address for development (useful for device testing)
-// You can manually set this or use environment variables
+// Get the local IP address dynamically from Expo
 const getLocalIP = (): string => {
-  // For development, use your computer's IP address if testing on physical device
-  // Or use 'localhost' if testing on emulator/simulator
-  // From your Expo output, your IP is: 192.168.100.67
-  return process.env.EXPO_PUBLIC_API_HOST || '192.168.100.67';
-};
-
-// Environment-based configuration
-export const API_CONFIG = {
-  // Development URL - change localhost to your IP if testing on physical device
-  development: `http://${getLocalIP()}:8000`,
-
-  // Production URL - update this when deploying
-  production: process.env.EXPO_PUBLIC_API_URL || 'https://your-backend-url.com',
-
-  // Staging URL (optional)
-  staging: process.env.EXPO_PUBLIC_STAGING_URL || 'https://staging.your-backend-url.com',
-};
-
-// Get current API base URL based on environment
-export const getApiBaseUrl = (): string => {
-  if (__DEV__) {
-    return API_CONFIG.development;
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    return debuggerHost.split(':')[0];
   }
-
-  // Check for staging environment
-  if (process.env.EXPO_PUBLIC_ENV === 'staging') {
-    return API_CONFIG.staging;
-  }
-
-  return API_CONFIG.production;
+  // Fallback for production or unmanaged workflow
+  return process.env.EXPO_PUBLIC_API_HOST || '192.168.2.103';
 };
 
-// Export the base URL
-export const API_BASE_URL = getApiBaseUrl();
+export const API_URL = `http://${getLocalIP()}:8000`;
+export const WS_URL = `ws://${getLocalIP()}:8000`;
+export const API_BASE_URL = API_URL;
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -87,6 +60,13 @@ export const buildApiUrl = (endpoint: string): string => {
   return `${API_BASE_URL}${endpoint}`;
 };
 
+// Helper to build full Media URL
+export const getMediaUrl = (path: string | undefined | null): string | undefined => {
+  if (!path) return undefined;
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 // Create axios instance with base configuration
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -105,12 +85,12 @@ const TOKEN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 const getCachedToken = async (): Promise<string | null> => {
   const now = Date.now();
-  
+
   // Return cached token if still valid
   if (tokenCache && (now - tokenCache.timestamp) < TOKEN_CACHE_DURATION) {
     return tokenCache.token;
   }
-  
+
   // Fetch from AsyncStorage and cache it
   try {
     const token = await AsyncStorage.getItem('authToken');
