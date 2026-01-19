@@ -20,7 +20,7 @@
 
 ### Backend Infrastructure ✅ (Completed: December 2024)
 - ✅ FastAPI backend with modular structure
-- ✅ Railway deployment (`https://jhat-production.up.railway.app`)
+- ✅ Render deployment (`https://jhat-to9p.onrender.com`)
 - ✅ Firestore database connected and operational
 - ✅ Meta WhatsApp Business API integrated
 - ✅ LangGraph agent workflow implemented

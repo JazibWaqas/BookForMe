@@ -79,19 +79,19 @@ def generate_slots_for_resource(
     base_price = service.get("pricing", {}).get("base", 1500)
     
     while current_hour < close_h or (current_hour == close_h and current_min < close_m):
-        time_str = f"{current_hour:02d}:{current_min:02d}"
+        start_time_pkt = PKT.localize(datetime(date.year, date.month, date.day, current_hour, current_min))
+        start_time = start_time_pkt.astimezone(pytz.utc)
+        end_time = start_time + timedelta(minutes=duration)
         
-        end_min = current_min + duration
-        end_hour = current_hour
-        while end_min >= 60:
-            end_min -= 60
-            end_hour += 1
+        end_time_pkt = end_time.astimezone(PKT)
+        end_hour_pkt = end_time_pkt.hour
+        end_min_pkt = end_time_pkt.minute
         
-        if end_hour > close_h or (end_hour == close_h and end_min > close_m):
+        if end_hour_pkt > close_h or (end_hour_pkt == close_h and end_min_pkt > close_m):
             if close_h < 24:
                 break
         
-        end_time_str = f"{end_hour:02d}:{end_min:02d}"
+        time_str = f"{current_hour:02d}:{current_min:02d}"
         slot_id = generate_slot_id(vendor_id, resource_id, date_str, time_str)
         
         slot = {
@@ -99,8 +99,8 @@ def generate_slots_for_resource(
             "vendor_id": vendor_id,
             "service_id": service["id"],
             "resource_id": resource_id,
-            "start_time": time_str,
-            "end_time": end_time_str,
+            "start_time": start_time,
+            "end_time": end_time,
             "date": date_str,
             "price": base_price,
             "status": SlotStatus.AVAILABLE.value,
@@ -185,9 +185,9 @@ def apply_test_states(slots: List[Dict[str, Any]], users_data: list) -> List[Dic
     if len(slots) < 10:
         return slots
     
-    from datetime import datetime, timedelta
+    from datetime import timezone
     
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     tomorrow = now + timedelta(days=1)
     
     locked_slot = None
@@ -197,13 +197,18 @@ def apply_test_states(slots: List[Dict[str, Any]], users_data: list) -> List[Dic
     
     for slot in slots:
         slot_date = datetime.strptime(slot["date"], "%Y-%m-%d")
-        slot_time = slot["start_time"]
-        slot_hour = int(slot_time.split(":")[0])
+        start_time = slot["start_time"]
+        
+        if isinstance(start_time, datetime):
+            slot_hour_pkt = start_time.astimezone(PKT).hour
+        else:
+            slot_hour_pkt = int(str(start_time).split(":")[0]) if ":" in str(start_time) else 0
         
         if slot_date.date() == now.date() and slot["status"] == SlotStatus.AVAILABLE.value:
-            if not locked_slot and slot_hour >= now.hour + 1:
+            now_hour_pkt = now.astimezone(PKT).hour
+            if not locked_slot and slot_hour_pkt >= now_hour_pkt + 1:
                 locked_slot = slot
-            elif not pending_slot and slot_hour >= now.hour + 2:
+            elif not pending_slot and slot_hour_pkt >= now_hour_pkt + 2:
                 pending_slot = slot
             elif len(confirmed_slots) < 3:
                 confirmed_slots.append(slot)

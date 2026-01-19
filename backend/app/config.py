@@ -22,9 +22,13 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     
-    # AI/NLU (Gemini)
-    GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-2.5-flash"  # Fastest model for lowest latency
+    # AI/NLU (Groq - Qwen 3 32B for bilingual capabilities)
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "qwen/qwen3-32b"
+    
+    # Legacy Gemini support (optional, deprecated)
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     
     # WhatsApp (Meta Business API)
     WHATSAPP_ACCESS_TOKEN: str

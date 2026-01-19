@@ -33,23 +33,23 @@ class TerminalChat:
         print("\n" + "=" * 70)
         print("  TERMINAL CHAT - LangGraph Agent Testing (WhatsApp Workflow)")
         print("=" * 70)
-        print("\n⏳ Initializing LangGraph Agent...")
+        print("\nInitializing LangGraph Agent...")
         try:
             self.agent = WhatsAppAgent()
             self.phone_number = "+923001234567"  # Test phone number
-            print("✅ Agent ready!\n")
+            print("Agent ready!\n")
         except Exception as e:
-            print(f"❌ Error initializing agent: {e}")
+            print(f"Error initializing agent: {e}")
             print("\nMake sure:")
             print("  - Firestore credentials are configured")
-            print("  - Gemini API key is set")
+            print("  - GROQ_API_KEY is set in .env file")
             print("  - All dependencies are installed")
             raise
     
     async def start_chat(self):
         """Start interactive chat session"""
         print("-" * 70)
-        print("💬 Type messages to chat (exact same as WhatsApp webhook)")
+        print("Type messages to chat (exact same as WhatsApp webhook)")
         print("\nCommands:")
         print("  • 'exit' or 'quit' - End chat")
         print("  • 'clear' - Clear conversation history")
@@ -67,14 +67,14 @@ class TerminalChat:
                 
                 # Handle commands
                 if user_message.lower() in ['exit', 'quit', 'q']:
-                    print("\n👋 Chat ended. Goodbye!\n")
+                    print("\nChat ended. Goodbye!\n")
                     break
                 
                 if user_message.lower() == 'clear':
-                    print("\n🔄 Clearing conversation history...")
+                    print("\nClearing conversation history...")
                     # Reinitialize agent to clear state
                     self.agent = WhatsAppAgent()
-                    print("✅ Conversation cleared!\n")
+                    print("Conversation cleared!\n")
                     continue
                 
                 if user_message.lower() == '/help':
@@ -93,10 +93,10 @@ class TerminalChat:
                 print()
                 
             except KeyboardInterrupt:
-                print("\n\n👋 Chat interrupted. Goodbye!\n")
+                print("\n\nChat interrupted. Goodbye!\n")
                 break
             except Exception as e:
-                print(f"\n❌ Error: {e}")
+                print(f"\nError: {e}")
                 import traceback
                 print("\nFull error:")
                 traceback.print_exc()
@@ -107,12 +107,12 @@ class TerminalChat:
         print("\n" + "=" * 70)
         print("  HELP & EXAMPLE MESSAGES")
         print("=" * 70)
-        print("\n📝 Available Commands:")
+        print("\nAvailable Commands:")
         print("  exit/quit/q  - Exit chat")
         print("  clear        - Clear conversation history")
         print("  /help        - Show this help")
         
-        print("\n💬 Example Messages to Try:")
+        print("\nExample Messages to Try:")
         print("\n  Greetings:")
         print("    • Hi")
         print("    • Aoa")
@@ -136,7 +136,7 @@ class TerminalChat:
         print("    • I want to book for Friday")
         
         print("\n" + "-" * 70)
-        print("💡 Tip: Try incomplete queries like 'koi slot hei?' to see how")
+        print("Tip: Try incomplete queries like 'koi slot hei?' to see how")
         print("   the agent asks for missing information!\n")
 
 
@@ -146,7 +146,7 @@ async def main():
         chat = TerminalChat()
         await chat.start_chat()
     except Exception as e:
-        print(f"\n❌ Failed to start chat: {e}\n")
+        print(f"\nFailed to start chat: {e}\n")
         sys.exit(1)
 
 
@@ -154,5 +154,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!\n")
+        print("\n\nGoodbye!\n")
 

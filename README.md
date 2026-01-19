@@ -59,14 +59,14 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - **API Server**: Python FastAPI (Async)
 - **Database**: Google Cloud Firestore (NoSQL)
 - **AI Orchestration**: LangGraph (stateful agent workflows)
-- **AI Model**: Gemini 1.5 Flash (NLU + Vision OCR)
+- **AI Model**: Groq (Qwen 3 32B) for NLU, Gemini Vision for OCR (payment validation)
 
 ### Messaging
 - **WhatsApp**: Meta Business API (Production)
 - **OCR**: Gemini Vision API (payment screenshot validation)
 
 ### Deployment
-- **Backend**: Railway (`https://jhat-production.up.railway.app`)
+- **Backend**: Render (`https://jhat-to9p.onrender.com`)
 - **Mobile**: Expo Go (Dev) → App Store/Play Store (Production)
 
 ---
@@ -75,7 +75,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 
 ### Backend Infrastructure ✅
 - FastAPI backend with modular structure
-- Railway deployment (live and operational)
+- Render deployment (live and operational)
 - Firestore database connected and operational
 - Meta WhatsApp Business API integrated
 - LangGraph agent workflow implemented (`backend/agent/graph.py`)
@@ -99,7 +99,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 
 ### AI Agent ✅
 - LangGraph state machine (`backend/agent/graph.py`)
-- Intent classification via Gemini NLU
+- Intent classification via Groq (Qwen 3 32B) NLU
 - Entity extraction (date, time, service type)
 - Tool calling for availability checks
 - WhatsApp webhook integration
@@ -157,7 +157,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - `backend/agent/nodes.py` - Agent node functions (intent, query, response)
 - `backend/database/slot_service.py` - Slot locking/booking with OCC ⭐
 - `backend/database/rest_api.py` - REST API endpoints
-- `backend/nlu/agent.py` - Gemini NLU integration
+- `backend/nlu/agent.py` - Groq (Qwen 3 32B) NLU integration
 - `backend/whatsapp/webhook.py` - WhatsApp webhook handler
 
 ### 🗄️ Database (`backend/database/`)
