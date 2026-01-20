@@ -53,10 +53,10 @@ export default function SocialScreen() {
     setLoading(true);
     try {
       if (activeTab === 'forum') {
-        const feed = await SocialService.getFeed(20, 'all', false);
+        const feed = await SocialService.getFeed(20, 'all', false) as Post[];
         // Client side search for posts for now
         const filteredFeed = searchQuery
-          ? feed.filter(p => p.content.toLowerCase().includes(searchQuery.toLowerCase()))
+          ? feed.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase()))
           : feed;
         setPosts(filteredFeed);
       } else if (activeTab === 'matches') {
@@ -128,10 +128,10 @@ export default function SocialScreen() {
     if (!currentUser) return;
     try {
       // Optimistic Update
-      const isLiked = post.likes.includes(currentUser.id!);
+      const isLiked = (post.likes || []).includes(currentUser.id!);
       const newLikes = isLiked
-        ? post.likes.filter(id => id !== currentUser.id)
-        : [...post.likes, currentUser.id!];
+        ? (post.likes || []).filter(id => id !== currentUser.id)
+        : [...(post.likes || []), currentUser.id!];
 
       setPosts(posts.map(p =>
         p.id === post.id
@@ -227,7 +227,7 @@ export default function SocialScreen() {
               {/* Create Post */}
               <Card style={styles.createPostCard}>
                 <View style={styles.createPostContainer}>
-                  <Image source={{ uri: currentUser?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.userAvatarSmall} />
+                  <Image source={{ uri: (currentUser as any)?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.userAvatarSmall} />
                   <View style={{ flex: 1 }}>
                     <TextInput
                       style={styles.createPostInput}
@@ -278,9 +278,9 @@ export default function SocialScreen() {
                   <View style={styles.postFooter}>
                     <TouchableOpacity style={styles.actionButton} onPress={() => handleLikePost(item)}>
                       <Ionicons
-                        name={item.likes?.includes(currentUser?.id || '') ? "heart" : "heart-outline"}
+                        name={(item.likes || []).includes(currentUser?.id || '') ? "heart" : "heart-outline"}
                         size={20}
-                        color={item.likes?.includes(currentUser?.id || '') ? "red" : COLORS.textMuted}
+                        color={(item.likes || []).includes(currentUser?.id || '') ? "red" : COLORS.textMuted}
                       />
                       <Text style={styles.actionText}>{item.likes_count || 0}</Text>
                     </TouchableOpacity>

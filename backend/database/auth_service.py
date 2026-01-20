@@ -297,3 +297,39 @@ class AuthService:
         except Exception as e:
             logger.error(f"Error setting password: {e}")
             return {"success": False, "error": f"Failed to set password: {str(e)}"}
+
+    async def update_user_profile(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update user profile information
+        
+        Returns:
+            {
+                "success": bool,
+                "user": dict
+            }
+        """
+        try:
+            # Filter allowed fields
+            allowed_fields = ['name', 'phone']
+            update_data = {k: v for k, v in data.items() if k in allowed_fields}
+            
+            if not update_data:
+                return {"success": False, "error": "No valid fields to update"}
+            
+            update_data['updated_at'] = firestore.SERVER_TIMESTAMP
+            
+            self.db.collection(Collections.USERS).document(user_id).update(update_data)
+            
+            # Get updated user
+            updated_user = await self.firestore_v2.get_user(user_id)
+            
+            logger.info(f"User profile updated: {user_id}")
+            
+            return {
+                "success": True,
+                "user": updated_user
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating user profile: {e}")
+            return {"success": False, "error": f"Failed to update profile: {str(e)}"}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { apiClient } from '../../config/api';
 
 interface Message {
   id: string;
@@ -12,6 +13,7 @@ interface Message {
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const examplePrompts = [
     'Find the cheapest court available right now',
@@ -20,7 +22,7 @@ export default function ChatbotScreen() {
     'Best rated badminton courts in DHA',
   ];
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const messageText = text || input;
     if (!messageText.trim()) return;
 
@@ -31,18 +33,32 @@ export default function ChatbotScreen() {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const response = await apiClient.post('/api/chat', { message: messageText });
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'I found 3 courts matching your criteria:\n\nDHA Sports Complex\nPKR 800/hour • 2.3 km away • 4.8 rating\nAvailable now\n\nCourtside Arena\nPKR 1,000/hour • 3.1 km away • 4.9 rating\nAvailable from 6:00 PM\n\nElite Sports Club\nPKR 1,200/hour • 4.5 km away • 4.7 rating\nAvailable now\n\nWould you like to book any of these courts?',
+        text: response.data.response || "I'm sorry, I couldn't process that.",
         sender: 'bot',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, botMessage]);
-    }, 1200);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I'm having trouble connecting right now.",
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -152,10 +168,14 @@ export default function ChatbotScreen() {
           />
           <TouchableOpacity
             onPress={() => handleSend()}
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-            disabled={!input.trim()}
+            style={[styles.sendButton, (!input.trim() && !loading) && styles.sendButtonDisabled]}
+            disabled={(!input.trim() && !loading) || loading}
           >
-            <Text style={styles.sendIcon}>↑</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color={COLORS.background} />
+            ) : (
+              <Text style={styles.sendIcon}>↑</Text>
+            )}
           </TouchableOpacity>
         </View>
         <Text style={styles.disclaimer}>

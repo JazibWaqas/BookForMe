@@ -1,5 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, API_ENDPOINTS } from '../config/api';
+import { Vendor, Category, User, Booking } from '../types';
+import { SlotDetails, ResourceGroup } from '../types/booking';
 
 // Query keys for consistent caching
 export const queryKeys = {
@@ -16,7 +18,7 @@ export const queryKeys = {
 
 // Hook to fetch all vendors
 export function useVendors() {
-    return useQuery({
+    return useQuery<Vendor[]>({
         queryKey: queryKeys.vendors.all,
         queryFn: async () => {
             const response = await apiClient.get(API_ENDPOINTS.vendors.list);
@@ -27,7 +29,7 @@ export function useVendors() {
 
 // Hook to fetch vendors by sport type
 export function useVendorsBySport(sportType: string) {
-    return useQuery({
+    return useQuery<Vendor[]>({
         queryKey: queryKeys.vendors.bySport(sportType),
         queryFn: async () => {
             const response = await apiClient.get(API_ENDPOINTS.vendors.list, {
@@ -42,7 +44,7 @@ export function useVendorsBySport(sportType: string) {
 
 // Hook to fetch vendor details
 export function useVendor(vendorId: string) {
-    return useQuery({
+    return useQuery<Vendor>({
         queryKey: queryKeys.vendors.detail(vendorId),
         queryFn: async () => {
             const response = await apiClient.get(API_ENDPOINTS.vendors.get(vendorId));
@@ -56,7 +58,7 @@ export function useVendor(vendorId: string) {
 export function useAvailableSlots(vendorId: string, date: string) {
     const queryClient = useQueryClient();
 
-    return useQuery({
+    return useQuery<SlotDetails[]>({
         queryKey: queryKeys.slots.byVendor(vendorId, date),
         queryFn: async () => {
             const response = await apiClient.get(
@@ -86,7 +88,7 @@ export function usePrefetchVendor() {
 
 // Hook to fetch current user profile
 export function useCurrentUser() {
-    return useQuery({
+    return useQuery<User>({
         queryKey: ['user', 'me'] as const,
         queryFn: async () => {
             const response = await apiClient.get(API_ENDPOINTS.auth.me);
@@ -99,7 +101,7 @@ export function useCurrentUser() {
 
 // Hook to fetch user bookings
 export function useUserBookings() {
-    return useQuery({
+    return useQuery<Booking[]>({
         queryKey: ['bookings', 'user'] as const,
         queryFn: async () => {
             const response = await apiClient.get(API_ENDPOINTS.bookings.list);
@@ -113,7 +115,7 @@ export function useUserBookings() {
 
 // Hook to fetch categories
 export function useCategories() {
-    return useQuery({
+    return useQuery<Category[]>({
         queryKey: ['categories'] as const,
         queryFn: async () => {
             const response = await apiClient.get('/api/categories');
@@ -125,18 +127,18 @@ export function useCategories() {
 
 // Hook to fetch available slots with smart refetching
 export function useAvailableSlotsOptimized(vendorId: string, date: string, enabled: boolean = true, autoRefetch: boolean = true) {
-    return useQuery({
+    return useQuery<ResourceGroup[]>({
         queryKey: queryKeys.slots.byVendor(vendorId, date),
         queryFn: async () => {
             const response = await apiClient.get(
                 API_ENDPOINTS.vendors.availability(vendorId),
                 { params: { date } }
             );
-            
+
             // Group slots by resource
             const slots = response.data.available_slots || [];
             const resourceMap = new Map();
-            
+
             slots.forEach((slot: any) => {
                 const key = slot.resource_id;
                 if (!resourceMap.has(key)) {
@@ -149,7 +151,7 @@ export function useAvailableSlotsOptimized(vendorId: string, date: string, enabl
                         availableCount: 0,
                     });
                 }
-                
+
                 const group = resourceMap.get(key);
                 group.slots.push({
                     id: slot.slot_id || slot.id,
@@ -166,12 +168,12 @@ export function useAvailableSlotsOptimized(vendorId: string, date: string, enabl
                     status: slot.status || 'available',
                     price_tier_used: slot.price_tier_used,
                 });
-                
+
                 if (slot.status === 'available') {
                     group.availableCount++;
                 }
             });
-            
+
             return Array.from(resourceMap.values());
         },
         enabled: enabled && !!vendorId && !!date,

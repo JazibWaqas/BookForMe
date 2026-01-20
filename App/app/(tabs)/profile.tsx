@@ -10,6 +10,9 @@ import { authService } from '../../services/auth';
 import { format } from 'date-fns';
 import { useCurrentUser, useUserBookings } from '../../hooks/useQueries';
 
+import EditProfileModal from '../../components/EditProfileModal';
+import { apiClient } from '../../config/api';
+
 interface UserProfile {
   id: string;
   name: string;
@@ -21,18 +24,19 @@ interface UserProfile {
 export default function ProfileScreen() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
-  
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
   // Use React Query hooks for data fetching with caching
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { data: user, isLoading: userLoading, refetch: refetchUser } = useCurrentUser();
   const { data: allBookings = [], isLoading: bookingsLoading } = useUserBookings();
-  
+
   // Only wait for user data, bookings can load async
   const loading = userLoading;
-  
+
   // Calculate derived data
   const bookingsCount = allBookings.length;
   const completedBookings = allBookings.filter((b: any) => b.status === 'completed').length;
-  const upcomingBookings = allBookings.filter((b: any) => 
+  const upcomingBookings = allBookings.filter((b: any) =>
     b.status === 'confirmed' || b.status === 'pending'
   ).length;
   const recentBookings = allBookings
@@ -116,7 +120,7 @@ export default function ProfileScreen() {
 
     switch (action) {
       case 'edit':
-        Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+        setEditModalVisible(true);
         break;
       case 'support':
         Alert.alert(
@@ -126,8 +130,8 @@ export default function ProfileScreen() {
         break;
       case 'about':
         Alert.alert(
-          'About BookForMe',
-          'Version 1.0.0\n\nYour one-stop platform for booking sports venues in Karachi.\n\n© 2025 BookForMe'
+          'About & Debug',
+          `Version 1.0.0\n\nAPI URL:\n${apiClient.defaults.baseURL}\n\nUser ID:\n${user?.id || 'Not logged in'}\n\n© 2025 BookForMe`
         );
         break;
     }
@@ -159,16 +163,25 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        onSuccess={() => {
+          refetchUser(); // User query will automatically update via invalidation if set up correctly, but explicit refetch is safe
+        }}
+        currentUser={user || null}
+      />
+
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => Alert.alert(
             'Settings',
             'Choose an option',
             [
               { text: 'Edit Profile', onPress: () => handleMenuAction('edit') },
-              { text: 'About', onPress: () => handleMenuAction('about') },
+              { text: 'About & Debug', onPress: () => handleMenuAction('about') },
               { text: 'Cancel', style: 'cancel' }
             ]
           )}
@@ -186,7 +199,7 @@ export default function ProfileScreen() {
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.editAvatarButton}
                 onPress={() => Alert.alert('Change Photo', 'Profile photo upload feature coming soon!')}
               >
@@ -198,7 +211,7 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.statsRow}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statItem}
               onPress={() => router.push('/bookings')}
               disabled={bookingsLoading}
@@ -209,7 +222,7 @@ export default function ProfileScreen() {
               <Text style={styles.statValue}>{bookingsLoading ? '-' : upcomingBookings}</Text>
               <Text style={styles.statLabel}>Upcoming</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statItem}
               onPress={() => router.push('/bookings')}
               disabled={bookingsLoading}
@@ -266,7 +279,7 @@ export default function ProfileScreen() {
                     <View style={styles.bookingDateRow}>
                       <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
                       <Text style={styles.bookingDate}>
-                        {formatBookingDate(booking.date)} • {formatBookingTime(booking.time || booking.start_time)}
+                        {formatBookingDate(booking.date)} • {formatBookingTime(booking.time || booking.start_time || '')}
                       </Text>
                     </View>
                   </View>
@@ -302,8 +315,8 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             {menuItems.map((item, i) => (
-              <TouchableOpacity 
-                key={i} 
+              <TouchableOpacity
+                key={i}
                 style={styles.menuItem}
                 onPress={() => handleMenuAction(item.action, item.route)}
               >

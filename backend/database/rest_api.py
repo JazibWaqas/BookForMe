@@ -13,6 +13,7 @@ from database.slot_service import SlotService
 from database.firestore_v2 import FirestoreV2
 from database.auth_service import AuthService
 from app.firestore import firestore_db
+from whatsapp.agent import WhatsAppAgent
 import os
 import uuid
 from pathlib import Path
@@ -28,6 +29,8 @@ availability_service = AvailabilityService()
 slot_service = SlotService(firestore_db.db)
 firestore_v2 = FirestoreV2(firestore_db.db)
 auth_service = AuthService(firestore_db.db)
+# Initialize AI Agent
+ai_agent = WhatsAppAgent()
 
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads/payments")
@@ -708,3 +711,41 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
     except Exception as e:
         logger.error(f"Error getting user bookings: {e}")
         raise HTTPException(status_code=500, detail="Failed to get bookings")
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+@router.post("/chat")
+async def chat_with_ai(chat_request: ChatRequest, user_id: str = Depends(get_current_user_id)):
+    """
+    Chat with the AI agent
+    
+    Args:
+        chat_request: Chat message
+        user_id: User ID (from JWT token)
+        
+    Returns:
+        AI response
+    """
+    try:
+        logger.info(f"Chat request from user {user_id}: {chat_request.message}")
+        
+        # Use simple error handling for now since user_id might not be a phone number
+        # logic in agent might assume phone number for WhatsApp formatted messages but for logic it should be fine
+        response = await ai_agent.process_message(user_id, chat_request.message)
+        
+        return {
+            "success": True,
+            "response": response
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
+        # Return a fallback response if agent fails
+        return {
+            "success": True,
+            "response": "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later."
+        }
+

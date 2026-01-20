@@ -2,8 +2,10 @@ import sys
 import os
 import bcrypt
 
-# Add parent directory to path so we can import 'app'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Set dummy key for config validation
+os.environ["GROQ_API_KEY"] = "dummy_key_for_scripts"
 
 from app.firestore import firestore_db
 

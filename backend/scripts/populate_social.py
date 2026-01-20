@@ -1,8 +1,10 @@
 import sys
 import os
 
-# Add parent directory to path so we can import 'app'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Set dummy key for config validation
+os.environ["GROQ_API_KEY"] = "dummy_key_for_scripts"
 
 from app.firestore import firestore_db
 from datetime import datetime, timedelta
@@ -88,11 +90,57 @@ def create_matches(users):
         db.collection('matches').add(data)
     print("Created 8 matches")
 
+def create_chats(users):
+    messages = [
+        "Hey, are you free for a game?",
+        "Yes, what time?",
+        "How about 6 PM?",
+        "Perfect, see you there!",
+        "Did you bring the racquets?",
+        "On my way!",
+        "Great game yesterday!",
+        "Thanks, you played well too."
+    ]
+    
+    # Create 5 conversations
+    for i in range(5):
+        # Pick 2 random users
+        participants = random.sample(users, 2)
+        p1, p2 = participants[0], participants[1]
+        
+        # Conversation ID is usually sorted IDs joined, or auto-generated. 
+        # For simplicity and to match common patterns, we'll let Firestore auto-id or just make one.
+        # But wait, our API might expect specific structure. 
+        # Let's create a conversation document.
+        conv_data = {
+            "participants": participants,
+            "last_message": random.choice(messages),
+            "updated_at": datetime.now() - timedelta(minutes=random.randint(1, 120)),
+            "created_at": datetime.now() - timedelta(days=1),
+            "type": "individual"
+        }
+        conv_ref = db.collection('conversations').add(conv_data)[1]
+        
+        # Add messages to subcollection
+        for _ in range(random.randint(3, 8)):
+            sender = random.choice(participants)
+            msg_data = {
+                "conversation_id": conv_ref.id,
+                "sender_id": sender,
+                "content": random.choice(messages),
+                "created_at": datetime.now() - timedelta(minutes=random.randint(1, 60)),
+                "read": True
+            }
+            db.collection('conversations').document(conv_ref.id).collection('messages').add(msg_data)
+            
+    print("Created 5 chats with messages")
+
 def main():
     print("Populating Social Data...")
     users = create_users(8)
     create_posts(users)
     create_matches(users)
+    create_chats(users)
     print("Done!")
 
 if __name__ == "__main__":

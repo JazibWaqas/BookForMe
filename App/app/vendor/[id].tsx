@@ -49,13 +49,13 @@ export default function VendorDetailScreen() {
   // Use React Query for vendor and slots - automatic caching and refetching
   const { data: vendor, isLoading: vendorLoading } = useVendor(id as string);
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  const { 
-    data: resourceGroups = [], 
+  const {
+    data: resourceGroups = [],
     isLoading: slotsLoading,
-    refetch: refetchSlots 
+    refetch: refetchSlots
   } = useAvailableSlotsOptimized(
-    id as string, 
-    dateStr, 
+    id as string,
+    dateStr,
     true, // enabled
     !lockedSlotId // autoRefetch - only when no slot is locked
   );
@@ -70,7 +70,7 @@ export default function VendorDetailScreen() {
   // Check slot status when data refetches - only clear if slot becomes unavailable
   useEffect(() => {
     if (!lockedSlotId || !resourceGroups.length) return;
-    
+
     let slotFound = false;
     let slotBooked = false;
     let slotStillLocked = false;
@@ -82,7 +82,7 @@ export default function VendorDetailScreen() {
         slotFound = true;
         foundSlot = slot;
         if (slot.status === 'locked') slotStillLocked = true;
-        if (slot.status === 'booked' || slot.status === 'confirmed') slotBooked = true;
+        if (slot.status === 'pending' || slot.status === 'confirmed') slotBooked = true;
       }
     });
 
@@ -93,7 +93,7 @@ export default function VendorDetailScreen() {
     }
 
     // Only clear if slot is definitively booked/unavailable
-    if (slotFound && (slotBooked || (!slotStillLocked && foundSlot?.status !== 'available'))) {
+    if (foundSlot && (slotBooked || (!slotStillLocked && (foundSlot as SlotDetails).status !== 'available'))) {
       setLockedSlotId(null);
       setSelectedSlot(null);
       setLockExpiry(null);
@@ -174,7 +174,7 @@ export default function VendorDetailScreen() {
         setSelectedSlot(slot);
         setLockedSlotId(slot.id);
         setLockExpiry(new Date(result.hold_expires_at));
-        
+
         // React Query will auto-refetch in background (45s interval)
         // No need to manually refetch - let it happen naturally
       } else {
@@ -363,10 +363,10 @@ export default function VendorDetailScreen() {
                         // Check if this slot is selected/locked by current user
                         const isSelectedByUser = lockedSlotId === slot.id;
                         const isSelected = selectedSlot?.id === slot.id || isSelectedByUser;
-                        
+
                         // Slot is locked by someone else if status is 'locked' and it's not our locked slot
                         const isLockedByOthers = slot.status === 'locked' && !isSelectedByUser;
-                        const isBooked = slot.status === 'booked' || slot.status === 'confirmed';
+                        const isBooked = slot.status === 'pending' || slot.status === 'confirmed';
                         const isLocking = lockingSlot === slot.id;
 
                         return (

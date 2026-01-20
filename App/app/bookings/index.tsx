@@ -14,7 +14,7 @@ export default function MyBookingsScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
     const [countdown, setCountdown] = useState<{ [key: string]: number }>({});
-    
+
     // Use React Query for bookings - cached and fast
     const { data: bookings = [], isLoading: loading, isFetching } = useUserBookings();
 
@@ -247,7 +247,23 @@ export default function MyBookingsScreen() {
 
 
                                 {booking.status === 'confirmed' && (
-                                    <TouchableOpacity style={styles.viewDetailsButton}>
+                                    <TouchableOpacity
+                                        style={styles.viewDetailsButton}
+                                        onPress={() => router.push({
+                                            pathname: `/bookings/${booking.id}`,
+                                            params: {
+                                                id: booking.id,
+                                                vendorName: booking.vendor?.business_name || booking.vendor?.name,
+                                                category: booking.vendor?.category || 'Sports',
+                                                date: booking.date,
+                                                time: booking.time || booking.start_time,
+                                                price: booking.amount,
+                                                status: booking.status,
+                                                location: booking.vendor?.address || 'Unknown Location',
+                                                courtNumber: booking.service?.service_name || 'Court 1'
+                                            }
+                                        })}
+                                    >
                                         <Text style={styles.viewDetailsText}>View Details →</Text>
                                     </TouchableOpacity>
                                 )}

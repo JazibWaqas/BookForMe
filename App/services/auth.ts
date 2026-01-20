@@ -294,9 +294,7 @@ class AuthService {
         };
       }
 
-      const redirectUri = AuthSession.makeRedirectUri({
-        useProxy: true,
-      });
+      const redirectUri = AuthSession.makeRedirectUri();
 
       const discovery = {
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -322,7 +320,8 @@ class AuthService {
             error: 'Google Sign-In cancelled'
           };
         }
-        const errorMsg = result.error?.message || result.error?.code || 'Unknown error';
+        // Handle error case safely
+        const errorMsg = result.type === 'error' && result.error ? (result.error.message || result.error.code) : 'Unknown error';
         return {
           success: false,
           error: `Google Sign-In failed: ${errorMsg}`
@@ -452,7 +451,7 @@ class AuthService {
       await this.clearToken();
       await AsyncStorage.removeItem('userData');
       await AsyncStorage.removeItem('userRole');
-      
+
       // Clear React Query cache on logout
       const { queryClient } = await import('../providers/QueryProvider');
       queryClient.clear();
@@ -608,6 +607,37 @@ class AuthService {
     } catch (error) {
       console.error('Error creating vendor profile:', error);
       return false;
+    }
+  }
+
+  async updateProfile(data: { name: string; phone: string }): Promise<AuthResponse> {
+    try {
+      const response = await apiClient.put('/api/auth/profile', data);
+
+      if (response.data.success) {
+        // Update local storage
+        const currentUser = await this.getCurrentUser();
+        if (currentUser) {
+          const updatedUser = { ...currentUser, ...response.data.user };
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+
+        return {
+          success: true,
+          user: response.data.user
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.error || 'Profile update failed'
+        };
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || error.message || 'Profile update failed'
+      };
     }
   }
 }

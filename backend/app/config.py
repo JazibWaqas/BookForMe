@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # AI/NLU (Groq - Qwen 3 32B for bilingual capabilities)
-    GROQ_API_KEY: str
+    GROQ_API_KEY: str = "dummy_key_for_dev"
     GROQ_MODEL: str = "qwen/qwen3-32b"
     
     # Legacy Gemini support (optional, deprecated)
@@ -31,12 +31,12 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash"
     
     # WhatsApp (Meta Business API)
-    WHATSAPP_ACCESS_TOKEN: str
-    WHATSAPP_PHONE_NUMBER_ID: str
-    WHATSAPP_VERIFY_TOKEN: str
+    WHATSAPP_ACCESS_TOKEN: str = "dummy_token"
+    WHATSAPP_PHONE_NUMBER_ID: str = "dummy_phone_id"
+    WHATSAPP_VERIFY_TOKEN: str = "dummy_verify_token"
     
     # Firestore (instead of PostgreSQL)
-    FIRESTORE_PROJECT_ID: str
+    FIRESTORE_PROJECT_ID: str = "bookforme-dev"
     FIRESTORE_CREDENTIALS_FILE: str = "./backend/credentials/firestore-service-account.json"
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     

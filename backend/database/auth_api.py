@@ -247,3 +247,38 @@ async def get_current_user_info(current_user: Dict = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error in get current user endpoint: {e}")
         raise HTTPException(status_code=500, detail="Failed to get user info")
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str
+    phone: str
+
+
+@router.put("/profile")
+async def update_profile(request: UpdateProfileRequest, current_user: Dict = Depends(get_current_user)):
+    """
+    Update user profile
+    
+    Returns:
+        {
+            "success": bool,
+            "user": dict
+        }
+    """
+    try:
+        user_id = current_user["sub"]
+        result = await auth_service.update_user_profile(
+            user_id=user_id,
+            data=request.dict()
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result.get("error", "Profile update failed"))
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in update profile endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Profile update failed")

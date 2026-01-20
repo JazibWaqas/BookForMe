@@ -51,7 +51,7 @@ export default function ChatDetailScreen() {
                 conversation_id: chatId!,
                 sender_id: currentUser.id!,
                 content: content || (type === 'image' ? 'Sent an image' : 'Sent audio'),
-                media_url: mediaUrl,
+                media_url: mediaUrl || undefined,
                 media_type: type
             });
 

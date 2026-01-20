@@ -1,5 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, collection, CollectionReference, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+// @ts-ignore: getReactNativePersistence is available at runtime but missing in some type definitions
 import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
