@@ -1,19 +1,22 @@
 """
 NLU Agent - Natural Language Understanding using Groq (Qwen 3 32B)
 Handles intent extraction and entity recognition for Roman Urdu/English mixed language
+Uses Pydantic for structured LLM response parsing
 """
 
 import logging
+import json
+import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from openai import OpenAI
+from pydantic import ValidationError
 from app.config import settings
 from nlu.usage_tracker import UsageTracker
-import re
+from agent.models import LLMIntentResponse, LLMEntityResponse, ExtractedEntities
 
 logger = logging.getLogger(__name__)
 
-# Initialize usage tracker
 usage_tracker = UsageTracker()
 
 
@@ -311,49 +314,59 @@ class NLUAgent:
             raise
     
     def _parse_intent_response(self, response: str) -> Dict[str, Any]:
-        """Parse Groq response for intent extraction"""
-        # TODO: Replace regex with Pydantic model validation in next phase
+        """Parse Groq response for intent extraction using Pydantic"""
         try:
-            # Try to extract JSON from response
-            import json
-            import re
-            
-            # Find JSON in response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                result = json.loads(json_str)
-                return result
+            if not json_match:
+                logger.warning("No JSON found in intent response")
+                return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
             
-            # Fallback parsing
-            return {
-                'intent': 'unknown',
-                'entities': {},
-                'confidence': 0.0
-            }
+            json_str = json_match.group()
+            raw_data = json.loads(json_str)
             
+            try:
+                parsed = LLMIntentResponse(**raw_data)
+                logger.info(f"✅ Pydantic parsed intent: {parsed.intent} (confidence: {parsed.confidence})")
+                return {
+                    'intent': parsed.intent,
+                    'entities': parsed.entities or {},
+                    'confidence': parsed.confidence,
+                    'reasoning': parsed.reasoning
+                }
+            except ValidationError as ve:
+                logger.warning(f"Pydantic validation failed, using raw: {ve}")
+                return raw_data
+            
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
+            return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
         except Exception as e:
             logger.error(f"Error parsing intent response: {e}")
-            return {
-                'intent': 'unknown',
-                'entities': {},
-                'confidence': 0.0
-            }
+            return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
     
     def _parse_entity_response(self, response: str) -> Dict[str, Any]:
-        """Parse Groq response for entity extraction"""
+        """Parse Groq response for entity extraction using Pydantic"""
         try:
-            import json
-            import re
-            
-            # Find JSON in response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                return json.loads(json_str)
+            if not json_match:
+                logger.warning("No JSON found in entity response")
+                return {}
             
+            json_str = json_match.group()
+            raw_data = json.loads(json_str)
+            
+            try:
+                parsed = LLMEntityResponse(**raw_data)
+                result = parsed.model_dump(exclude_none=True)
+                logger.info(f"✅ Pydantic parsed entities: {result}")
+                return result
+            except ValidationError as ve:
+                logger.warning(f"Pydantic validation failed, using raw: {ve}")
+                return raw_data
+            
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
             return {}
-            
         except Exception as e:
             logger.error(f"Error parsing entity response: {e}")
             return {}

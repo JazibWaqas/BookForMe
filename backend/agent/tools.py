@@ -109,15 +109,14 @@ async def check_availability(
                                 filtered_slots.append(slot)
                     available_slots = filtered_slots
 
-                # Format slots for response
+                # Format slots for response with all required fields for booking
                 formatted_slots = []
                 PKT = pytz.timezone('Asia/Karachi')
-                for slot in available_slots[:5]:  # Show up to 5 slots per vendor
+                for slot in available_slots[:5]:
                     slot_start_str = slot.get("start_time", "")
                     slot_end_str = slot.get("end_time", "")
 
                     if isinstance(slot_start_str, datetime):
-                        # Convert UTC to PKT before formatting for WhatsApp users
                         slot_start_pkt = slot_start_str.astimezone(PKT) if slot_start_str.tzinfo else slot_start_str
                         slot_start = slot_start_pkt.strftime("%H:%M")
                         
@@ -131,10 +130,13 @@ async def check_availability(
                         slot_end = str(slot_end_str)[:5] if slot_end_str else ""
 
                     formatted_slots.append({
-                        "time_slot": f"{slot_start} - {slot_end}",
+                        "slot_id": slot.get("id", ""),
+                        "slot_time": slot_start,
+                        "end_time": slot_end,
+                        "time_display": f"{slot_start} - {slot_end}",
                         "price": int(slot.get("price", 0)),
                         "resource_id": slot.get("resource_id", ""),
-                        "slot_id": slot.get("id", "")
+                        "resource_name": slot.get("resource_name", "")
                     })
 
                 # Add vendor data if they have available slots
@@ -148,7 +150,7 @@ async def check_availability(
                             "base_price": int(service.get("pricing", {}).get("base", 0)),
                             "currency": "PKR"
                         },
-                        "available_slots": formatted_slots
+                        "slots": formatted_slots
                     })
 
             except Exception as e:

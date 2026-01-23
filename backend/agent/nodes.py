@@ -1,15 +1,20 @@
 """
 LangGraph Agent Nodes - Industry Standard Workflow
 Refactored with single-responsibility nodes and conditional routing
+Uses Pydantic models for type safety
 """
 
 import logging
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from agent.state import AgentState
 from agent.tools import check_availability, get_pricing, get_vendor_info
 from agent.duration import parse_duration
+from agent.models import (
+    AvailableSlot, SelectedSlot, PendingBooking, BookingResult,
+    find_matching_slot, slot_from_query_result
+)
 from nlu.agent import NLUAgent
 
 logger = logging.getLogger(__name__)
@@ -375,17 +380,38 @@ async def validate_state_node(state: AgentState) -> AgentState:
 # NODE 5: QUERY AVAILABILITY
 # =============================================================================
 
+def match_slot_from_results(user_slot_time: str, vendors: List[Dict]) -> Optional[Dict]:
+    """
+    Find a matching slot from query results based on user's selected time.
+    Returns the full slot dict with slot_id and price.
+    """
+    user_time = user_slot_time.strip()
+    user_hour = user_time.split(":")[0] if ":" in user_time else user_time
+    
+    for vendor in vendors:
+        for slot in vendor.get("slots", []):
+            db_time = slot.get("slot_time", "")
+            db_hour = db_time.split(":")[0] if ":" in db_time else db_time
+            
+            if db_time == user_time:
+                return {**slot, "vendor_id": vendor.get("vendor_id")}
+            
+            if db_hour == user_hour:
+                return {**slot, "vendor_id": vendor.get("vendor_id")}
+    
+    return None
+
+
 async def query_availability_node(state: AgentState) -> AgentState:
-    """Query slot availability from database"""
+    """Query slot availability from database and match user selection"""
     try:
         logger.info("🔵 Node: query_availability")
         
         entities = state.get("entities", {})
         
-        # Standardize field name: NLU extracts service_type, DB uses sport_type
         service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
         area = entities.get("area") or "DHA"
-        date = entities.get("date") or datetime.now().strftime("%Y-%m-%d")
+        date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
         time_range = entities.get("time_range")
         
         logger.info(f"Checking availability: {service_type} in {area} on {date}")
@@ -393,42 +419,59 @@ async def query_availability_node(state: AgentState) -> AgentState:
         query_result = await check_availability(service_type, area, date, time_range)
         state["query_result"] = query_result if query_result else {"success": False, "error": "Query returned None"}
         
-        # Check if we have slots and user selected one - prepare for confirmation
         has_slots = query_result and query_result.get("success") and query_result.get("vendors")
-        has_selection = state.get("selected_slot")
+        user_selected = state.get("selected_slot")
         
-        if has_slots and has_selection:
-            selected_slot = state["selected_slot"]
-            slot_id = selected_slot.get("id") or selected_slot.get("slot_id")
+        if has_slots and user_selected:
+            user_slot_time = user_selected.get("slot_time", "")
+            logger.info(f"User selected time: {user_slot_time}")
             
-            # Try to find slot_id from query results if not in selected_slot
-            if not slot_id and query_result.get("vendors"):
-                for vendor in query_result["vendors"]:
-                    for slot in vendor.get("slots", []):
-                        if slot.get("slot_time") == selected_slot.get("slot_time"):
-                            slot_id = slot.get("id") or slot.get("slot_id")
-                            break
-                    if slot_id:
-                        break
+            matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
             
-            state["awaiting_confirmation"] = True
-            state["confirmation_type"] = "booking"
-            state["pending_booking"] = {
-                "slot": selected_slot,
-                "slot_id": slot_id,
-                "date": date,
-                "vendor_id": state.get("vendor_id"),
-                "service_type": service_type,
-                "area": area
-            }
-            logger.info(f"Booking ready for confirmation: slot_id={slot_id}, slot={selected_slot}")
+            if matched_slot:
+                slot_id = matched_slot.get("slot_id", "")
+                price = matched_slot.get("price", 0)
+                vendor_id = matched_slot.get("vendor_id") or state.get("vendor_id")
+                
+                full_selected_slot = {
+                    "slot_id": slot_id,
+                    "slot_time": matched_slot.get("slot_time", user_slot_time),
+                    "end_time": matched_slot.get("end_time", ""),
+                    "price": price,
+                    "resource_id": matched_slot.get("resource_id", ""),
+                    "vendor_id": vendor_id
+                }
+                
+                state["selected_slot"] = full_selected_slot
+                state["vendor_id"] = vendor_id
+                state["awaiting_confirmation"] = True
+                state["confirmation_type"] = "booking"
+                state["pending_booking"] = {
+                    "slot": full_selected_slot,
+                    "slot_id": slot_id,
+                    "price": price,
+                    "date": date,
+                    "vendor_id": vendor_id,
+                    "service_type": service_type,
+                    "area": area
+                }
+                
+                logger.info(f"✅ Slot matched! slot_id={slot_id}, price={price}, vendor={vendor_id}")
+            else:
+                logger.warning(f"⚠️ No matching slot found for time: {user_slot_time}")
+                state["query_result"]["match_error"] = f"No slot available at {user_slot_time}"
+        
         elif has_slots:
-            logger.info(f"Slots available but no selection yet. Total vendors: {len(query_result.get('vendors', []))}")
+            logger.info(f"Slots available, waiting for user selection. Vendors: {len(query_result.get('vendors', []))}")
+        
+        state["selected_date"] = date
         
         return state
         
     except Exception as e:
         logger.error(f"Availability query failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         state["query_result"] = {"success": False, "error": str(e)}
         return state
 

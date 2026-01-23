@@ -57,6 +57,16 @@ class WhatsAppAgent:
             await self.state_manager.add_message_to_history(phone_number, 'user', message)
             await self.state_manager.add_message_to_history(phone_number, 'assistant', response)
             
+            in_memory_session = session_store.get_session(phone_number)
+            if in_memory_session and in_memory_session.get('locked_slot_id'):
+                await self.state_manager.set_booking_context(phone_number, {
+                    'locked_slot_id': in_memory_session.get('locked_slot_id'),
+                    'payment_amount': in_memory_session.get('payment_amount'),
+                    'vendor_id': in_memory_session.get('vendor_id'),
+                    'awaiting_payment': True
+                })
+                logger.info(f"Persisted booking context to Firestore for {phone_number}")
+            
             logger.info(f"Generated response: {response[:100]}...")
             return response
             
@@ -71,7 +81,7 @@ class WhatsAppAgent:
         Process payment screenshot image
         
         Flow:
-        1. Check if user has a locked slot awaiting payment
+        1. Check if user has a locked slot awaiting payment (in-memory or Firestore)
         2. Store image for manual/OCR verification (OCR to be implemented)
         3. Mark payment as submitted
         4. Confirm booking (or wait for vendor approval)
@@ -88,6 +98,13 @@ class WhatsAppAgent:
             logger.info(f"🖼️ Processing payment image from {phone_number}, size={len(image_bytes)} bytes")
             
             user_session = session_store.get_session(phone_number)
+            
+            if not user_session or not user_session.get('locked_slot_id'):
+                logger.info(f"No in-memory session, checking Firestore for {phone_number}")
+                firestore_context = await self.state_manager.get_booking_context(phone_number)
+                if firestore_context and firestore_context.get('locked_slot_id'):
+                    user_session = firestore_context
+                    logger.info(f"Found booking context in Firestore: {firestore_context}")
             
             if not user_session:
                 logger.info(f"No active session for {phone_number}")
@@ -124,6 +141,14 @@ class WhatsAppAgent:
             
             if confirm_result.get('success'):
                 session_store.clear_session(phone_number)
+                
+                await self.state_manager.set_booking_context(phone_number, {
+                    'locked_slot_id': None,
+                    'payment_amount': None,
+                    'vendor_id': None,
+                    'awaiting_payment': False,
+                    'last_booking_id': locked_slot_id
+                })
                 
                 amount_str = f"Rs {expected_amount}" if expected_amount else "payment"
                 
