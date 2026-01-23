@@ -396,44 +396,11 @@ class NLUAgent:
             else:
                 logger.info("⏭️  [generate_response] Skipping database check - not all details present")
             
-            # NEW: Check for booking confirmation/request and create booking if needed
-            # This should run OUTSIDE the availability check if/else
-            booking_result = None
-            logger.info(f"🔍 [generate_response] Checking booking conditions:")
-            logger.info(f"   Intent: {intent}")
-            logger.info(f"   Is booking intent: {intent in ['confirmation', 'booking_request']}")
-            
-            has_details = self._has_complete_booking_details(entities, context)
-            logger.info(f"   Has complete details: {has_details}")
-            
-            # Trigger booking on both confirmation AND booking_request with complete details
-            if intent in ["confirmation", "booking_request"] and has_details:
-                logger.info("🎯 [generate_response] BOOKING DETECTED - Creating booking...")
-                
-                # Resolve vendor_id from vendor_name if needed (check vendor_name, vendor, and venue fields)
-                vendor_name = context.get('vendor_name') or entities.get('vendor_name') or entities.get('vendor') or entities.get('venue')
-                if vendor_name and (not context.get('vendor_id') or context.get('vendor_id') == 'ace_padel_club'):
-                    logger.info(f"🔍 [generate_response] Resolving vendor_id for name: '{vendor_name}'")
-                    resolved_vendor_id = await self._get_vendor_id_by_name(vendor_name)
-                    if resolved_vendor_id:
-                        context['vendor_id'] = resolved_vendor_id
-                        entities['vendor_id'] = resolved_vendor_id
-                        logger.info(f"✅ [generate_response] Resolved vendor_id: {resolved_vendor_id}")
-                    else:
-                        logger.warning(f"⚠️  [generate_response] Could not resolve vendor_id for name: '{vendor_name}'")
-                
-                booking_details = self._extract_booking_details(entities, context)
-                booking_result = await self._create_booking(booking_details)
-                
-                if booking_result and booking_result.get('success'):
-                    logger.info(f"✅ [generate_response] Booking created: {booking_result.get('booking_id', 'N/A')}")
-                    context['booking_result'] = booking_result
-                elif booking_result:
-                    logger.error(f"❌ [generate_response] Booking failed: {booking_result.get('error', 'Unknown error')}")
-                    context['booking_error'] = booking_result.get('error', 'Unknown error')
-                else:
-                    logger.error(f"❌ [generate_response] Booking result is None")
-                    context['booking_error'] = 'Booking failed: No result returned'
+            # BOOKING IS HANDLED BY LANGGRAPH (execute_booking_node in nodes.py)
+            # NLU only generates responses - booking_result comes from context if LangGraph executed a booking
+            booking_result = context.get('booking_result')
+            if booking_result:
+                logger.info(f"📋 [generate_response] Booking result from LangGraph: {booking_result}")
             
             # Create response generation prompt with availability AND booking data
             logger.info("📝 [generate_response] Creating response prompt...")
@@ -815,8 +782,9 @@ class NLUAgent:
 
     async def _create_booking(self, booking_details: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Actually create the booking in the database
-        This is how the NLU agent writes to the database - through this function
+        DEPRECATED: Booking is now handled by LangGraph (execute_booking_node in nodes.py)
+        This method is kept for reference but is no longer called.
+        All bookings go through the slot locking flow in LangGraph.
         """
         try:
             logger.info("🔧 [_create_booking] Creating booking in database...")
@@ -1171,21 +1139,36 @@ Error: {availability_data.get('error', 'Unknown error')}
 Apologize that you couldn't check availability right now and ask them to try again.
 """
         
-        # Add booking result information
+        # Add booking result information (from LangGraph execute_booking_node)
         booking_info = ""
-        if context.get('booking_result'):
-            booking = context['booking_result']
-            booking_info = f"""
-BOOKING SUCCESSFUL:
-- Booking ID: {booking.get('booking_id', 'N/A')}
-- Status: Confirmed
-- Your booking is confirmed and ready!
+        booking_result = context.get('booking_result')
+        if booking_result and booking_result.get('success'):
+            status = booking_result.get('status', 'confirmed')
+            booking_id = booking_result.get('booking_id', 'N/A')
+            amount = booking_result.get('amount', 0)
+            
+            if status == 'locked':
+                booking_info = f"""
+SLOT LOCKED - AWAITING PAYMENT:
+- Booking ID: {booking_id}
+- Amount: Rs {amount}
+- Status: Slot is held for 10 minutes
+- IMPORTANT: Tell user to transfer Rs {amount} and send payment screenshot to confirm booking
+- If they don't pay within 10 minutes, the slot will be released
 """
-        elif context.get('booking_error'):
+            else:
+                booking_info = f"""
+BOOKING CONFIRMED:
+- Booking ID: {booking_id}
+- Status: Confirmed
+- Tell user their booking is confirmed and thank them!
+"""
+        elif booking_result and not booking_result.get('success'):
+            error = booking_result.get('error', 'Unknown error')
             booking_info = f"""
 BOOKING FAILED:
-- Error: {context['booking_error']}
-- Ask customer to try again or contact support
+- Error: {error}
+- Apologize and ask customer to try again or select a different slot
 """
         
         return f"""
@@ -1202,8 +1185,9 @@ Generate a helpful, friendly response that:
 2. Addresses the {intent} intent directly
 3. Uses the extracted entities naturally: {entities}
 4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
-5. {"If booking was just created: Confirm the booking with the booking ID and thank the customer" if booking_info and "SUCCESSFUL" in booking_info else ""}
-6. {"If booking failed: Apologize and suggest trying again or contacting support" if booking_info and "FAILED" in booking_info else ""}
+5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot" if booking_info and "LOCKED" in booking_info else ""}
+6. {"If BOOKING CONFIRMED: Confirm the booking with the booking ID and thank the customer" if booking_info and "CONFIRMED" in booking_info else ""}
+7. {"If booking failed: Apologize and suggest trying again or selecting a different slot" if booking_info and "FAILED" in booking_info else ""}
 
 Response Guidelines:
 - Tone: Friendly, professional, helpful
