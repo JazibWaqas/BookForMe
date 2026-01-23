@@ -118,7 +118,7 @@ class BookingAgent:
                 "selected_duration": persisted.get("selected_duration"),
                 "selected_date": persisted.get("selected_date"),
                 "booking_in_progress": persisted.get("booking_in_progress", False),
-                "vendor_id": persisted.get("vendor_id") or "ace_padel_club",
+                "vendor_id": persisted.get("vendor_id"),
                 "vendor_name": persisted.get("vendor_name"),
                 "vendor_data": None,
                 "query_result": None,

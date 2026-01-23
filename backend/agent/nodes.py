@@ -326,7 +326,7 @@ async def extract_slot_node(state: AgentState) -> AgentState:
         if vendor_name and not vendor_id:
             state["vendor_name"] = vendor_name
         
-        state["vendor_id"] = vendor_id or state.get("vendor_id") or "ace_padel_club"
+        state["vendor_id"] = vendor_id or state.get("vendor_id")
         
         return state
         
@@ -685,6 +685,21 @@ async def generate_response_node(state: AgentState) -> AgentState:
         awaiting = state.get("awaiting_confirmation", False)
         confirmation_action = state.get("confirmation_action")
         messages = state.get("messages", [])
+        last_msg = messages[-1].get("content", "") if messages else ""
+        last_lower = last_msg.lower()
+        
+        if intent == "greeting":
+            if any(word in last_lower for word in ["aoa", "salam", "assalam", "asalam"]):
+                state["response"] = (
+                    "AoA! Main aap ki booking mein help kar sakta hoon. "
+                    "Padel, futsal, cricket ya salon—kis cheez ki booking chahiye?"
+                )
+            else:
+                state["response"] = (
+                    "Hi! I can help you book padel, futsal, cricket, or salons in Karachi. "
+                    "What would you like to book?"
+                )
+            return state
         
         context = {
             "query_result": query_result,
@@ -693,7 +708,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
             "confirmation_action": confirmation_action,
             "pending_booking": state.get("pending_booking"),
             "conversation_history": messages[:-1] if messages else [],
-            "current_message": messages[-1].get("content", "") if messages else "",
+            "current_message": last_msg,
             "phone_number": state.get("user_phone", ""),
             "selected_slot": state.get("selected_slot"),
             "selected_date": state.get("selected_date"),
@@ -751,14 +766,22 @@ def route_by_intent(state: AgentState) -> str:
     """Route to appropriate node based on intent"""
     intent = state.get("current_intent", "")
     awaiting = state.get("awaiting_confirmation", False)
+    entities = state.get("entities", {})
+    selected_slot = state.get("selected_slot") or {}
+    has_time = bool(entities.get("time") or entities.get("time_range") or selected_slot.get("slot_time"))
+    has_vendor = bool(entities.get("vendor_id") or entities.get("vendor_name") or state.get("vendor_id"))
     
     if awaiting and intent in ["confirmation", "cancellation", "modification", "booking_request", "unknown"]:
         return "check_confirmation"
     
     if intent in ["availability_inquiry", "booking_request"]:
         return "query_availability"
-    elif intent in ["price_inquiry", "information", "greeting"]:
+    elif intent == "confirmation" and (has_time or has_vendor):
+        return "query_availability"
+    elif intent in ["price_inquiry", "information"]:
         return "query_info"
+    elif intent == "greeting":
+        return "generate_response"
     elif intent == "confirmation":
         return "check_confirmation"
     else:
