@@ -398,16 +398,30 @@ async def query_availability_node(state: AgentState) -> AgentState:
         has_selection = state.get("selected_slot")
         
         if has_slots and has_selection:
+            selected_slot = state["selected_slot"]
+            slot_id = selected_slot.get("id") or selected_slot.get("slot_id")
+            
+            # Try to find slot_id from query results if not in selected_slot
+            if not slot_id and query_result.get("vendors"):
+                for vendor in query_result["vendors"]:
+                    for slot in vendor.get("slots", []):
+                        if slot.get("slot_time") == selected_slot.get("slot_time"):
+                            slot_id = slot.get("id") or slot.get("slot_id")
+                            break
+                    if slot_id:
+                        break
+            
             state["awaiting_confirmation"] = True
             state["confirmation_type"] = "booking"
             state["pending_booking"] = {
-                "slot": state["selected_slot"],
+                "slot": selected_slot,
+                "slot_id": slot_id,
                 "date": date,
                 "vendor_id": state.get("vendor_id"),
                 "service_type": service_type,
                 "area": area
             }
-            logger.info(f"Booking ready for confirmation: awaiting_confirmation=True, slot={state['selected_slot']}")
+            logger.info(f"Booking ready for confirmation: slot_id={slot_id}, slot={selected_slot}")
         elif has_slots:
             logger.info(f"Slots available but no selection yet. Total vendors: {len(query_result.get('vendors', []))}")
         
@@ -490,11 +504,17 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
 
 
 # =============================================================================
-# NODE 8: EXECUTE BOOKING
+# NODE 8: EXECUTE BOOKING (with proper slot locking)
 # =============================================================================
 
 async def execute_booking_node(state: AgentState) -> AgentState:
-    """Execute the actual booking after confirmation"""
+    """
+    Execute booking with proper slot locking flow:
+    1. If no slot locked yet -> Lock the slot (10 min hold)
+    2. If slot already locked -> Check if payment received -> Confirm booking
+    
+    This prevents double-booking by using Firestore transactions.
+    """
     try:
         logger.info("🔵 Node: execute_booking")
         
@@ -506,6 +526,7 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             return state
         
         slot = pending.get("slot", {})
+        user_phone = state.get("user_phone", "")
         
         booking_details = {
             "vendor_id": pending.get("vendor_id") or state.get("vendor_id"),
@@ -515,33 +536,80 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             "duration_hours": state.get("selected_duration") or 1.0,
             "service_type": pending.get("service_type") or "padel",
             "customer_info": {
-                "phone": state.get("user_phone", ""),
-                "name": state.get("entities", {}).get("customer_name") or f"Customer {state.get('user_phone')}",
+                "phone": user_phone,
+                "name": state.get("entities", {}).get("customer_name") or f"Customer {user_phone}",
                 "booking_source": "whatsapp_ai"
             }
         }
         
-        logger.info(f"Creating booking: vendor={booking_details['vendor_id']}, date={booking_details['date']}, time={booking_details['time']}")
+        logger.info(f"Processing booking: vendor={booking_details['vendor_id']}, date={booking_details['date']}, time={booking_details['time']}")
         
-        from database.availability_service import AvailabilityService
-        availability_service = AvailabilityService()
+        from app.firestore import firestore_db
+        from database.slot_service import SlotService
         
-        result = await availability_service.check_and_book_slot(
-            vendor_id=booking_details["vendor_id"],
-            date=booking_details["date"],
-            time=booking_details["time"],
-            customer_info=booking_details["customer_info"]
-        )
+        slot_service = SlotService(firestore_db.db)
         
-        state["booking_result"] = result
+        slot_id = pending.get("slot_id") or slot.get("id") or slot.get("slot_id")
+        locked_slot_id = state.get("locked_slot_id")
+        
+        if locked_slot_id:
+            logger.info(f"Slot already locked: {locked_slot_id}, confirming booking...")
+            confirm_result = slot_service.confirm_booking(locked_slot_id, booking_details["vendor_id"])
+            
+            if confirm_result.get("success"):
+                state["booking_result"] = {
+                    "success": True,
+                    "booking_id": locked_slot_id,
+                    "slot_id": locked_slot_id,
+                    "message": "Booking confirmed successfully!"
+                }
+                state["locked_slot_id"] = None
+                logger.info(f"✅ Booking confirmed: {locked_slot_id}")
+            else:
+                state["booking_result"] = confirm_result
+                logger.error(f"❌ Confirmation failed: {confirm_result.get('error')}")
+        
+        elif slot_id:
+            logger.info(f"Locking slot: {slot_id}")
+            lock_result = slot_service.lock_slot(slot_id, user_phone, booking_source="whatsapp_ai")
+            
+            if lock_result.get("success"):
+                state["locked_slot_id"] = slot_id
+                state["booking_result"] = {
+                    "success": True,
+                    "booking_id": slot_id,
+                    "slot_id": slot_id,
+                    "status": "locked",
+                    "hold_expires_in_minutes": lock_result.get("expires_in_minutes", 10),
+                    "message": "Slot locked! Please complete payment within 10 minutes."
+                }
+                logger.info(f"✅ Slot locked: {slot_id}")
+            else:
+                state["booking_result"] = lock_result
+                logger.error(f"❌ Lock failed: {lock_result.get('error')}")
+        
+        else:
+            logger.info("No slot_id found, using direct booking method...")
+            from database.availability_service import AvailabilityService
+            availability_service = AvailabilityService()
+            
+            result = await availability_service.check_and_book_slot(
+                vendor_id=booking_details["vendor_id"],
+                date=booking_details["date"],
+                time=booking_details["time"],
+                customer_info=booking_details["customer_info"]
+            )
+            
+            state["booking_result"] = result
+            
+            if result and result.get("success"):
+                logger.info(f"✅ Booking created: {result.get('booking_id')}")
+            else:
+                logger.error(f"❌ Booking failed: {result.get('error') if result else 'No result'}")
+        
         state["awaiting_confirmation"] = False
         state["pending_booking"] = None
         state["booking_in_progress"] = False
-        
-        if result and result.get("success"):
-            logger.info(f"✅ Booking created successfully: {result.get('booking_id')}")
-        else:
-            logger.error(f"❌ Booking failed: {result.get('error') if result else 'No result'}")
         
         return state
         

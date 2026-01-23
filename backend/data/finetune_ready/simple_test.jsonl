@@ -1,0 +1,41 @@
+{"prompt": "Classify the intent of this message: \"what\"\n\nIntent:", "completion": " unknown"}
+{"prompt": "Classify the intent of this message: \"paune 9\"\n\nIntent:", "completion": " time_selection"}
+{"prompt": "Classify the intent of this message: \"Actually time change karna hai 7 se 8 kardo please\"\n\nIntent:", "completion": " modification"}
+{"prompt": "Classify the intent of this message: \"Rizwan Ahmed\"\n\nIntent:", "completion": " name_provided"}
+{"prompt": "Classify the intent of this message: \"Check karo kal evening slot\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"Aoa\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"is Friday\"\n\nIntent:", "completion": " date_selection"}
+{"prompt": "Classify the intent of this message: \"changing room hai?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"Final hai\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"cricket pitch\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"Okay\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"Parking aur changing room hai wahan?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"xyz\"\n\nIntent:", "completion": " unknown"}
+{"prompt": "Classify the intent of this message: \"spot pe payment?\"\n\nIntent:", "completion": " payment_related"}
+{"prompt": "Classify the intent of this message: \"?\"\n\nIntent:", "completion": " unknown"}
+{"prompt": "Classify the intent of this message: \"Aglay mahine ki slots?\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"What services do you offer?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"Good evening\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"phone number batao\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"baad me dekhta hun\"\n\nIntent:", "completion": " cancellation"}
+{"prompt": "Classify the intent of this message: \"swimming\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"futsal ground\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"I want padel court tomorrow at 5pm\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"Aoa ji\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"Salam bhai\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"Proceed\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"racket milta hai?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"2 ghantay ka slot book karo aaj\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"update karna hai\"\n\nIntent:", "completion": " modification"}
+{"prompt": "Classify the intent of this message: \"Actually parson chahiye kal nahi\"\n\nIntent:", "completion": " modification"}
+{"prompt": "Classify the intent of this message: \"Saad Mahmood\"\n\nIntent:", "completion": " name_provided"}
+{"prompt": "Classify the intent of this message: \"Want to reserve a slot for Saturday\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"Hey is there availability for cricket on Saturday afternoon?\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"aaj shaam slots?\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"I want padel\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"cricket wala\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"January 20\"\n\nIntent:", "completion": " date_selection"}
+{"prompt": "Classify the intent of this message: \"Check karo kal 7-9 ke beech futsal slot hai ya nahi\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"Good morning\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"Next week Saturday padel\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"Payment screenshot bhej raha hun\"\n\nIntent:", "completion": " payment_related"}

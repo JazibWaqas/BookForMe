@@ -1,0 +1,695 @@
+text,intent
+"Hi",greeting
+"Hello",greeting
+"Hey",greeting
+"Aoa",greeting
+"Salam",greeting
+"Salaam",greeting
+"Assalam o Alaikum",greeting
+"As-salamu alaykum",greeting
+"Assalamualaikum",greeting
+"walaikum assalam",greeting
+"Good morning",greeting
+"Good evening",greeting
+"Hi there",greeting
+"Aoa ji",greeting
+"Salam bhai",greeting
+"Hello ji",greeting
+"G aoa",greeting
+"Aoa bro",greeting
+"Hi is there a slot available tomorrow Wednesday between 6-9",booking_request
+"Aoa want to book a slot from 8-9 today",booking_request
+"I want to book padel tomorrow evening",booking_request
+"Book me a slot for futsal tonight",booking_request
+"Mujhe kal shaam ka slot book karna hai",booking_request
+"Slot book karwana hai kal 7 bajay",booking_request
+"Want to book cricket pitch for Sunday",booking_request
+"Aoa padel ka slot lena tha aaj raat ko",booking_request
+"Can I book the 7-9 slot tomorrow?",booking_request
+"Mujhe futsal court chahiye aaj shaam",booking_request
+"Booking karwani hai padel ki",booking_request
+"I need to book a padel court for 2 hours",booking_request
+"Slot lena hai kal subah",booking_request
+"Aaj Padel khelna hai",booking_request
+"Want to play futsal tomorrow",booking_request
+"Cricket khelna hai weekend pe",booking_request
+"Book karna hai padel 6-8 ke beech",booking_request
+"Aoa main slot reserve karwana chahta hun",booking_request
+"Mujhe slot de do kal raat 9 bajay",booking_request
+"2 ghantay ka slot book karo aaj",booking_request
+"Friday ko evening me padel book karna hai",booking_request
+"Parson ka slot book karwa do",booking_request
+"I want padel court tomorrow at 5pm",booking_request
+"Booking chahiye kal ke liye",booking_request
+"Futsal ground reserve karna hai",booking_request
+"Khelna hai padel aaj",booking_request
+"Slot mil jayega aaj evening 7-9?",booking_request
+"Want to reserve a slot for Saturday",booking_request
+"Court book karna hai",booking_request
+"koi slot hei?",availability_inquiry
+"slot hai?",availability_inquiry
+"any slot available?",availability_inquiry
+"Is there any slot?",availability_inquiry
+"Availability batao",availability_inquiry
+"kal slot available hai?",availability_inquiry
+"What slots are available tomorrow?",availability_inquiry
+"aaj shaam slots?",availability_inquiry
+"Evening me slot hai?",availability_inquiry
+"Tomorrow Friday slots?",availability_inquiry
+"Weekend pe availability kya hai?",availability_inquiry
+"Do you have any slot between 6-9?",availability_inquiry
+"6 se 9 ke beech slot hai?",availability_inquiry
+"padel slot available?",availability_inquiry
+"futsal court khali hai?",availability_inquiry
+"Saturday me koi slot?",availability_inquiry
+"Raat ko koi timing hai?",availability_inquiry
+"Check karo kal evening slot",availability_inquiry
+"What time slots do you have?",availability_inquiry
+"Any availability for today?",availability_inquiry
+"kal subah ka time hai?",availability_inquiry
+"Morning slot milega?",availability_inquiry
+"Afternoon me kuch hai?",availability_inquiry
+"Is 7pm available tomorrow?",availability_inquiry
+"6 bajay ka slot check karo",availability_inquiry
+"Kya time milega aaj?",availability_inquiry
+"availability dekhna thi",availability_inquiry
+"koi jagah khali hai?",availability_inquiry
+"kal futsal ke liye slot hai?",availability_inquiry
+"Cricket pitch free hai Sunday?",availability_inquiry
+"Slot milega ya nahi?",availability_inquiry
+"Padel",service_selection
+"Futsal",service_selection
+"Cricket",service_selection
+"Salon",service_selection
+"paddle",service_selection
+"padel court",service_selection
+"futsal ground",service_selection
+"cricket pitch",service_selection
+"haircut",service_selection
+"I want padel",service_selection
+"Futsal chahiye",service_selection
+"padel please",service_selection
+"Pickleball",service_selection
+"gym",service_selection
+"swimming",service_selection
+"tennis",service_selection
+"badminton",service_selection
+"sports court",service_selection
+"padel wala",service_selection
+"futsal ground chahiye",service_selection
+"Tomorrow",date_selection
+"kal",date_selection
+"aaj",date_selection
+"today",date_selection
+"parson",date_selection
+"day after tomorrow",date_selection
+"Friday",date_selection
+"Saturday",date_selection
+"Sunday",date_selection
+"Monday",date_selection
+"this weekend",date_selection
+"next week",date_selection
+"aglay hafte",date_selection
+"15th January",date_selection
+"January 20",date_selection
+"2025-01-25",date_selection
+"is Friday",date_selection
+"coming Saturday",date_selection
+"aanay wala weekend",date_selection
+"kal shaam",date_selection
+"7pm",time_selection
+"6-9",time_selection
+"evening",time_selection
+"shaam",time_selection
+"morning",time_selection
+"subah",time_selection
+"raat",time_selection
+"night",time_selection
+"afternoon",time_selection
+"dopahar",time_selection
+"8 bajay",time_selection
+"7 se 9 tak",time_selection
+"after 6",time_selection
+"6 ke baad",time_selection
+"between 5-7",time_selection
+"around 8pm",time_selection
+"8 bajay ke around",time_selection
+"5pm to 7pm",time_selection
+"late evening",time_selection
+"early morning",time_selection
+"9am",time_selection
+"10 bajay subah",time_selection
+"3 se 5 ke beech",time_selection
+"6-8 pm slot",time_selection
+"raat 9 bajay",time_selection
+"shaam 6 ke baad",time_selection
+"7:30pm",time_selection
+"sawa 7",time_selection
+"saray 8",time_selection
+"How much do you charge?",price_inquiry
+"What's the price?",price_inquiry
+"kitna hai?",price_inquiry
+"rate batao",price_inquiry
+"charges kya hain?",price_inquiry
+"price kya hai per hour?",price_inquiry
+"What are the charges for padel?",price_inquiry
+"Futsal ka rate?",price_inquiry
+"Is there any discount?",price_inquiry
+"discount hai?",price_inquiry
+"koi offer hai?",price_inquiry
+"1 hour ka kitna?",price_inquiry
+"2 ghantay ka rate?",price_inquiry
+"total kitna banega?",price_inquiry
+"How much for 1.5 hours?",price_inquiry
+"evening rates kya hain?",price_inquiry
+"weekend pe zyada hai?",price_inquiry
+"card pe discount milega?",price_inquiry
+"membership discount?",price_inquiry
+"pricing structure batao",price_inquiry
+"monthly package hai?",price_inquiry
+"per hour charges",price_inquiry
+"total cost kitni hogi?",price_inquiry
+"payment kitna karna hai?",price_inquiry
+"6-9 ka total?",price_inquiry
+"Yes",confirmation
+"Ok",confirmation
+"Confirm",confirmation
+"Book it",confirmation
+"Han",confirmation
+"Haan",confirmation
+"Han g",confirmation
+"Ji han",confirmation
+"Theek hai",confirmation
+"Done",confirmation
+"Okay",confirmation
+"Sure",confirmation
+"Proceed",confirmation
+"Yes please",confirmation
+"Ji",confirmation
+"Bilkul",confirmation
+"Go ahead",confirmation
+"Kar do",confirmation
+"Book kar do",confirmation
+"Confirm kar do",confirmation
+"Yes book karo",confirmation
+"Han bhai confirm",confirmation
+"Done hai",confirmation
+"Perfect theek hai",confirmation
+"Yes I confirm",confirmation
+"Final hai",confirmation
+"Pakka",confirmation
+"Absolutely",confirmation
+"Lock it",confirmation
+"No",cancellation
+"Nahi",cancellation
+"Cancel",cancellation
+"Cancel karo",cancellation
+"Nope",cancellation
+"Mat karo",cancellation
+"Ruko",cancellation
+"Stop",cancellation
+"I don't want to book",cancellation
+"Booking cancel karo",cancellation
+"Nahi chahiye ab",cancellation
+"Leave it",cancellation
+"Choro",cancellation
+"rehne do",cancellation
+"cancel kar do please",cancellation
+"I changed my mind",cancellation
+"nahi I won't book",cancellation
+"No thank you",cancellation
+"not interested",cancellation
+"Maybe later",cancellation
+"baad me dekhta hun",cancellation
+"abhi nahi",cancellation
+"nahi abhi nahi chahiye",cancellation
+"next time",cancellation
+"Actually I want different time",modification
+"Change to 7pm instead",modification
+"Actually just want 6-7",modification
+"Can we change the date?",modification
+"waqt badalna hai",modification
+"date change karo",modification
+"instead of 7, make it 8",modification
+"time badal do",modification
+"Actually kal nahi parson",modification
+"wait 2 hours chahiye instead of 1",modification
+"change kar do 6-8 se 7-9",modification
+"padel ki jagah futsal",modification
+"modify my booking",modification
+"update karna hai",modification
+"different slot please",modification
+"doosra time batao",modification
+"aur koi time hai?",modification
+"can we reschedule?",modification
+"slot change karna hai",modification
+"What services do you offer?",information
+"kya services hain?",information
+"Tell me about your services",information
+"location kaha hai?",information
+"Where is Ace Padel Club?",information
+"address batao",information
+"timings kya hain?",information
+"What are your operating hours?",information
+"How does booking work?",information
+"booking kaise hoti hai?",information
+"What facilities do you have?",information
+"amenities kya hain?",information
+"parking hai?",information
+"Do you have parking?",information
+"changing room hai?",information
+"racket milta hai?",information
+"equipment available hai?",information
+"court size kitna hai?",information
+"How many courts do you have?",information
+"kitni courts hain?",information
+"contact number?",information
+"phone number batao",information
+"Payment kar diya hai",payment_related
+"Transfer kar diya",payment_related
+"Account number batao",payment_related
+"IBAN kya hai?",payment_related
+"Bank details send karo",payment_related
+"Payment method kya hai?",payment_related
+"Cash le letay ho?",payment_related
+"JazzCash chalega?",payment_related
+"Easypaisa se transfer kar dun?",payment_related
+"Card accept kartay ho?",payment_related
+"Advance dena hai?",payment_related
+"Online payment kar sakta hun?",payment_related
+"Should I transfer now?",payment_related
+"abhi payment karni hai?",payment_related
+"Kitna transfer karna hai?",payment_related
+"8000 transfer kar dun?",payment_related
+"Payment screenshot bhej raha hun",payment_related
+"Receipt bhej di hai",payment_related
+"Paise bhej diye",payment_related
+"Transfer ho gaya",payment_related
+"payment pending hai",payment_related
+"spot pe payment?",payment_related
+"wahan pe dun paisa?",payment_related
+"Jazib Waqas",name_provided
+"My name is Ahmad",name_provided
+"I am Ali",name_provided
+"Usman here",name_provided
+"Mera naam Hassan hai",name_provided
+"Muhammad Bilal",name_provided
+"Name: Fahad Khan",name_provided
+"Ahmed Ali",name_provided
+"Saad Mahmood",name_provided
+"Hamza",name_provided
+"Zain ul Abideen",name_provided
+"Omar Farooq",name_provided
+"Arsalan Shah",name_provided
+"Imran",name_provided
+"Faisal Ahmed",name_provided
+"Tariq Jameel",name_provided
+"Yasir Abbas",name_provided
+"Kamran Malik",name_provided
+"Adil Khan",name_provided
+"Rizwan Ahmed",name_provided
+"asdfgh",unknown
+"xyz",unknown
+"...",unknown
+"???",unknown
+"random text",unknown
+"lol",unknown
+"hmm",unknown
+"k",unknown
+"?",unknown
+"what",unknown
+"kia",unknown
+"huh",unknown
+"jgjhg",unknown
+"test",unknown
+"hello hello",unknown
+"check check",unknown
+"anyone there?",unknown
+"koi hai?",unknown
+"Aoa main book karna chahta hun padel tomorrow evening 6-9",booking_request
+"Hi I need a futsal court for tonight around 8pm",booking_request
+"Salam mujhe kal shaam padel khelna hai",booking_request
+"Hey is there availability for cricket on Saturday afternoon?",availability_inquiry
+"Aoa koi slot milega aaj raat ko padel ke liye?",availability_inquiry
+"Check karo kal 7-9 ke beech futsal slot hai ya nahi",availability_inquiry
+"Bhai price batao padel ka aur agar discount hai to wo bhi",price_inquiry
+"What's the rate for 2 hours of futsal in the evening?",price_inquiry
+"Ok confirm kar do booking meri 7-8 wali",confirmation
+"Han ji book kar do please",confirmation
+"nahi yaar rehne do slot abhi nahi chahiye",cancellation
+"Cancel my booking please",cancellation
+"Actually time change karna hai 7 se 8 kardo please",modification
+"Wait can we shift to tomorrow instead of today?",modification
+"What all facilities do you have apart from courts?",information
+"Parking aur changing room hai wahan?",information
+"Payment ho gaya hai screenshot bhej raha hun",payment_related
+"IBAN send karo transfer karna hai",payment_related
+"Mera naam Muhammad Usman hai",name_provided
+"booking status kya hai meri?",information
+"When does my booking start?",information
+"confirm ho gyi booking?",information
+"Aoa booking inquiry",availability_inquiry
+"Hi I have a question about booking",information
+"Can I book for next month?",booking_request
+"aglay mahine ka slot milega?",availability_inquiry
+"Do you have courts in DHA?",information
+"DHA me koi location hai?",information
+"Which area are you located in?",information
+"Clifton me hai ya DHA me?",information
+"Golden Court ka slot batao",availability_inquiry
+"Ace Padel Club booking",booking_request
+"1.5 hour ka kitna banega?",price_inquiry
+"90 minutes ka rate?",price_inquiry
+"2 courts book karni hain",booking_request
+"double booking kar sakte ho?",booking_request
+"Group ke liye slot hai?",availability_inquiry
+"8 log hain, court milegi?",availability_inquiry
+"recurring booking ho sakti hai?",booking_request
+"weekly basis pe book kar sakta hun?",booking_request
+"regular customer discount?",price_inquiry
+"loyal customer ke liye kuch offer?",price_inquiry
+"Aoa bhai aaj evening padel ka slot de do please 7 se 9 wala",booking_request
+"availability check karo kal ke liye shaam 6 ke baad",availability_inquiry
+"rate card bhej do",price_inquiry
+"G theek hai book kar lo",confirmation
+"Acha rehne do phir",cancellation
+"ek kaam karo 8 ki jagah 9 kardo",modification
+"Ace Padel kahan hai exactly?",information
+"Account details de do payment ke liye",payment_related
+"Ahsan Ali naam hai mera",name_provided
+"Aoa kal morning 9am padel",booking_request
+"futsal tonight available?",availability_inquiry
+"peak hours rates different hain?",price_inquiry
+"ji bilkul book karo",confirmation
+"Sorry nahi ho payega",cancellation
+"Actually parson chahiye kal nahi",modification
+"coaching bhi available hai?",information
+"advance kitna dena hoga?",payment_related
+"Syed Hammad",name_provided
+"late night slot hai 11pm?",availability_inquiry
+"early bird rate kya hai?",price_inquiry
+"han yahi wala finalize karo",confirmation
+"cancel kar do please booking",cancellation
+"shift kardo ek din aagay",modification
+"washroom facilities hain?",information
+"cash on arrival de sakta hun?",payment_related
+"Friday public holiday hai slot available?",availability_inquiry
+"holiday rates same hain?",price_inquiry
+"pakka book karo theek hai",confirmation
+"abhi nahi baad me dekhunga",cancellation
+"ek hour extra add kardo",modification
+"beginners ke liye equipment?",information
+"half advance now half later?",payment_related
+"Hey there!",greeting
+"Hlo",greeting
+"Hii",greeting
+"Hiiii",greeting
+"Sunday morning padel slot chahiye",booking_request
+"Kal dopahar ko futsal book karo",booking_request
+"Aaj raat 10 bajay ke baad slot hai?",booking_request
+"Next week Saturday padel",booking_request
+"Aglay hafte court book karni hai",booking_request
+"Coming Friday evening slot de do",booking_request
+"Book kar do mera naam Hassan hai",booking_request
+"Aoa slot book karna hai Golden Court pe",booking_request
+"Ace Padel Club me booking karni hai",booking_request
+"DHA me padel court book karo",booking_request
+"Aaj kya kya available hai?",availability_inquiry
+"Peak hours me slot milega?",availability_inquiry
+"Late night slot hai?",availability_inquiry
+"Early morning 6am slot?",availability_inquiry
+"Public holiday pe available ho?",availability_inquiry
+"Next month availability?",availability_inquiry
+"Aglay mahine ki slots?",availability_inquiry
+"Golden Court pe slot hai kal?",availability_inquiry
+"Ace Padel availability?",availability_inquiry
+"DHA me koi court khali hai?",availability_inquiry
+"padel court chahiye",service_selection
+"cricket wala",service_selection
+"paune 9",time_selection
+"Peak hours rate different hai?",price_inquiry
+"Off peak rate?",price_inquiry
+"Student discount hai?",price_inquiry
+"Group booking pe discount?",price_inquiry
+"Yeh wala",confirmation
+"Issi ko book karo",confirmation
+"G chalega",confirmation
+"Haan yahi chahiye",confirmation
+"Confirmed",confirmation
+"phir kabhi",cancellation
+"nahi bhai",cancellation
+"acha rehne do",cancellation
+"forget it",cancellation
+"ek hour add karo",modification
+"duration badha do",modification
+"booking status kya hai?",information
+"meri booking confirm hui?",information
+"UBL account hai?",payment_related
+"HBL transfer?",payment_related
+"NayaPay se bhejun?",payment_related
+"Sadapay chalega?",payment_related
+"hiii",greeting
+"helooo",greeting
+"helo",greeting
+"Aoaaa",greeting
+"aoa g",greeting
+"slm",greeting
+"aslam o alikum",greeting
+"aslamu alaikum",greeting
+"sallam",greeting
+"hiii good evening",greeting
+"heyy",greeting
+"hlo sir",greeting
+"hi bhai",greeting
+"g aoa bhai",greeting
+"salam sir",greeting
+"slot book krna h",booking_request
+"booking krni h",booking_request
+"padel khelnaa h kal",booking_request
+"futsal ka slot dedo",booking_request
+"mujy slot chye",booking_request
+"book krdo yaar",booking_request
+"padel court lena tha bhai",booking_request
+"kal shaam slot book krwana h 7 bjy",booking_request
+"aaj raat khelna h padel",booking_request
+"slot chye aaj evening me",booking_request
+"book kro plz 6-8",booking_request
+"friday ke lye padel book krdo",booking_request
+"parso subah futsal",booking_request
+"sunday cricket book krna",booking_request
+"booking krwani golden court pe",booking_request
+"ace padel me slot book",booking_request
+"dha me court book krdo",booking_request
+"2 ghnte ka slot dedo",booking_request
+"1.5 hour ka book kro",booking_request
+"dedh ghnte ke lye",booking_request
+"slot book krana tha mujhko",booking_request
+"padell court please",booking_request
+"fusal ground chye",booking_request
+"kal rat 9 bjy slot book",booking_request
+"shaam 6-9 padel book",booking_request
+"tmrw morning slot book krna",booking_request
+"slot mily ga?",availability_inquiry
+"kuch khali h?",availability_inquiry
+"availability btao",availability_inquiry
+"kal ke lye slot h?",availability_inquiry
+"aaj shaam me slot?",availability_inquiry
+"friday evening slot free h?",availability_inquiry
+"7-9 available h kal?",availability_inquiry
+"padel slot khali h?",availability_inquiry
+"futsal court free h aaj?",availability_inquiry
+"cricket pitch available sunday?",availability_inquiry
+"koi time free h kal subah?",availability_inquiry
+"check krlo availability plz",availability_inquiry
+"saturday me kuch h?",availability_inquiry
+"late night slot milega?",availability_inquiry
+"early morning available?",availability_inquiry
+"11pm wala slot?",availability_inquiry
+"6 bjy k baad kuch h?",availability_inquiry
+"weekend pe slot h?",availability_inquiry
+"agly hafte availability?",availability_inquiry
+"next month slots?",availability_inquiry
+"koi jagah free h?",availability_inquiry
+"time btao jo available h",availability_inquiry
+"padl",service_selection
+"padelll",service_selection
+"fusal",service_selection
+"futsl",service_selection
+"criket",service_selection
+"padel wali court",service_selection
+"cricket wala pitch",service_selection
+"futsl plz",service_selection
+"padel hi",service_selection
+"mujhy padel chye",service_selection
+"futsal wala",service_selection
+"kl",date_selection
+"tmrw",date_selection
+"2morrow",date_selection
+"aaj hi",date_selection
+"today hi",date_selection
+"parso",date_selection
+"day aftr tmrw",date_selection
+"fri",date_selection
+"sat",date_selection
+"sun",date_selection
+"this wknd",date_selection
+"nxt week",date_selection
+"agly hfte",date_selection
+"15 jan",date_selection
+"20th ko",date_selection
+"25 january ko",date_selection
+"evng",time_selection
+"shm",time_selection
+"mrng",time_selection
+"sbah",time_selection
+"rat",time_selection
+"nyt",time_selection
+"aftrnooon",time_selection
+"dphr",time_selection
+"8 pm",time_selection
+"6-9 pm",time_selection
+"7 to 9",time_selection
+"7se9",time_selection
+"6 bjy",time_selection
+"8 bjy shaam",time_selection
+"9 bjy rat",time_selection
+"10 bjy subah",time_selection
+"aftr 7",time_selection
+"arnd 8",time_selection
+"around 7pm",time_selection
+"btween 5-7",time_selection
+"5 se 7 ke bech",time_selection
+"kitna lgega?",price_inquiry
+"rate kya h?",price_inquiry
+"price btao",price_inquiry
+"charges?",price_inquiry
+"kitny paisay?",price_inquiry
+"per hour rate?",price_inquiry
+"1 ghnte ka kitna?",price_inquiry
+"2 ghnte ka rate?",price_inquiry
+"discount h koi?",price_inquiry
+"koi offer?",price_inquiry
+"total kitna bnega?",price_inquiry
+"paisa kitna lgega?",price_inquiry
+"cost btado",price_inquiry
+"prices kya h padel ki?",price_inquiry
+"futsal rate?",price_inquiry
+"evening rate different h?",price_inquiry
+"weekend pe rate?",price_inquiry
+"student discount h?",price_inquiry
+"han ji",confirmation
+"okk",confirmation
+"okkk",confirmation
+"theek h",confirmation
+"thk h",confirmation
+"confirm krdo",confirmation
+"book krdo",confirmation
+"yess",confirmation
+"final",confirmation
+"krdo",confirmation
+"perfect",confirmation
+"great",confirmation
+"nhi",cancellation
+"na",cancellation
+"cancel krdo",cancellation
+"rhnedo",cancellation
+"chrdo",cancellation
+"nhi chye",cancellation
+"nhi ab",cancellation
+"abhi nhi",cancellation
+"baad me",cancellation
+"bad me dekhta",cancellation
+"nxt time",cancellation
+"phir kbhi",cancellation
+"mat kro",cancellation
+"actually time change krdo",modification
+"time bdal do",modification
+"time change",modification
+"date bdalni h",modification
+"date change",modification
+"7 ki jgah 8",modification
+"kal nhi parso",modification
+"actually tmrw nhi",modification
+"slot change krna h",modification
+"modify krdo",modification
+"reschedule",modification
+"shift krdo",modification
+"aur koi time?",modification
+"dosra time btao",modification
+"alternative btao",modification
+"1 hour extra add kro",modification
+"duration bdhado",modification
+"padel ki jgah futsal",modification
+"services kya h?",information
+"kya kya offer krty ho?",information
+"location?",information
+"address btao",information
+"kahan h ye?",information
+"timings kya h?",information
+"kitny bjy tk khuly ho?",information
+"booking kesy hoti h?",information
+"parking h?",information
+"changing room h?",information
+"racket milta h?",information
+"equipment h?",information
+"court size?",information
+"kitni courts h?",information
+"contact no?",information
+"phone no btao",information
+"booking status?",information
+"meri booking ho gyi?",information
+"payment ho gya",payment_related
+"transfer kr diya",payment_related
+"paisy bhej dye",payment_related
+"account no btao",payment_related
+"iban?",payment_related
+"bank details?",payment_related
+"payment method?",payment_related
+"cash chalta h?",payment_related
+"jazzcash?",payment_related
+"easypaisa se?",payment_related
+"card accept krty ho?",payment_related
+"advance?",payment_related
+"online payment?",payment_related
+"abhi transfer krun?",payment_related
+"kitna transfer?",payment_related
+"screenshot bhejta",payment_related
+"receipt bhej di",payment_related
+"wahan pe dun?",payment_related
+"ubl account?",payment_related
+"hbl?",payment_related
+"sadapay?",payment_related
+"ahmad",name_provided
+"ali hassan",name_provided
+"usman khan",name_provided
+"hamza malik",name_provided
+"saad ahmed",name_provided
+"imran ali",name_provided
+"faisal",name_provided
+"rizwan",name_provided
+"kamran",name_provided
+"my name is ali",name_provided
+"i am hamza",name_provided
+"mera naam hassan",name_provided
+"naam usman h",name_provided
+"bilal here",name_provided
+"name: ahmad khan",name_provided
+"xyz123",unknown
+"asdf",unknown
+"kk",unknown
+"koi h?",unknown
+"anyone?",unknown
+"aoa bhai padel slot book krna tha kal shaam 6-8",booking_request
+"hi slot chye aaj evening futsal ka",booking_request
+"salam mujhy tmrw 7pm padel book krna",booking_request
+"check krlo saturday availability padel ke lye",availability_inquiry
+"kuch khali h aaj evening padel?",availability_inquiry
+"kal futsal slot free h 7-9?",availability_inquiry
+"rate btao padel ka plz",price_inquiry
+"charges kya h 2 ghnte ke?",price_inquiry
+"han ji book krdo theek h",confirmation
+"nhi yaar rehne do abhi",cancellation
+"time change krdo 7 ki jgah 8 plz",modification
+"location kahan h aur parking?",information
+"payment kr diya screenshot bhejta",payment_related
+"ahmad ali naam h mera",name_provided

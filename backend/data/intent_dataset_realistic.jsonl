@@ -1,0 +1,291 @@
+{"text": "hiii", "intent": "greeting"}
+{"text": "helooo", "intent": "greeting"}
+{"text": "helo", "intent": "greeting"}
+{"text": "Aoaaa", "intent": "greeting"}
+{"text": "aoa g", "intent": "greeting"}
+{"text": "slm", "intent": "greeting"}
+{"text": "aslam o alikum", "intent": "greeting"}
+{"text": "aslamu alaikum", "intent": "greeting"}
+{"text": "sallam", "intent": "greeting"}
+{"text": "hiii good evening", "intent": "greeting"}
+{"text": "heyy", "intent": "greeting"}
+{"text": "hlo sir", "intent": "greeting"}
+{"text": "hi bhai", "intent": "greeting"}
+{"text": "g aoa bhai", "intent": "greeting"}
+{"text": "salam sir", "intent": "greeting"}
+{"text": "slot book krna h", "intent": "booking_request"}
+{"text": "booking krni h", "intent": "booking_request"}
+{"text": "padel khelnaa h kal", "intent": "booking_request"}
+{"text": "futsal ka slot dedo", "intent": "booking_request"}
+{"text": "mujy slot chye", "intent": "booking_request"}
+{"text": "book krdo yaar", "intent": "booking_request"}
+{"text": "padel court lena tha bhai", "intent": "booking_request"}
+{"text": "kal shaam slot book krwana h 7 bjy", "intent": "booking_request"}
+{"text": "aaj raat khelna h padel", "intent": "booking_request"}
+{"text": "slot chye aaj evening me", "intent": "booking_request"}
+{"text": "book kro plz 6-8", "intent": "booking_request"}
+{"text": "friday ke lye padel book krdo", "intent": "booking_request"}
+{"text": "parso subah futsal", "intent": "booking_request"}
+{"text": "sunday cricket book krna", "intent": "booking_request"}
+{"text": "booking krwani golden court pe", "intent": "booking_request"}
+{"text": "ace padel me slot book", "intent": "booking_request"}
+{"text": "dha me court book krdo", "intent": "booking_request"}
+{"text": "2 ghnte ka slot dedo", "intent": "booking_request"}
+{"text": "1.5 hour ka book kro", "intent": "booking_request"}
+{"text": "dedh ghnte ke lye", "intent": "booking_request"}
+{"text": "slot book krana tha mujhko", "intent": "booking_request"}
+{"text": "padell court please", "intent": "booking_request"}
+{"text": "fusal ground chye", "intent": "booking_request"}
+{"text": "kal rat 9 bjy slot book", "intent": "booking_request"}
+{"text": "shaam 6-9 padel book", "intent": "booking_request"}
+{"text": "tmrw morning slot book krna", "intent": "booking_request"}
+{"text": "slot mily ga?", "intent": "availability_inquiry"}
+{"text": "kuch khali h?", "intent": "availability_inquiry"}
+{"text": "availability btao", "intent": "availability_inquiry"}
+{"text": "kal ke lye slot h?", "intent": "availability_inquiry"}
+{"text": "aaj shaam me slot?", "intent": "availability_inquiry"}
+{"text": "friday evening slot free h?", "intent": "availability_inquiry"}
+{"text": "7-9 available h kal?", "intent": "availability_inquiry"}
+{"text": "padel slot khali h?", "intent": "availability_inquiry"}
+{"text": "futsal court free h aaj?", "intent": "availability_inquiry"}
+{"text": "cricket pitch available sunday?", "intent": "availability_inquiry"}
+{"text": "koi time free h kal subah?", "intent": "availability_inquiry"}
+{"text": "check krlo availability plz", "intent": "availability_inquiry"}
+{"text": "saturday me kuch h?", "intent": "availability_inquiry"}
+{"text": "late night slot milega?", "intent": "availability_inquiry"}
+{"text": "early morning available?", "intent": "availability_inquiry"}
+{"text": "11pm wala slot?", "intent": "availability_inquiry"}
+{"text": "6 bjy k baad kuch h?", "intent": "availability_inquiry"}
+{"text": "weekend pe slot h?", "intent": "availability_inquiry"}
+{"text": "agly hafte availability?", "intent": "availability_inquiry"}
+{"text": "next month slots?", "intent": "availability_inquiry"}
+{"text": "koi jagah free h?", "intent": "availability_inquiry"}
+{"text": "time btao jo available h", "intent": "availability_inquiry"}
+{"text": "padl", "intent": "service_selection"}
+{"text": "paddle", "intent": "service_selection"}
+{"text": "padelll", "intent": "service_selection"}
+{"text": "fusal", "intent": "service_selection"}
+{"text": "futsl", "intent": "service_selection"}
+{"text": "criket", "intent": "service_selection"}
+{"text": "padel wali court", "intent": "service_selection"}
+{"text": "futsal ground", "intent": "service_selection"}
+{"text": "cricket wala pitch", "intent": "service_selection"}
+{"text": "padel court", "intent": "service_selection"}
+{"text": "futsl plz", "intent": "service_selection"}
+{"text": "padel hi", "intent": "service_selection"}
+{"text": "mujhy padel chye", "intent": "service_selection"}
+{"text": "futsal wala", "intent": "service_selection"}
+{"text": "kl", "intent": "date_selection"}
+{"text": "tmrw", "intent": "date_selection"}
+{"text": "2morrow", "intent": "date_selection"}
+{"text": "aaj hi", "intent": "date_selection"}
+{"text": "today hi", "intent": "date_selection"}
+{"text": "parso", "intent": "date_selection"}
+{"text": "day aftr tmrw", "intent": "date_selection"}
+{"text": "fri", "intent": "date_selection"}
+{"text": "sat", "intent": "date_selection"}
+{"text": "sun", "intent": "date_selection"}
+{"text": "is friday", "intent": "date_selection"}
+{"text": "coming saturday", "intent": "date_selection"}
+{"text": "this wknd", "intent": "date_selection"}
+{"text": "nxt week", "intent": "date_selection"}
+{"text": "agly hfte", "intent": "date_selection"}
+{"text": "15 jan", "intent": "date_selection"}
+{"text": "20th ko", "intent": "date_selection"}
+{"text": "25 january ko", "intent": "date_selection"}
+{"text": "evng", "intent": "time_selection"}
+{"text": "shm", "intent": "time_selection"}
+{"text": "mrng", "intent": "time_selection"}
+{"text": "sbah", "intent": "time_selection"}
+{"text": "rat", "intent": "time_selection"}
+{"text": "nyt", "intent": "time_selection"}
+{"text": "aftrnooon", "intent": "time_selection"}
+{"text": "dphr", "intent": "time_selection"}
+{"text": "7pm", "intent": "time_selection"}
+{"text": "8 pm", "intent": "time_selection"}
+{"text": "6-9 pm", "intent": "time_selection"}
+{"text": "7 to 9", "intent": "time_selection"}
+{"text": "7se9", "intent": "time_selection"}
+{"text": "6 bjy", "intent": "time_selection"}
+{"text": "8 bjy shaam", "intent": "time_selection"}
+{"text": "9 bjy rat", "intent": "time_selection"}
+{"text": "10 bjy subah", "intent": "time_selection"}
+{"text": "6 ke baad", "intent": "time_selection"}
+{"text": "aftr 7", "intent": "time_selection"}
+{"text": "arnd 8", "intent": "time_selection"}
+{"text": "around 7pm", "intent": "time_selection"}
+{"text": "btween 5-7", "intent": "time_selection"}
+{"text": "5 se 7 ke bech", "intent": "time_selection"}
+{"text": "kitna lgega?", "intent": "price_inquiry"}
+{"text": "rate kya h?", "intent": "price_inquiry"}
+{"text": "price btao", "intent": "price_inquiry"}
+{"text": "charges?", "intent": "price_inquiry"}
+{"text": "kitny paisay?", "intent": "price_inquiry"}
+{"text": "per hour rate?", "intent": "price_inquiry"}
+{"text": "1 ghnte ka kitna?", "intent": "price_inquiry"}
+{"text": "2 ghnte ka rate?", "intent": "price_inquiry"}
+{"text": "discount h koi?", "intent": "price_inquiry"}
+{"text": "koi offer?", "intent": "price_inquiry"}
+{"text": "total kitna bnega?", "intent": "price_inquiry"}
+{"text": "6-9 ka total?", "intent": "price_inquiry"}
+{"text": "paisa kitna lgega?", "intent": "price_inquiry"}
+{"text": "cost btado", "intent": "price_inquiry"}
+{"text": "prices kya h padel ki?", "intent": "price_inquiry"}
+{"text": "futsal rate?", "intent": "price_inquiry"}
+{"text": "evening rate different h?", "intent": "price_inquiry"}
+{"text": "weekend pe rate?", "intent": "price_inquiry"}
+{"text": "membership discount?", "intent": "price_inquiry"}
+{"text": "student discount h?", "intent": "price_inquiry"}
+{"text": "han", "intent": "confirmation"}
+{"text": "haan", "intent": "confirmation"}
+{"text": "han g", "intent": "confirmation"}
+{"text": "han ji", "intent": "confirmation"}
+{"text": "ji", "intent": "confirmation"}
+{"text": "ji han", "intent": "confirmation"}
+{"text": "ok", "intent": "confirmation"}
+{"text": "okk", "intent": "confirmation"}
+{"text": "okkk", "intent": "confirmation"}
+{"text": "okay", "intent": "confirmation"}
+{"text": "theek h", "intent": "confirmation"}
+{"text": "thk h", "intent": "confirmation"}
+{"text": "done", "intent": "confirmation"}
+{"text": "confirm", "intent": "confirmation"}
+{"text": "confirm krdo", "intent": "confirmation"}
+{"text": "book krdo", "intent": "confirmation"}
+{"text": "yes", "intent": "confirmation"}
+{"text": "yess", "intent": "confirmation"}
+{"text": "sure", "intent": "confirmation"}
+{"text": "bilkul", "intent": "confirmation"}
+{"text": "pakka", "intent": "confirmation"}
+{"text": "final", "intent": "confirmation"}
+{"text": "go ahead", "intent": "confirmation"}
+{"text": "kar do", "intent": "confirmation"}
+{"text": "krdo", "intent": "confirmation"}
+{"text": "perfect", "intent": "confirmation"}
+{"text": "great", "intent": "confirmation"}
+{"text": "nahi", "intent": "cancellation"}
+{"text": "nhi", "intent": "cancellation"}
+{"text": "na", "intent": "cancellation"}
+{"text": "no", "intent": "cancellation"}
+{"text": "nope", "intent": "cancellation"}
+{"text": "cancel", "intent": "cancellation"}
+{"text": "cancel krdo", "intent": "cancellation"}
+{"text": "rhnedo", "intent": "cancellation"}
+{"text": "rehne do", "intent": "cancellation"}
+{"text": "choro", "intent": "cancellation"}
+{"text": "chrdo", "intent": "cancellation"}
+{"text": "nhi chye", "intent": "cancellation"}
+{"text": "nhi ab", "intent": "cancellation"}
+{"text": "abhi nhi", "intent": "cancellation"}
+{"text": "baad me", "intent": "cancellation"}
+{"text": "bad me dekhta", "intent": "cancellation"}
+{"text": "nxt time", "intent": "cancellation"}
+{"text": "phir kbhi", "intent": "cancellation"}
+{"text": "mat kro", "intent": "cancellation"}
+{"text": "ruko", "intent": "cancellation"}
+{"text": "stop", "intent": "cancellation"}
+{"text": "actually time change krdo", "intent": "modification"}
+{"text": "time bdal do", "intent": "modification"}
+{"text": "time change", "intent": "modification"}
+{"text": "date bdalni h", "intent": "modification"}
+{"text": "date change", "intent": "modification"}
+{"text": "7 ki jgah 8", "intent": "modification"}
+{"text": "kal nhi parso", "intent": "modification"}
+{"text": "actually tmrw nhi", "intent": "modification"}
+{"text": "slot change krna h", "intent": "modification"}
+{"text": "modify krdo", "intent": "modification"}
+{"text": "reschedule", "intent": "modification"}
+{"text": "shift krdo", "intent": "modification"}
+{"text": "aur koi time?", "intent": "modification"}
+{"text": "dosra time btao", "intent": "modification"}
+{"text": "alternative btao", "intent": "modification"}
+{"text": "1 hour extra add kro", "intent": "modification"}
+{"text": "duration bdhado", "intent": "modification"}
+{"text": "padel ki jgah futsal", "intent": "modification"}
+{"text": "services kya h?", "intent": "information"}
+{"text": "kya kya offer krty ho?", "intent": "information"}
+{"text": "location?", "intent": "information"}
+{"text": "address btao", "intent": "information"}
+{"text": "kahan h ye?", "intent": "information"}
+{"text": "timings kya h?", "intent": "information"}
+{"text": "kitny bjy tk khuly ho?", "intent": "information"}
+{"text": "booking kesy hoti h?", "intent": "information"}
+{"text": "parking h?", "intent": "information"}
+{"text": "changing room h?", "intent": "information"}
+{"text": "racket milta h?", "intent": "information"}
+{"text": "equipment h?", "intent": "information"}
+{"text": "court size?", "intent": "information"}
+{"text": "kitni courts h?", "intent": "information"}
+{"text": "contact no?", "intent": "information"}
+{"text": "phone no btao", "intent": "information"}
+{"text": "booking status?", "intent": "information"}
+{"text": "meri booking ho gyi?", "intent": "information"}
+{"text": "confirm ho gyi booking?", "intent": "information"}
+{"text": "payment ho gya", "intent": "payment_related"}
+{"text": "transfer kr diya", "intent": "payment_related"}
+{"text": "paisy bhej dye", "intent": "payment_related"}
+{"text": "account no btao", "intent": "payment_related"}
+{"text": "iban?", "intent": "payment_related"}
+{"text": "bank details?", "intent": "payment_related"}
+{"text": "payment method?", "intent": "payment_related"}
+{"text": "cash chalta h?", "intent": "payment_related"}
+{"text": "jazzcash?", "intent": "payment_related"}
+{"text": "easypaisa se?", "intent": "payment_related"}
+{"text": "card accept krty ho?", "intent": "payment_related"}
+{"text": "advance?", "intent": "payment_related"}
+{"text": "online payment?", "intent": "payment_related"}
+{"text": "abhi transfer krun?", "intent": "payment_related"}
+{"text": "kitna transfer?", "intent": "payment_related"}
+{"text": "screenshot bhejta", "intent": "payment_related"}
+{"text": "receipt bhej di", "intent": "payment_related"}
+{"text": "spot pe payment?", "intent": "payment_related"}
+{"text": "wahan pe dun?", "intent": "payment_related"}
+{"text": "ubl account?", "intent": "payment_related"}
+{"text": "hbl?", "intent": "payment_related"}
+{"text": "nayapay se bhejun?", "intent": "payment_related"}
+{"text": "sadapay?", "intent": "payment_related"}
+{"text": "ahmad", "intent": "name_provided"}
+{"text": "ali hassan", "intent": "name_provided"}
+{"text": "usman khan", "intent": "name_provided"}
+{"text": "muhammad bilal", "intent": "name_provided"}
+{"text": "hamza malik", "intent": "name_provided"}
+{"text": "saad ahmed", "intent": "name_provided"}
+{"text": "imran ali", "intent": "name_provided"}
+{"text": "faisal", "intent": "name_provided"}
+{"text": "rizwan", "intent": "name_provided"}
+{"text": "kamran", "intent": "name_provided"}
+{"text": "my name is ali", "intent": "name_provided"}
+{"text": "i am hamza", "intent": "name_provided"}
+{"text": "mera naam hassan", "intent": "name_provided"}
+{"text": "naam usman h", "intent": "name_provided"}
+{"text": "bilal here", "intent": "name_provided"}
+{"text": "name: ahmad khan", "intent": "name_provided"}
+{"text": "xyz123", "intent": "unknown"}
+{"text": "asdf", "intent": "unknown"}
+{"text": "...", "intent": "unknown"}
+{"text": "???", "intent": "unknown"}
+{"text": "?", "intent": "unknown"}
+{"text": "lol", "intent": "unknown"}
+{"text": "hmm", "intent": "unknown"}
+{"text": "k", "intent": "unknown"}
+{"text": "kk", "intent": "unknown"}
+{"text": "kia", "intent": "unknown"}
+{"text": "huh", "intent": "unknown"}
+{"text": "test", "intent": "unknown"}
+{"text": "hello hello", "intent": "unknown"}
+{"text": "koi h?", "intent": "unknown"}
+{"text": "anyone?", "intent": "unknown"}
+{"text": "aoa bhai padel slot book krna tha kal shaam 6-8", "intent": "booking_request"}
+{"text": "hi slot chye aaj evening futsal ka", "intent": "booking_request"}
+{"text": "salam mujhy tmrw 7pm padel book krna", "intent": "booking_request"}
+{"text": "check krlo saturday availability padel ke lye", "intent": "availability_inquiry"}
+{"text": "kuch khali h aaj evening padel?", "intent": "availability_inquiry"}
+{"text": "kal futsal slot free h 7-9?", "intent": "availability_inquiry"}
+{"text": "rate btao padel ka plz", "intent": "price_inquiry"}
+{"text": "charges kya h 2 ghnte ke?", "intent": "price_inquiry"}
+{"text": "han ji book krdo theek h", "intent": "confirmation"}
+{"text": "nhi yaar rehne do abhi", "intent": "cancellation"}
+{"text": "time change krdo 7 ki jgah 8 plz", "intent": "modification"}
+{"text": "location kahan h aur parking?", "intent": "information"}
+{"text": "payment kr diya screenshot bhejta", "intent": "payment_related"}
+{"text": "ahmad ali naam h mera", "intent": "name_provided"}
