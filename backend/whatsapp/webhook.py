@@ -1,6 +1,7 @@
 """
 WhatsApp Webhook Handler
-Handles incoming WhatsApp messages via Twilio webhook
+Handles incoming WhatsApp messages via Meta Business API webhook
+Supports text messages and image messages (payment screenshots)
 """
 
 import logging
@@ -24,25 +25,22 @@ class WhatsAppWebhookHandler:
     async def handle_webhook(self, request: Request) -> Dict[str, Any]:
         """
         Handle incoming WhatsApp webhook
+        Supports both text and image messages
         
         Args:
             request: FastAPI request object
             
         Returns:
-            Response for Twilio
+            Response dict
         """
         try:
-            # Parse JSON data from Meta API
             data = await request.json()
-            
-            # Debug: Log the received data
             logger.info(f"📥 Received webhook data: {data}")
             
-            # Initialize variables
             phone_number = None
-            incoming_msg = None
+            response_text = None
+            message_type = None
             
-            # Extract message data from Meta webhook format
             if 'entry' in data and len(data['entry']) > 0:
                 entry = data['entry'][0]
                 if 'changes' in entry and len(entry['changes']) > 0:
@@ -51,10 +49,36 @@ class WhatsAppWebhookHandler:
                         messages = change['value']['messages']
                         if len(messages) > 0:
                             message = messages[0]
-                            incoming_msg = message.get('text', {}).get('body', '').strip()
                             phone_number = message.get('from', '')
+                            message_type = message.get('type', 'text')
                             
-                            logger.info(f"📱 Received WhatsApp message from {phone_number}: {incoming_msg}")
+                            if message_type == 'text':
+                                incoming_msg = message.get('text', {}).get('body', '').strip()
+                                logger.info(f"📱 Text message from {phone_number}: {incoming_msg}")
+                                
+                                if incoming_msg:
+                                    response_text = await self.whatsapp_agent.process_message(phone_number, incoming_msg)
+                            
+                            elif message_type == 'image':
+                                image_data = message.get('image', {})
+                                image_id = image_data.get('id')
+                                caption = image_data.get('caption', '')
+                                
+                                logger.info(f"🖼️ Image message from {phone_number}, id={image_id}, caption={caption}")
+                                
+                                if image_id:
+                                    image_bytes = await self.whatsapp_service.download_image(image_id)
+                                    
+                                    if image_bytes:
+                                        response_text = await self.whatsapp_agent.process_payment_image(
+                                            phone_number, image_bytes, caption
+                                        )
+                                    else:
+                                        response_text = "Sorry, I couldn't download the image. Please try again."
+                            
+                            else:
+                                logger.info(f"Unsupported message type: {message_type}")
+                                response_text = "Sorry, I can only process text messages and payment screenshots right now."
                         else:
                             logger.info("No messages in webhook data")
                             return {"status": "success", "message": "No messages to process"}
@@ -68,15 +92,10 @@ class WhatsAppWebhookHandler:
                 logger.info("No entry in webhook data")
                 return {"status": "success", "message": "No entry"}
             
-            # Only process if we have valid message data
-            if not phone_number or not incoming_msg:
+            if not phone_number or not response_text:
                 logger.info("No valid message data to process")
                 return {"status": "success", "message": "No valid message data"}
             
-            # Process message through WhatsApp agent
-            response_text = await self.whatsapp_agent.process_message(phone_number, incoming_msg)
-            
-            # Send response via WhatsApp service
             send_result = await self.whatsapp_service.send_message(phone_number, response_text)
             
             if send_result['success']:
@@ -88,6 +107,7 @@ class WhatsAppWebhookHandler:
                 "status": "success",
                 "message": "Webhook processed",
                 "phone_number": phone_number,
+                "message_type": message_type,
                 "response_sent": send_result['success']
             }
             

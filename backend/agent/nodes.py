@@ -574,16 +574,21 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             lock_result = slot_service.lock_slot(slot_id, user_phone, booking_source="whatsapp_ai")
             
             if lock_result.get("success"):
+                slot_price = slot.get("price") or pending.get("price") or lock_result.get("price") or 0
+                
                 state["locked_slot_id"] = slot_id
+                state["awaiting_payment"] = True
+                state["payment_amount"] = slot_price
                 state["booking_result"] = {
                     "success": True,
                     "booking_id": slot_id,
                     "slot_id": slot_id,
                     "status": "locked",
+                    "amount": slot_price,
                     "hold_expires_in_minutes": lock_result.get("expires_in_minutes", 10),
-                    "message": "Slot locked! Please complete payment within 10 minutes."
+                    "message": f"Slot locked! Please transfer Rs {slot_price} and send payment screenshot within 10 minutes."
                 }
-                logger.info(f"✅ Slot locked: {slot_id}")
+                logger.info(f"✅ Slot locked: {slot_id}, amount: {slot_price}")
             else:
                 state["booking_result"] = lock_result
                 logger.error(f"❌ Lock failed: {lock_result.get('error')}")
