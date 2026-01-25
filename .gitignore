@@ -94,3 +94,6 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Ignores the ipynb, will update that on kaggle whenever needed
+FineTuning/
