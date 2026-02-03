@@ -1207,6 +1207,15 @@ Response Guidelines:
 - Length: 2-4 sentences (be concise)
 - Format: Use emojis sparingly (✅ 📅 ⏰ 💰)
 - Language: Match user's style exactly
+- CRITICAL - Urdu Language Requirement: When responding in Roman Urdu, use ONLY Urdu vocabulary and grammar. Strictly avoid Hindi words. Examples:
+  * Use "hai" (Urdu) NOT "hain" (Hindi)
+  * Use "mujhe" (Urdu) NOT "mujhko" (Hindi) 
+  * Use "aap" (Urdu) NOT "aapko" (Hindi)
+  * Use "kya" (Urdu) NOT "kyaa" (Hindi)
+  * Use "main" (Urdu) NOT "main" with Hindi grammar patterns
+  * Use Urdu verb forms: "karna hai", "chahiye", "mil jayega" (Urdu) NOT Hindi equivalents
+  * Use Urdu prepositions and conjunctions: "se", "ko", "ka", "ki" (Urdu) NOT Hindi variants
+  * Maintain Urdu sentence structure and word order, not Hindi patterns
 - {"If slots are available: List them clearly with times and prices" if availability_info and availability_data.get("total_available", 0) > 0 else ""}
 - {"If no slots available: Apologize and suggest alternatives" if availability_info and availability_data.get("total_available", 0) == 0 else ""}
 
