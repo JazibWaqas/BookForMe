@@ -26,12 +26,28 @@ class NLUAgent:
     def __init__(self):
         """Initialize NLU agent with Groq"""
         try:
+            # Check if API key is set
+            api_key = settings.GROQ_API_KEY
+            if not api_key or api_key == "dummy_key_for_dev" or api_key == "your_groq_api_key_here":
+                error_msg = (
+                    "GROQ_API_KEY is not configured!\n"
+                    "Please set your Groq API key in the .env file:\n"
+                    "1. Get your API key from https://console.groq.com/\n"
+                    "2. Add this line to backend/.env:\n"
+                    "   GROQ_API_KEY=your_actual_api_key_here\n"
+                    "3. Restart the application"
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
             # Configure Groq API (OpenAI-compatible)
             self.client = OpenAI(
                 base_url="https://api.groq.com/openai/v1",
-                api_key=settings.GROQ_API_KEY
+                api_key=api_key
             )
             logger.info(f"NLU Agent initialized with Groq model: {settings.GROQ_MODEL}")
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"Failed to initialize Groq: {e}")
             raise
@@ -391,23 +407,55 @@ class NLUAgent:
             logger.info(f"   Context: {context}")
             logger.info("=" * 70)
             
-            # Check if we have all booking details and should check database
+            # Check if query_result is already available from LangGraph query_availability_node
             availability_data = None
-            should_check = self._should_check_availability(intent, entities)
-            logger.info(f"🔍 [generate_response] Checking if database lookup needed: {should_check}")
+            query_result = context.get('query_result', {})
             
-            if should_check:
-                logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
-                availability_data = await self._check_database_availability(entities)
-                logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
-
-                # Update context with resolved vendor_id from availability check
-                if availability_data and availability_data.get('success') and availability_data.get('vendor_id'):
-                    context['vendor_id'] = availability_data['vendor_id']
-                    entities['vendor_id'] = availability_data['vendor_id']
-                    logger.info(f"✅ [generate_response] Updated context with resolved vendor_id: {availability_data['vendor_id']}")
+            if query_result and query_result.get('success') is not None:
+                logger.info("✅ [generate_response] Using query_result from LangGraph query_availability_node")
+                vendors = query_result.get('vendors', [])
+                total_vendors = query_result.get('total_vendors', 0)
+                
+                available_slots = []
+                for vendor in vendors:
+                    for slot in vendor.get('slots', []):
+                        available_slots.append({
+                            'time': slot.get('time_display', f"{slot.get('slot_time', '')} - {slot.get('end_time', '')}"),
+                            'slot_time': slot.get('slot_time', ''),
+                            'price': slot.get('price', 0),
+                            'slot_id': slot.get('slot_id', ''),
+                            'vendor_id': vendor.get('vendor_id', ''),
+                            'vendor_name': vendor.get('vendor_name', '')
+                        })
+                
+                availability_data = {
+                    'success': query_result.get('success', False),
+                    'date': query_result.get('date', ''),
+                    'requested_date': query_result.get('requested_date', query_result.get('date', '')),
+                    'next_available_date': query_result.get('next_available_date'),
+                    'available_slots': available_slots,
+                    'total_available': len(available_slots),
+                    'vendor_id': vendors[0].get('vendor_id') if vendors else None,
+                    'sport_type': query_result.get('sport_type', ''),
+                    'area': query_result.get('area', '')
+                }
+                logger.info(f"📊 [generate_response] Converted query_result: {len(available_slots)} slots, next_available_date={availability_data.get('next_available_date')}")
             else:
-                logger.info("⏭️  [generate_response] Skipping database check - not all details present")
+                should_check = self._should_check_availability(intent, entities)
+                logger.info(f"🔍 [generate_response] Checking if database lookup needed: {should_check}")
+                
+                if should_check:
+                    logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
+                    availability_data = await self._check_database_availability(entities)
+                    logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
+
+                    # Update context with resolved vendor_id from availability check
+                    if availability_data and availability_data.get('success') and availability_data.get('vendor_id'):
+                        context['vendor_id'] = availability_data['vendor_id']
+                        entities['vendor_id'] = availability_data['vendor_id']
+                        logger.info(f"✅ [generate_response] Updated context with resolved vendor_id: {availability_data['vendor_id']}")
+                else:
+                    logger.info("⏭️  [generate_response] Skipping database check - not all details present")
             
             # BOOKING IS HANDLED BY LANGGRAPH (execute_booking_node in nodes.py)
             # NLU only generates responses - booking_result comes from context if LangGraph executed a booking
