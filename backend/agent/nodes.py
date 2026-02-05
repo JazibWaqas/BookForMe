@@ -490,13 +490,21 @@ async def query_availability_node(state: AgentState) -> AgentState:
         
         if has_slots and user_selected:
             user_slot_time = user_selected.get("slot_time", "")
-            logger.info(f"User selected time: {user_slot_time}")
+            logger.info(f"User selected time: '{user_slot_time}'")
             
+            # Log what we are matching against
+            available_times = []
+            for v in query_result.get("vendors", []):
+                for s in v.get("slots", []):
+                    available_times.append(s.get("slot_time"))
+            logger.info(f"Available slot times in results: {available_times}")
+
             matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
             
             if matched_slot:
                 slot_id = matched_slot.get("slot_id", "")
                 price = matched_slot.get("price", 0)
+                logger.info(f"✅ Matched Slot Logic: ID={slot_id}, Price={price} (Type: {type(price)})")
                 vendor_id = matched_slot.get("vendor_id") or state.get("vendor_id")
                 
                 full_selected_slot = {
