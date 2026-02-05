@@ -18,9 +18,13 @@ class FirestoreDB:
     
     def __init__(self):
         """Initialize Firestore client"""
+        """Initialize Firestore client"""
         try:
+            print(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS setting type: {type(settings.GOOGLE_APPLICATION_CREDENTIALS)}")
+            print(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS setting value: '{settings.GOOGLE_APPLICATION_CREDENTIALS}'")
+            
             # Use Railway environment variable if available, otherwise use file
-            if settings.GOOGLE_APPLICATION_CREDENTIALS:
+            if settings.GOOGLE_APPLICATION_CREDENTIALS and settings.GOOGLE_APPLICATION_CREDENTIALS.strip():
                 # Railway provides JSON content directly
                 import json
                 import tempfile
@@ -32,7 +36,7 @@ class FirestoreDB:
                     temp_file = f.name
                 
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_file
-                logger.info("Using Railway Firestore credentials from environment variable")
+                print("DEBUG: Using Railway Firestore credentials from environment variable")
             else:
                 # Fallback to file path - resolve relative to config file location
                 creds_file = settings.FIRESTORE_CREDENTIALS_FILE
@@ -41,23 +45,26 @@ class FirestoreDB:
                     backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                     creds_file = os.path.join(backend_dir, 'credentials', 'firestore-service-account.json')
                 
+                print(f"DEBUG: Resolved usage credentials file path: {creds_file}")
                 if os.path.exists(creds_file):
                     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_file
-                    logger.info(f"Using Firestore credentials from file: {creds_file}")
+                    print(f"DEBUG: Using Firestore credentials from file: {creds_file}")
                 else:
-                    logger.warning(f"Firestore credentials file not found at: {creds_file}")
+                    print(f"DEBUG: Firestore credentials file not found at: {creds_file}")
                     # Try alternative path
                     alt_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'credentials', 'firestore-service-account.json')
                     if os.path.exists(alt_path):
                         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = alt_path
-                        logger.info(f"Using Firestore credentials from alternative path: {alt_path}")
+                        print(f"DEBUG: Using Firestore credentials from alternative path: {alt_path}")
                     else:
                         raise FileNotFoundError(f"Firestore credentials file not found. Tried: {creds_file} and {alt_path}")
             
             # Initialize Firestore client
+            print(f"DEBUG: Initializing Firestore Client with project {settings.FIRESTORE_PROJECT_ID}...")
             self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
-            logger.info("Firestore client initialized successfully")
+            print("DEBUG: Firestore client initialized successfully")
         except Exception as e:
+            print(f"DEBUG: Failed to initialize Firestore: {e}")
             logger.error(f"Failed to initialize Firestore: {e}")
             # Don't raise - allow app to start without Firestore
             self.db = None

@@ -24,6 +24,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 class AuthService:
     def __init__(self, db_client: firestore.Client):
         self.db = db_client
+        print(f"DEBUG: [AuthService] Received db_client: {db_client}")
         self.firestore_v2 = FirestoreV2(db_client)
         logger.info("AuthService initialized")
     
@@ -93,7 +94,27 @@ class AuthService:
                 "phone": phone,
                 "role": role if role in [UserRole.CUSTOMER.value, UserRole.VENDOR.value] else UserRole.CUSTOMER.value,
                 "vendor_id": None,
-                "created_at": firestore.SERVER_TIMESTAMP
+                "created_at": firestore.SERVER_TIMESTAMP,
+                # Social Fields (Atomic Initialization)
+                "bio": "",
+                "points": 50, # Welcome bonus
+                "level": 1,
+                "skill_rating": 1000.0,
+                "avatar_url": f"https://ui-avatars.com/api/?name={name.replace(' ', '+')}&background=random",
+                "stats": {
+                    "matches_played": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "win_rate": 0.0
+                },
+                "preferences": {
+                    "favorite_sports": [],
+                    "skill_level": "beginner",
+                    "play_areas": []
+                },
+                "badges": [],
+                "last_active": firestore.SERVER_TIMESTAMP,
+                "is_online": True
             }
             
             doc_ref = self.db.collection(Collections.USERS).add(user_data)

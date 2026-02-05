@@ -208,5 +208,5 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=settings.PORT,
-        reload=settings.DEBUG
+        reload=False
     )
