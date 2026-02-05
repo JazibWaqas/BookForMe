@@ -118,7 +118,7 @@ class BookingAgent:
                 "selected_duration": persisted.get("selected_duration"),
                 "selected_date": persisted.get("selected_date"),
                 "booking_in_progress": persisted.get("booking_in_progress", False),
-                "vendor_id": persisted.get("vendor_id") or "ace_padel_club",
+                "vendor_id": persisted.get("vendor_id"),
                 "vendor_name": persisted.get("vendor_name"),
                 "vendor_data": None,
                 "query_result": None,
@@ -128,6 +128,9 @@ class BookingAgent:
                 "booking_result": None,
                 "user_confirmed": None,
                 "confirmation_action": None,
+                "locked_slot_id": persisted.get("locked_slot_id"),
+                "awaiting_payment": persisted.get("awaiting_payment", False),
+                "payment_amount": persisted.get("payment_amount"),
                 "missing_fields": None,
                 "requires_clarification": False,
                 "error": None,
@@ -139,11 +142,13 @@ class BookingAgent:
             # Save session state for next message
             session_store.save_session(user_phone, final_state)
             
-            # Clear session if booking completed or cancelled
+            # Clear session only when booking is fully confirmed (not just locked)
             booking_result = final_state.get("booking_result") or {}
-            if booking_result.get("success"):
+            booking_status = booking_result.get("status", "")
+            
+            if booking_result.get("success") and booking_status not in ["locked", "pending"]:
                 session_store.clear_session(user_phone)
-                logger.info("Booking successful - session cleared")
+                logger.info("Booking confirmed - session cleared")
             elif final_state.get("confirmation_action") == "cancel":
                 session_store.clear_session(user_phone)
                 logger.info("Booking cancelled - session cleared")

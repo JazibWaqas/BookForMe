@@ -48,7 +48,10 @@ class SessionStore:
             "selected_duration",
             "booking_in_progress",
             "vendor_id",
-            "vendor_name"
+            "vendor_name",
+            "locked_slot_id",
+            "awaiting_payment",
+            "payment_amount"
         ]
         
         session_data = {}

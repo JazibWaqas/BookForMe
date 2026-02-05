@@ -1,0 +1,40 @@
+{"prompt": "Classify the intent of this message: \"Cricket\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"What are the charges for padel?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"How much for 1.5 hours?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Any availability for today?\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"1 hour ka kitna?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Kitna transfer karna hai?\"\n\nIntent:", "completion": " payment_related"}
+{"prompt": "Classify the intent of this message: \"Lock it\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"???\"\n\nIntent:", "completion": " unknown"}
+{"prompt": "Classify the intent of this message: \"Kamran Malik\"\n\nIntent:", "completion": " name_provided"}
+{"prompt": "Classify the intent of this message: \"Slot mil jayega aaj evening 7-9?\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"What's the rate for 2 hours of futsal in the evening?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Name: Fahad Khan\"\n\nIntent:", "completion": " name_provided"}
+{"prompt": "Classify the intent of this message: \"shaam\"\n\nIntent:", "completion": " time_selection"}
+{"prompt": "Classify the intent of this message: \"padel please\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"Hiiii\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"Booking karwani hai padel ki\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"Early morning 6am slot?\"\n\nIntent:", "completion": " availability_inquiry"}
+{"prompt": "Classify the intent of this message: \"How does booking work?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"koi offer hai?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Payment method kya hai?\"\n\nIntent:", "completion": " payment_related"}
+{"prompt": "Classify the intent of this message: \"Advance dena hai?\"\n\nIntent:", "completion": " payment_related"}
+{"prompt": "Classify the intent of this message: \"subah\"\n\nIntent:", "completion": " time_selection"}
+{"prompt": "Classify the intent of this message: \"aur koi time hai?\"\n\nIntent:", "completion": " modification"}
+{"prompt": "Classify the intent of this message: \"Cricket khelna hai weekend pe\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"membership discount?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"DHA me padel court book karo\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"Actually kal nahi parson\"\n\nIntent:", "completion": " modification"}
+{"prompt": "Classify the intent of this message: \"G chalega\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"Hii\"\n\nIntent:", "completion": " greeting"}
+{"prompt": "Classify the intent of this message: \"Monday\"\n\nIntent:", "completion": " date_selection"}
+{"prompt": "Classify the intent of this message: \"booking status kya hai?\"\n\nIntent:", "completion": " information"}
+{"prompt": "Classify the intent of this message: \"What's the price?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Is there any discount?\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Futsal ground reserve karna hai\"\n\nIntent:", "completion": " booking_request"}
+{"prompt": "Classify the intent of this message: \"pricing structure batao\"\n\nIntent:", "completion": " price_inquiry"}
+{"prompt": "Classify the intent of this message: \"Han ji book kar do please\"\n\nIntent:", "completion": " confirmation"}
+{"prompt": "Classify the intent of this message: \"Mera naam Muhammad Usman hai\"\n\nIntent:", "completion": " name_provided"}
+{"prompt": "Classify the intent of this message: \"sawa 7\"\n\nIntent:", "completion": " time_selection"}
+{"prompt": "Classify the intent of this message: \"padel court\"\n\nIntent:", "completion": " service_selection"}
+{"prompt": "Classify the intent of this message: \"Saturday me koi slot?\"\n\nIntent:", "completion": " availability_inquiry"}

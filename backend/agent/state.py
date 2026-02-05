@@ -41,6 +41,13 @@ class AgentState(TypedDict):
     user_confirmed: Optional[bool]
     confirmation_action: Optional[str]
     
+    # Slot Locking (prevents double-booking)
+    locked_slot_id: Optional[str]
+    
+    # Payment Flow
+    awaiting_payment: bool
+    payment_amount: Optional[float]
+    
     # Validation
     missing_fields: Optional[List[str]]
     requires_clarification: bool

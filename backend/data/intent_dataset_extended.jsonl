@@ -1,0 +1,402 @@
+{"text": "Hi", "intent": "greeting", "entities": {}}
+{"text": "Hello", "intent": "greeting", "entities": {}}
+{"text": "Hey", "intent": "greeting", "entities": {}}
+{"text": "Aoa", "intent": "greeting", "entities": {}}
+{"text": "AoA", "intent": "greeting", "entities": {}}
+{"text": "AOA", "intent": "greeting", "entities": {}}
+{"text": "Salam", "intent": "greeting", "entities": {}}
+{"text": "Salaam", "intent": "greeting", "entities": {}}
+{"text": "Assalam o Alaikum", "intent": "greeting", "entities": {}}
+{"text": "As-salamu alaykum", "intent": "greeting", "entities": {}}
+{"text": "Assalamualaikum", "intent": "greeting", "entities": {}}
+{"text": "walaikum assalam", "intent": "greeting", "entities": {}}
+{"text": "Good morning", "intent": "greeting", "entities": {}}
+{"text": "Good evening", "intent": "greeting", "entities": {}}
+{"text": "Hi there", "intent": "greeting", "entities": {}}
+{"text": "Aoa ji", "intent": "greeting", "entities": {}}
+{"text": "Salam bhai", "intent": "greeting", "entities": {}}
+{"text": "Hello ji", "intent": "greeting", "entities": {}}
+{"text": "G aoa", "intent": "greeting", "entities": {}}
+{"text": "Aoa bro", "intent": "greeting", "entities": {}}
+{"text": "Hey there!", "intent": "greeting", "entities": {}}
+{"text": "Hlo", "intent": "greeting", "entities": {}}
+{"text": "Hii", "intent": "greeting", "entities": {}}
+{"text": "Hiiii", "intent": "greeting", "entities": {}}
+{"text": "Hello hello", "intent": "greeting", "entities": {}}
+{"text": "Hi is there a slot available tomorrow Wednesday between 6-9", "intent": "booking_request", "entities": {"date": "tomorrow", "time": "6-9", "service_type": null}}
+{"text": "Aoa want to book a slot from 8-9 today", "intent": "booking_request", "entities": {"date": "today", "time": "8-9", "service_type": null}}
+{"text": "I want to book padel tomorrow evening", "intent": "booking_request", "entities": {"date": "tomorrow", "time": "evening", "service_type": "padel"}}
+{"text": "Book me a slot for futsal tonight", "intent": "booking_request", "entities": {"date": "today", "time": "night", "service_type": "futsal"}}
+{"text": "Mujhe kal shaam ka slot book karna hai", "intent": "booking_request", "entities": {"date": "kal", "time": "shaam", "service_type": null}}
+{"text": "Slot book karwana hai kal 7 bajay", "intent": "booking_request", "entities": {"date": "kal", "time": "7 bajay", "service_type": null}}
+{"text": "Want to book cricket pitch for Sunday", "intent": "booking_request", "entities": {"date": "Sunday", "time": null, "service_type": "cricket"}}
+{"text": "Aoa padel ka slot lena tha aaj raat ko", "intent": "booking_request", "entities": {"date": "aaj", "time": "raat", "service_type": "padel"}}
+{"text": "Can I book the 7-9 slot tomorrow?", "intent": "booking_request", "entities": {"date": "tomorrow", "time": "7-9", "service_type": null}}
+{"text": "Mujhe futsal court chahiye aaj shaam", "intent": "booking_request", "entities": {"date": "aaj", "time": "shaam", "service_type": "futsal"}}
+{"text": "Booking karwani hai padel ki", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": "padel"}}
+{"text": "I need to book a padel court for 2 hours", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": "padel", "duration": "2 hours"}}
+{"text": "Slot lena hai kal subah", "intent": "booking_request", "entities": {"date": "kal", "time": "subah", "service_type": null}}
+{"text": "Aaj Padel khelna hai", "intent": "booking_request", "entities": {"date": "aaj", "time": null, "service_type": "padel"}}
+{"text": "Want to play futsal tomorrow", "intent": "booking_request", "entities": {"date": "tomorrow", "time": null, "service_type": "futsal"}}
+{"text": "Cricket khelna hai weekend pe", "intent": "booking_request", "entities": {"date": "weekend", "time": null, "service_type": "cricket"}}
+{"text": "Book karna hai padel 6-8 ke beech", "intent": "booking_request", "entities": {"date": null, "time": "6-8", "service_type": "padel"}}
+{"text": "Aoa main slot reserve karwana chahta hun", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": null}}
+{"text": "Mujhe slot de do kal raat 9 bajay", "intent": "booking_request", "entities": {"date": "kal", "time": "9 bajay raat", "service_type": null}}
+{"text": "2 ghantay ka slot book karo aaj", "intent": "booking_request", "entities": {"date": "aaj", "time": null, "service_type": null, "duration": "2 ghantay"}}
+{"text": "Friday ko evening me padel book karna hai", "intent": "booking_request", "entities": {"date": "Friday", "time": "evening", "service_type": "padel"}}
+{"text": "Parson ka slot book karwa do", "intent": "booking_request", "entities": {"date": "parson", "time": null, "service_type": null}}
+{"text": "I want padel court tomorrow at 5pm", "intent": "booking_request", "entities": {"date": "tomorrow", "time": "5pm", "service_type": "padel"}}
+{"text": "Booking chahiye kal ke liye", "intent": "booking_request", "entities": {"date": "kal", "time": null, "service_type": null}}
+{"text": "Futsal ground reserve karna hai", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": "futsal"}}
+{"text": "Khelna hai padel aaj", "intent": "booking_request", "entities": {"date": "aaj", "time": null, "service_type": "padel"}}
+{"text": "Slot mil jayega aaj evening 7-9?", "intent": "booking_request", "entities": {"date": "aaj", "time": "7-9 evening", "service_type": null}}
+{"text": "Want to reserve a slot for Saturday", "intent": "booking_request", "entities": {"date": "Saturday", "time": null, "service_type": null}}
+{"text": "Court book karna hai", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": null}}
+{"text": "Sunday morning padel slot chahiye", "intent": "booking_request", "entities": {"date": "Sunday", "time": "morning", "service_type": "padel"}}
+{"text": "Kal dopahar ko futsal book karo", "intent": "booking_request", "entities": {"date": "kal", "time": "dopahar", "service_type": "futsal"}}
+{"text": "Aaj raat 10 bajay ke baad slot hai?", "intent": "booking_request", "entities": {"date": "aaj", "time": "10 bajay raat", "service_type": null}}
+{"text": "Next week Saturday padel", "intent": "booking_request", "entities": {"date": "next week Saturday", "time": null, "service_type": "padel"}}
+{"text": "Aglay hafte court book karni hai", "intent": "booking_request", "entities": {"date": "aglay hafte", "time": null, "service_type": null}}
+{"text": "Coming Friday evening slot de do", "intent": "booking_request", "entities": {"date": "coming Friday", "time": "evening", "service_type": null}}
+{"text": "Book kar do mera naam Hassan hai", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": null, "customer_name": "Hassan"}}
+{"text": "Aoa slot book karna hai Golden Court pe", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": null, "vendor_name": "Golden Court"}}
+{"text": "Ace Padel Club me booking karni hai", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": "padel", "vendor_name": "Ace Padel Club"}}
+{"text": "DHA me padel court book karo", "intent": "booking_request", "entities": {"date": null, "time": null, "service_type": "padel", "area": "DHA"}}
+{"text": "koi slot hei?", "intent": "availability_inquiry", "entities": {}}
+{"text": "slot hai?", "intent": "availability_inquiry", "entities": {}}
+{"text": "any slot available?", "intent": "availability_inquiry", "entities": {}}
+{"text": "Is there any slot?", "intent": "availability_inquiry", "entities": {}}
+{"text": "Availability batao", "intent": "availability_inquiry", "entities": {}}
+{"text": "kal slot available hai?", "intent": "availability_inquiry", "entities": {"date": "kal"}}
+{"text": "What slots are available tomorrow?", "intent": "availability_inquiry", "entities": {"date": "tomorrow"}}
+{"text": "aaj shaam slots?", "intent": "availability_inquiry", "entities": {"date": "aaj", "time": "shaam"}}
+{"text": "Evening me slot hai?", "intent": "availability_inquiry", "entities": {"time": "evening"}}
+{"text": "Tomorrow Friday slots?", "intent": "availability_inquiry", "entities": {"date": "tomorrow Friday"}}
+{"text": "Weekend pe availability kya hai?", "intent": "availability_inquiry", "entities": {"date": "weekend"}}
+{"text": "Do you have any slot between 6-9?", "intent": "availability_inquiry", "entities": {"time": "6-9"}}
+{"text": "6 se 9 ke beech slot hai?", "intent": "availability_inquiry", "entities": {"time": "6-9"}}
+{"text": "padel slot available?", "intent": "availability_inquiry", "entities": {"service_type": "padel"}}
+{"text": "futsal court khali hai?", "intent": "availability_inquiry", "entities": {"service_type": "futsal"}}
+{"text": "Saturday me koi slot?", "intent": "availability_inquiry", "entities": {"date": "Saturday"}}
+{"text": "Raat ko koi timing hai?", "intent": "availability_inquiry", "entities": {"time": "raat"}}
+{"text": "Check karo kal evening slot", "intent": "availability_inquiry", "entities": {"date": "kal", "time": "evening"}}
+{"text": "What time slots do you have?", "intent": "availability_inquiry", "entities": {}}
+{"text": "Any availability for today?", "intent": "availability_inquiry", "entities": {"date": "today"}}
+{"text": "kal subah ka time hai?", "intent": "availability_inquiry", "entities": {"date": "kal", "time": "subah"}}
+{"text": "Morning slot milega?", "intent": "availability_inquiry", "entities": {"time": "morning"}}
+{"text": "Afternoon me kuch hai?", "intent": "availability_inquiry", "entities": {"time": "afternoon"}}
+{"text": "Is 7pm available tomorrow?", "intent": "availability_inquiry", "entities": {"date": "tomorrow", "time": "7pm"}}
+{"text": "6 bajay ka slot check karo", "intent": "availability_inquiry", "entities": {"time": "6 bajay"}}
+{"text": "Kya time milega aaj?", "intent": "availability_inquiry", "entities": {"date": "aaj"}}
+{"text": "availability dekhna thi", "intent": "availability_inquiry", "entities": {}}
+{"text": "koi jagah khali hai?", "intent": "availability_inquiry", "entities": {}}
+{"text": "kal futsal ke liye slot hai?", "intent": "availability_inquiry", "entities": {"date": "kal", "service_type": "futsal"}}
+{"text": "Cricket pitch free hai Sunday?", "intent": "availability_inquiry", "entities": {"date": "Sunday", "service_type": "cricket"}}
+{"text": "Slot milega ya nahi?", "intent": "availability_inquiry", "entities": {}}
+{"text": "Aaj kya kya available hai?", "intent": "availability_inquiry", "entities": {"date": "aaj"}}
+{"text": "Peak hours me slot milega?", "intent": "availability_inquiry", "entities": {"time": "peak hours"}}
+{"text": "Late night slot hai?", "intent": "availability_inquiry", "entities": {"time": "late night"}}
+{"text": "Early morning 6am slot?", "intent": "availability_inquiry", "entities": {"time": "6am"}}
+{"text": "Public holiday pe available ho?", "intent": "availability_inquiry", "entities": {"date": "public holiday"}}
+{"text": "Next month availability?", "intent": "availability_inquiry", "entities": {"date": "next month"}}
+{"text": "Aglay mahine ki slots?", "intent": "availability_inquiry", "entities": {"date": "aglay mahine"}}
+{"text": "Golden Court pe slot hai kal?", "intent": "availability_inquiry", "entities": {"date": "kal", "vendor_name": "Golden Court"}}
+{"text": "Ace Padel availability?", "intent": "availability_inquiry", "entities": {"vendor_name": "Ace Padel"}}
+{"text": "DHA me koi court khali hai?", "intent": "availability_inquiry", "entities": {"area": "DHA"}}
+{"text": "Padel", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "Futsal", "intent": "service_selection", "entities": {"service_type": "futsal"}}
+{"text": "Cricket", "intent": "service_selection", "entities": {"service_type": "cricket"}}
+{"text": "Salon", "intent": "service_selection", "entities": {"service_type": "salon"}}
+{"text": "paddle", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "padel court", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "futsal ground", "intent": "service_selection", "entities": {"service_type": "futsal"}}
+{"text": "cricket pitch", "intent": "service_selection", "entities": {"service_type": "cricket"}}
+{"text": "haircut", "intent": "service_selection", "entities": {"service_type": "salon"}}
+{"text": "I want padel", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "Futsal chahiye", "intent": "service_selection", "entities": {"service_type": "futsal"}}
+{"text": "padel please", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "Pickleball", "intent": "service_selection", "entities": {"service_type": "pickleball"}}
+{"text": "gym", "intent": "service_selection", "entities": {"service_type": "gym"}}
+{"text": "swimming", "intent": "service_selection", "entities": {"service_type": "swimming"}}
+{"text": "tennis", "intent": "service_selection", "entities": {"service_type": "tennis"}}
+{"text": "badminton", "intent": "service_selection", "entities": {"service_type": "badminton"}}
+{"text": "padel wala", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "futsal ground chahiye", "intent": "service_selection", "entities": {"service_type": "futsal"}}
+{"text": "padel court chahiye", "intent": "service_selection", "entities": {"service_type": "padel"}}
+{"text": "cricket wala", "intent": "service_selection", "entities": {"service_type": "cricket"}}
+{"text": "Tomorrow", "intent": "date_selection", "entities": {"date": "tomorrow"}}
+{"text": "kal", "intent": "date_selection", "entities": {"date": "kal"}}
+{"text": "aaj", "intent": "date_selection", "entities": {"date": "aaj"}}
+{"text": "today", "intent": "date_selection", "entities": {"date": "today"}}
+{"text": "parson", "intent": "date_selection", "entities": {"date": "parson"}}
+{"text": "day after tomorrow", "intent": "date_selection", "entities": {"date": "day after tomorrow"}}
+{"text": "Friday", "intent": "date_selection", "entities": {"date": "Friday"}}
+{"text": "Saturday", "intent": "date_selection", "entities": {"date": "Saturday"}}
+{"text": "Sunday", "intent": "date_selection", "entities": {"date": "Sunday"}}
+{"text": "Monday", "intent": "date_selection", "entities": {"date": "Monday"}}
+{"text": "this weekend", "intent": "date_selection", "entities": {"date": "this weekend"}}
+{"text": "next week", "intent": "date_selection", "entities": {"date": "next week"}}
+{"text": "aglay hafte", "intent": "date_selection", "entities": {"date": "aglay hafte"}}
+{"text": "15th January", "intent": "date_selection", "entities": {"date": "15th January"}}
+{"text": "January 20", "intent": "date_selection", "entities": {"date": "January 20"}}
+{"text": "2025-01-25", "intent": "date_selection", "entities": {"date": "2025-01-25"}}
+{"text": "is Friday", "intent": "date_selection", "entities": {"date": "is Friday"}}
+{"text": "coming Saturday", "intent": "date_selection", "entities": {"date": "coming Saturday"}}
+{"text": "aanay wala weekend", "intent": "date_selection", "entities": {"date": "aanay wala weekend"}}
+{"text": "7pm", "intent": "time_selection", "entities": {"time": "7pm"}}
+{"text": "6-9", "intent": "time_selection", "entities": {"time": "6-9"}}
+{"text": "evening", "intent": "time_selection", "entities": {"time": "evening"}}
+{"text": "shaam", "intent": "time_selection", "entities": {"time": "shaam"}}
+{"text": "morning", "intent": "time_selection", "entities": {"time": "morning"}}
+{"text": "subah", "intent": "time_selection", "entities": {"time": "subah"}}
+{"text": "raat", "intent": "time_selection", "entities": {"time": "raat"}}
+{"text": "night", "intent": "time_selection", "entities": {"time": "night"}}
+{"text": "afternoon", "intent": "time_selection", "entities": {"time": "afternoon"}}
+{"text": "dopahar", "intent": "time_selection", "entities": {"time": "dopahar"}}
+{"text": "8 bajay", "intent": "time_selection", "entities": {"time": "8 bajay"}}
+{"text": "7 se 9 tak", "intent": "time_selection", "entities": {"time": "7-9"}}
+{"text": "after 6", "intent": "time_selection", "entities": {"time": "after 6"}}
+{"text": "6 ke baad", "intent": "time_selection", "entities": {"time": "6 ke baad"}}
+{"text": "between 5-7", "intent": "time_selection", "entities": {"time": "5-7"}}
+{"text": "around 8pm", "intent": "time_selection", "entities": {"time": "around 8pm"}}
+{"text": "8 bajay ke around", "intent": "time_selection", "entities": {"time": "around 8"}}
+{"text": "5pm to 7pm", "intent": "time_selection", "entities": {"time": "5pm-7pm"}}
+{"text": "late evening", "intent": "time_selection", "entities": {"time": "late evening"}}
+{"text": "early morning", "intent": "time_selection", "entities": {"time": "early morning"}}
+{"text": "9am", "intent": "time_selection", "entities": {"time": "9am"}}
+{"text": "10 bajay subah", "intent": "time_selection", "entities": {"time": "10 bajay subah"}}
+{"text": "3 se 5 ke beech", "intent": "time_selection", "entities": {"time": "3-5"}}
+{"text": "6-8 pm slot", "intent": "time_selection", "entities": {"time": "6-8 pm"}}
+{"text": "raat 9 bajay", "intent": "time_selection", "entities": {"time": "9 bajay raat"}}
+{"text": "shaam 6 ke baad", "intent": "time_selection", "entities": {"time": "after 6 shaam"}}
+{"text": "7:30pm", "intent": "time_selection", "entities": {"time": "7:30pm"}}
+{"text": "sawa 7", "intent": "time_selection", "entities": {"time": "7:15"}}
+{"text": "saray 8", "intent": "time_selection", "entities": {"time": "8:30"}}
+{"text": "paune 9", "intent": "time_selection", "entities": {"time": "8:45"}}
+{"text": "How much do you charge?", "intent": "price_inquiry", "entities": {}}
+{"text": "What's the price?", "intent": "price_inquiry", "entities": {}}
+{"text": "kitna hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "rate batao", "intent": "price_inquiry", "entities": {}}
+{"text": "charges kya hain?", "intent": "price_inquiry", "entities": {}}
+{"text": "price kya hai per hour?", "intent": "price_inquiry", "entities": {}}
+{"text": "What are the charges for padel?", "intent": "price_inquiry", "entities": {"service_type": "padel"}}
+{"text": "Futsal ka rate?", "intent": "price_inquiry", "entities": {"service_type": "futsal"}}
+{"text": "Is there any discount?", "intent": "price_inquiry", "entities": {}}
+{"text": "discount hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "koi offer hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "1 hour ka kitna?", "intent": "price_inquiry", "entities": {"duration": "1 hour"}}
+{"text": "2 ghantay ka rate?", "intent": "price_inquiry", "entities": {"duration": "2 hours"}}
+{"text": "total kitna banega?", "intent": "price_inquiry", "entities": {}}
+{"text": "How much for 1.5 hours?", "intent": "price_inquiry", "entities": {"duration": "1.5 hours"}}
+{"text": "evening rates kya hain?", "intent": "price_inquiry", "entities": {"time": "evening"}}
+{"text": "weekend pe zyada hai?", "intent": "price_inquiry", "entities": {"date": "weekend"}}
+{"text": "card pe discount milega?", "intent": "price_inquiry", "entities": {}}
+{"text": "membership discount?", "intent": "price_inquiry", "entities": {}}
+{"text": "pricing structure batao", "intent": "price_inquiry", "entities": {}}
+{"text": "monthly package hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "per hour charges", "intent": "price_inquiry", "entities": {}}
+{"text": "total cost kitni hogi?", "intent": "price_inquiry", "entities": {}}
+{"text": "payment kitna karna hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "6-9 ka total?", "intent": "price_inquiry", "entities": {"time": "6-9"}}
+{"text": "Peak hours rate different hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "Off peak rate?", "intent": "price_inquiry", "entities": {}}
+{"text": "Student discount hai?", "intent": "price_inquiry", "entities": {}}
+{"text": "Group booking pe discount?", "intent": "price_inquiry", "entities": {}}
+{"text": "Yes", "intent": "confirmation", "entities": {}}
+{"text": "Ok", "intent": "confirmation", "entities": {}}
+{"text": "Confirm", "intent": "confirmation", "entities": {}}
+{"text": "Book it", "intent": "confirmation", "entities": {}}
+{"text": "Han", "intent": "confirmation", "entities": {}}
+{"text": "Haan", "intent": "confirmation", "entities": {}}
+{"text": "Han g", "intent": "confirmation", "entities": {}}
+{"text": "Ji han", "intent": "confirmation", "entities": {}}
+{"text": "Theek hai", "intent": "confirmation", "entities": {}}
+{"text": "Done", "intent": "confirmation", "entities": {}}
+{"text": "Okay", "intent": "confirmation", "entities": {}}
+{"text": "Sure", "intent": "confirmation", "entities": {}}
+{"text": "Proceed", "intent": "confirmation", "entities": {}}
+{"text": "Yes please", "intent": "confirmation", "entities": {}}
+{"text": "Ji", "intent": "confirmation", "entities": {}}
+{"text": "Bilkul", "intent": "confirmation", "entities": {}}
+{"text": "Go ahead", "intent": "confirmation", "entities": {}}
+{"text": "Kar do", "intent": "confirmation", "entities": {}}
+{"text": "Book kar do", "intent": "confirmation", "entities": {}}
+{"text": "Confirm kar do", "intent": "confirmation", "entities": {}}
+{"text": "Yes book karo", "intent": "confirmation", "entities": {}}
+{"text": "Han bhai confirm", "intent": "confirmation", "entities": {}}
+{"text": "Done hai", "intent": "confirmation", "entities": {}}
+{"text": "Perfect theek hai", "intent": "confirmation", "entities": {}}
+{"text": "Yes I confirm", "intent": "confirmation", "entities": {}}
+{"text": "Final hai", "intent": "confirmation", "entities": {}}
+{"text": "Pakka", "intent": "confirmation", "entities": {}}
+{"text": "Absolutely", "intent": "confirmation", "entities": {}}
+{"text": "Lock it", "intent": "confirmation", "entities": {}}
+{"text": "Yeh wala", "intent": "confirmation", "entities": {}}
+{"text": "Issi ko book karo", "intent": "confirmation", "entities": {}}
+{"text": "G chalega", "intent": "confirmation", "entities": {}}
+{"text": "Haan yahi chahiye", "intent": "confirmation", "entities": {}}
+{"text": "Confirmed", "intent": "confirmation", "entities": {}}
+{"text": "No", "intent": "cancellation", "entities": {}}
+{"text": "Nahi", "intent": "cancellation", "entities": {}}
+{"text": "Cancel", "intent": "cancellation", "entities": {}}
+{"text": "Cancel karo", "intent": "cancellation", "entities": {}}
+{"text": "Nope", "intent": "cancellation", "entities": {}}
+{"text": "Mat karo", "intent": "cancellation", "entities": {}}
+{"text": "Ruko", "intent": "cancellation", "entities": {}}
+{"text": "Stop", "intent": "cancellation", "entities": {}}
+{"text": "I don't want to book", "intent": "cancellation", "entities": {}}
+{"text": "Booking cancel karo", "intent": "cancellation", "entities": {}}
+{"text": "Nahi chahiye ab", "intent": "cancellation", "entities": {}}
+{"text": "Leave it", "intent": "cancellation", "entities": {}}
+{"text": "Choro", "intent": "cancellation", "entities": {}}
+{"text": "rehne do", "intent": "cancellation", "entities": {}}
+{"text": "cancel kar do please", "intent": "cancellation", "entities": {}}
+{"text": "I changed my mind", "intent": "cancellation", "entities": {}}
+{"text": "nahi I won't book", "intent": "cancellation", "entities": {}}
+{"text": "No thank you", "intent": "cancellation", "entities": {}}
+{"text": "not interested", "intent": "cancellation", "entities": {}}
+{"text": "Maybe later", "intent": "cancellation", "entities": {}}
+{"text": "baad me dekhta hun", "intent": "cancellation", "entities": {}}
+{"text": "abhi nahi", "intent": "cancellation", "entities": {}}
+{"text": "nahi abhi nahi chahiye", "intent": "cancellation", "entities": {}}
+{"text": "next time", "intent": "cancellation", "entities": {}}
+{"text": "phir kabhi", "intent": "cancellation", "entities": {}}
+{"text": "nahi bhai", "intent": "cancellation", "entities": {}}
+{"text": "acha rehne do", "intent": "cancellation", "entities": {}}
+{"text": "forget it", "intent": "cancellation", "entities": {}}
+{"text": "Actually I want different time", "intent": "modification", "entities": {}}
+{"text": "Change to 7pm instead", "intent": "modification", "entities": {"time": "7pm"}}
+{"text": "Actually just want 6-7", "intent": "modification", "entities": {"time": "6-7"}}
+{"text": "Can we change the date?", "intent": "modification", "entities": {}}
+{"text": "waqt badalna hai", "intent": "modification", "entities": {}}
+{"text": "date change karo", "intent": "modification", "entities": {}}
+{"text": "instead of 7, make it 8", "intent": "modification", "entities": {"time": "8"}}
+{"text": "time badal do", "intent": "modification", "entities": {}}
+{"text": "Actually kal nahi parson", "intent": "modification", "entities": {"date": "parson"}}
+{"text": "wait 2 hours chahiye instead of 1", "intent": "modification", "entities": {"duration": "2 hours"}}
+{"text": "change kar do 6-8 se 7-9", "intent": "modification", "entities": {"time": "7-9"}}
+{"text": "padel ki jagah futsal", "intent": "modification", "entities": {"service_type": "futsal"}}
+{"text": "modify my booking", "intent": "modification", "entities": {}}
+{"text": "update karna hai", "intent": "modification", "entities": {}}
+{"text": "different slot please", "intent": "modification", "entities": {}}
+{"text": "doosra time batao", "intent": "modification", "entities": {}}
+{"text": "aur koi time hai?", "intent": "modification", "entities": {}}
+{"text": "can we reschedule?", "intent": "modification", "entities": {}}
+{"text": "slot change karna hai", "intent": "modification", "entities": {}}
+{"text": "ek hour add karo", "intent": "modification", "entities": {"duration": "add 1 hour"}}
+{"text": "duration badha do", "intent": "modification", "entities": {}}
+{"text": "What services do you offer?", "intent": "information", "entities": {}}
+{"text": "kya services hain?", "intent": "information", "entities": {}}
+{"text": "Tell me about your services", "intent": "information", "entities": {}}
+{"text": "location kaha hai?", "intent": "information", "entities": {}}
+{"text": "Where is Ace Padel Club?", "intent": "information", "entities": {"vendor_name": "Ace Padel Club"}}
+{"text": "address batao", "intent": "information", "entities": {}}
+{"text": "timings kya hain?", "intent": "information", "entities": {}}
+{"text": "What are your operating hours?", "intent": "information", "entities": {}}
+{"text": "How does booking work?", "intent": "information", "entities": {}}
+{"text": "booking kaise hoti hai?", "intent": "information", "entities": {}}
+{"text": "What facilities do you have?", "intent": "information", "entities": {}}
+{"text": "amenities kya hain?", "intent": "information", "entities": {}}
+{"text": "parking hai?", "intent": "information", "entities": {}}
+{"text": "Do you have parking?", "intent": "information", "entities": {}}
+{"text": "changing room hai?", "intent": "information", "entities": {}}
+{"text": "racket milta hai?", "intent": "information", "entities": {}}
+{"text": "equipment available hai?", "intent": "information", "entities": {}}
+{"text": "court size kitna hai?", "intent": "information", "entities": {}}
+{"text": "How many courts do you have?", "intent": "information", "entities": {}}
+{"text": "kitni courts hain?", "intent": "information", "entities": {}}
+{"text": "contact number?", "intent": "information", "entities": {}}
+{"text": "phone number batao", "intent": "information", "entities": {}}
+{"text": "booking status kya hai?", "intent": "information", "entities": {}}
+{"text": "meri booking confirm hui?", "intent": "information", "entities": {}}
+{"text": "Payment kar diya hai", "intent": "payment_related", "entities": {}}
+{"text": "Transfer kar diya", "intent": "payment_related", "entities": {}}
+{"text": "Account number batao", "intent": "payment_related", "entities": {}}
+{"text": "IBAN kya hai?", "intent": "payment_related", "entities": {}}
+{"text": "Bank details send karo", "intent": "payment_related", "entities": {}}
+{"text": "Payment method kya hai?", "intent": "payment_related", "entities": {}}
+{"text": "Cash le letay ho?", "intent": "payment_related", "entities": {}}
+{"text": "JazzCash chalega?", "intent": "payment_related", "entities": {}}
+{"text": "Easypaisa se transfer kar dun?", "intent": "payment_related", "entities": {}}
+{"text": "Card accept kartay ho?", "intent": "payment_related", "entities": {}}
+{"text": "Advance dena hai?", "intent": "payment_related", "entities": {}}
+{"text": "Online payment kar sakta hun?", "intent": "payment_related", "entities": {}}
+{"text": "Should I transfer now?", "intent": "payment_related", "entities": {}}
+{"text": "abhi payment karni hai?", "intent": "payment_related", "entities": {}}
+{"text": "Kitna transfer karna hai?", "intent": "payment_related", "entities": {}}
+{"text": "8000 transfer kar dun?", "intent": "payment_related", "entities": {}}
+{"text": "Payment screenshot bhej raha hun", "intent": "payment_related", "entities": {}}
+{"text": "Receipt bhej di hai", "intent": "payment_related", "entities": {}}
+{"text": "Paise bhej diye", "intent": "payment_related", "entities": {}}
+{"text": "Transfer ho gaya", "intent": "payment_related", "entities": {}}
+{"text": "payment pending hai", "intent": "payment_related", "entities": {}}
+{"text": "spot pe payment?", "intent": "payment_related", "entities": {}}
+{"text": "wahan pe dun paisa?", "intent": "payment_related", "entities": {}}
+{"text": "UBL account hai?", "intent": "payment_related", "entities": {}}
+{"text": "HBL transfer?", "intent": "payment_related", "entities": {}}
+{"text": "NayaPay se bhejun?", "intent": "payment_related", "entities": {}}
+{"text": "Sadapay chalega?", "intent": "payment_related", "entities": {}}
+{"text": "Jazib Waqas", "intent": "name_provided", "entities": {"customer_name": "Jazib Waqas"}}
+{"text": "My name is Ahmad", "intent": "name_provided", "entities": {"customer_name": "Ahmad"}}
+{"text": "I am Ali", "intent": "name_provided", "entities": {"customer_name": "Ali"}}
+{"text": "Usman here", "intent": "name_provided", "entities": {"customer_name": "Usman"}}
+{"text": "Mera naam Hassan hai", "intent": "name_provided", "entities": {"customer_name": "Hassan"}}
+{"text": "Muhammad Bilal", "intent": "name_provided", "entities": {"customer_name": "Muhammad Bilal"}}
+{"text": "Name: Fahad Khan", "intent": "name_provided", "entities": {"customer_name": "Fahad Khan"}}
+{"text": "Ahmed Ali", "intent": "name_provided", "entities": {"customer_name": "Ahmed Ali"}}
+{"text": "Saad Mahmood", "intent": "name_provided", "entities": {"customer_name": "Saad Mahmood"}}
+{"text": "Hamza", "intent": "name_provided", "entities": {"customer_name": "Hamza"}}
+{"text": "Zain ul Abideen", "intent": "name_provided", "entities": {"customer_name": "Zain ul Abideen"}}
+{"text": "Omar Farooq", "intent": "name_provided", "entities": {"customer_name": "Omar Farooq"}}
+{"text": "Arsalan Shah", "intent": "name_provided", "entities": {"customer_name": "Arsalan Shah"}}
+{"text": "Imran", "intent": "name_provided", "entities": {"customer_name": "Imran"}}
+{"text": "Faisal Ahmed", "intent": "name_provided", "entities": {"customer_name": "Faisal Ahmed"}}
+{"text": "Tariq Jameel", "intent": "name_provided", "entities": {"customer_name": "Tariq Jameel"}}
+{"text": "Yasir Abbas", "intent": "name_provided", "entities": {"customer_name": "Yasir Abbas"}}
+{"text": "Kamran Malik", "intent": "name_provided", "entities": {"customer_name": "Kamran Malik"}}
+{"text": "Adil Khan", "intent": "name_provided", "entities": {"customer_name": "Adil Khan"}}
+{"text": "Rizwan Ahmed", "intent": "name_provided", "entities": {"customer_name": "Rizwan Ahmed"}}
+{"text": "asdfgh", "intent": "unknown", "entities": {}}
+{"text": "xyz", "intent": "unknown", "entities": {}}
+{"text": "...", "intent": "unknown", "entities": {}}
+{"text": "???", "intent": "unknown", "entities": {}}
+{"text": "random text", "intent": "unknown", "entities": {}}
+{"text": "lol", "intent": "unknown", "entities": {}}
+{"text": "hmm", "intent": "unknown", "entities": {}}
+{"text": "k", "intent": "unknown", "entities": {}}
+{"text": "?", "intent": "unknown", "entities": {}}
+{"text": "what", "intent": "unknown", "entities": {}}
+{"text": "kia", "intent": "unknown", "entities": {}}
+{"text": "huh", "intent": "unknown", "entities": {}}
+{"text": "jgjhg", "intent": "unknown", "entities": {}}
+{"text": "test", "intent": "unknown", "entities": {}}
+{"text": "anyone there?", "intent": "unknown", "entities": {}}
+{"text": "koi hai?", "intent": "unknown", "entities": {}}
+{"text": "Aoa main book karna chahta hun padel tomorrow evening 6-9", "intent": "booking_request", "entities": {"date": "tomorrow", "time": "6-9 evening", "service_type": "padel"}}
+{"text": "Hi I need a futsal court for tonight around 8pm", "intent": "booking_request", "entities": {"date": "today", "time": "around 8pm", "service_type": "futsal"}}
+{"text": "Salam mujhe kal shaam padel khelna hai", "intent": "booking_request", "entities": {"date": "kal", "time": "shaam", "service_type": "padel"}}
+{"text": "Hey is there availability for cricket on Saturday afternoon?", "intent": "availability_inquiry", "entities": {"date": "Saturday", "time": "afternoon", "service_type": "cricket"}}
+{"text": "Aoa koi slot milega aaj raat ko padel ke liye?", "intent": "availability_inquiry", "entities": {"date": "aaj", "time": "raat", "service_type": "padel"}}
+{"text": "Check karo kal 7-9 ke beech futsal slot hai ya nahi", "intent": "availability_inquiry", "entities": {"date": "kal", "time": "7-9", "service_type": "futsal"}}
+{"text": "Bhai price batao padel ka aur agar discount hai to wo bhi", "intent": "price_inquiry", "entities": {"service_type": "padel"}}
+{"text": "What's the rate for 2 hours of futsal in the evening?", "intent": "price_inquiry", "entities": {"duration": "2 hours", "time": "evening", "service_type": "futsal"}}
+{"text": "Ok confirm kar do booking meri 7-8 wali", "intent": "confirmation", "entities": {"time": "7-8"}}
+{"text": "Han ji book kar do please", "intent": "confirmation", "entities": {}}
+{"text": "nahi yaar rehne do slot abhi nahi chahiye", "intent": "cancellation", "entities": {}}
+{"text": "Cancel my booking please", "intent": "cancellation", "entities": {}}
+{"text": "Actually time change karna hai 7 se 8 kardo please", "intent": "modification", "entities": {"time": "8"}}
+{"text": "Wait can we shift to tomorrow instead of today?", "intent": "modification", "entities": {"date": "tomorrow"}}
+{"text": "What all facilities do you have apart from courts?", "intent": "information", "entities": {}}
+{"text": "Parking aur changing room hai wahan?", "intent": "information", "entities": {}}
+{"text": "Payment ho gaya hai screenshot bhej raha hun", "intent": "payment_related", "entities": {}}
+{"text": "IBAN send karo transfer karna hai", "intent": "payment_related", "entities": {}}
+{"text": "Mera naam Muhammad Usman hai", "intent": "name_provided", "entities": {"customer_name": "Muhammad Usman"}}
+{"text": "Aoa kal morning 9am padel", "intent": "booking_request", "entities": {"date": "kal", "time": "9am morning", "service_type": "padel"}}
+{"text": "futsal tonight available?", "intent": "availability_inquiry", "entities": {"date": "today", "time": "night", "service_type": "futsal"}}
+{"text": "peak hours rates different hain?", "intent": "price_inquiry", "entities": {}}
+{"text": "ji bilkul book karo", "intent": "confirmation", "entities": {}}
+{"text": "Sorry nahi ho payega", "intent": "cancellation", "entities": {}}
+{"text": "Actually parson chahiye kal nahi", "intent": "modification", "entities": {"date": "parson"}}
+{"text": "coaching bhi available hai?", "intent": "information", "entities": {}}
+{"text": "advance kitna dena hoga?", "intent": "payment_related", "entities": {}}
+{"text": "Syed Hammad", "intent": "name_provided", "entities": {"customer_name": "Syed Hammad"}}

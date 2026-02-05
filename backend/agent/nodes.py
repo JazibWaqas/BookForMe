@@ -1,15 +1,20 @@
 """
 LangGraph Agent Nodes - Industry Standard Workflow
 Refactored with single-responsibility nodes and conditional routing
+Uses Pydantic models for type safety
 """
 
 import logging
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from agent.state import AgentState
 from agent.tools import check_availability, get_pricing, get_vendor_info
 from agent.duration import parse_duration
+from agent.models import (
+    AvailableSlot, SelectedSlot, PendingBooking, BookingResult,
+    find_matching_slot, slot_from_query_result
+)
 from nlu.agent import NLUAgent
 
 logger = logging.getLogger(__name__)
@@ -24,9 +29,10 @@ nlu_agent = NLUAgent()
 def normalize_date(date_text: str) -> str:
     """
     Normalize date text to YYYY-MM-DD format
-    Handles: "tomorrow", "today", "kal", "Friday", "2025-12-17", etc.
+    Handles: "tomorrow", "today", "kal", "Friday", "2025-12-17", "15 jan", "4 feb", etc.
     """
     today = datetime.now()
+    current_year = today.year
     date_lower = date_text.lower().strip()
     
     date_pattern = r'(\d{4}-\d{2}-\d{2})'
@@ -46,10 +52,37 @@ def normalize_date(date_text: str) -> str:
     elif "day after tomorrow" in date_lower or "parson" in date_lower:
         return (today + timedelta(days=2)).strftime("%Y-%m-%d")
     
-    date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y']
+    month_names = {
+        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6,
+        "jul": 7, "july": 7, "aug": 8, "august": 8, "sep": 9, "september": 9,
+        "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12
+    }
+    
+    day_month_pattern = r'(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)(?:\s+(\d{4}))?'
+    day_month_match = re.search(day_month_pattern, date_lower)
+    if day_month_match:
+        day = int(day_month_match.group(1))
+        month_name = day_month_match.group(2)
+        year = int(day_month_match.group(3)) if day_month_match.group(3) else current_year
+        month = month_names.get(month_name)
+        if month:
+            try:
+                parsed = datetime(year, month, day)
+                if parsed < today:
+                    parsed = datetime(current_year + 1, month, day)
+                return parsed.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+    
+    date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d']
     for fmt in date_formats:
         try:
             parsed = datetime.strptime(date_text, fmt)
+            if parsed < today and fmt != '%Y-%m-%d':
+                parsed = parsed.replace(year=current_year)
+                if parsed < today:
+                    parsed = parsed.replace(year=current_year + 1)
             return parsed.strftime("%Y-%m-%d")
         except ValueError:
             continue
@@ -321,7 +354,7 @@ async def extract_slot_node(state: AgentState) -> AgentState:
         if vendor_name and not vendor_id:
             state["vendor_name"] = vendor_name
         
-        state["vendor_id"] = vendor_id or state.get("vendor_id") or "ace_padel_club"
+        state["vendor_id"] = vendor_id or state.get("vendor_id")
         
         return state
         
@@ -375,46 +408,148 @@ async def validate_state_node(state: AgentState) -> AgentState:
 # NODE 5: QUERY AVAILABILITY
 # =============================================================================
 
+def match_slot_from_results(user_slot_time: str, vendors: List[Dict]) -> Optional[Dict]:
+    """
+    Find a matching slot from query results based on user's selected time.
+    Returns the full slot dict with slot_id and price.
+    """
+    user_time = user_slot_time.strip()
+    user_hour = user_time.split(":")[0] if ":" in user_time else user_time
+    
+    for vendor in vendors:
+        for slot in vendor.get("slots", []):
+            db_time = slot.get("slot_time", "")
+            db_hour = db_time.split(":")[0] if ":" in db_time else db_time
+            
+            if db_time == user_time:
+                return {**slot, "vendor_id": vendor.get("vendor_id")}
+            
+            if db_hour == user_hour:
+                return {**slot, "vendor_id": vendor.get("vendor_id")}
+    
+    return None
+
+
 async def query_availability_node(state: AgentState) -> AgentState:
-    """Query slot availability from database"""
+    """Query slot availability from database and match user selection"""
     try:
         logger.info("🔵 Node: query_availability")
         
         entities = state.get("entities", {})
+        messages = state.get("messages", [])
+        last_message = messages[-1].get("content", "").lower() if messages else ""
+        intent = state.get("current_intent", "")
         
-        # Standardize field name: NLU extracts service_type, DB uses sport_type
         service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
         area = entities.get("area") or "DHA"
-        date = entities.get("date") or datetime.now().strftime("%Y-%m-%d")
+        date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
         time_range = entities.get("time_range")
         
         logger.info(f"Checking availability: {service_type} in {area} on {date}")
         
         query_result = await check_availability(service_type, area, date, time_range)
+        
+        has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
+        
+        should_search_alternatives = (
+            not has_slots and (
+                "koi bhi date" in last_message or 
+                "any date" in last_message or
+                "konsey din" in last_message or
+                "alternative" in last_message or
+                "dosri date" in last_message or
+                intent == "availability_inquiry"
+            )
+        )
+        
+        if should_search_alternatives:
+            logger.info("No vendors found, searching alternative dates...")
+            base_date = datetime.strptime(date, "%Y-%m-%d")
+            next_available_date = None
+            
+            for days_ahead in range(1, 8):
+                check_date = (base_date + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+                logger.info(f"Checking alternative date: {check_date}")
+                alt_result = await check_availability(service_type, area, check_date, time_range)
+                
+                if alt_result and alt_result.get("success") and alt_result.get("vendors") and len(alt_result.get("vendors", [])) > 0:
+                    query_result = alt_result
+                    query_result["requested_date"] = date
+                    query_result["next_available_date"] = check_date
+                    next_available_date = check_date
+                    logger.info(f"✅ Found vendors on {check_date}")
+                    break
+            
+            if not next_available_date:
+                logger.info("No vendors found in next 7 days")
+        
         state["query_result"] = query_result if query_result else {"success": False, "error": "Query returned None"}
         
-        # Check if we have slots and user selected one - prepare for confirmation
-        has_slots = query_result and query_result.get("success") and query_result.get("vendors")
-        has_selection = state.get("selected_slot")
+        has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
+        user_selected = state.get("selected_slot")
         
-        if has_slots and has_selection:
-            state["awaiting_confirmation"] = True
-            state["confirmation_type"] = "booking"
-            state["pending_booking"] = {
-                "slot": state["selected_slot"],
-                "date": date,
-                "vendor_id": state.get("vendor_id"),
-                "service_type": service_type,
-                "area": area
-            }
-            logger.info(f"Booking ready for confirmation: awaiting_confirmation=True, slot={state['selected_slot']}")
+        if has_slots and user_selected:
+            user_slot_time = user_selected.get("slot_time", "")
+            logger.info(f"User selected time: '{user_slot_time}'")
+            
+            # Log what we are matching against
+            available_times = []
+            for v in query_result.get("vendors", []):
+                for s in v.get("slots", []):
+                    available_times.append(s.get("slot_time"))
+            logger.info(f"Available slot times in results: {available_times}")
+
+            matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
+            
+            if matched_slot:
+                slot_id = matched_slot.get("slot_id", "")
+                price = matched_slot.get("price", 0)
+                logger.info(f"✅ Matched Slot Logic: ID={slot_id}, Price={price} (Type: {type(price)})")
+                vendor_id = matched_slot.get("vendor_id") or state.get("vendor_id")
+                
+                full_selected_slot = {
+                    "slot_id": slot_id,
+                    "slot_time": matched_slot.get("slot_time", user_slot_time),
+                    "end_time": matched_slot.get("end_time", ""),
+                    "price": price,
+                    "resource_id": matched_slot.get("resource_id", ""),
+                    "vendor_id": vendor_id
+                }
+                
+                state["selected_slot"] = full_selected_slot
+                state["vendor_id"] = vendor_id
+                state["awaiting_confirmation"] = True
+                state["confirmation_type"] = "booking"
+                state["pending_booking"] = {
+                    "slot": full_selected_slot,
+                    "slot_id": slot_id,
+                    "price": price,
+                    "date": query_result.get("next_available_date") or date,
+                    "vendor_id": vendor_id,
+                    "service_type": service_type,
+                    "area": area
+                }
+                
+                logger.info(f"✅ Slot matched! slot_id={slot_id}, price={price}, vendor={vendor_id}")
+            else:
+                logger.warning(f"⚠️ No matching slot found for time: {user_slot_time}")
+                state["query_result"]["match_error"] = f"No slot available at {user_slot_time}"
+        
         elif has_slots:
-            logger.info(f"Slots available but no selection yet. Total vendors: {len(query_result.get('vendors', []))}")
+            logger.info(f"Slots available, waiting for user selection. Vendors: {len(query_result.get('vendors', []))}")
+            if query_result.get("next_available_date"):
+                state["selected_date"] = query_result["next_available_date"]
+            else:
+                state["selected_date"] = date
+        else:
+            state["selected_date"] = date
         
         return state
         
     except Exception as e:
         logger.error(f"Availability query failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         state["query_result"] = {"success": False, "error": str(e)}
         return state
 
@@ -490,11 +625,17 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
 
 
 # =============================================================================
-# NODE 8: EXECUTE BOOKING
+# NODE 8: EXECUTE BOOKING (with proper slot locking)
 # =============================================================================
 
 async def execute_booking_node(state: AgentState) -> AgentState:
-    """Execute the actual booking after confirmation"""
+    """
+    Execute booking with proper slot locking flow:
+    1. If no slot locked yet -> Lock the slot (10 min hold)
+    2. If slot already locked -> Check if payment received -> Confirm booking
+    
+    This prevents double-booking by using Firestore transactions.
+    """
     try:
         logger.info("🔵 Node: execute_booking")
         
@@ -506,6 +647,7 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             return state
         
         slot = pending.get("slot", {})
+        user_phone = state.get("user_phone", "")
         
         booking_details = {
             "vendor_id": pending.get("vendor_id") or state.get("vendor_id"),
@@ -515,33 +657,85 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             "duration_hours": state.get("selected_duration") or 1.0,
             "service_type": pending.get("service_type") or "padel",
             "customer_info": {
-                "phone": state.get("user_phone", ""),
-                "name": state.get("entities", {}).get("customer_name") or f"Customer {state.get('user_phone')}",
+                "phone": user_phone,
+                "name": state.get("entities", {}).get("customer_name") or f"Customer {user_phone}",
                 "booking_source": "whatsapp_ai"
             }
         }
         
-        logger.info(f"Creating booking: vendor={booking_details['vendor_id']}, date={booking_details['date']}, time={booking_details['time']}")
+        logger.info(f"Processing booking: vendor={booking_details['vendor_id']}, date={booking_details['date']}, time={booking_details['time']}")
         
-        from database.availability_service import AvailabilityService
-        availability_service = AvailabilityService()
+        from app.firestore import firestore_db
+        from database.slot_service import SlotService
         
-        result = await availability_service.check_and_book_slot(
-            vendor_id=booking_details["vendor_id"],
-            date=booking_details["date"],
-            time=booking_details["time"],
-            customer_info=booking_details["customer_info"]
-        )
+        slot_service = SlotService(firestore_db.db)
         
-        state["booking_result"] = result
+        slot_id = pending.get("slot_id") or slot.get("id") or slot.get("slot_id")
+        locked_slot_id = state.get("locked_slot_id")
+        
+        if locked_slot_id:
+            logger.info(f"Slot already locked: {locked_slot_id}, confirming booking...")
+            confirm_result = slot_service.confirm_booking(locked_slot_id, booking_details["vendor_id"])
+            
+            if confirm_result.get("success"):
+                state["booking_result"] = {
+                    "success": True,
+                    "booking_id": locked_slot_id,
+                    "slot_id": locked_slot_id,
+                    "message": "Booking confirmed successfully!"
+                }
+                state["locked_slot_id"] = None
+                logger.info(f"✅ Booking confirmed: {locked_slot_id}")
+            else:
+                state["booking_result"] = confirm_result
+                logger.error(f"❌ Confirmation failed: {confirm_result.get('error')}")
+        
+        elif slot_id:
+            logger.info(f"Locking slot: {slot_id}")
+            lock_result = slot_service.lock_slot(slot_id, user_phone, booking_source="whatsapp_ai")
+            
+            if lock_result.get("success"):
+                slot_price = slot.get("price") or pending.get("price") or lock_result.get("price") or 0
+                
+                state["locked_slot_id"] = slot_id
+                state["awaiting_payment"] = True
+                state["payment_amount"] = slot_price
+                state["booking_result"] = {
+                    "success": True,
+                    "booking_id": slot_id,
+                    "slot_id": slot_id,
+                    "status": "locked",
+                    "amount": slot_price,
+                    "hold_expires_in_minutes": lock_result.get("expires_in_minutes", 10),
+                    "message": f"Slot locked! Please transfer Rs {slot_price} and send payment screenshot within 10 minutes."
+                }
+                logger.info(f"✅ Slot locked: {slot_id}, amount: {slot_price}")
+            else:
+                state["booking_result"] = lock_result
+                logger.error(f"❌ Lock failed: {lock_result.get('error')}")
+        
+        else:
+            logger.info("No slot_id found, using direct booking method...")
+            from database.availability_service import AvailabilityService
+            availability_service = AvailabilityService()
+            
+            result = await availability_service.check_and_book_slot(
+                vendor_id=booking_details["vendor_id"],
+                date=booking_details["date"],
+                time=booking_details["time"],
+                customer_info=booking_details["customer_info"]
+            )
+            
+            state["booking_result"] = result
+            
+            if result and result.get("success"):
+                logger.info(f"✅ Booking created: {result.get('booking_id')}")
+            else:
+                logger.error(f"❌ Booking failed: {result.get('error') if result else 'No result'}")
+        
         state["awaiting_confirmation"] = False
         state["pending_booking"] = None
         state["booking_in_progress"] = False
-        
-        if result and result.get("success"):
-            logger.info(f"✅ Booking created successfully: {result.get('booking_id')}")
-        else:
-            logger.error(f"❌ Booking failed: {result.get('error') if result else 'No result'}")
         
         return state
         
@@ -569,6 +763,21 @@ async def generate_response_node(state: AgentState) -> AgentState:
         awaiting = state.get("awaiting_confirmation", False)
         confirmation_action = state.get("confirmation_action")
         messages = state.get("messages", [])
+        last_msg = messages[-1].get("content", "") if messages else ""
+        last_lower = last_msg.lower()
+        
+        if intent == "greeting":
+            if any(word in last_lower for word in ["aoa", "salam", "assalam", "asalam"]):
+                state["response"] = (
+                    "AoA! Main aap ki booking mein help kar sakta hoon. "
+                    "Padel, futsal, cricket ya salon—kis cheez ki booking chahiye?"
+                )
+            else:
+                state["response"] = (
+                    "Hi! I can help you book padel, futsal, cricket, or salons in Karachi. "
+                    "What would you like to book?"
+                )
+            return state
         
         context = {
             "query_result": query_result,
@@ -577,7 +786,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
             "confirmation_action": confirmation_action,
             "pending_booking": state.get("pending_booking"),
             "conversation_history": messages[:-1] if messages else [],
-            "current_message": messages[-1].get("content", "") if messages else "",
+            "current_message": last_msg,
             "phone_number": state.get("user_phone", ""),
             "selected_slot": state.get("selected_slot"),
             "selected_date": state.get("selected_date"),
@@ -635,14 +844,22 @@ def route_by_intent(state: AgentState) -> str:
     """Route to appropriate node based on intent"""
     intent = state.get("current_intent", "")
     awaiting = state.get("awaiting_confirmation", False)
+    entities = state.get("entities", {})
+    selected_slot = state.get("selected_slot") or {}
+    has_time = bool(entities.get("time") or entities.get("time_range") or selected_slot.get("slot_time"))
+    has_vendor = bool(entities.get("vendor_id") or entities.get("vendor_name") or state.get("vendor_id"))
     
     if awaiting and intent in ["confirmation", "cancellation", "modification", "booking_request", "unknown"]:
         return "check_confirmation"
     
     if intent in ["availability_inquiry", "booking_request"]:
         return "query_availability"
-    elif intent in ["price_inquiry", "information", "greeting"]:
+    elif intent == "confirmation" and (has_time or has_vendor):
+        return "query_availability"
+    elif intent in ["price_inquiry", "information"]:
         return "query_info"
+    elif intent == "greeting":
+        return "generate_response"
     elif intent == "confirmation":
         return "check_confirmation"
     else:

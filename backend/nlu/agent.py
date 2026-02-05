@@ -1,19 +1,22 @@
 """
 NLU Agent - Natural Language Understanding using Groq (Qwen 3 32B)
 Handles intent extraction and entity recognition for Roman Urdu/English mixed language
+Uses Pydantic for structured LLM response parsing
 """
 
 import logging
+import json
+import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from openai import OpenAI
+from pydantic import ValidationError
 from app.config import settings
 from nlu.usage_tracker import UsageTracker
-import re
+from agent.models import LLMIntentResponse, LLMEntityResponse, ExtractedEntities
 
 logger = logging.getLogger(__name__)
 
-# Initialize usage tracker
 usage_tracker = UsageTracker()
 
 
@@ -23,12 +26,28 @@ class NLUAgent:
     def __init__(self):
         """Initialize NLU agent with Groq"""
         try:
+            # Check if API key is set
+            api_key = settings.GROQ_API_KEY
+            if not api_key or api_key == "dummy_key_for_dev" or api_key == "your_groq_api_key_here":
+                error_msg = (
+                    "GROQ_API_KEY is not configured!\n"
+                    "Please set your Groq API key in the .env file:\n"
+                    "1. Get your API key from https://console.groq.com/\n"
+                    "2. Add this line to backend/.env:\n"
+                    "   GROQ_API_KEY=your_actual_api_key_here\n"
+                    "3. Restart the application"
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
             # Configure Groq API (OpenAI-compatible)
             self.client = OpenAI(
                 base_url="https://api.groq.com/openai/v1",
-                api_key=settings.GROQ_API_KEY
+                api_key=api_key
             )
             logger.info(f"NLU Agent initialized with Groq model: {settings.GROQ_MODEL}")
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"Failed to initialize Groq: {e}")
             raise
@@ -311,49 +330,59 @@ class NLUAgent:
             raise
     
     def _parse_intent_response(self, response: str) -> Dict[str, Any]:
-        """Parse Groq response for intent extraction"""
-        # TODO: Replace regex with Pydantic model validation in next phase
+        """Parse Groq response for intent extraction using Pydantic"""
         try:
-            # Try to extract JSON from response
-            import json
-            import re
-            
-            # Find JSON in response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                result = json.loads(json_str)
-                return result
+            if not json_match:
+                logger.warning("No JSON found in intent response")
+                return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
             
-            # Fallback parsing
-            return {
-                'intent': 'unknown',
-                'entities': {},
-                'confidence': 0.0
-            }
+            json_str = json_match.group()
+            raw_data = json.loads(json_str)
             
+            try:
+                parsed = LLMIntentResponse(**raw_data)
+                logger.info(f"✅ Pydantic parsed intent: {parsed.intent} (confidence: {parsed.confidence})")
+                return {
+                    'intent': parsed.intent,
+                    'entities': parsed.entities or {},
+                    'confidence': parsed.confidence,
+                    'reasoning': parsed.reasoning
+                }
+            except ValidationError as ve:
+                logger.warning(f"Pydantic validation failed, using raw: {ve}")
+                return raw_data
+            
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
+            return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
         except Exception as e:
             logger.error(f"Error parsing intent response: {e}")
-            return {
-                'intent': 'unknown',
-                'entities': {},
-                'confidence': 0.0
-            }
+            return {'intent': 'unknown', 'entities': {}, 'confidence': 0.0}
     
     def _parse_entity_response(self, response: str) -> Dict[str, Any]:
-        """Parse Groq response for entity extraction"""
+        """Parse Groq response for entity extraction using Pydantic"""
         try:
-            import json
-            import re
-            
-            # Find JSON in response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                return json.loads(json_str)
+            if not json_match:
+                logger.warning("No JSON found in entity response")
+                return {}
             
+            json_str = json_match.group()
+            raw_data = json.loads(json_str)
+            
+            try:
+                parsed = LLMEntityResponse(**raw_data)
+                result = parsed.model_dump(exclude_none=True)
+                logger.info(f"✅ Pydantic parsed entities: {result}")
+                return result
+            except ValidationError as ve:
+                logger.warning(f"Pydantic validation failed, using raw: {ve}")
+                return raw_data
+            
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
             return {}
-            
         except Exception as e:
             logger.error(f"Error parsing entity response: {e}")
             return {}
@@ -378,62 +407,61 @@ class NLUAgent:
             logger.info(f"   Context: {context}")
             logger.info("=" * 70)
             
-            # Check if we have all booking details and should check database
+            # Check if query_result is already available from LangGraph query_availability_node
             availability_data = None
-            should_check = self._should_check_availability(intent, entities)
-            logger.info(f"🔍 [generate_response] Checking if database lookup needed: {should_check}")
+            query_result = context.get('query_result', {})
             
-            if should_check:
-                logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
-                availability_data = await self._check_database_availability(entities)
-                logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
-
-                # Update context with resolved vendor_id from availability check
-                if availability_data and availability_data.get('success') and availability_data.get('vendor_id'):
-                    context['vendor_id'] = availability_data['vendor_id']
-                    entities['vendor_id'] = availability_data['vendor_id']
-                    logger.info(f"✅ [generate_response] Updated context with resolved vendor_id: {availability_data['vendor_id']}")
+            if query_result and query_result.get('success') is not None:
+                logger.info("✅ [generate_response] Using query_result from LangGraph query_availability_node")
+                vendors = query_result.get('vendors', [])
+                total_vendors = query_result.get('total_vendors', 0)
+                
+                available_slots = []
+                for vendor in vendors:
+                    for slot in vendor.get('slots', []):
+                        available_slots.append({
+                            'time': slot.get('time_display', f"{slot.get('slot_time', '')} - {slot.get('end_time', '')}"),
+                            'slot_time': slot.get('slot_time', ''),
+                            'price': slot.get('price', 0),
+                            'slot_id': slot.get('slot_id', ''),
+                            'vendor_id': vendor.get('vendor_id', ''),
+                            'vendor_name': vendor.get('vendor_name', '')
+                        })
+                
+                availability_data = {
+                    'success': query_result.get('success', False),
+                    'date': query_result.get('date', ''),
+                    'requested_date': query_result.get('requested_date', query_result.get('date', '')),
+                    'next_available_date': query_result.get('next_available_date'),
+                    'available_slots': available_slots,
+                    'total_available': len(available_slots),
+                    'vendor_id': vendors[0].get('vendor_id') if vendors else None,
+                    'sport_type': query_result.get('sport_type', ''),
+                    'area': query_result.get('area', '')
+                }
+                logger.info(f"📊 [generate_response] Converted query_result: {len(available_slots)} slots, next_available_date={availability_data.get('next_available_date')}")
             else:
-                logger.info("⏭️  [generate_response] Skipping database check - not all details present")
-            
-            # NEW: Check for booking confirmation/request and create booking if needed
-            # This should run OUTSIDE the availability check if/else
-            booking_result = None
-            logger.info(f"🔍 [generate_response] Checking booking conditions:")
-            logger.info(f"   Intent: {intent}")
-            logger.info(f"   Is booking intent: {intent in ['confirmation', 'booking_request']}")
-            
-            has_details = self._has_complete_booking_details(entities, context)
-            logger.info(f"   Has complete details: {has_details}")
-            
-            # Trigger booking on both confirmation AND booking_request with complete details
-            if intent in ["confirmation", "booking_request"] and has_details:
-                logger.info("🎯 [generate_response] BOOKING DETECTED - Creating booking...")
+                should_check = self._should_check_availability(intent, entities)
+                logger.info(f"🔍 [generate_response] Checking if database lookup needed: {should_check}")
                 
-                # Resolve vendor_id from vendor_name if needed (check vendor_name, vendor, and venue fields)
-                vendor_name = context.get('vendor_name') or entities.get('vendor_name') or entities.get('vendor') or entities.get('venue')
-                if vendor_name and (not context.get('vendor_id') or context.get('vendor_id') == 'ace_padel_club'):
-                    logger.info(f"🔍 [generate_response] Resolving vendor_id for name: '{vendor_name}'")
-                    resolved_vendor_id = await self._get_vendor_id_by_name(vendor_name)
-                    if resolved_vendor_id:
-                        context['vendor_id'] = resolved_vendor_id
-                        entities['vendor_id'] = resolved_vendor_id
-                        logger.info(f"✅ [generate_response] Resolved vendor_id: {resolved_vendor_id}")
-                    else:
-                        logger.warning(f"⚠️  [generate_response] Could not resolve vendor_id for name: '{vendor_name}'")
-                
-                booking_details = self._extract_booking_details(entities, context)
-                booking_result = await self._create_booking(booking_details)
-                
-                if booking_result and booking_result.get('success'):
-                    logger.info(f"✅ [generate_response] Booking created: {booking_result.get('booking_id', 'N/A')}")
-                    context['booking_result'] = booking_result
-                elif booking_result:
-                    logger.error(f"❌ [generate_response] Booking failed: {booking_result.get('error', 'Unknown error')}")
-                    context['booking_error'] = booking_result.get('error', 'Unknown error')
+                if should_check:
+                    logger.info("✅ [generate_response] Database check triggered - calling _check_database_availability()")
+                    availability_data = await self._check_database_availability(entities)
+                    logger.info(f"📊 [generate_response] Database check result: success={availability_data.get('success')}, slots_found={len(availability_data.get('available_slots', []))}")
+
+                    # Update context with resolved vendor_id from availability check
+                    if availability_data and availability_data.get('success') and availability_data.get('vendor_id'):
+                        context['vendor_id'] = availability_data['vendor_id']
+                        entities['vendor_id'] = availability_data['vendor_id']
+                        logger.info(f"✅ [generate_response] Updated context with resolved vendor_id: {availability_data['vendor_id']}")
                 else:
-                    logger.error(f"❌ [generate_response] Booking result is None")
-                    context['booking_error'] = 'Booking failed: No result returned'
+                    logger.info("⏭️  [generate_response] Skipping database check - not all details present")
+            
+            # BOOKING IS HANDLED BY LANGGRAPH (execute_booking_node in nodes.py)
+            # NLU only generates responses - booking_result comes from context if LangGraph executed a booking
+            booking_result = context.get('booking_result')
+            if booking_result:
+                logger.info(f"📋 [generate_response] Booking result from LangGraph: {booking_result}")
             
             # Create response generation prompt with availability AND booking data
             logger.info("📝 [generate_response] Creating response prompt...")
@@ -815,8 +843,9 @@ class NLUAgent:
 
     async def _create_booking(self, booking_details: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Actually create the booking in the database
-        This is how the NLU agent writes to the database - through this function
+        DEPRECATED: Booking is now handled by LangGraph (execute_booking_node in nodes.py)
+        This method is kept for reference but is no longer called.
+        All bookings go through the slot locking flow in LangGraph.
         """
         try:
             logger.info("🔧 [_create_booking] Creating booking in database...")
@@ -1171,21 +1200,36 @@ Error: {availability_data.get('error', 'Unknown error')}
 Apologize that you couldn't check availability right now and ask them to try again.
 """
         
-        # Add booking result information
+        # Add booking result information (from LangGraph execute_booking_node)
         booking_info = ""
-        if context.get('booking_result'):
-            booking = context['booking_result']
-            booking_info = f"""
-BOOKING SUCCESSFUL:
-- Booking ID: {booking.get('booking_id', 'N/A')}
-- Status: Confirmed
-- Your booking is confirmed and ready!
+        booking_result = context.get('booking_result')
+        if booking_result and booking_result.get('success'):
+            status = booking_result.get('status', 'confirmed')
+            booking_id = booking_result.get('booking_id', 'N/A')
+            amount = booking_result.get('amount', 0)
+            
+            if status == 'locked':
+                booking_info = f"""
+SLOT LOCKED - AWAITING PAYMENT:
+- Booking ID: {booking_id}
+- Amount: Rs {amount}
+- Status: Slot is held for 10 minutes
+- IMPORTANT: Tell user to transfer Rs {amount} and send payment screenshot to confirm booking
+- If they don't pay within 10 minutes, the slot will be released
 """
-        elif context.get('booking_error'):
+            else:
+                booking_info = f"""
+BOOKING CONFIRMED:
+- Booking ID: {booking_id}
+- Status: Confirmed
+- Tell user their booking is confirmed and thank them!
+"""
+        elif booking_result and not booking_result.get('success'):
+            error = booking_result.get('error', 'Unknown error')
             booking_info = f"""
 BOOKING FAILED:
-- Error: {context['booking_error']}
-- Ask customer to try again or contact support
+- Error: {error}
+- Apologize and ask customer to try again or select a different slot
 """
         
         return f"""
@@ -1202,14 +1246,24 @@ Generate a helpful, friendly response that:
 2. Addresses the {intent} intent directly
 3. Uses the extracted entities naturally: {entities}
 4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
-5. {"If booking was just created: Confirm the booking with the booking ID and thank the customer" if booking_info and "SUCCESSFUL" in booking_info else ""}
-6. {"If booking failed: Apologize and suggest trying again or contacting support" if booking_info and "FAILED" in booking_info else ""}
+5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot" if booking_info and "LOCKED" in booking_info else ""}
+6. {"If BOOKING CONFIRMED: Confirm the booking with the booking ID and thank the customer" if booking_info and "CONFIRMED" in booking_info else ""}
+7. {"If booking failed: Apologize and suggest trying again or selecting a different slot" if booking_info and "FAILED" in booking_info else ""}
 
 Response Guidelines:
 - Tone: Friendly, professional, helpful
 - Length: 2-4 sentences (be concise)
 - Format: Use emojis sparingly (✅ 📅 ⏰ 💰)
 - Language: Match user's style exactly
+- CRITICAL - Urdu Language Requirement: When responding in Roman Urdu, use ONLY Urdu vocabulary and grammar. Strictly avoid Hindi words. Examples:
+  * Use "hai" (Urdu) NOT "hain" (Hindi)
+  * Use "mujhe" (Urdu) NOT "mujhko" (Hindi) 
+  * Use "aap" (Urdu) NOT "aapko" (Hindi)
+  * Use "kya" (Urdu) NOT "kyaa" (Hindi)
+  * Use "main" (Urdu) NOT "main" with Hindi grammar patterns
+  * Use Urdu verb forms: "karna hai", "chahiye", "mil jayega" (Urdu) NOT Hindi equivalents
+  * Use Urdu prepositions and conjunctions: "se", "ko", "ka", "ki" (Urdu) NOT Hindi variants
+  * Maintain Urdu sentence structure and word order, not Hindi patterns
 - {"If slots are available: List them clearly with times and prices" if availability_info and availability_data.get("total_available", 0) > 0 else ""}
 - {"If no slots available: Apologize and suggest alternatives" if availability_info and availability_data.get("total_available", 0) == 0 else ""}
 

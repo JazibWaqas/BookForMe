@@ -1,6 +1,6 @@
 """
-WhatsApp Service - Meta Business API integration for message sending
-Handles WhatsApp message sending via Meta WhatsApp Business API
+WhatsApp Service - Meta Business API integration
+Handles message sending and media download via Meta WhatsApp Business API
 """
 
 import logging
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class WhatsAppService:
-    """WhatsApp service for sending messages via Meta Business API"""
+    """WhatsApp service for Meta Business API"""
     
     def __init__(self):
         """Initialize WhatsApp service with Meta API"""
@@ -20,10 +20,63 @@ class WhatsAppService:
             self.access_token = settings.WHATSAPP_ACCESS_TOKEN
             self.phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
             self.api_url = f"https://graph.facebook.com/v22.0/{self.phone_number_id}/messages"
+            self.media_url = "https://graph.facebook.com/v22.0"
             logger.info("WhatsApp Service initialized with Meta Business API")
         except Exception as e:
             logger.error(f"Failed to initialize Meta WhatsApp client: {e}")
             raise
+    
+    async def download_image(self, image_id: str) -> Optional[bytes]:
+        """
+        Download image from Meta's CDN using image_id
+        
+        Meta API flow:
+        1. GET /media/{image_id} -> returns download URL
+        2. GET {download_url} -> returns actual image bytes
+        
+        Args:
+            image_id: The media ID from webhook payload
+            
+        Returns:
+            Image bytes or None if download failed
+        """
+        try:
+            logger.info(f"📥 Downloading image: {image_id}")
+            
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+            
+            media_info_url = f"{self.media_url}/{image_id}"
+            response = requests.get(media_info_url, headers=headers)
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to get media info: {response.status_code} - {response.text}")
+                return None
+            
+            media_data = response.json()
+            download_url = media_data.get('url')
+            
+            if not download_url:
+                logger.error(f"No download URL in media response: {media_data}")
+                return None
+            
+            logger.info(f"📥 Downloading from: {download_url[:50]}...")
+            
+            image_response = requests.get(download_url, headers=headers)
+            
+            if image_response.status_code != 200:
+                logger.error(f"Failed to download image: {image_response.status_code}")
+                return None
+            
+            image_bytes = image_response.content
+            logger.info(f"✅ Image downloaded: {len(image_bytes)} bytes")
+            
+            return image_bytes
+            
+        except Exception as e:
+            logger.error(f"Error downloading image: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
     
     async def send_message(self, to_phone: str, message: str) -> Dict[str, Any]:
         """
