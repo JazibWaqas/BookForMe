@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+print(f"DEBUG: [auth_api] firestore_db object: {firestore_db}")
+print(f"DEBUG: [auth_api] firestore_db.db object: {firestore_db.db}")
 auth_service = AuthService(firestore_db.db)
 
 

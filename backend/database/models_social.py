@@ -51,7 +51,6 @@ class UserProfileSocial(BaseModel):
 # --- Post Models ---
 
 class PostBase(BaseModel):
-    user_id: str
     type: PostType = PostType.GENERAL
     content: str
     sport_type: Optional[str] = None # padel, futsal, etc.
@@ -64,6 +63,7 @@ class PostCreate(PostBase):
 
 class PostResponse(PostBase):
     id: str
+    user_id: str
     likes_count: int = 0
     comments_count: int = 0
     created_at: datetime
@@ -81,6 +81,7 @@ class MatchBase(BaseModel):
     time: str # HH:MM
     location: str
     venue_id: Optional[str] = None
+    slot_id: Optional[str] = None
     max_players: int
     description: Optional[str] = None
 
@@ -155,3 +156,18 @@ class ReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     title: str
     content: str
+
+# --- Comment Models ---
+
+class CommentBase(BaseModel):
+    post_id: str
+    user_id: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.now)
+
+class CommentCreate(BaseModel):
+    content: str
+
+class CommentResponse(CommentBase):
+    id: str
+    author: Optional[UserProfileSocial] = None

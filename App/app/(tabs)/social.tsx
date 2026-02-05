@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Image, ActivityIndicator, Alert, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,14 +5,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import CommentsModal from '../../components/social/CommentsModal';
+import LeaderboardPodium from '../../components/social/LeaderboardPodium';
+import LeaderboardRow from '../../components/social/LeaderboardRow';
+import MatchSwiper from '../../components/social/MatchSwiper';
+import FriendsTab from '../../components/social/FriendsTab';
 import { COLORS } from '../../constants/colors';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 import { SocialService, Post, Match, UserProfileSocial } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
+import React, { useState, useEffect } from 'react';
 
 export default function SocialScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'leaderboard'>('forum');
+  const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'friends' | 'leaderboard'>('forum');
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +39,16 @@ export default function SocialScreen() {
 
   // Match Creation States
   const [isMatchModalVisible, setIsMatchModalVisible] = useState(false);
-  const [newMatchData, setNewMatchData] = useState({ sport: 'Padel', date: '', time: '', location: '', maxPlayers: '4', type: 'casual' });
+  const [newMatchData, setNewMatchData] = useState<{
+    sport: string; date: string; time: string; location: string; maxPlayers: string; type: string; slot_id?: string;
+  }>({ sport: 'Padel', date: '', time: '', location: '', maxPlayers: '4', type: 'casual' });
+
+  // Match View Mode
+  const [matchViewMode, setMatchViewMode] = useState<'swipe' | 'list'>('swipe');
+
+  // Comments State
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [isCommentsVisible, setIsCommentsVisible] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -155,7 +169,8 @@ export default function SocialScreen() {
         date: newMatchData.date || 'Tomorrow',
         time: newMatchData.time || '8:00 PM',
         location: newMatchData.location || 'DHA Courts',
-        max_players: parseInt(newMatchData.maxPlayers) || 4
+        max_players: parseInt(newMatchData.maxPlayers) || 4,
+        slot_id: newMatchData.slot_id
       });
       setIsMatchModalVisible(false);
       fetchData();
@@ -178,10 +193,16 @@ export default function SocialScreen() {
     }
   };
 
+  const handleOpenComments = (post: Post) => {
+    setSelectedPostId(post.id);
+    setIsCommentsVisible(true);
+  };
+
   const tabs = [
     { id: 'forum', label: 'Forum', icon: 'newspaper-outline' },
     { id: 'matches', label: 'Matches', icon: 'tennisball-outline' },
     { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
+    { id: 'friends', label: 'Friends', icon: 'people-outline' },
     { id: 'leaderboard', label: 'Ranking', icon: 'trophy-outline' },
   ];
 
@@ -284,7 +305,7 @@ export default function SocialScreen() {
                       />
                       <Text style={styles.actionText}>{item.likes_count || 0}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleOpenComments(item)}>
                       <Ionicons name="chatbubble-outline" size={20} color={COLORS.textMuted} />
                       <Text style={styles.actionText}>{item.comments_count || 0}</Text>
                     </TouchableOpacity>
@@ -296,7 +317,8 @@ export default function SocialScreen() {
 
           {/* MATCHES TAB */}
           {activeTab === 'matches' && (
-            <View>
+            <View style={{ flex: 1 }}>
+              {/* Header with search and toggle */}
               <View style={styles.matchHeader}>
                 <View style={styles.searchContainer}>
                   <Ionicons name="search" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
@@ -307,13 +329,8 @@ export default function SocialScreen() {
                     value={searchQuery}
                     onChangeText={(text) => {
                       setSearchQuery(text);
-                      // Debounce should be here in real app, but for now we rely on explicit re-fetch triggers or effect deps?
-                      // Effect dep includes activeTab, selectedFilter. SearchQuery is not in dep.
-                      // I should add a search button or debounce effect.
-                      // For simplicity, let's just add a button or make effect watch searchQuery with debounce.
-                      // For now, let's make the effect watch searchQuery.
                     }}
-                    onEndEditing={fetchData} // Trigger fetch on submit
+                    onEndEditing={fetchData}
                   />
                 </View>
                 <TouchableOpacity style={styles.createMatchButton} onPress={() => setIsMatchModalVisible(true)}>
@@ -321,6 +338,25 @@ export default function SocialScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* View Mode Toggle */}
+              <View style={styles.viewModeToggle}>
+                <TouchableOpacity
+                  style={[styles.viewModeButton, matchViewMode === 'swipe' && styles.viewModeButtonActive]}
+                  onPress={() => setMatchViewMode('swipe')}
+                >
+                  <Ionicons name="layers" size={18} color={matchViewMode === 'swipe' ? '#fff' : COLORS.textMuted} />
+                  <Text style={[styles.viewModeText, matchViewMode === 'swipe' && styles.viewModeTextActive]}>Swipe</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.viewModeButton, matchViewMode === 'list' && styles.viewModeButtonActive]}
+                  onPress={() => setMatchViewMode('list')}
+                >
+                  <Ionicons name="list" size={18} color={matchViewMode === 'list' ? '#fff' : COLORS.textMuted} />
+                  <Text style={[styles.viewModeText, matchViewMode === 'list' && styles.viewModeTextActive]}>List</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sport Filter Chips */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
                 {['All', 'Padel', 'Tennis', 'Badminton', 'Futsal', 'Cricket'].map((sport) => (
                   <TouchableOpacity
@@ -333,7 +369,19 @@ export default function SocialScreen() {
                 ))}
               </ScrollView>
 
-              {matches.map((match) => (
+              {/* Swipe View */}
+              {matchViewMode === 'swipe' && (
+                <View style={{ flex: 1, minHeight: 550 }}>
+                  <MatchSwiper
+                    matches={matches}
+                    onJoinMatch={handleJoinMatch}
+                    onRefresh={fetchData}
+                  />
+                </View>
+              )}
+
+              {/* List View */}
+              {matchViewMode === 'list' && matches.map((match) => (
                 <TouchableOpacity key={match.id} activeOpacity={0.9}>
                   <Card style={styles.matchCard}>
                     <View style={styles.matchCardHeader}>
@@ -414,17 +462,59 @@ export default function SocialScreen() {
             </View>
           )}
 
+          {/* FRIENDS TAB */}
+          {activeTab === 'friends' && currentUser && (
+            <FriendsTab
+              currentUserId={currentUser.id}
+              onChatWithFriend={(userId) => router.push(`/chat/${userId}`)}
+            />
+          )}
+
           {/* LEADERBOARD TAB */}
           {activeTab === 'leaderboard' && (
             <View>
-              {leaderboard.map((user, index) => (
-                <Card key={user.id} style={styles.leaderboardItem}>
-                  <Text style={{ width: 30, fontSize: 18, fontWeight: 'bold', color: COLORS.primary }}>#{index + 1}</Text>
-                  <Image source={{ uri: user.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.userAvatarSmall} />
-                  <Text style={{ flex: 1, color: COLORS.text, fontWeight: '600', marginLeft: 10 }}>{user.name}</Text>
-                  <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>{user.points} pts</Text>
-                </Card>
-              ))}
+              {/* Top 3 Podium */}
+              {leaderboard.length >= 3 && (
+                <LeaderboardPodium topThree={leaderboard.slice(0, 3)} />
+              )}
+
+              {/* Your Rank Highlight */}
+              {currentUser && (
+                <View style={styles.yourRankCard}>
+                  <Text style={styles.yourRankLabel}>📊 YOUR RANK</Text>
+                  <View style={styles.yourRankContent}>
+                    <Text style={styles.yourRankNumber}>
+                      #{leaderboard.findIndex(u => u.id === currentUser.id) + 1 || 'N/A'}
+                    </Text>
+                    <View style={styles.yourRankProgress}>
+                      <View style={styles.yourRankProgressBar}>
+                        <View style={[styles.yourRankProgressFill, { width: '65%' }]} />
+                      </View>
+                      <Text style={styles.yourRankProgressText}>
+                        {leaderboard.find(u => u.id === currentUser.id)?.points || 0} pts
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Rest of Leaderboard */}
+              <View style={{ marginTop: 8 }}>
+                {leaderboard.slice(3).map((user, index) => (
+                  <LeaderboardRow
+                    key={user.id}
+                    user={user}
+                    rank={index + 4}
+                    isCurrentUser={currentUser?.id === user.id}
+                  />
+                ))}
+              </View>
+
+              {leaderboard.length === 0 && (
+                <Text style={{ textAlign: 'center', color: COLORS.textMuted, marginTop: 40 }}>
+                  No rankings available yet. Start playing to earn points!
+                </Text>
+              )}
             </View>
           )}
 
@@ -437,10 +527,51 @@ export default function SocialScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Create Match</Text>
-            {/* Simplified inputs for brevity */}
-            <TextInput style={styles.input} placeholder="Sport (e.g. Padel)" value={newMatchData.sport} onChangeText={t => setNewMatchData({ ...newMatchData, sport: t })} />
-            <TextInput style={styles.input} placeholder="Location" value={newMatchData.location} onChangeText={t => setNewMatchData({ ...newMatchData, location: t })} />
-            <TextInput style={styles.input} placeholder="Time" value={newMatchData.time} onChangeText={t => setNewMatchData({ ...newMatchData, time: t })} />
+
+            {/* Booking Selection (Handshake) */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ color: COLORS.textMuted, marginBottom: 8 }}>Link to Booking (Optional)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[
+                    styles.bookingChip,
+                    !newMatchData.slot_id && styles.bookingChipActive
+                  ]}
+                  onPress={() => setNewMatchData({ ...newMatchData, slot_id: undefined, location: '', date: '', time: '' })}
+                >
+                  <Text style={!newMatchData.slot_id ? styles.bookingChipTextActive : styles.bookingChipText}>None (Custom)</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Sport (e.g. Padel)"
+              value={newMatchData.sport}
+              onChangeText={t => setNewMatchData({ ...newMatchData, sport: t })}
+            />
+            <TextInput
+              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
+              placeholder="Location"
+              value={newMatchData.location}
+              editable={!newMatchData.slot_id}
+              onChangeText={t => setNewMatchData({ ...newMatchData, location: t })}
+            />
+            <TextInput
+              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
+              placeholder="Date (YYYY-MM-DD)"
+              value={newMatchData.date}
+              editable={!newMatchData.slot_id}
+              onChangeText={t => setNewMatchData({ ...newMatchData, date: t })}
+            />
+            <TextInput
+              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
+              placeholder="Time (HH:MM)"
+              value={newMatchData.time}
+              editable={!newMatchData.slot_id}
+              onChangeText={t => setNewMatchData({ ...newMatchData, time: t })}
+            />
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
               <Button title="Cancel" variant="outline" onPress={() => setIsMatchModalVisible(false)} />
               <Button title="Create" onPress={handleCreateMatch} />
@@ -448,6 +579,15 @@ export default function SocialScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Comments Modal */}
+      {selectedPostId && (
+        <CommentsModal
+          visible={isCommentsVisible}
+          postId={selectedPostId}
+          onClose={() => setIsCommentsVisible(false)}
+        />
+      )}
 
     </View>
   );
@@ -490,6 +630,35 @@ const styles = StyleSheet.create({
   searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.border },
   searchInput: { flex: 1, paddingVertical: 10, color: COLORS.text },
   createMatchButton: { width: 48, height: 48, backgroundColor: COLORS.primary, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  viewModeToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 8
+  },
+  viewModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border
+  },
+  viewModeButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary
+  },
+  viewModeText: {
+    marginLeft: 6,
+    color: COLORS.textMuted,
+    fontWeight: '500'
+  },
+  viewModeTextActive: {
+    color: '#fff',
+    fontWeight: 'bold'
+  },
   filtersScroll: { marginBottom: 16 },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.card, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
   filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
@@ -525,10 +694,59 @@ const styles = StyleSheet.create({
 
   // Leaderboard Styles
   leaderboardItem: { flexDirection: 'row', alignItems: 'center', padding: 16, marginBottom: 12 },
+  yourRankCard: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 16,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary
+  },
+  yourRankLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 8
+  },
+  yourRankContent: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  yourRankNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginRight: 16
+  },
+  yourRankProgress: {
+    flex: 1
+  },
+  yourRankProgressBar: {
+    height: 8,
+    backgroundColor: COLORS.border,
+    borderRadius: 4,
+    marginBottom: 4,
+    overflow: 'hidden'
+  },
+  yourRankProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 4
+  },
+  yourRankProgressText: {
+    fontSize: 12,
+    color: COLORS.textMuted
+  },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: COLORS.card, padding: 20, borderRadius: 16 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginBottom: 20, textAlign: 'center' },
-  input: { backgroundColor: COLORS.background, padding: 12, borderRadius: 12, marginBottom: 12, color: COLORS.text }
+  input: { backgroundColor: COLORS.background, padding: 12, borderRadius: 12, marginBottom: 12, color: COLORS.text },
+  inputDisabled: { opacity: 0.5 },
+  bookingChip: { padding: 8, borderRadius: 8, backgroundColor: COLORS.background, marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
+  bookingChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  bookingChipText: { color: COLORS.textMuted },
+  bookingChipTextActive: { color: '#fff', fontWeight: 'bold' }
 });

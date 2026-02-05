@@ -207,38 +207,29 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
-            <Text style={styles.userEmail}>{user?.email || user?.phone || 'No email'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <View style={[styles.badge, { backgroundColor: COLORS.secondary }]}>
+                <Text style={styles.badgeText}>Lvl {user?.level || 1}</Text>
+              </View>
+              <Text style={styles.userPoints}>{user?.points || 0} Points</Text>
+            </View>
+            <Text style={styles.userBio}>{user?.bio || 'No bio yet'}</Text>
           </View>
 
           <View style={styles.statsRow}>
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={() => router.push('/bookings')}
-              disabled={bookingsLoading}
-            >
-              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
-                <Ionicons name="calendar" size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statValue}>{bookingsLoading ? '-' : upcomingBookings}</Text>
-              <Text style={styles.statLabel}>Upcoming</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={() => router.push('/bookings')}
-              disabled={bookingsLoading}
-            >
-              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
-              </View>
-              <Text style={styles.statValue}>{bookingsLoading ? '-' : completedBookings}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </TouchableOpacity>
             <View style={styles.statItem}>
               <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#f59e0b" />
+                <Ionicons name="trophy" size={20} color="#f59e0b" />
               </View>
-              <Text style={styles.statValue}>{bookingsLoading ? '-' : bookingsCount}</Text>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statValue}>{user?.stats?.wins || 0}</Text>
+              <Text style={styles.statLabel}>Wins</Text>
+            </View>
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                <Ionicons name="tennisball" size={20} color="#3b82f6" />
+              </View>
+              <Text style={styles.statValue}>{user?.stats?.matches_played || 0}</Text>
+              <Text style={styles.statLabel}>Matches</Text>
             </View>
           </View>
         </Card>
@@ -572,6 +563,28 @@ const styles = StyleSheet.create({
   signOutText: {
     color: COLORS.error,
   },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  userPoints: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  userBio: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  }
 });
 
 

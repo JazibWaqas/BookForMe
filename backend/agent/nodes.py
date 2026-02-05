@@ -29,9 +29,10 @@ nlu_agent = NLUAgent()
 def normalize_date(date_text: str) -> str:
     """
     Normalize date text to YYYY-MM-DD format
-    Handles: "tomorrow", "today", "kal", "Friday", "2025-12-17", etc.
+    Handles: "tomorrow", "today", "kal", "Friday", "2025-12-17", "15 jan", "4 feb", etc.
     """
     today = datetime.now()
+    current_year = today.year
     date_lower = date_text.lower().strip()
     
     date_pattern = r'(\d{4}-\d{2}-\d{2})'
@@ -51,10 +52,37 @@ def normalize_date(date_text: str) -> str:
     elif "day after tomorrow" in date_lower or "parson" in date_lower:
         return (today + timedelta(days=2)).strftime("%Y-%m-%d")
     
-    date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y']
+    month_names = {
+        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6,
+        "jul": 7, "july": 7, "aug": 8, "august": 8, "sep": 9, "september": 9,
+        "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12
+    }
+    
+    day_month_pattern = r'(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)(?:\s+(\d{4}))?'
+    day_month_match = re.search(day_month_pattern, date_lower)
+    if day_month_match:
+        day = int(day_month_match.group(1))
+        month_name = day_month_match.group(2)
+        year = int(day_month_match.group(3)) if day_month_match.group(3) else current_year
+        month = month_names.get(month_name)
+        if month:
+            try:
+                parsed = datetime(year, month, day)
+                if parsed < today:
+                    parsed = datetime(current_year + 1, month, day)
+                return parsed.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+    
+    date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d']
     for fmt in date_formats:
         try:
             parsed = datetime.strptime(date_text, fmt)
+            if parsed < today and fmt != '%Y-%m-%d':
+                parsed = parsed.replace(year=current_year)
+                if parsed < today:
+                    parsed = parsed.replace(year=current_year + 1)
             return parsed.strftime("%Y-%m-%d")
         except ValueError:
             continue
@@ -408,6 +436,9 @@ async def query_availability_node(state: AgentState) -> AgentState:
         logger.info("🔵 Node: query_availability")
         
         entities = state.get("entities", {})
+        messages = state.get("messages", [])
+        last_message = messages[-1].get("content", "").lower() if messages else ""
+        intent = state.get("current_intent", "")
         
         service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
         area = entities.get("area") or "DHA"
@@ -417,20 +448,63 @@ async def query_availability_node(state: AgentState) -> AgentState:
         logger.info(f"Checking availability: {service_type} in {area} on {date}")
         
         query_result = await check_availability(service_type, area, date, time_range)
+        
+        has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
+        
+        should_search_alternatives = (
+            not has_slots and (
+                "koi bhi date" in last_message or 
+                "any date" in last_message or
+                "konsey din" in last_message or
+                "alternative" in last_message or
+                "dosri date" in last_message or
+                intent == "availability_inquiry"
+            )
+        )
+        
+        if should_search_alternatives:
+            logger.info("No vendors found, searching alternative dates...")
+            base_date = datetime.strptime(date, "%Y-%m-%d")
+            next_available_date = None
+            
+            for days_ahead in range(1, 8):
+                check_date = (base_date + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+                logger.info(f"Checking alternative date: {check_date}")
+                alt_result = await check_availability(service_type, area, check_date, time_range)
+                
+                if alt_result and alt_result.get("success") and alt_result.get("vendors") and len(alt_result.get("vendors", [])) > 0:
+                    query_result = alt_result
+                    query_result["requested_date"] = date
+                    query_result["next_available_date"] = check_date
+                    next_available_date = check_date
+                    logger.info(f"✅ Found vendors on {check_date}")
+                    break
+            
+            if not next_available_date:
+                logger.info("No vendors found in next 7 days")
+        
         state["query_result"] = query_result if query_result else {"success": False, "error": "Query returned None"}
         
-        has_slots = query_result and query_result.get("success") and query_result.get("vendors")
+        has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
         user_selected = state.get("selected_slot")
         
         if has_slots and user_selected:
             user_slot_time = user_selected.get("slot_time", "")
-            logger.info(f"User selected time: {user_slot_time}")
+            logger.info(f"User selected time: '{user_slot_time}'")
             
+            # Log what we are matching against
+            available_times = []
+            for v in query_result.get("vendors", []):
+                for s in v.get("slots", []):
+                    available_times.append(s.get("slot_time"))
+            logger.info(f"Available slot times in results: {available_times}")
+
             matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
             
             if matched_slot:
                 slot_id = matched_slot.get("slot_id", "")
                 price = matched_slot.get("price", 0)
+                logger.info(f"✅ Matched Slot Logic: ID={slot_id}, Price={price} (Type: {type(price)})")
                 vendor_id = matched_slot.get("vendor_id") or state.get("vendor_id")
                 
                 full_selected_slot = {
@@ -450,7 +524,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
                     "slot": full_selected_slot,
                     "slot_id": slot_id,
                     "price": price,
-                    "date": date,
+                    "date": query_result.get("next_available_date") or date,
                     "vendor_id": vendor_id,
                     "service_type": service_type,
                     "area": area
@@ -463,8 +537,12 @@ async def query_availability_node(state: AgentState) -> AgentState:
         
         elif has_slots:
             logger.info(f"Slots available, waiting for user selection. Vendors: {len(query_result.get('vendors', []))}")
-        
-        state["selected_date"] = date
+            if query_result.get("next_available_date"):
+                state["selected_date"] = query_result["next_available_date"]
+            else:
+                state["selected_date"] = date
+        else:
+            state["selected_date"] = date
         
         return state
         

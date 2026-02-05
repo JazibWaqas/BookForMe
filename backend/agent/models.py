@@ -3,9 +3,13 @@ Pydantic Models for WhatsApp Booking Agent
 Provides type safety and validation for the booking flow
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from enum import Enum
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SlotStatus(str, Enum):
@@ -42,6 +46,24 @@ class AvailableSlot(BaseModel):
     resource_id: str = Field(default="", description="Court/resource ID")
     resource_name: str = Field(default="", description="Court name like 'Court 1'")
 
+    @field_validator('price', mode='before')
+    @classmethod
+    def clean_price(cls, v):
+        if isinstance(v, (str, int)):
+            original = v
+            if isinstance(v, str):
+                # Remove commas, currency symbols, and whitespace
+                v = re.sub(r'[^\d\.]', '', v)
+            try:
+                result = float(v)
+                if isinstance(original, str):
+                    logger.info(f"💰 Cleaned price: '{original}' -> {result}")
+                return result
+            except ValueError:
+                logger.warning(f"⚠️ Failed to parse price: '{original}', defaulting to 0.0")
+                return 0.0
+        return v or 0.0
+
 
 class SelectedSlot(BaseModel):
     """A slot selected by the user for booking"""
@@ -51,6 +73,23 @@ class SelectedSlot(BaseModel):
     price: float = Field(..., description="Price in PKR - REQUIRED for payment")
     resource_id: str = Field(default="")
     vendor_id: str = Field(default="")
+
+    @field_validator('price', mode='before')
+    @classmethod
+    def clean_price(cls, v):
+        if isinstance(v, (str, int)):
+            original = v
+            if isinstance(v, str):
+                v = re.sub(r'[^\d\.]', '', v)
+            try:
+                result = float(v)
+                if isinstance(original, str):
+                    logger.info(f"💰 Cleaned selected price: '{original}' -> {result}")
+                return result
+            except ValueError:
+                logger.warning(f"⚠️ Failed to parse selected price: '{original}', defaulting to 0.0")
+                return 0.0
+        return v or 0.0
 
 
 class VendorSlots(BaseModel):

@@ -14,8 +14,9 @@ from database.models_social import (
     PostCreate, PostResponse, PostType,
     MatchCreate, MatchResponse, MatchStatus, MatchType,
     ConversationCreate, ConversationResponse, MessageCreate, MessageResponse,
-    NotificationResponse, UserProfileSocial
+    NotificationResponse, UserProfileSocial, CommentCreate, CommentResponse
 )
+from database.rest_api import get_current_user_id
 import os
 import uuid
 from pathlib import Path
@@ -25,7 +26,7 @@ from fastapi import File, UploadFile, Form
 # from database.auth_api import get_current_user 
 
 router = APIRouter(
-    prefix="/social",
+    prefix="/api/social",
     tags=["social"],
     responses={404: {"description": "Not found"}},
 )
@@ -76,13 +77,23 @@ async def upload_file(
 
 # --- 0. Posts ---
 
+# --- Service Initialization ---
+from database.gamification_service import GamificationService
+from database.notification_service import NotificationService
+gamification_service = GamificationService(db)
+notification_service = NotificationService(db)
+
 # --- 0. Posts ---
 
 @router.post("/posts/create", response_model=PostResponse)
-async def create_post(post: PostCreate):
+async def create_post(
+    post: PostCreate,
+    user_id: str = Depends(get_current_user_id)
+):
     """Create a new social post"""
     doc_ref = db.collection('posts').document()
     post_data = post.dict()
+    post_data['user_id'] = user_id
     post_data['created_at'] = firestore.SERVER_TIMESTAMP
     post_data['updated_at'] = firestore.SERVER_TIMESTAMP
     post_data['likes_count'] = 0
@@ -91,14 +102,34 @@ async def create_post(post: PostCreate):
     
     doc_ref.set(post_data)
     
-    # Return response
-    return PostResponse(
-        id=doc_ref.id,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-        author=get_user_profile_social(post.user_id),
-        **post_data
-    )
+    # Hook: Gamification
+    gamification_service.award_post_creation(user_id)
+    
+    # Prepare response data
+    response_data = post_data.copy()
+    response_data['id'] = doc_ref.id
+    response_data['created_at'] = datetime.now()
+    response_data['updated_at'] = datetime.now()
+    response_data['author'] = get_user_profile_social(user_id)
+    
+    return PostResponse(**response_data)
+
+@router.get("/notifications", response_model=List[NotificationResponse])
+async def get_notifications(user_id: str = Query(...), limit: int = 50):
+    """Get user notifications"""
+    # Query without order_by to avoid Firestore composite index requirement
+    docs = db.collection('notifications')\
+             .where('user_id', '==', user_id)\
+             .stream()
+    
+    notifications = []
+    for doc in docs:
+        data = doc.to_dict()
+        notifications.append(NotificationResponse(id=doc.id, **data))
+    
+    # Sort in memory by created_at descending
+    notifications.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
+    return notifications[:limit]
 
 @router.get("/posts/feed", response_model=List[PostResponse])
 async def get_posts_feed(
@@ -107,20 +138,17 @@ async def get_posts_feed(
     media_only: bool = False
 ):
     """Get recent posts with filters"""
-    query = db.collection('posts').order_by('created_at', direction=firestore.Query.DESCENDING)
-    
-    if type and type != 'all':
-        query = query.where('type', '==', type)
-        
-    # Note: Firestore doesn't support inequality on different fields easily if not ordered by them
-    # We are ordering by created_at. 'media_only' check might be better done in python if strictly needed
-    # or ensure we have an index. For prototype, doing in python is safer/easier.
-    
-    docs = query.limit(limit).stream()
+    # Query without order_by to avoid Firestore composite index requirement
+    docs = db.collection('posts').stream()
     
     posts = []
     for doc in docs:
         data = doc.to_dict()
+        
+        # Filter by type
+        if type and type != 'all':
+            if data.get('type') != type:
+                continue
         
         # Client side filters (due to Firestore limitations or simplicity)
         if media_only and not (data.get('image_url') or data.get('audio_url')):
@@ -129,25 +157,83 @@ async def get_posts_feed(
         author_id = data.get('user_id')
         author = get_user_profile_social(author_id) if author_id else None
         
-        posts.append(PostResponse(
-            id=doc.id,
-            author=author,
-            **data
-        ))
-    return posts
-    
-    posts = []
-    for doc in docs:
-        data = doc.to_dict()
-        author_id = data.get('user_id')
-        author = get_user_profile_social(author_id) if author_id else None
+        # Ensure required fields have defaults
+        if 'created_at' not in data or data['created_at'] is None:
+            data['created_at'] = datetime.now()
+        if 'updated_at' not in data or data['updated_at'] is None:
+            data['updated_at'] = data.get('created_at', datetime.now())
         
         posts.append(PostResponse(
             id=doc.id,
             author=author,
             **data
         ))
-    return posts
+    
+    # Sort in memory by created_at descending
+    posts.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
+    return posts[:limit]
+
+@router.post("/posts/{post_id}/comments", response_model=CommentResponse)
+async def create_comment(
+    post_id: str, 
+    comment: CommentCreate, 
+    user_id: str = Depends(get_current_user_id)
+):
+    """Add a comment to a post"""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # 1. Verify Post Exists
+    post_ref = db.collection('posts').document(post_id)
+    post = post_ref.get()
+    if not post.exists:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # 2. Create Comment
+    comment_data = {
+        "post_id": post_id,
+        "user_id": user_id,
+        "content": comment.content,
+        "created_at": datetime.now()
+    }
+    doc_ref = db.collection('comments').add(comment_data)[1]
+    
+    # 3. Update Post Stats (Increment comments_count)
+    post_ref.update({"comments_count": firestore.Increment(1)})
+    
+    # 4. Notify Post Author
+    post_data = post.to_dict()
+    if post_data.get('user_id') != user_id:
+        # Avoid self-notification
+        notification_service.create_notification(
+            user_id=post_data.get('user_id'),
+            type=NotificationType.FORUM_REPLY,
+            title="New Comment",
+            message=f"Someone commented on your post: {comment.content[:20]}...",
+            data={"post_id": post_id, "comment_id": doc_ref.id, "click_action": "POST_DETAIL"}
+        )
+        
+    return CommentResponse(
+        id=doc_ref.id,
+        author=get_user_profile_social(user_id),
+        **comment_data
+    )
+
+@router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
+async def get_comments(post_id: str):
+    """Get comments for a post"""
+    comments_ref = db.collection('comments').where('post_id', '==', post_id).order_by('created_at', direction=firestore.Query.DESCENDING)
+    docs = comments_ref.stream()
+    
+    comments = []
+    for doc in docs:
+        data = doc.to_dict()
+        comments.append(CommentResponse(
+            id=doc.id,
+            author=get_user_profile_social(data.get('user_id')),
+            **data
+        ))
+    return comments
 
 @router.post("/posts/{post_id}/like")
 async def like_post(post_id: str, user_id: str = Query(...)):
@@ -159,6 +245,7 @@ async def like_post(post_id: str, user_id: str = Query(...)):
         
     data = doc.to_dict()
     likes = data.get('likes', [])
+    author_id = data.get('user_id')
     
     if user_id in likes:
         # Unlike
@@ -166,6 +253,12 @@ async def like_post(post_id: str, user_id: str = Query(...)):
     else:
         # Like
         likes.append(user_id)
+        # Hook: Gamification (Award author)
+        if author_id and author_id != user_id:
+             gamification_service.award_post_like(author_id)
+             # Hook: Notification
+             liker_profile = get_user_profile_social(user_id)
+             notification_service.notify_post_like(author_id, liker_profile.name, post_id)
         
     post_ref.update({
         "likes": likes,
@@ -281,15 +374,106 @@ async def create_match(match: MatchCreate):
     match_data['current_players'] = 1
     match_data['participants_ids'] = [match.host_user_id]
     
+    # Denormalize Venue Data (Karachi-First Rule) or Slot Handshake
+    if match.slot_id:
+        # Handshake: Fetch Slot Data
+        slot_ref = db.collection('slots').document(match.slot_id)
+        slot_doc = slot_ref.get()
+        if not slot_doc.exists:
+            raise HTTPException(status_code=404, detail="linked slot_id not found")
+        
+        slot_data = slot_doc.to_dict()
+        
+        # Verify ownership
+        if slot_data.get('user_id') != match.host_user_id:
+             raise HTTPException(status_code=403, detail="You do not own this booking slot")
+             
+        # Auto-fill Match Details from Slot
+        match_data['venue_id'] = slot_data.get('vendor_id')
+        match_data['date'] = slot_data.get('date')
+        
+        # Safe time extraction
+        start_time = slot_data.get('start_time')
+        if hasattr(start_time, 'strftime'):
+             match_data['time'] = start_time.strftime('%H:%M')
+        elif isinstance(start_time, str) and 'T' in start_time:
+             match_data['time'] = start_time.split('T')[1][:5]
+        else:
+             match_data['time'] = str(start_time)
+             
+        # Fetch Vendor Name for Location
+        if match_data.get('venue_id'):
+             vendor = db.collection('vendors').document(match_data['venue_id']).get()
+             if vendor.exists:
+                 match_data['location'] = vendor.get('business_name') or vendor.get('name')
+
+    elif match.venue_id:
+        # User selected venue manually but no slot
+        vendor = db.collection('vendors').document(match.venue_id).get()
+        if vendor.exists:
+           match_data['location'] = vendor.get('business_name') or vendor.get('name')
+
     doc_ref.set(match_data)
     
-    return MatchResponse(
-        id=doc_ref.id,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-        participants=[get_user_profile_social(match.host_user_id)],
-        **match_data
-    )
+    # Prepare response data
+    response_data = match_data.copy()
+    response_data['id'] = doc_ref.id
+    response_data['created_at'] = datetime.now()
+    response_data['updated_at'] = datetime.now()
+    response_data['participants'] = [get_user_profile_social(match.host_user_id)]
+    
+    return MatchResponse(**response_data)
+
+@router.post("/matches/{match_id}/link_slot")
+async def link_match_slot(match_id: str, slot_id: str, user_id: str = Query(...)):
+    """Handshake: Link an existing match to a booking slot"""
+    # 1. Get Match
+    match_ref = db.collection('matches').document(match_id)
+    match_doc = match_ref.get()
+    if not match_doc.exists:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    match_data = match_doc.to_dict()
+    if match_data.get('host_user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Only host can link a booking")
+        
+    # 2. Get Slot
+    slot_ref = db.collection('slots').document(slot_id)
+    slot_doc = slot_ref.get()
+    if not slot_doc.exists:
+        raise HTTPException(status_code=404, detail="Slot not found")
+        
+    slot_data = slot_doc.to_dict()
+    if slot_data.get('user_id') != user_id:
+         raise HTTPException(status_code=403, detail="You do not own this booking slot")
+
+    # 3. Update Match
+    update_data = {
+        "slot_id": slot_id,
+        "venue_id": slot_data.get('vendor_id'),
+        "date": slot_data.get('date'),
+        "updated_at": firestore.SERVER_TIMESTAMP
+    }
+    
+    # Safe time extraction
+    start_time = slot_data.get('start_time')
+    if hasattr(start_time, 'strftime'):
+            update_data['time'] = start_time.strftime('%H:%M')
+    elif isinstance(start_time, str) and 'T' in start_time:
+            update_data['time'] = start_time.split('T')[1][:5]
+            
+    # Location
+    if update_data.get('venue_id'):
+         vendor = db.collection('vendors').document(update_data['venue_id']).get()
+         if vendor.exists:
+             update_data['location'] = vendor.get('business_name') or vendor.get('name')
+             
+    match_ref.update(update_data)
+    
+    # Optional: Gamification for "Confirmed Match"
+    # if slot_data.get('status') == 'confirmed': ...
+    
+    return {"status": "success", "message": "Match linked to booking"}
 
 @router.get("/matches/list", response_model=List[MatchResponse])
 async def list_matches(
@@ -297,16 +481,22 @@ async def list_matches(
     search: Optional[str] = None
 ):
     """List open matches with filters"""
-    query = db.collection('matches').where('status', '==', MatchStatus.OPEN)
-    
-    if sport and sport != 'all':
-        query = query.where('sport_type', '==', sport)
-        
-    docs = query.order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+    # Simple query without composite index requirement
+    # Filter by status only, then filter sport and sort in memory
+    docs = db.collection('matches').stream()
     
     matches_list = []
     for doc in docs:
         data = doc.to_dict()
+        
+        # Filter by status (open matches only)
+        if data.get('status') != MatchStatus.OPEN and data.get('status') != 'open':
+            continue
+        
+        # Filter by sport
+        if sport and sport != 'all':
+            if data.get('sport_type', '').lower() != sport.lower():
+                continue
         
         # Filter by search term (location or sport or description)
         if search:
@@ -317,15 +507,22 @@ async def list_matches(
             if search_lower not in location and search_lower not in desc and search_lower not in sp:
                 continue
 
-        # Fetch participants
+        # Prepare response data
+        response_data = data.copy()
+        response_data['id'] = doc.id
         p_ids = data.get('participants_ids', [])
-        participants = [get_user_profile_social(pid) for pid in p_ids]
+        response_data['participants'] = [get_user_profile_social(pid) for pid in p_ids]
         
-        matches_list.append(MatchResponse(
-            id=doc.id,
-            participants=participants,
-            **data
-        ))
+        # Handle timestamp conversion
+        if 'created_at' not in response_data or response_data['created_at'] is None:
+            response_data['created_at'] = datetime.now()
+        if 'updated_at' not in response_data or response_data['updated_at'] is None:
+            response_data['updated_at'] = datetime.now()
+        
+        matches_list.append(MatchResponse(**response_data))
+    
+    # Sort in memory by created_at (newest first)
+    matches_list.sort(key=lambda x: x.created_at, reverse=True)
     return matches_list
 
 @router.post("/matches/{match_id}/join")
@@ -361,6 +558,12 @@ async def join_match(match_id: str, user_id: str = Query(...)):
         
     match_ref.update(update_data)
     
+    # Hook: Notification to Host
+    host_id = data.get('host_user_id')
+    if host_id and host_id != user_id:
+        joiner_profile = get_user_profile_social(user_id)
+        notification_service.notify_match_join(host_id, joiner_profile.name, match_id)
+
     return {"status": "success", "message": "Joined match"}
 
 
@@ -443,31 +646,53 @@ async def start_chat(conversation: ConversationCreate, current_user_id: str = Qu
 @router.get("/chat/conversations", response_model=List[ConversationResponse])
 async def get_conversations(user_id: str = Query(...)):
     """Get list of conversations for a user"""
-    # Query conversations where participants array contains user_id
-    docs = db.collection('conversations')\
-             .where('participants', 'array_contains', user_id)\
-             .order_by('updated_at', direction=firestore.Query.DESCENDING)\
-             .stream()
+    # Simple query without composite index requirement
+    docs = db.collection('conversations').stream()
     
     conversations = []
     for doc in docs:
         data = doc.to_dict()
-        conversations.append(ConversationResponse(id=doc.id, **data))
+        
+        # Filter by participant in memory
+        participants = data.get('participants', [])
+        if user_id not in participants:
+            continue
+        
+        # Prepare response data
+        response_data = data.copy()
+        response_data['id'] = doc.id
+        
+        # Handle timestamp conversion
+        if 'created_at' not in response_data or response_data['created_at'] is None:
+            response_data['created_at'] = datetime.now()
+        if 'updated_at' not in response_data or response_data['updated_at'] is None:
+            response_data['updated_at'] = datetime.now()
+            
+        conversations.append(ConversationResponse(**response_data))
+    
+    # Sort in memory by updated_at (newest first)
+    conversations.sort(key=lambda x: x.updated_at, reverse=True)
     return conversations
 
 @router.get("/chat/history/{conversation_id}", response_model=List[MessageResponse])
 async def get_chat_history(conversation_id: str, limit: int = 50):
     """Get messages for a conversation"""
+    # Simple query without composite index requirement
     docs = db.collection('messages')\
              .where('conversation_id', '==', conversation_id)\
-             .order_by('created_at', direction=firestore.Query.ASCENDING)\
              .limit(limit)\
              .stream()
     
     messages = []
     for doc in docs:
         data = doc.to_dict()
+        # Handle missing created_at
+        if 'created_at' not in data or data['created_at'] is None:
+            data['created_at'] = datetime.now()
         messages.append(MessageResponse(id=doc.id, **data))
+    
+    # Sort in memory by created_at (oldest first for chat)
+    messages.sort(key=lambda x: x.created_at)
     return messages
 
 @router.post("/chat/message", response_model=MessageResponse)

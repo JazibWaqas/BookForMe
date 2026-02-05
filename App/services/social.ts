@@ -127,13 +127,33 @@ export const SocialService = {
     },
 
     async sendMessage(data: { conversation_id?: string; sender_id: string; receiver_id?: string; content?: string; media_url?: string; media_type?: string }) {
-        const response = await apiClient.post('/api/social/chat/send', data);
+        const response = await apiClient.post('/api/social/chat/message', data);
         return response.data;
     },
 
     // --- Leaderboard ---
     async getLeaderboard(limit = 50) {
         const response = await apiClient.get('/api/social/leaderboard', { params: { limit } });
+        return response.data;
+    },
+
+    // --- Notifications ---
+    async getNotifications(userId: string) {
+        // In real app, we might need a separate notifications endpoint or filters
+        // Currently assuming a new endpoint '/api/social/notifications' exists
+        const response = await apiClient.get('/api/social/notifications', {
+            params: { user_id: userId }
+        });
+        return response.data;
+    },
+
+    async getComments(postId: string) {
+        const response = await apiClient.get(`/api/social/posts/${postId}/comments`);
+        return response.data;
+    },
+
+    async createComment(postId: string, content: string) {
+        const response = await apiClient.post(`/api/social/posts/${postId}/comments`, { content });
         return response.data;
     }
 };

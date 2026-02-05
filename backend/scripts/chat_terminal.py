@@ -72,9 +72,16 @@ class TerminalChat:
                 
                 if user_message.lower() == 'clear':
                     print("\nClearing conversation history...")
+                    # Clear Firestore session
+                    from nlu.state_manager import StateManager
+                    state_manager = StateManager()
+                    await state_manager.clear_session(self.phone_number)
+                    # Clear in-memory session
+                    from agent.session_store import session_store
+                    session_store.clear_session(self.phone_number)
                     # Reinitialize agent to clear state
                     self.agent = WhatsAppAgent()
-                    print("Conversation cleared!\n")
+                    print("✅ Conversation history cleared!\n")
                     continue
                 
                 if user_message.lower() == '/help':

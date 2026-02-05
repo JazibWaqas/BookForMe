@@ -11,7 +11,25 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export type UserData = UserType;
+export interface UserData {
+  id: string;
+  email: string;
+  name: string;
+  role: 'customer' | 'admin' | 'vendor';
+  phone?: string;
+  vendor_id?: string | null;
+  avatar_url?: string;
+  // Social Fields
+  bio?: string;
+  points?: number;
+  level?: number;
+  stats?: {
+    matches_played: number;
+    wins: number;
+    losses: number;
+    win_rate: number;
+  };
+}
 
 export interface AuthResponse {
   success: boolean;
