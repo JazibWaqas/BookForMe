@@ -37,6 +37,7 @@ import os
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+
 # Include REST API router
 app.include_router(rest_api_router)
 
@@ -45,6 +46,7 @@ app.include_router(auth_router)
 
 # Include Social features router
 app.include_router(social_router)
+
 
 # Add CORS middleware (for frontend integration)
 app.add_middleware(
