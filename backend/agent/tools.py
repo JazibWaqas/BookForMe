@@ -47,10 +47,9 @@ async def check_availability(
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
 
         if area:
-            vendors_by_area = await fs_client.get_vendors_by_area(area)
-            vendor_ids_by_sport = {v['id'] for v in vendors_by_sport}
-            vendor_ids_by_area = {v['id'] for v in vendors_by_area}
-            matching_vendor_ids = vendor_ids_by_sport.intersection(vendor_ids_by_area)
+            area_lower = area.lower().strip()
+            matching = [v for v in vendors_by_sport if area_lower in v.get('area', '').lower()]
+            matching_vendor_ids = {v['id'] for v in matching}
         else:
             matching_vendor_ids = {v['id'] for v in vendors_by_sport}
 
@@ -83,7 +82,6 @@ async def check_availability(
                 # Get available slots for this vendor on the date
                 available_slots = await fs_client.get_available_slots(vendor_id, date)
 
-                # Filter slots by time range if provided
                 if time_range:
                     PKT = pytz.timezone('Asia/Karachi')
                     start_time = time_range.get("start")
@@ -91,43 +89,48 @@ async def check_availability(
 
                     filtered_slots = []
                     for slot in available_slots:
-                        slot_start_str = slot.get("start_time", "")
-                        if isinstance(slot_start_str, datetime):
-                            # Convert UTC to PKT before filtering
-                            slot_start_pkt = slot_start_str.astimezone(PKT) if slot_start_str.tzinfo else slot_start_str
-                            slot_start = slot_start_pkt.strftime("%H:%M")
+                        raw_start = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
+                        if isinstance(raw_start, datetime):
+                            pkt = raw_start.astimezone(PKT) if raw_start.tzinfo else raw_start
+                            slot_start = pkt.strftime("%H:%M")
                         else:
-                            slot_start = str(slot_start_str)[:5]  # Take HH:MM part
+                            slot_start = str(raw_start)[:5]
 
+                        if not slot_start:
+                            continue
                         if start_time and end_time:
-                            # Include slot if it starts within the range
                             if start_time <= slot_start < end_time:
                                 filtered_slots.append(slot)
                         elif start_time:
-                            # Only start time provided (e.g., "after 6pm")
                             if slot_start >= start_time:
                                 filtered_slots.append(slot)
                     available_slots = filtered_slots
 
-                # Format slots for response with all required fields for booking
                 formatted_slots = []
                 PKT = pytz.timezone('Asia/Karachi')
-                for slot in available_slots[:5]:
-                    slot_start_str = slot.get("start_time", "")
-                    slot_end_str = slot.get("end_time", "")
+                for slot in available_slots[:8]:
+                    raw_start = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
+                    raw_end = slot.get("end_time") or ""
 
-                    if isinstance(slot_start_str, datetime):
-                        slot_start_pkt = slot_start_str.astimezone(PKT) if slot_start_str.tzinfo else slot_start_str
-                        slot_start = slot_start_pkt.strftime("%H:%M")
-                        
-                        if isinstance(slot_end_str, datetime):
-                            slot_end_pkt = slot_end_str.astimezone(PKT) if slot_end_str.tzinfo else slot_end_str
-                            slot_end = slot_end_pkt.strftime("%H:%M")
-                        else:
-                            slot_end = slot_end_str
+                    if isinstance(raw_start, datetime):
+                        pkt_start = raw_start.astimezone(PKT) if raw_start.tzinfo else raw_start
+                        slot_start = pkt_start.strftime("%H:%M")
                     else:
-                        slot_start = str(slot_start_str)[:5]
-                        slot_end = str(slot_end_str)[:5] if slot_end_str else ""
+                        slot_start = str(raw_start)[:5]
+
+                    if isinstance(raw_end, datetime):
+                        pkt_end = raw_end.astimezone(PKT) if raw_end.tzinfo else raw_end
+                        slot_end = pkt_end.strftime("%H:%M")
+                    elif raw_end:
+                        slot_end = str(raw_end)[:5]
+                    elif slot_start and ":" in slot_start:
+                        h = int(slot_start.split(":")[0])
+                        slot_end = f"{(h + 1) % 24:02d}:00"
+                    else:
+                        slot_end = ""
+
+                    if not slot_start:
+                        continue
 
                     formatted_slots.append({
                         "slot_id": slot.get("id", ""),

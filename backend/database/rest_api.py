@@ -729,24 +729,6 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
         logger.error(f"Error getting user bookings: {e}")
         # Return empty list instead of error for resilience
         return []
-                    'end_time': end_time_str,
-                    'status': slot_data.get('status'),
-                    'amount': slot_data.get('price', 0),
-                    'vendor': vendor,
-                    'payment': payment,
-                    'created_at': slot_data.get('created_at')
-                }
-                bookings.append(booking)
-        
-        return {
-            "success": True,
-            "bookings": bookings,
-            "count": len(bookings)
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting user bookings: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get bookings")
 
 
 class ChatRequest(BaseModel):
