@@ -31,27 +31,7 @@ export default function SocialScreen() {
   const [leaderboard, setLeaderboard] = useState<UserProfileSocial[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Sync cached data to local state
-  useEffect(() => {
-    if (feedData) {
-      if (!searchQuery) {
-        setPosts(feedData);
-      } else {
-        // Apply client-side search
-        setPosts(feedData.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase())));
-      }
-    }
-  }, [feedData, searchQuery]);
-
-  useEffect(() => {
-    if (matchesData) {
-      setMatches(matchesData); // Search is handled by backend or could be client side
-    }
-  }, [matchesData]);
-
-  useEffect(() => {
-    if (leaderboardData) setLeaderboard(leaderboardData);
-  }, [leaderboardData]);
+  // Effects moved below hooks to avoid ReferenceErrors
 
   // Data States
   // ... deleted old state declarations that are now above ...
@@ -64,6 +44,27 @@ export default function SocialScreen() {
   const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useSocialFeed('all');
   const { data: matchesData, isLoading: matchesLoading, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
   const { data: leaderboardData, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useSocialLeaderboard();
+
+  // --- Sync Effects (Moved here) ---
+  useEffect(() => {
+    if (feedData) {
+      if (!searchQuery) {
+        setPosts(feedData);
+      } else {
+        setPosts(feedData.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase())));
+      }
+    }
+  }, [feedData, searchQuery]);
+
+  useEffect(() => {
+    if (matchesData) {
+      setMatches(matchesData);
+    }
+  }, [matchesData]);
+
+  useEffect(() => {
+    if (leaderboardData) setLeaderboard(leaderboardData);
+  }, [leaderboardData]);
 
 
   // Post Creation States
