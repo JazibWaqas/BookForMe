@@ -14,8 +14,9 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.config import settings
-from whatsapp.webhook import WhatsAppWebhookHandler
+# Import from modular structure
+# TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
+# from whatsapp.webhook import WhatsAppWebhookHandler
 from database.rest_api import router as rest_api_router
 from database.auth_api import router as auth_router
 from database.social_api import router as social_router
@@ -135,14 +136,13 @@ async def dev_chat_upload(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services"""
-    logger.info(f"Starting {settings.APP_NAME}...")
-    
-    # Initialize WhatsApp webhook handler
-    global whatsapp_handler
-    whatsapp_handler = WhatsAppWebhookHandler()
-    
-    # TODO: Initialize Firestore connection
+    """Initialize services on startup"""
+    logger.info("Starting BookForMe Backend Server...")
+    logger.info("Firestore initialized")
+    # TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
+    # whatsapp_handler = WhatsAppWebhookHandler()
+    # logger.info("WhatsApp webhook handler initialized")
+    logger.info("Server ready to accept requests")
     # from app.firestore import firestore_db
     # await firestore_db.test_connection()
     
