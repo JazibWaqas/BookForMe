@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # Import from modular structure
+from app.config import settings
 # TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
 # from whatsapp.webhook import WhatsAppWebhookHandler
 from database.rest_api import router as rest_api_router
