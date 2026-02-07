@@ -31,12 +31,22 @@ const sanitizeVendorData = (data: any): Vendor => {
 
 export const getVendors = async (): Promise<Vendor[]> => {
   try {
+<<<<<<< Updated upstream
     const response = await apiClient.get(API_ENDPOINTS.vendors.list);
     
     if (response.data.success && response.data.vendors) {
       return response.data.vendors.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
     }
     
+=======
+    console.log('📊 Fetching vendors directly from Firestore...');
+    const snapshot = await getDocs(vendorsCollection);
+    const vendors = snapshot.docs.map(doc => sanitizeVendorData({ id: doc.id, ...doc.data() }));
+    console.log(`✅ Loaded ${vendors.length} vendors from Firestore database`);
+    return vendors;
+  } catch (error) {
+    console.error('❌ Error fetching vendors from Firestore:', error);
+>>>>>>> Stashed changes
     return [];
   } catch (error: any) {
     console.error('Error fetching vendors from backend:', error);
@@ -57,6 +67,7 @@ export const getVendors = async (): Promise<Vendor[]> => {
 
 export const getVendorsByCategory = async (category: string): Promise<Vendor[]> => {
   try {
+<<<<<<< Updated upstream
     console.log('Fetching vendors for category:', category);
     
     // Try both service_type and category parameters
@@ -76,6 +87,16 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
     }
     
     console.log('No vendors found in response');
+=======
+    console.log(`📊 Fetching ${category} vendors directly from Firestore...`);
+    const q = query(vendorsCollection, where('category', '==', category));
+    const snapshot = await getDocs(q);
+    const vendors = snapshot.docs.map(doc => sanitizeVendorData({ id: doc.id, ...doc.data() }));
+    console.log(`✅ Loaded ${vendors.length} ${category} vendors from Firestore database`);
+    return vendors;
+  } catch (error) {
+    console.error(`❌ Error fetching ${category} vendors from Firestore:`, error);
+>>>>>>> Stashed changes
     return [];
   } catch (error: any) {
     console.error('Error fetching vendors by category from backend:', error);

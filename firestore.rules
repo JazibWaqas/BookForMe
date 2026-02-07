@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get current user ID
+    function getUserId() {
+      return request.auth.uid;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && getUserId() == userId;
+    }
+    
+    // Helper function to get user document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(getUserId())).data;
+    }
+    
+    // Users Collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && isOwner(userId);
+      
+      // Users can create their own document during registration
+      allow create: if isAuthenticated() && isOwner(userId);
+      
+      // Users can update their own data
+      allow update: if isAuthenticated() && isOwner(userId);
+      
+      // Users cannot delete their own account (handle via backend)
+      allow delete: if false;
+    }
+    
+    // Vendors Collection
+    match /vendors/{vendorId} {
+      // Anyone authenticated can read vendors
+      allow read: if isAuthenticated();
+      
+      // Only the vendor owner can create/update their vendor document
+      allow create: if isAuthenticated() && 
+        (request.resource.data.user_id == getUserId() || 
+         request.resource.data.user_id == null);
+      
+      allow update: if isAuthenticated() && 
+        (resource.data.user_id == getUserId() || 
+         getUserData().role == 'vendor' && getUserData().vendor_id == vendorId);
+      
+      // Vendors cannot be deleted (handle via backend with status field)
+      allow delete: if false;
+    }
+    
+    // Bookings Collection
+    match /bookings/{bookingId} {
+      // Users can read their own bookings
+      // Vendors can read bookings for their vendor
+      allow read: if isAuthenticated() && (
+        resource.data.customer_phone == getUserData().phone ||
+        resource.data.vendor_id == getUserData().vendor_id ||
+        getUserData().role == 'admin'
+      );
+      
+      // Authenticated users can create bookings
+      allow create: if isAuthenticated() && 
+        request.resource.data.customer_phone == getUserData().phone;
+      
+      // Users can update their own bookings
+      // Vendors can update bookings for their vendor
+      allow update: if isAuthenticated() && (
+        resource.data.customer_phone == getUserData().phone ||
+        resource.data.vendor_id == getUserData().vendor_id
+      );
+      
+      // Only allow cancellation, not deletion
+      allow delete: if false;
+    }
+    
+    // Slots Collection
+    match /slots/{slotId} {
+      // Anyone authenticated can read available slots
+      allow read: if isAuthenticated();
+      
+      // Vendors can create slots for their vendor
+      allow create: if isAuthenticated() && 
+        (request.resource.data.vendor_id == getUserData().vendor_id ||
+         getUserData().role == 'admin');
+      
+      // Vendors can update slots for their vendor
+      // Users can update slots when booking (status change)
+      allow update: if isAuthenticated() && (
+        resource.data.vendor_id == getUserData().vendor_id ||
+        getUserData().role == 'admin' ||
+        (request.resource.data.status == 'confirmed' && 
+         resource.data.status == 'available')
+      );
+      
+      // Slots cannot be deleted (handle via status field)
+      allow delete: if false;
+    }
+    
+    // Services Collection
+    match /services/{serviceId} {
+      // Anyone authenticated can read services
+      allow read: if isAuthenticated();
+      
+      // Vendors can create/update services for their vendor
+      allow create, update: if isAuthenticated() && 
+        (request.resource.data.vendor_id == getUserData().vendor_id ||
+         getUserData().role == 'admin');
+      
+      allow delete: if false;
+    }
+    
+    // Conversation States Collection (for WhatsApp bot)
+    match /conversation_states/{phoneNumber} {
+      // Only backend can read/write conversation states
+      // Frontend doesn't need access to this
+      allow read, write: if false;
+    }
+    
+    // Social Posts Collection (if exists)
+    match /social_posts/{postId} {
+      // Anyone authenticated can read posts
+      allow read: if isAuthenticated();
+      
+      // Users can create posts
+      allow create: if isAuthenticated() && 
+        request.resource.data.user_id == getUserId();
+      
+      // Users can update/delete their own posts
+      allow update, delete: if isAuthenticated() && 
+        resource.data.user_id == getUserId();
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

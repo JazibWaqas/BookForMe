@@ -114,6 +114,53 @@ async def create_post(
     
     return PostResponse(**response_data)
 
+@router.post("/posts/{post_id}/like")
+async def toggle_like_post(
+    post_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Toggle like on a post - uses Firestore transaction for atomic operation"""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    post_ref = db.collection('posts').document(post_id)
+    
+    # Use transaction to ensure consistency
+    @firestore.transactional
+    def toggle_like_transaction(transaction):
+        snapshot = post_ref.get(transaction=transaction)
+        if not snapshot.exists:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        post_data = snapshot.to_dict()
+        likes = post_data.get('likes', [])
+        
+        if user_id in likes:
+            # Unlike
+            likes.remove(user_id)
+        else:
+            # Like
+            likes.append(user_id)
+        
+        # Update with new likes array and count
+        transaction.update(post_ref, {
+            'likes': likes,
+            'likes_count': len(likes)
+        })
+        
+        return {
+            "success": True,
+            "liked": user_id in likes,
+            "likes_count": len(likes),
+            "likes": likes
+        }
+    
+    # Execute transaction
+    transaction = db.transaction()
+    result = toggle_like_transaction(transaction)
+    
+    return result
+
 @router.get("/notifications", response_model=List[NotificationResponse])
 async def get_notifications(user_id: str = Query(...), limit: int = 50):
     """Get user notifications"""
@@ -222,7 +269,8 @@ async def create_comment(
 @router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
 async def get_comments(post_id: str):
     """Get comments for a post"""
-    comments_ref = db.collection('comments').where('post_id', '==', post_id).order_by('created_at', direction=firestore.Query.DESCENDING)
+    # FIXED: Remove order_by to avoid index requirement, sort in memory instead
+    comments_ref = db.collection('comments').where('post_id', '==', post_id)
     docs = comments_ref.stream()
     
     comments = []
@@ -233,39 +281,10 @@ async def get_comments(post_id: str):
             author=get_user_profile_social(data.get('user_id')),
             **data
         ))
+    
+    # Sort in memory by created_at (newest first)
+    comments.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
     return comments
-
-@router.post("/posts/{post_id}/like")
-async def like_post(post_id: str, user_id: str = Query(...)):
-    """Toggle like on a post"""
-    post_ref = db.collection('posts').document(post_id)
-    doc = post_ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Post not found")
-        
-    data = doc.to_dict()
-    likes = data.get('likes', [])
-    author_id = data.get('user_id')
-    
-    if user_id in likes:
-        # Unlike
-        likes.remove(user_id)
-    else:
-        # Like
-        likes.append(user_id)
-        # Hook: Gamification (Award author)
-        if author_id and author_id != user_id:
-             gamification_service.award_post_like(author_id)
-             # Hook: Notification
-             liker_profile = get_user_profile_social(user_id)
-             notification_service.notify_post_like(author_id, liker_profile.name, post_id)
-        
-    post_ref.update({
-        "likes": likes,
-        "likes_count": len(likes)
-    })
-    
-    return {"status": "success", "liked": user_id in likes, "count": len(likes)}
 
 # --- 1. Connections (Follow/Friend) ---
 # Note: Using a subcollection 'following' under users or a separate 'relationships' collection.

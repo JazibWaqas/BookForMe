@@ -24,6 +24,7 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+<<<<<<< Updated upstream
 
     try {
       const result = await authService.login(email, password);
@@ -70,6 +71,32 @@ export default function LoginScreen() {
     } finally {
       setGoogleLoading(false);
     }
+=======
+    
+    try {
+      const { authService } = await import('../../services/auth');
+      const result = await authService.login(email, password);
+      
+      if (result.success && result.user) {
+        // Store user role
+        await AsyncStorage.setItem('userRole', result.user.role);
+        
+        // Navigate based on role
+        if (result.user.role === 'vendor') {
+          router.replace('/vendor-dashboard');
+        } else {
+          router.replace('/(tabs)/home');
+        }
+      } else {
+        Alert.alert('Login Failed', result.error || 'Invalid email or password');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      Alert.alert('Error', error.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+>>>>>>> Stashed changes
   };
 
   return (
