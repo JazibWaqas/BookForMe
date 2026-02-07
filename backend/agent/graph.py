@@ -25,7 +25,8 @@ from agent.nodes import (
     execute_booking_node,
     generate_response_node,
     route_by_intent,
-    route_after_confirmation
+    route_after_confirmation,
+    route_after_availability
 )
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,14 @@ class BookingAgent:
             }
         )
         
-        self.workflow.add_edge("query_availability", "generate_response")
+        self.workflow.add_conditional_edges(
+            "query_availability",
+            route_after_availability,
+            {
+                "execute_booking": "execute_booking",
+                "generate_response": "generate_response"
+            }
+        )
         self.workflow.add_edge("query_info", "generate_response")
         
         self.workflow.add_conditional_edges(

@@ -1190,7 +1190,7 @@ REAL DATABASE AVAILABILITY DATA:
 Date: {date}
 Available Slots: 0 slots found
 
-The requested date/time has no available slots in the next 7 days. Apologize and suggest the user contact the venue directly.
+The requested date/time has no available slots in the next 7 days. Apologize and suggest trying another date or time. Do NOT ask the user to call or contact the venue.
 """
         elif availability_data and not availability_data.get("success"):
             availability_info = f"""
@@ -1235,6 +1235,11 @@ BOOKING FAILED:
         return f"""
             You are a friendly booking assistant for futsal courts and salons in Karachi.
 
+CRITICAL - NEVER do any of these:
+- Do NOT suggest the user to call, phone, or contact any number (including +92 or any digits).
+- Do NOT mention "contact directly", "call us", "phone number", or "reach out" for booking.
+- All booking is done in this chat only. Tell the user to type "Confirm [Slot ID]" to book a slot, or to send a payment screenshot here after locking a slot.
+
 Intent: {intent}
 Entities: {entities}
 Context: {context}
@@ -1245,8 +1250,8 @@ Generate a helpful, friendly response that:
 1. Matches the user's language style (Roman Urdu if they use "Aoa", "kal", "shaam" / English otherwise)
 2. Addresses the {intent} intent directly
 3. Uses the extracted entities naturally: {entities}
-4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
-5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot here in chat. Do NOT suggest calling any number or contacting by phone." if booking_info and "LOCKED" in booking_info else ""}
+4. {"Presents the REAL availability data from database clearly. End by asking them to type Confirm [Slot ID] to book." if availability_info else "Guides the user to provide missing information (date/time) or to type Confirm [Slot ID] to book."}
+5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot here in chat." if booking_info and "LOCKED" in booking_info else ""}
 6. {"If BOOKING CONFIRMED: Confirm the booking with the booking ID and thank the customer" if booking_info and "CONFIRMED" in booking_info else ""}
 7. {"If booking failed: Apologize and suggest trying again or selecting a different slot" if booking_info and "FAILED" in booking_info else ""}
 
@@ -1255,6 +1260,7 @@ Response Guidelines:
 - Length: 2-4 sentences (be concise)
 - Format: Use emojis sparingly (✅ 📅 ⏰ 💰)
 - Language: Match user's style exactly
+- NEVER suggest calling or contacting any phone number. Booking is only in this chat.
 - CRITICAL - Urdu Language Requirement: When responding in Roman Urdu, use ONLY Urdu vocabulary and grammar. Strictly avoid Hindi words. Examples:
   * Use "hai" (Urdu) NOT "hain" (Hindi)
   * Use "mujhe" (Urdu) NOT "mujhko" (Hindi) 

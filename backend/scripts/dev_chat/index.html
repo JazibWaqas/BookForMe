@@ -165,7 +165,6 @@
             display: inline-block;
             margin-left: 3px;
             color: #53bdeb;
-            /* Blue ticks */
         }
 
         .input-area {
@@ -198,7 +197,6 @@
             color: var(--accent);
         }
 
-        /* Loading indicator */
         .typing-indicator {
             display: none;
             padding: 10px;
@@ -262,7 +260,6 @@
         </header>
 
         <div id="chat-container">
-            <!-- Messages will appear here -->
             <div class="typing-indicator" id="typing-indicator">
                 <div class="typing-dots">
                     <div class="dot"></div>
@@ -283,28 +280,25 @@
 
     <script>
         const API_URL = '/dev-api';
-        const PHONE_NUMBER = '+923001234567'; // Consistent with backend default
+        const PHONE_NUMBER = '+923001234567';
 
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const imageInput = document.getElementById('image-input');
         const typingIndicator = document.getElementById('typing-indicator');
 
-        // Focus input on load
         messageInput.focus();
 
-        // Handle Enter key
         messageInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
 
-        // Handle Image Selection
         imageInput.addEventListener('change', function () {
             if (this.files && this.files[0]) {
                 uploadImage(this.files[0]);
-                this.value = ''; // Reset input
+                this.value = '';
             }
         });
 
@@ -319,7 +313,7 @@
 
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
-            contentDiv.innerText = text; // Secure text insertion
+            contentDiv.innerText = text;
 
             const timeDiv = document.createElement('div');
             timeDiv.classList.add('message-time');
@@ -333,7 +327,6 @@
             msgDiv.appendChild(contentDiv);
             msgDiv.appendChild(timeDiv);
 
-            // Insert before typing indicator
             chatContainer.insertBefore(msgDiv, typingIndicator);
             scrollToBottom();
         }
@@ -353,50 +346,58 @@
             document.getElementById('header-status').innerText = 'online';
         }
 
+        const CHAT_TIMEOUT_MS = 60000;
+
         async function sendMessage() {
             const text = messageInput.value.trim();
             if (!text) return;
 
-            // Clear input
             messageInput.value = '';
-
-            // Add user message
             addMessage(text, 'outgoing');
-
-            // Show typing
             showTyping();
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
 
             try {
                 const response = await fetch(`${API_URL}/chat`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: text,
-                        phone_number: PHONE_NUMBER
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, phone_number: PHONE_NUMBER }),
+                    signal: controller.signal
                 });
 
-                const data = await response.json();
+                clearTimeout(timeoutId);
+                let data;
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    hideTyping();
+                    addMessage('Server returned an invalid response. Try again.', 'incoming');
+                    return;
+                }
 
                 hideTyping();
-
                 if (response.ok) {
                     addMessage(data.response, 'incoming');
                 } else {
                     addMessage(`Error: ${data.detail || 'Failed to send message'}`, 'incoming');
                 }
-
             } catch (error) {
+                clearTimeout(timeoutId);
                 hideTyping();
-                addMessage(`Network Error: ${error.message}`, 'incoming');
+                if (error.name === 'AbortError') {
+                    addMessage('Request took too long. Check that the backend is running and try again.', 'incoming');
+                } else if (error.message && error.message.toLowerCase().includes('fetch')) {
+                    addMessage('Could not reach the server. Make sure the backend is running (e.g. python scripts/chat_web.py) and try again.', 'incoming');
+                } else {
+                    addMessage(`Network Error: ${error.message}`, 'incoming');
+                }
                 console.error('Error:', error);
             }
         }
 
         async function uploadImage(file) {
-            // Add image message placeholder (simplified for now)
             addMessage(`[Sending Image: ${file.name}]`, 'outgoing');
             showTyping();
 
@@ -436,7 +437,7 @@
 
                 if (response.ok) {
                     chatContainer.innerHTML = '';
-                    chatContainer.appendChild(typingIndicator); // Restore typing indicator structure
+                    chatContainer.appendChild(typingIndicator);
                     addMessage('Conversation history cleared.', 'incoming');
                 } else {
                     alert('Failed to clear history');
@@ -447,11 +448,7 @@
             }
         }
 
-        // Initial Greeting
-        setTimeout(() => {
-            // addMessage("👋 Hi! I'm your local agent environment. How can I help you testing today?", 'incoming');
-        }, 500);
-
+        setTimeout(() => {}, 500);
     </script>
 </body>
 
