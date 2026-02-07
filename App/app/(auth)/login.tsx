@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,6 +31,9 @@ export default function LoginScreen() {
 
       if (result.success && result.user && result.token) {
         const userRole = result.user.role || 'customer';
+
+        // Store user role for session persistence
+        await AsyncStorage.setItem('userRole', userRole);
 
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
@@ -70,32 +74,6 @@ export default function LoginScreen() {
     } finally {
       setGoogleLoading(false);
     }
-=======
-
-    try {
-      const { authService } = await import('../../services/auth');
-      const result = await authService.login(email, password);
-
-      if (result.success && result.user) {
-        // Store user role
-        await AsyncStorage.setItem('userRole', result.user.role);
-
-        // Navigate based on role
-        if (result.user.role === 'vendor') {
-          router.replace('/vendor-dashboard');
-        } else {
-          router.replace('/(tabs)/home');
-        }
-      } else {
-        Alert.alert('Login Failed', result.error || 'Invalid email or password');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
->>>>>>> Stashed changes
   };
 
   return (
