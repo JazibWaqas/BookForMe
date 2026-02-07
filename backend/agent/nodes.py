@@ -911,7 +911,7 @@ def _format_availability_response(query_result: Dict[str, Any]) -> Optional[str]
         return None
     date = query_result.get("date", "")
     sport = query_result.get("sport_type", "padel")
-    area = query_result.get("area", "DHA")
+    area = query_result.get("area") or "Karachi"
     parts = [f"📅 {date} ko {area} me **{sport}** ke {sum(len(v.get('slots', [])) for v in vendors)} slot hai:\n"]
     for v in vendors:
         name = v.get("vendor_name", "Vendor")

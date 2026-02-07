@@ -34,21 +34,36 @@ router = APIRouter(
 # Local alias for brevity
 db = firestore_db.db
 
+import asyncio
+from app.cache import cache
+
 # --- Helpers ---
 
-def get_user_profile_social(user_id: str) -> UserProfileSocial:
-    """Helper to fetch minimal user profile for social display"""
-    doc = db.collection('users').document(user_id).get()
+async def get_user_profile_social(user_id: str) -> UserProfileSocial:
+    """Helper to fetch minimal user profile for social display (Cached)"""
+    cache_key = f"social:profile:{user_id}"
+    cached_profile = cache.get(cache_key)
+    
+    if cached_profile:
+        return cached_profile
+
+    doc = await asyncio.to_thread(db.collection('users').document(user_id).get)
+    
     if not doc.exists:
-        return UserProfileSocial(id=user_id, name="Unknown User")
-    data = doc.to_dict()
-    return UserProfileSocial(
-        id=user_id,
-        name=data.get('name', 'Unknown'),
-        avatar_url=data.get('avatar_url'),
-        rank=data.get('rank', 0),
-        points=data.get('points', 0)
-    )
+        profile = UserProfileSocial(id=user_id, name="Unknown User")
+    else:
+        data = doc.to_dict()
+        profile = UserProfileSocial(
+            id=user_id,
+            name=data.get('name', 'Unknown'),
+            avatar_url=data.get('avatar_url'),
+            rank=data.get('rank', 0),
+            points=data.get('points', 0)
+        )
+    
+    # Cache for 15 minutes
+    cache.set(cache_key, profile, ttl_seconds=900)
+    return profile
 
 # --- Uploads ---
 UPLOAD_DIR = Path("uploads/social")
@@ -91,7 +106,9 @@ async def create_post(
     user_id: str = Depends(get_current_user_id)
 ):
     """Create a new social post"""
+    # doc_ref = db.collection('posts').document() # Sync call
     doc_ref = db.collection('posts').document()
+    
     post_data = post.dict()
     post_data['user_id'] = user_id
     post_data['created_at'] = firestore.SERVER_TIMESTAMP
@@ -100,17 +117,18 @@ async def create_post(
     post_data['comments_count'] = 0
     post_data['likes'] = [] # List of user_ids who liked
     
-    doc_ref.set(post_data)
+    await asyncio.to_thread(doc_ref.set, post_data)
     
     # Hook: Gamification
-    gamification_service.award_post_creation(user_id)
+    # gamification_service.award_post_creation(user_id) # Make async if possible or wrap
+    await asyncio.to_thread(gamification_service.award_post_creation, user_id)
     
     # Prepare response data
     response_data = post_data.copy()
     response_data['id'] = doc_ref.id
     response_data['created_at'] = datetime.now()
     response_data['updated_at'] = datetime.now()
-    response_data['author'] = get_user_profile_social(user_id)
+    response_data['author'] = await get_user_profile_social(user_id)
     
     return PostResponse(**response_data)
 
@@ -130,7 +148,8 @@ async def toggle_like_post(
     def toggle_like_transaction(transaction):
         snapshot = post_ref.get(transaction=transaction)
         if not snapshot.exists:
-            raise HTTPException(status_code=404, detail="Post not found")
+            # Check if we should raise inside transaction (usually safe)
+             return None # Signal not found
         
         post_data = snapshot.to_dict()
         likes = post_data.get('likes', [])
@@ -147,27 +166,31 @@ async def toggle_like_post(
             'likes': likes,
             'likes_count': len(likes)
         })
-        
-        return {
-            "success": True,
-            "liked": user_id in likes,
-            "likes_count": len(likes),
-            "likes": likes
-        }
-    
+        return likes
+
     # Execute transaction
     transaction = db.transaction()
-    result = toggle_like_transaction(transaction)
+    likes = await asyncio.to_thread(toggle_like_transaction, transaction)
     
-    return result
+    if likes is None:
+         raise HTTPException(status_code=404, detail="Post not found")
+    
+    return {
+        "success": True,
+        "liked": user_id in likes,
+        "likes_count": len(likes),
+        "likes": likes
+    }
 
 @router.get("/notifications", response_model=List[NotificationResponse])
 async def get_notifications(user_id: str = Query(...), limit: int = 50):
     """Get user notifications"""
     # Query without order_by to avoid Firestore composite index requirement
-    docs = db.collection('notifications')\
-             .where('user_id', '==', user_id)\
-             .stream()
+    # docs = db.collection('notifications').where('user_id', '==', user_id).stream()
+    
+    docs = await asyncio.to_thread(
+        lambda: list(db.collection('notifications').where('user_id', '==', user_id).stream())
+    )
     
     notifications = []
     for doc in docs:
@@ -184,11 +207,16 @@ async def get_posts_feed(
     type: Optional[str] = None,
     media_only: bool = False
 ):
-    """Get recent posts with filters"""
-    # Query without order_by to avoid Firestore composite index requirement
-    docs = db.collection('posts').stream()
+    """Get recent posts with filters - Optimized with Parallel Fetching"""
+    # Optimized ref: get all docs first (limit 50 to allow for extensive client filtering if needed, or just fetch all for now and limit in memory)
+    # Ideally use .order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
+    # But that might require index. Let's try raw stream and efficient parallel fetch
     
-    posts = []
+    docs = await asyncio.to_thread(lambda: list(db.collection('posts').stream()))
+    
+    posts_data = []
+    
+    # First pass: Filter and basic processing
     for doc in docs:
         data = doc.to_dict()
         
@@ -197,28 +225,39 @@ async def get_posts_feed(
             if data.get('type') != type:
                 continue
         
-        # Client side filters (due to Firestore limitations or simplicity)
+        # Client side filters 
         if media_only and not (data.get('image_url') or data.get('audio_url')):
             continue
             
-        author_id = data.get('user_id')
-        author = get_user_profile_social(author_id) if author_id else None
-        
-        # Ensure required fields have defaults
+        # Ensure required fields
         if 'created_at' not in data or data['created_at'] is None:
             data['created_at'] = datetime.now()
         if 'updated_at' not in data or data['updated_at'] is None:
             data['updated_at'] = data.get('created_at', datetime.now())
-        
-        posts.append(PostResponse(
-            id=doc.id,
-            author=author,
-            **data
-        ))
+            
+        posts_data.append({'id': doc.id, **data})
+
+    # Sort in memory by created_at descending BEFORE fetching authors (to limit fetches)
+    posts_data.sort(key=lambda x: x['created_at'] if x.get('created_at') else datetime.min, reverse=True)
     
-    # Sort in memory by created_at descending
-    posts.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
-    return posts[:limit]
+    # Apply limit
+    posts_data = posts_data[:limit]
+
+    # Second pass: Fetch authors in parallel for ONLY the posts we return
+    async def process_post(data):
+        author_id = data.get('user_id')
+        author = await get_user_profile_social(author_id) if author_id else None
+        
+        return PostResponse(
+            id=data['id'],
+            author=author,
+            **{k: v for k, v in data.items() if k != 'id'}
+        )
+    
+    # Execute all profile fetches concurrently
+    posts = await asyncio.gather(*(process_post(p) for p in posts_data))
+    
+    return posts
 
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse)
 async def create_comment(
@@ -262,7 +301,7 @@ async def create_comment(
         
     return CommentResponse(
         id=doc_ref.id,
-        author=get_user_profile_social(user_id),
+        author=await get_user_profile_social(user_id),
         **comment_data
     )
 
@@ -271,16 +310,18 @@ async def get_comments(post_id: str):
     """Get comments for a post"""
     # FIXED: Remove order_by to avoid index requirement, sort in memory instead
     comments_ref = db.collection('comments').where('post_id', '==', post_id)
-    docs = comments_ref.stream()
+    docs = await asyncio.to_thread(lambda: list(comments_ref.stream()))
     
-    comments = []
-    for doc in docs:
+    async def process_comment(doc):
         data = doc.to_dict()
-        comments.append(CommentResponse(
+        return CommentResponse(
             id=doc.id,
-            author=get_user_profile_social(data.get('user_id')),
+            author=await get_user_profile_social(data.get('user_id')),
             **data
-        ))
+        )
+
+    # Fetch all authors in parallel
+    comments = await asyncio.gather(*(process_comment(doc) for doc in docs))
     
     # Sort in memory by created_at (newest first)
     comments.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)

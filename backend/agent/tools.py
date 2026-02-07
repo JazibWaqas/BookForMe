@@ -67,7 +67,7 @@ async def check_availability(
 
         # Step 2: For each matching vendor, get their services and available slots
         vendors_data = []
-        for vendor_id in list(matching_vendor_ids)[:3]:  # Limit to 3 vendors as requested
+        for vendor_id in list(matching_vendor_ids)[:15]:
             try:
                 # Get vendor details
                 vendor = await fs_client.get_vendor(vendor_id)
@@ -161,7 +161,7 @@ async def check_availability(
             "success": True,
             "date": date,
             "sport_type": sport_type,
-            "area": area,
+            "area": area or "Karachi",
             "vendors": vendors_data,
             "total_vendors": len(vendors_data)
         }

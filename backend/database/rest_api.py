@@ -630,74 +630,105 @@ async def submit_payment(payment_data: PaymentRequest, user_id: str = Depends(ge
 @router.get("/bookings")
 async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
     """
-    Get all bookings for the current user
-    
-    Args:
-        user_id: User ID (from JWT token)
-        
-    Returns:
-        List of user bookings
+    Get all bookings for the current user (Optimized)
     """
     try:
         logger.info(f"Getting bookings for user {user_id}")
         
+        # 1. Fetch all slots (bookings)
         slots_query = firestore_db.db.collection('slots').where('user_id', '==', user_id)
-        slots_docs = slots_query.stream()
+        # slots_docs = slots_query.stream() # Blocking
+        import asyncio
+        slots_docs = await asyncio.to_thread(lambda: list(slots_query.stream()))
         
-        bookings = []
+        booking_statuses = ['locked', 'pending', 'confirmed', 'completed', 'cancelled']
+        
+        # Filter relevant slots first
+        relevant_slots = []
         for doc in slots_docs:
-            slot_data = doc.to_dict()
-            slot_data['id'] = doc.id
+            data = doc.to_dict()
+            if data.get('status') in booking_statuses:
+                relevant_slots.append((doc.id, data))
+
+        # 2. Parallel Processing Helper
+        from app.cache import DataCache, cache
+
+        async def get_vendor_cached(vendor_id):
+            if not vendor_id: return None
+            # Try specific vendor cache
+            cache_key = f"vendor:{vendor_id}"
+            cached = cache.get(cache_key)
+            if cached: return cached
             
-            booking_statuses = ['locked', 'pending', 'confirmed', 'completed', 'cancelled']
-            if slot_data.get('status') in booking_statuses:
-                vendor = None
-                if slot_data.get('vendor_id'):
-                    vendor = await firestore_v2.get_vendor(slot_data.get('vendor_id'))
-                
-                payment = None
-                if slot_data.get('payment_id'):
-                    payment_doc = firestore_db.db.collection('payments').document(slot_data.get('payment_id')).get()
-                    if payment_doc.exists:
-                        payment = payment_doc.to_dict()
-                
-                # Format timestamps to strings
-                start_time = slot_data.get('start_time')
-                end_time = slot_data.get('end_time')
-                
-                logger.info(f"Slot {doc.id}: start_time type={type(start_time)}, value={start_time}")
-                
-                # Convert Firestore timestamps to time strings (HH:MM format)
-                time_str = None
-                if start_time:
-                    if hasattr(start_time, 'strftime'):
-                        time_str = start_time.strftime('%H:%M')
-                    elif isinstance(start_time, str):
-                        time_str = start_time
-                
-                start_time_str = None
-                end_time_str = None
-                if start_time:
-                    if hasattr(start_time, 'isoformat'):
-                        start_time_str = start_time.isoformat()
-                    elif isinstance(start_time, str):
-                        start_time_str = start_time
-                        
-                if end_time:
-                    if hasattr(end_time, 'isoformat'):
-                        end_time_str = end_time.isoformat()
-                    elif isinstance(end_time, str):
-                        end_time_str = end_time
-                
-                logger.info(f"Formatted time_str={time_str}, start_time_str={start_time_str}")
-                
-                booking = {
-                    'id': doc.id,
-                    'slot_id': doc.id,
-                    'vendor_id': slot_data.get('vendor_id'),
-                    'date': slot_data.get('date'),
-                    'time': time_str,
-                    'start_time': start_time_str,
+            # Fetch and cache
+            v = await firestore_v2.get_vendor(vendor_id)
+            if v: cache.set(cache_key, v, ttl_seconds=300)
+            return v
+
+        async def process_booking(slot_id, slot_data):
+            # Parallel fetch of dependencies
+            vendor_task = get_vendor_cached(slot_data.get('vendor_id'))
+            payment_task = asyncio.to_thread(
+                lambda: firestore_db.db.collection('payments').document(slot_data.get('payment_id')).get()
+            ) if slot_data.get('payment_id') else asyncio.sleep(0) # No-op task
+
+            vendor, payment_doc = await asyncio.gather(vendor_task, payment_task)
+            
+            payment = None
+            if slot_data.get('payment_id') and hasattr(payment_doc, 'exists') and payment_doc.exists:
+                payment = payment_doc.to_dict()
+
+            # Format timestamps
+            start_time = slot_data.get('start_time')
+            end_time = slot_data.get('end_time')
+            
+            # Helper to safely format time
+            def safe_format_time(t, fmt='%H:%M'):
+                 if hasattr(t, 'strftime'): return t.strftime(fmt)
+                 if isinstance(t, str): return t
+                 return None
+            
+            def safe_iso(t):
+                if hasattr(t, 'isoformat'): return t.isoformat()
+                if isinstance(t, str): return t
+                return None
+
+            time_str = safe_format_time(start_time)
+            start_time_str = safe_iso(start_time)
+            end_time_str = safe_iso(end_time)
+            
+            return {
+                'id': slot_id,
+                'slot_id': slot_id,
+                'vendor_id': slot_data.get('vendor_id'),
+                'date': slot_data.get('date'),
+                'time': time_str,
+                'start_time': start_time_str,
+                'end_time': end_time_str,
+                'duration': slot_data.get('duration', 60),
+                'price': slot_data.get('price'),
+                'status': slot_data.get('status'),
+                'resource_name': slot_data.get('resource_name'),
+                'service_name': slot_data.get('service_name'),
+                'vendor_name': vendor.get('businessName') if vendor else 'Unknown Vendor',
+                'vendor_address': vendor.get('address') if vendor else '',
+                'payment': payment
+            }
+
+        # 3. Execute Parallel Processing
+        bookings = await asyncio.gather(*(process_booking(sid, sdata) for sid, sdata in relevant_slots))
+        
+        # Sort by date/time (descending)
+        bookings.sort(key=lambda x: (x.get('date') or '', x.get('time') or ''), reverse=True)
+        
+        return bookings
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user bookings: {e}")
+        # Return empty list instead of error for resilience
+        return []
                     'end_time': end_time_str,
                     'status': slot_data.get('status'),
                     'amount': slot_data.get('price', 0),

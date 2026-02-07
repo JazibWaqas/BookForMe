@@ -14,7 +14,51 @@ export const queryKeys = {
         all: ['slots'] as const,
         byVendor: (vendorId: string, date: string) => ['slots', vendorId, date] as const,
     },
+    social: {
+        feed: (type: string) => ['social', 'feed', type] as const,
+        matches: (sport: string) => ['social', 'matches', sport] as const,
+        leaderboard: ['social', 'leaderboard'] as const,
+        chats: ['social', 'chats'] as const,
+    }
 };
+
+// ... existing vendor hooks ...
+
+// --- Social Hooks ---
+
+export function useSocialFeed(type: string = 'all') {
+    return useQuery({
+        queryKey: queryKeys.social.feed(type),
+        queryFn: async () => {
+            const { SocialService } = await import('../services/social');
+            return SocialService.getFeed(20, type); // Fetch 20 posts
+        },
+        staleTime: 1000 * 60, // 1 minute stale time (show cached instantly)
+    });
+}
+
+export function useSocialMatches(sport: string = 'all') {
+    return useQuery({
+        queryKey: queryKeys.social.matches(sport),
+        queryFn: async () => {
+            const { SocialService } = await import('../services/social');
+            return SocialService.getMatches(sport);
+        },
+        staleTime: 1000 * 60 * 2, // 2 minutes stale time
+    });
+}
+
+export function useSocialLeaderboard() {
+    return useQuery({
+        queryKey: queryKeys.social.leaderboard,
+        queryFn: async () => {
+            const { SocialService } = await import('../services/social');
+            return SocialService.getLeaderboard();
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes stale time
+    });
+}
+
 
 // Hook to fetch all vendors
 export function useVendors() {
