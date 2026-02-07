@@ -518,14 +518,15 @@ async def query_availability_node(state: AgentState) -> AgentState:
         
         has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
         
+        user_gave_date = bool(entities.get("date"))
         should_search_alternatives = (
             not has_slots and (
+                user_gave_date or
                 "koi bhi date" in last_message or 
                 "any date" in last_message or
                 "konsey din" in last_message or
                 "alternative" in last_message or
-                "dosri date" in last_message or
-                intent == "inquiry"
+                "dosri date" in last_message
             )
         )
         
@@ -669,20 +670,20 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
         negative = ["no", "nahi", "cancel", "nope", "mat karo", "ruko", "stop", "nope"]
         modify = ["change", "modify", "actually", "instead", "different", "wait"]
         
-        if any(word in last_message for word in positive) or intent == "confirmation":
-            state["user_confirmed"] = True
-            state["confirmation_action"] = "proceed"
-            logger.info("User confirmed booking")
-        elif any(word in last_message for word in negative) or intent == "cancellation":
+        if any(word in last_message for word in negative):
             state["user_confirmed"] = False
             state["confirmation_action"] = "cancel"
             state["awaiting_confirmation"] = False
             state["pending_booking"] = None
             logger.info("User cancelled booking")
-        elif any(word in last_message for word in modify) or intent == "modification":
+        elif any(word in last_message for word in modify):
             state["user_confirmed"] = False
             state["confirmation_action"] = "modify"
             logger.info("User wants to modify")
+        elif any(word in last_message for word in positive) or intent == "transaction":
+            state["user_confirmed"] = True
+            state["confirmation_action"] = "proceed"
+            logger.info("User confirmed booking")
         else:
             state["user_confirmed"] = None
             state["confirmation_action"] = "clarify"
@@ -860,6 +861,30 @@ async def generate_response_node(state: AgentState) -> AgentState:
             if slots_text:
                 state["response"] = slots_text
                 return state
+
+        if not booking_result and query_result and query_result.get("success") and not query_result.get("vendors"):
+            sport = query_result.get("sport_type", "padel")
+            date = query_result.get("date", "")
+            area = query_result.get("area") or "Karachi"
+            missing = state.get("missing_fields") or []
+            if "date" in missing or not entities.get("date"):
+                state["response"] = (
+                    f"Aaj ({date}) {area} me **{sport}** ke koi available slot nahi hai. "
+                    "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
+                )
+            else:
+                next_date = query_result.get("next_available_date")
+                if next_date:
+                    state["response"] = (
+                        f"{date} ko {area} me **{sport}** ke slot nahi milay, "
+                        f"lekin {next_date} ko available hain. Dekhoon?"
+                    )
+                else:
+                    state["response"] = (
+                        f"{date} ko {area} me **{sport}** ke koi slot available nahi. "
+                        "Koi aur date try karein ya area change karein."
+                    )
+            return state
 
         context = {
             "query_result": query_result,
