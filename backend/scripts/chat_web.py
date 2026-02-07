@@ -1,6 +1,6 @@
 """
 Web Chat for Testing LangGraph Agent (Standalone)
-Mimics chat_terminal.py but uses a Web UI (backend/app/static/dev_chat/index.html).
+Mimics chat_terminal.py but uses a Web UI (backend/scripts/dev_chat/index.html).
 
 Run with:
     python scripts/chat_web.py
@@ -154,17 +154,15 @@ async def upload_image(
 
 
 # --- Static Files ---
-# Serve the specific static directory where index.html is located
-static_path = os.path.join(backend_dir, "app", "static")
-if os.path.exists(static_path):
-    app.mount("/static", StaticFiles(directory=static_path), name="static")
+dev_chat_path = os.path.join(script_dir, "dev_chat")
+if os.path.exists(dev_chat_path):
+    app.mount("/static", StaticFiles(directory=dev_chat_path), name="static")
 else:
-    logger.warning(f"Static directory not found at {static_path}")
+    logger.warning(f"Dev chat directory not found at {dev_chat_path}")
 
-# Redirect root to the chat UI
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/static/dev_chat/index.html")
+    return RedirectResponse(url="/static/index.html")
 
 # --- Main Entry Point ---
 if __name__ == "__main__":

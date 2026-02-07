@@ -159,6 +159,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - `backend/database/rest_api.py` - REST API endpoints
 - `backend/nlu/agent.py` - Groq (Qwen 3 32B) NLU integration
 - `backend/whatsapp/webhook.py` - WhatsApp webhook handler
+- `backend/scripts/dev_chat/index.html` - Dev chat UI for testing the agent (run: `python backend/scripts/chat_web.py`)
 
 ### 🗄️ Database (`backend/database/`)
 - **`backend/database/DATABASE_DOCUMENTATION.md`** - Complete schema reference (1100+ lines)

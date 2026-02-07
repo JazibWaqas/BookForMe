@@ -180,9 +180,22 @@ def extract_slot_from_time_data(time_data: Any) -> Optional[Dict[str, str]]:
 
 
 def extract_slot_from_message(message: str) -> Optional[Dict[str, str]]:
-    """Extract slot directly from message text"""
-    msg_lower = message.lower()
-    
+    """Extract slot directly from message text (including explicit slot IDs)"""
+    msg = message.strip()
+    msg_lower = msg.lower()
+    slot_id_pattern = r"\b(\d{8}_\d{4}_[a-z0-9_]+)\b"
+    slot_id_match = re.search(slot_id_pattern, msg_lower)
+    if slot_id_match:
+        raw_id = slot_id_match.group(1)
+        parts = raw_id.split("_")
+        if len(parts) >= 3:
+            time_part = parts[1]
+            hour = int(time_part[:2])
+            minute = int(time_part[2:]) if len(time_part) > 2 else 0
+            slot_time = f"{hour:02d}:{minute:02d}"
+            end_hour = (hour + 1) % 24
+            end_time = f"{end_hour:02d}:{minute:02d}"
+            return {"slot_id": raw_id, "slot_time": slot_time, "end_time": end_time}
     am_pm_pattern = r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)"
     am_pm_match = re.search(am_pm_pattern, msg_lower)
     if am_pm_match:
@@ -408,6 +421,38 @@ async def validate_state_node(state: AgentState) -> AgentState:
 # NODE 5: QUERY AVAILABILITY
 # =============================================================================
 
+def date_from_slot_id(slot_id: str) -> Optional[str]:
+    """Parse YYYY-MM-DD from slot ID like 20260208_0900_ace_3."""
+    if not slot_id or "_" not in slot_id:
+        return None
+    parts = slot_id.strip().split("_")
+    if len(parts) < 2:
+        return None
+    date_part = parts[0]
+    if len(date_part) != 8 or not date_part.isdigit():
+        return None
+    try:
+        y, m, d = int(date_part[:4]), int(date_part[4:6]), int(date_part[6:8])
+        if 1 <= m <= 12 and 1 <= d <= 31:
+            return f"{y:04d}-{m:02d}-{d:02d}"
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def find_slot_by_id(slot_id: str, vendors: List[Dict]) -> Optional[Dict]:
+    """Find exact slot by slot_id in query results."""
+    if not slot_id:
+        return None
+    slot_id_lower = slot_id.lower().strip()
+    for vendor in vendors:
+        for slot in vendor.get("slots", []):
+            sid = (slot.get("slot_id") or slot.get("id") or "").lower()
+            if sid == slot_id_lower:
+                return {**slot, "vendor_id": vendor.get("vendor_id")}
+    return None
+
+
 def match_slot_from_results(user_slot_time: str, vendors: List[Dict]) -> Optional[Dict]:
     """
     Find a matching slot from query results based on user's selected time.
@@ -415,18 +460,18 @@ def match_slot_from_results(user_slot_time: str, vendors: List[Dict]) -> Optiona
     """
     user_time = user_slot_time.strip()
     user_hour = user_time.split(":")[0] if ":" in user_time else user_time
-    
+
     for vendor in vendors:
         for slot in vendor.get("slots", []):
             db_time = slot.get("slot_time", "")
             db_hour = db_time.split(":")[0] if ":" in db_time else db_time
-            
+
             if db_time == user_time:
                 return {**slot, "vendor_id": vendor.get("vendor_id")}
-            
+
             if db_hour == user_hour:
                 return {**slot, "vendor_id": vendor.get("vendor_id")}
-    
+
     return None
 
 
@@ -443,6 +488,13 @@ async def query_availability_node(state: AgentState) -> AgentState:
         service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
         area = entities.get("area") or "DHA"
         date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
+        user_selected_for_date = state.get("selected_slot")
+        if user_selected_for_date and (user_selected_for_date.get("slot_id") or user_selected_for_date.get("id")):
+            parsed = date_from_slot_id(user_selected_for_date.get("slot_id") or user_selected_for_date.get("id") or "")
+            if parsed:
+                date = parsed
+                state["selected_date"] = parsed
+                logger.info(f"Using date from slot ID: {date}")
         time_range = entities.get("time_range")
         
         logger.info(f"Checking availability: {service_type} in {area} on {date}")
@@ -487,19 +539,24 @@ async def query_availability_node(state: AgentState) -> AgentState:
         
         has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
         user_selected = state.get("selected_slot")
-        
-        if has_slots and user_selected:
-            user_slot_time = user_selected.get("slot_time", "")
-            logger.info(f"User selected time: '{user_slot_time}'")
-            
-            # Log what we are matching against
-            available_times = []
-            for v in query_result.get("vendors", []):
-                for s in v.get("slots", []):
-                    available_times.append(s.get("slot_time"))
-            logger.info(f"Available slot times in results: {available_times}")
 
-            matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
+        if has_slots and user_selected:
+            explicit_slot_id = user_selected.get("slot_id") or user_selected.get("id")
+            if explicit_slot_id:
+                matched_slot = find_slot_by_id(explicit_slot_id, query_result["vendors"])
+                if matched_slot:
+                    logger.info(f"Matched slot by ID: {explicit_slot_id}")
+            else:
+                matched_slot = None
+            if not matched_slot:
+                user_slot_time = user_selected.get("slot_time", "")
+                logger.info(f"User selected time: '{user_slot_time}'")
+                available_times = []
+                for v in query_result.get("vendors", []):
+                    for s in v.get("slots", []):
+                        available_times.append(s.get("slot_time"))
+                logger.info(f"Available slot times in results: {available_times}")
+                matched_slot = match_slot_from_results(user_slot_time, query_result["vendors"])
             
             if matched_slot:
                 slot_id = matched_slot.get("slot_id", "")
@@ -782,7 +839,13 @@ async def generate_response_node(state: AgentState) -> AgentState:
         if booking_result and booking_result.get("success") and booking_result.get("status") == "locked" and booking_result.get("message"):
             state["response"] = booking_result["message"]
             return state
-        
+
+        if not booking_result and query_result and query_result.get("success") and query_result.get("vendors"):
+            slots_text = _format_availability_response(query_result)
+            if slots_text:
+                state["response"] = slots_text
+                return state
+
         context = {
             "query_result": query_result,
             "booking_result": booking_result,
@@ -824,6 +887,30 @@ async def generate_response_node(state: AgentState) -> AgentState:
             state["response"] = "Sorry, I encountered an error. Please try again."
         
         return state
+
+
+def _format_availability_response(query_result: Dict[str, Any]) -> Optional[str]:
+    """Format availability as deterministic text. No LLM, no phone/contact suggestions."""
+    vendors = query_result.get("vendors") or []
+    if not vendors:
+        return None
+    date = query_result.get("date", "")
+    sport = query_result.get("sport_type", "padel")
+    area = query_result.get("area", "DHA")
+    parts = [f"📅 {date} ko {area} me **{sport}** ke {sum(len(v.get('slots', [])) for v in vendors)} slot hai:\n"]
+    for v in vendors:
+        name = v.get("vendor_name", "Vendor")
+        address = v.get("vendor_address", "")
+        parts.append(f"\n**{name}** ({address})")
+        for slot in v.get("slots", [])[:8]:
+            time_disp = slot.get("time_display") or f"{slot.get('slot_time', '')}-{slot.get('end_time', '')}"
+            price = slot.get("price", 0)
+            sid = slot.get("slot_id", "")
+            if sid:
+                parts.append(f"   - {time_disp} (Rs {price}) ID: {sid}")
+        parts.append("")
+    parts.append('"Confirm [Slot ID]" likh ke booking karayen! ⏰✅')
+    return "\n".join(parts).strip()
 
 
 def generate_fallback_response(state: AgentState) -> str:
@@ -868,6 +955,22 @@ def route_by_intent(state: AgentState) -> str:
         return "check_confirmation"
     else:
         return "generate_response"
+
+
+def route_after_availability(state: AgentState) -> str:
+    """Route after availability query. Skip straight to execute_booking
+    when the user already said 'confirm [slot_id]' and we matched the slot."""
+    intent = state.get("current_intent", "")
+    pending = state.get("pending_booking")
+    has_slot_id = pending and pending.get("slot_id")
+
+    if intent == "confirmation" and has_slot_id:
+        state["user_confirmed"] = True
+        state["confirmation_action"] = "proceed"
+        logger.info(f"Auto-executing booking: intent={intent}, slot_id={pending.get('slot_id')}")
+        return "execute_booking"
+
+    return "generate_response"
 
 
 def route_after_confirmation(state: AgentState) -> str:
