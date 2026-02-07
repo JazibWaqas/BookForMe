@@ -1,8 +1,7 @@
 """
-FastAPI Main Application - Simplified for WhatsApp + Firestore
-Entry point for the BookForMe backend server
-Handles WhatsApp webhook and provides REST API for frontend
-Includes dev-chat API and UI at /dev-api and /chat
+FastAPI Main Application - BookForMe backend
+REST API, auth, and chat API for your browser UI.
+Chat: your index.html calls POST /dev-api/chat; static UI at /chat.
 """
 
 import os
@@ -16,8 +15,6 @@ from pydantic import BaseModel
 
 # Import from modular structure
 from app.config import settings
-# TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
-# from whatsapp.webhook import WhatsAppWebhookHandler
 from database.rest_api import router as rest_api_router
 from database.auth_api import router as auth_router
 from database.social_api import router as social_router
@@ -33,7 +30,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
-    description="AI-powered WhatsApp booking bot with Firestore backend"
+    description="Booking backend with chat API for browser UI"
 )
 
 os.makedirs("uploads", exist_ok=True)
@@ -65,8 +62,9 @@ app.add_middleware(
 
 
 # ============================================================================
-# DEV-CHAT API AND UI (uses whatsapp_handler.whatsapp_agent from startup)
+# DEV-CHAT API (your index.html calls /dev-api/chat and /dev-api/upload-image)
 # ============================================================================
+dev_chat_agent = None
 
 class ChatRequest(BaseModel):
     message: str
@@ -84,7 +82,7 @@ async def dev_chat_redirect():
 
 @app.post("/dev-api/chat", response_model=ChatResponse)
 async def dev_chat_message(request: ChatRequest):
-    agent = whatsapp_handler.whatsapp_agent
+    agent = dev_chat_agent
     if not agent:
         raise HTTPException(status_code=503, detail="Chat agent not initialized")
     try:
@@ -115,7 +113,7 @@ async def dev_chat_upload(
     file: UploadFile = File(...),
     phone_number: str = Form(...)
 ):
-    agent = whatsapp_handler.whatsapp_agent
+    agent = dev_chat_agent
     if not agent:
         raise HTTPException(status_code=503, detail="Chat agent not initialized")
     try:
@@ -140,9 +138,13 @@ async def startup_event():
     """Initialize services on startup"""
     logger.info("Starting BookForMe Backend Server...")
     logger.info("Firestore initialized")
-    # TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
-    # whatsapp_handler = WhatsAppWebhookHandler()
-    # logger.info("WhatsApp webhook handler initialized")
+    try:
+        from whatsapp.agent import WhatsAppAgent
+        global dev_chat_agent
+        dev_chat_agent = WhatsAppAgent()
+        logger.info("Dev-chat agent initialized (for /dev-api/chat)")
+    except Exception as e:
+        logger.warning("Dev-chat agent not initialized: %s", e)
     logger.info("Server ready to accept requests")
     # from app.firestore import firestore_db
     # await firestore_db.test_connection()
@@ -197,8 +199,9 @@ async def test_webhook(request: Request):
         data = await request.json()
         logger.info(f"🧪 Test webhook received: {data}")
         
-        # Test WhatsApp agent
-        test_response = await whatsapp_handler.whatsapp_agent.process_message("+923001234567", "Hello")
+        if not dev_chat_agent:
+            return {"status": "error", "message": "Chat agent not initialized"}
+        test_response = await dev_chat_agent.process_message("+923001234567", "Hello")
         
         return {
             "status": "success",
@@ -250,24 +253,11 @@ async def whatsapp_webhook_verify(request: Request):
 
 @app.post("/webhook/whatsapp")
 async def whatsapp_webhook(request: Request):
-    """
-    Webhook endpoint for receiving WhatsApp messages via Meta API
-    """
-    try:
-        # Use WhatsApp webhook handler
-        result = await whatsapp_handler.handle_webhook(request)
-        
-        return JSONResponse(
-            status_code=200,
-            content=result
-        )
-        
-    except Exception as e:
-        logger.error(f"WhatsApp webhook error: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Internal server error"}
-        )
+    """WhatsApp webhook disabled when using browser chat only."""
+    return JSONResponse(
+        status_code=503,
+        content={"error": "WhatsApp webhook disabled; using browser chat"}
+    )
 
 
 # REST API endpoints are now handled by the database.rest_api module
