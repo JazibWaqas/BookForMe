@@ -10,6 +10,7 @@ from app.config import settings
 from database.firestore_v2 import FirestoreV2
 from app.firestore import firestore_db
 from database.smart_search import smart_search
+from utils.time import get_today_karachi, get_tomorrow_karachi, get_parson_karachi
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ class AISearchService:
             api_key=settings.GROQ_API_KEY
         )
         self.fs = FirestoreV2(firestore_db.db)
-        self.smart_search = smart_search
 
     def _fetch_slots_sync(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
         """Sync function to fetch slots to run in separate thread"""
@@ -65,29 +65,45 @@ class AISearchService:
         selected_model = model or settings.GROQ_MODEL
         
         # 1. Try Smart Pattern Match First (INSTANT)
-        filters = self.smart_search.match_common_query(query)
+        from database.smart_search import SmartSearchCache
+        temp_smart = SmartSearchCache()
+        filters = temp_smart.match_common_query(query)
         
         if filters:
             logger.info(f"⚡ Smart Match Found: {filters}")
+            # If smart match found, we still want to check if it's a complete search.
+            # If it's missing sport or other key info, we can optionally let LLM refine
+            # BUT we keep the date from smart match.
+            if not filters.get("sport_type") and not filters.get("is_availability_check"):
+                logger.info("🔄 Smart match partial - letting LLM refine non-date fields")
+                llm_filters = await self._parse_query(query, selected_model, resolved_date=filters.get("date"))
+                # Merge LLM results but PROTECT THE DATE
+                if llm_filters:
+                    for k, v in llm_filters.items():
+                        if k != "date":
+                            filters[k] = v
         else:
             # 2. Fall back to LLM Parsing (slower but handles complex queries)
-            filters = await self._parse_query(query, selected_model)
+            filters = await self._parse_query(query, selected_model, resolved_date=get_today_karachi())
             logger.info(f"🎯 LLM Parsed Filters (Model: {selected_model}): {filters}")
+            # Ensure date is set even in fallback
+            if not filters.get("date"):
+                filters["date"] = get_today_karachi()
             
-            # Check if this is a non-search query (greeting, conversation, etc.)
-            if not filters.get("is_availability_check") and not any([
-                filters.get("sport_type"),
-                filters.get("area"),
-                filters.get("date"),
-                filters.get("time_range"),
-                filters.get("max_price", 0) > 0
-            ]):
-                logger.info("💬 Non-search query detected - returning empty results")
-                return {
-                    "results": [],
-                    "filters": None,
-                    "message": "This is a search-only chatbot. Please ask about court availability!"
-                }
+        # Check if this is a non-search query (greeting, conversation, etc.)
+        if not filters.get("is_availability_check") and not any([
+            filters.get("sport_type"),
+            filters.get("area"),
+            filters.get("date"),
+            filters.get("time_range"),
+            filters.get("max_price", 0) > 0
+        ]):
+            logger.info("💬 Non-search query detected - returning empty results")
+            return {
+                "results": [],
+                "filters": None,
+                "message": "This is a search-only chatbot. Please ask about court availability!"
+            }
 
         # 3. Execute Search - Optimized Flow
         
@@ -116,7 +132,7 @@ class AISearchService:
             ]
 
         # C. Parallel Slot Fetching
-        target_date = filters.get("date") or datetime.now().strftime("%Y-%m-%d")
+        target_date = filters.get("date") or get_today_karachi()
         time_range = filters.get("time_range", {})
         start_time_filter = time_range.get("start")
         end_time_filter = time_range.get("end")
@@ -186,7 +202,7 @@ class AISearchService:
             "results": results[:10]
         }
 
-    async def _parse_query(self, query: str, model: str) -> Dict[str, Any]:
+    async def _parse_query(self, query: str, model: str, resolved_date: Optional[str] = None) -> Dict[str, Any]:
         """Use LLM to extract search parameters with Roman Urdu support"""
         prompt = f"""
         Extract search filters from this user query for a sports booking app in Karachi.
@@ -198,37 +214,40 @@ class AISearchService:
         1. Identify the sport (padel, futsal, cricket, tennis, pickleball).
         2. Identify the area (DHA, Gulberg, Bahria, North Nazimabad, KDA, PECHS, Clifton, Gulshan).
         3. DATE HANDLING:
-           - "aaj", "today", "tonight" -> {datetime.now().strftime("%Y-%m-%d")}
-           - "kal", "tomorrow" -> {(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")}
-           - "parson", "day after tomorrow" -> {(datetime.now() + timedelta(days=2)).strftime("%Y-%m-%d")}
+           - The date has ALREADY been resolved to: {resolved_date or "today's date"}.
+           - DO NOT infer a different date. 
+           - DO NOT mention date words in your reasoning if they were used for this resolution.
         4. TIME HANDLING:
            - "tonight", "aaj raat" -> Start from 18:00 (6 PM) to 23:59.
            - "sham", "evening" -> Start from 17:00 (5 PM).
            - "subah", "morning" -> Start from 06:00 (6 AM) to 12:00 (12 PM).
            - SPECIFIC TIME: If user mentions a specific time like "7pm" or "19:00", 
-             set time_range to that exact hour (e.g., {"start": "19:00", "end": "19:59"}).
+             set time_range to that exact hour (e.g., {{"start": "19:00", "end": "19:59"}}).
              DO NOT return a broad range if a specific hour is mentioned.
         5. If asking "is anything free" or "khali slots", set is_availability_check to true.
 
-        Respond ONLY with a JSON object:
+        Respond ONLY with a JSON object following this schema:
         {{
-            "sport_type": str (lowercase),
-            "area": str (leave empty if not specified),
-            "date": "YYYY-MM-DD" (use calculated date),
-            "time_range": {{"start": "HH:MM", "end": "HH:MM"}} (24h format), 
-            "max_price": int (0 if not mentioned),
-            "is_availability_check": bool,
-            "reasoning": str (Briefly explain in English what you understood from the query)
+            "sport_type": "string or null",
+            "area": "string or null",
+            "time_range": {{"start": "HH:MM", "end": "HH:MM"}}, 
+            "max_price": 0,
+            "is_availability_check": true,
+            "reasoning": "string"
         }}
         """
         try:
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                response_format={"type": "json_object"}
+                temperature=0.1
             )
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            # Try to extract JSON if there's surrounding text
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group(0))
+            return json.loads(content)
         except Exception as e:
             logger.error(f"LLM Parsing error with model {model}: {e}")
             # Fallback to default model if specified model fails

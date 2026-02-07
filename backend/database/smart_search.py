@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from database.firestore_v2 import FirestoreV2
 from app.firestore import firestore_db
 
+from utils.time import get_now_karachi, get_today_karachi, get_tomorrow_karachi, get_parson_karachi
+
 logger = logging.getLogger(__name__)
 
 class SmartSearchCache:
@@ -26,7 +28,7 @@ class SmartSearchCache:
         """Check if cache is still valid"""
         if not self.cache_timestamp:
             return False
-        return (datetime.now() - self.cache_timestamp).seconds < self.CACHE_DURATION
+        return (get_now_karachi().replace(tzinfo=None) - self.cache_timestamp.replace(tzinfo=None)).seconds < self.CACHE_DURATION
     
     async def get_all_available_slots(self, date: str) -> List[Dict[str, Any]]:
         """Get all available slots for a given date across all vendors"""
@@ -65,7 +67,7 @@ class SmartSearchCache:
         
         # Default to today if no date specified
         if not date:
-            date = datetime.now().strftime('%Y-%m-%d')
+            date = get_today_karachi()
         
         # Get all vendors (filtered by sport if specified)
         if sport_type:
@@ -108,45 +110,66 @@ class SmartSearchCache:
     
     def match_common_query(self, query: str) -> Optional[Dict[str, Any]]:
         """
-        Match against common query patterns for instant response
-        Returns filter dict if matched, None otherwise
-        Only matches if query contains search-related keywords
+        Match against common query patterns for instant response.
+        DATE RESOLUTION IS AUTHORITATIVE AND HAPPENS FIRST.
         """
-        query_lower = query.lower()
-        today = datetime.now().strftime('%Y-%m-%d')
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        query_lower = query.lower().strip()
+        print(f"DEBUG: match_common_query called with: '{query_lower}'")
         
-        # Search keywords that indicate this is a search query
+        # 1. Authoritative Date Resolution (Deterministic)
+        from utils.time import get_today_karachi, get_tomorrow_karachi, get_parson_karachi, get_now_karachi
+        today = get_today_karachi()
+        tomorrow = get_tomorrow_karachi()
+        parson = get_parson_karachi()
+        
+        resolved_date = None
+        if any(word in query_lower for word in ['tomorrow', 'kal']):
+            resolved_date = tomorrow
+        elif 'parson' in query_lower:
+            resolved_date = parson
+        elif any(word in query_lower for word in ['today', 'aaj', 'tonight']):
+            resolved_date = today
+            
+        # 2. "Right Now / Free" Fast-Path
+        if any(word in query_lower for word in ['right now', 'abhi', 'free']):
+            print(f"DEBUG: Fast-path triggered for '{query_lower}'")
+            now_karachi = get_now_karachi()
+            return {
+                'date': resolved_date or today,
+                'time_range': {
+                    'start': now_karachi.strftime('%H:00'),
+                    'end': now_karachi.strftime('%H:59')
+                },
+                'is_availability_check': True
+            }
+
+        # 3. Search keywords check (to avoid non-search queries)
         search_keywords = [
-            'slot', 'khali', 'available', 'book', 'court', 'chahiye',
+            'slot', 'khali', 'available', 'book', 'court', 'chahiye', 'free',
             'padel', 'futsal', 'cricket', 'pickleball',
-            'tonight', 'aaj', 'kal', 'tomorrow', 'today',
+            'tonight', 'aaj', 'kal', 'tomorrow', 'today', 'right now', 'abhi',
             'cheap', 'sasta', 'price', 'cost'
         ]
-        
-        # Check if query contains any search keywords
         has_search_keyword = any(keyword in query_lower for keyword in search_keywords)
-        
-        # If no search keywords, this is not a search query
-        if not has_search_keyword:
+        if not has_search_keyword and not resolved_date:
             return None
-        
-        # Common patterns
+
+        # 4. Pattern Matching for other fields
         patterns = {
             # Availability checks
-            'koi slot hai': {'is_availability_check': True, 'date': today},
-            'slot available': {'is_availability_check': True, 'date': today},
-            'khali hai': {'is_availability_check': True, 'date': today},
+            'koi slot hai': {'is_availability_check': True},
+            'slot available': {'is_availability_check': True},
+            'khali hai': {'is_availability_check': True},
             
             # Specific Times (7pm, 8pm, etc.)
             r'(\d+)\s*pm': lambda m: {'time_range': {'start': f"{int(m.group(1))+12:02}:00", 'end': f"{int(m.group(1))+12:02}:59"}},
             r'(\d+)\s*am': lambda m: {'time_range': {'start': f"{int(m.group(1)):02}:00", 'end': f"{int(m.group(1)):02}:59"}},
 
             # Time-based
-            'aaj raat': {'date': today, 'time_range': {'start': '18:00', 'end': '23:59'}},
-            'tonight': {'date': today, 'time_range': {'start': '18:00', 'end': '23:59'}},
-            'kal sham': {'date': tomorrow, 'time_range': {'start': '17:00', 'end': '20:00'}},
-            'tomorrow evening': {'date': tomorrow, 'time_range': {'start': '17:00', 'end': '20:00'}},
+            'aaj raat': {'time_range': {'start': '18:00', 'end': '23:59'}},
+            'tonight': {'time_range': {'start': '18:00', 'end': '23:59'}},
+            'kal sham': {'time_range': {'start': '17:00', 'end': '20:00'}},
+            'tomorrow evening': {'time_range': {'start': '17:00', 'end': '20:00'}},
             'morning': {'time_range': {'start': '06:00', 'end': '12:00'}},
             'subah': {'time_range': {'start': '06:00', 'end': '12:00'}},
             
@@ -168,23 +191,32 @@ class SmartSearchCache:
             'under 3000': {'max_price': 3000},
         }
         
-        # Build filter by matching patterns
-        filters = {}
+        filters = {'date': resolved_date or today}
         import re
-        for pattern, filter_data in patterns.items():
-            if isinstance(filter_data, dict):
-                if pattern in query_lower:
-                    filters.update(filter_data)
-            else: # It's a regex lambda
-                match = re.search(pattern, query_lower)
-                if match:
-                    filters.update(filter_data(match))
         
-        # Set default date if not specified
-        if 'date' not in filters:
-            filters['date'] = today
+        # Match string patterns
+        string_patterns = [(p, f) for p, f in patterns.items() if not callable(f)]
+        for pattern, filter_data in sorted(string_patterns, key=lambda x: len(x[0]), reverse=True):
+            if pattern in query_lower:
+                for k, v in filter_data.items():
+                    if k == 'time_range' and k in filters:
+                        filters[k].update(v)
+                    else:
+                        filters[k] = v
         
-        return filters if filters else None
+        # Match regex patterns
+        regex_patterns = [(p, f) for p, f in patterns.items() if callable(f)]
+        for pattern, filter_data in regex_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                res = filter_data(match)
+                for k, v in res.items():
+                    if k == 'time_range' and k in filters:
+                        filters[k].update(v)
+                    else:
+                        filters[k] = v
+        
+        return filters
 
 # Global instance
 smart_search = SmartSearchCache()
