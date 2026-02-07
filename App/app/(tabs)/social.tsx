@@ -23,11 +23,8 @@ export default function SocialScreen() {
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
   // React Query Hooks (Cached Data)
-  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useSocialFeed('all');
-  const { data: matchesData, isLoading: matchesLoading, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
-  const { data: leaderboardData, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useSocialLeaderboard();
+  // MOVED: defined below after state
 
-  // Local State (for filtering and optimistic updates)
   const [posts, setPosts] = useState<Post[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [chats, setChats] = useState<any[]>([]);
@@ -62,6 +59,12 @@ export default function SocialScreen() {
   // Input States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('All');
+
+  // React Query Hooks (Moved here to access selectedFilter)
+  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useSocialFeed('all');
+  const { data: matchesData, isLoading: matchesLoading, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
+  const { data: leaderboardData, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useSocialLeaderboard();
+
 
   // Post Creation States
   const [newPostContent, setNewPostContent] = useState('');
@@ -112,7 +115,8 @@ export default function SocialScreen() {
   };
 
   // Refresh handler
-  const onRefresh = async () => {
+  // Refresh handler (renamed to fetchData for compatibility)
+  const fetchData = async () => {
     if (activeTab === 'forum') await refetchFeed();
     if (activeTab === 'matches') await refetchMatches();
     if (activeTab === 'leaderboard') await refetchLeaderboard();
