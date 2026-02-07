@@ -1,5 +1,5 @@
-// Basic Backend Configuration
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+//Basic Backend Configuration
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.67:8000';
 export const API_URL = API_BASE_URL;
 export const WS_URL = API_BASE_URL.replace('http', 'ws');
 
@@ -62,7 +62,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },

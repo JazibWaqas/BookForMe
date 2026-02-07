@@ -18,6 +18,7 @@ import os
 import uuid
 from pathlib import Path
 from datetime import timedelta
+from database.ai_search_service import AISearchService
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ firestore_v2 = FirestoreV2(firestore_db.db)
 auth_service = AuthService(firestore_db.db)
 # Initialize AI Agent
 ai_agent = WhatsAppAgent()
+ai_search_service = AISearchService()
 
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads/payments")
@@ -715,6 +717,7 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
 
 class ChatRequest(BaseModel):
     message: str
+    model: Optional[str] = None
 
 
 @router.post("/chat")
@@ -748,4 +751,18 @@ async def chat_with_ai(chat_request: ChatRequest, user_id: str = Depends(get_cur
             "success": True,
             "response": "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later."
         }
+
+@router.post("/ai-search")
+async def ai_search(request: ChatRequest):
+    """
+    Experimental natural language search for vendors and slots
+    """
+    try:
+        logger.info(f"AI Search request: {request.message} (Model: {request.model})")
+        result = await ai_search_service.search(request.message, model=request.model)
+        return result
+    except Exception as e:
+        logger.error(f"Error in AI search endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 

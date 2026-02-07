@@ -19,46 +19,54 @@ def parse_duration(duration_text: str) -> Optional[Dict[str, float]]:
     duration_lower = duration_text.lower().strip()
     
     # Remove common words
-    duration_lower = duration_lower.replace("for", "").replace("about", "").strip()
+    duration_lower = duration_lower.replace("for", "").replace("about", "").replace("ka", "").replace("ki", "").strip()
     
-    # Pattern for "X hour(s)" or "X hr(s)"
-    hour_pattern = r"(\d+(?:\.\d+)?)\s*(?:hour|hr|hours|hrs)"
+    # Handle Roman Urdu special numbers
+    if "derh" in duration_lower or "dedh" in duration_lower:
+        return {"hours": 1.5, "minutes": 90}
+    if "dhai" in duration_lower or "dhay" in duration_lower:
+        return {"hours": 2.5, "minutes": 150}
+    if "adha" in duration_lower or "aadha" in duration_lower:
+        return {"hours": 0.5, "minutes": 30}
+        
+    # Pattern for "X hour(s)" or "X hr(s)" or "X ghanta"
+    hour_pattern = r"(\d+(?:\.\d+)?)\s*(?:hour|hr|hours|hrs|h|ghanta|ghantay|ghante)"
     hour_match = re.search(hour_pattern, duration_lower)
     
-    # Pattern for "X minute(s)" or "X min(s)"
-    minute_pattern = r"(\d+)\s*(?:minute|min|minutes|mins)"
+    # Pattern for "X minute(s)" or "X min(s)" or "X mint"
+    minute_pattern = r"(\d+)\s*(?:minute|min|minutes|mins|m|mint|minute)"
     minute_match = re.search(minute_pattern, duration_lower)
     
-    # Pattern for "X.5 hour" or "X and a half"
-    half_pattern = r"(\d+)\s*(?:and\s+)?half"
-    half_match = re.search(half_pattern, duration_lower)
+    # Pattern for "X.5 hour" or "X and a half" or "saade X"
+    half_pattern = r"(?:and\s+)?(?:half|adha|aadha)"
+    # simplistic check: if "and half" or just "half" matches
     
     total_hours = 0.0
     total_minutes = 0.0
     
     if hour_match:
         total_hours = float(hour_match.group(1))
-    
+        # Check for ".5" in the match itself handled by float()
+        
     if minute_match:
         total_minutes = float(minute_match.group(1))
     
-    if half_match:
-        hours = float(half_match.group(1))
-        total_hours = hours + 0.5
+    # Handle "and half" if hour match provides the base
+    if hour_match and ("half" in duration_lower or "adha" in duration_lower or "aadha" in duration_lower):
+        if "and" in duration_lower: # "2 and a half hours"
+             total_hours += 0.5
     
-    # Handle just numbers (assume hours)
-    if not hour_match and not minute_match and not half_match:
+    # Handle just numbers (assume hours if small, minutes if large) -- ONLY if no units found
+    if not hour_match and not minute_match and total_hours == 0 and total_minutes == 0:
         number_match = re.search(r"(\d+(?:\.\d+)?)", duration_lower)
         if number_match:
             value = float(number_match.group(1))
-            # If less than 3, likely hours. Otherwise might be minutes
-            if value < 3:
+            # Heuristic: < 4 likely hours (who books 4 mins?), > 10 likely minutes
+            if value <= 4:
                 total_hours = value
-            else:
-                # Could be minutes (30, 45, 60, etc.)
-                if value <= 120:
-                    total_minutes = value
-                    total_hours = value / 60.0
+            elif value >= 10:
+                total_minutes = value
+                total_hours = value / 60.0
     
     # Convert minutes to hours
     if total_minutes > 0:
@@ -66,8 +74,8 @@ def parse_duration(duration_text: str) -> Optional[Dict[str, float]]:
     
     if total_hours > 0:
         return {
-            "hours": total_hours,
-            "minutes": total_hours * 60
+            "hours": float(total_hours),
+            "minutes": float(total_hours * 60)
         }
     
     return None
