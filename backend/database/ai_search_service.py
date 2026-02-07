@@ -25,6 +25,9 @@ class AISearchService:
     def _fetch_slots_sync(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
         """Sync function to fetch slots to run in separate thread"""
         try:
+            import pytz
+            KARACHI_TZ = pytz.timezone('Asia/Karachi')
+            
             # Direct usage of requests/sync client to prevent blocking event loop
             docs = self.fs.db.collection('slots') \
                 .where('vendor_id', '==', vendor_id) \
@@ -41,10 +44,14 @@ class AISearchService:
                 if 'start_time' in data:
                     try:
                         start_ts = data['start_time']
-                        if hasattr(start_ts, 'strftime'):
+                        # Convert to Karachi time for filtering and display
+                        if hasattr(start_ts, 'astimezone'):
+                            start_karachi = start_ts.astimezone(KARACHI_TZ)
+                            data['time'] = start_karachi.strftime('%H:%M')
+                        elif hasattr(start_ts, 'strftime'):
                             data['time'] = start_ts.strftime('%H:%M')
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f"Error formatting time for slot {doc.id}: {e}")
                 
                 slots.append(data)
             
