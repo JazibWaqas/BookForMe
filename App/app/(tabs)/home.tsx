@@ -83,39 +83,8 @@ export default function HomeScreen() {
     );
   }, [pickleballVendors, searchQuery]);
 
-  useEffect(() => {
-    // Load vendors initially
-    loadVendors();
-
-    // Set up real-time listeners for live updates
-    const { listenToVendorsByCategory } = require('../../services/realtime');
-
-    const unsubscribePadel = listenToVendorsByCategory(
-      'Padel Court',
-      (vendors) => {
-        setPadelVendors(vendors);
-      },
-      (error) => {
-        console.error('Error in padel vendors listener:', error);
-      }
-    );
-
-    const unsubscribeFutsal = listenToVendorsByCategory(
-      'Futsal Court',
-      (vendors) => {
-        setFutsalVendors(vendors);
-      },
-      (error) => {
-        console.error('Error in futsal vendors listener:', error);
-      }
-    );
-
-    // Cleanup listeners on unmount
-    return () => {
-      unsubscribePadel();
-      unsubscribeFutsal();
-    };
-  }, []);
+  // React Query handles loading and caching
+  // Real-time updates can be added later via queryClient.setQueryData if needed
 
   const onRefresh = async () => {
     setRefreshing(true);

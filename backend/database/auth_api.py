@@ -230,6 +230,17 @@ async def get_current_user_info(current_user: Dict = Depends(get_current_user)):
     """
     try:
         user_id = current_user["sub"]
+        
+        # 1. Try Cache
+        from app.cache import SessionCache
+        cached_user = await SessionCache.get_user(user_id)
+        if cached_user:
+            return {
+                "success": True,
+                "user": cached_user
+            }
+
+        # 2. Fetch from DB
         from database.firestore_v2 import FirestoreV2
         firestore_v2 = FirestoreV2(firestore_db.db)
         user = await firestore_v2.get_user(user_id)
@@ -238,6 +249,9 @@ async def get_current_user_info(current_user: Dict = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="User not found")
         
         user.pop('password_hash', None)
+        
+        # 3. Set Cache
+        await SessionCache.set_user(user_id, user)
         
         return {
             "success": True,
