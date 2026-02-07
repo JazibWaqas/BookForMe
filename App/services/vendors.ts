@@ -31,45 +31,22 @@ const sanitizeVendorData = (data: any): Vendor => {
 
 export const getVendors = async (): Promise<Vendor[]> => {
   try {
-<<<<<<< Updated upstream
     const response = await apiClient.get(API_ENDPOINTS.vendors.list);
-    
+
     if (response.data.success && response.data.vendors) {
       return response.data.vendors.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
     }
-    
-=======
-    console.log('📊 Fetching vendors directly from Firestore...');
-    const snapshot = await getDocs(vendorsCollection);
-    const vendors = snapshot.docs.map(doc => sanitizeVendorData({ id: doc.id, ...doc.data() }));
-    console.log(`✅ Loaded ${vendors.length} vendors from Firestore database`);
-    return vendors;
-  } catch (error) {
-    console.error('❌ Error fetching vendors from Firestore:', error);
->>>>>>> Stashed changes
     return [];
   } catch (error: any) {
     console.error('Error fetching vendors from backend:', error);
-    
-    try {
-      const snapshot = await getDocs(vendorsCollection);
-      return snapshot.docs.map(docSnapshot => {
-        const data = docSnapshot.data();
-        const { id: _, ...dataWithoutId } = data;
-        return sanitizeVendorData({ id: docSnapshot.id, ...dataWithoutId });
-      });
-    } catch (firebaseError) {
-      console.error('Error fetching vendors from Firebase fallback:', firebaseError);
-      return [];
-    }
+    return [];
   }
 };
 
 export const getVendorsByCategory = async (category: string): Promise<Vendor[]> => {
   try {
-<<<<<<< Updated upstream
     console.log('Fetching vendors for category:', category);
-    
+
     // Try both service_type and category parameters
     const response = await apiClient.get(API_ENDPOINTS.vendors.list, {
       params: {
@@ -77,63 +54,41 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
         category: category
       }
     });
-    
+
     console.log('Vendors API response:', response.data);
-    
+
     if (response.data.success && response.data.vendors) {
       const vendors = response.data.vendors.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
       console.log(`Found ${vendors.length} vendors for category ${category}`);
       return vendors;
     }
-    
+
     console.log('No vendors found in response');
-=======
-    console.log(`📊 Fetching ${category} vendors directly from Firestore...`);
-    const q = query(vendorsCollection, where('category', '==', category));
-    const snapshot = await getDocs(q);
-    const vendors = snapshot.docs.map(doc => sanitizeVendorData({ id: doc.id, ...doc.data() }));
-    console.log(`✅ Loaded ${vendors.length} ${category} vendors from Firestore database`);
-    return vendors;
-  } catch (error) {
-    console.error(`❌ Error fetching ${category} vendors from Firestore:`, error);
->>>>>>> Stashed changes
     return [];
   } catch (error: any) {
     console.error('Error fetching vendors by category from backend:', error);
-    console.error('Error details:', error.response?.data || error.message);
-    
-    try {
-      const { getVendorsBySportType } = await import('./services');
-      const vendorIds = await getVendorsBySportType(category);
-      if (vendorIds.length === 0) return [];
-      
-      const vendors = await getVendors();
-      return vendors.filter(v => vendorIds.includes(v.id));
-    } catch (fallbackError) {
-      console.error('Error in fallback:', fallbackError);
-      return [];
-    }
+    return [];
   }
 };
 
 export const getSportsVendors = async (): Promise<Vendor[]> => {
   try {
     const response = await apiClient.get('/api/sport-courts');
-    
+
     if (response.data.success && response.data.sport_courts) {
       return response.data.sport_courts.map((vendor: any) => sanitizeVendorData({ id: vendor.id || vendor.id, ...vendor }));
     }
-    
+
     return [];
   } catch (error: any) {
     console.error('Error fetching sports vendors from backend:', error);
-    
+
     try {
       const { getVendorsBySportType } = await import('./services');
       const padelIds = await getVendorsBySportType('padel');
       const futsalIds = await getVendorsBySportType('futsal');
       const allIds = [...new Set([...padelIds, ...futsalIds])];
-      
+
       const vendors = await getVendors();
       return vendors.filter(v => allIds.includes(v.id));
     } catch (fallbackError) {
@@ -146,19 +101,19 @@ export const getSportsVendors = async (): Promise<Vendor[]> => {
 export const getVendorById = async (id: string): Promise<Vendor | null> => {
   try {
     const response = await apiClient.get(API_ENDPOINTS.vendors.get(id));
-    
+
     if (response.data.success && response.data.vendor) {
       return sanitizeVendorData({ id: response.data.vendor.id || id, ...response.data.vendor });
     }
-    
+
     return null;
   } catch (error: any) {
     console.error('Error fetching vendor from backend:', error);
-    
+
     try {
       const docRef = doc(db, 'vendors', id);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         return sanitizeVendorData({ id: docSnap.id, ...docSnap.data() });
       }
@@ -169,4 +124,3 @@ export const getVendorById = async (id: string): Promise<Vendor | null> => {
     }
   }
 };
-

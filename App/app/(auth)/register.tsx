@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { CATEGORIES } from '../../constants/categories';
 import { authService } from '../../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -99,69 +100,18 @@ export default function RegisterScreen() {
     }
 
     setLoading(true);
-<<<<<<< Updated upstream
-
-    try {
-      const result = await authService.register(email, password, name, phone, role);
-
-      if (result.success && result.user && result.token) {
-        if (role === 'vendor') {
-=======
-    
     try {
       const { authService } = await import('../../services/auth');
       const result = await authService.register(email, password, name, phone, role);
-      
+
       if (result.success && result.user) {
         // Store vendor data if vendor registration
         if (role === 'vendor' && result.user.id) {
->>>>>>> Stashed changes
           const vendorData = {
             businessName,
             ownerName: name,
             email,
             phone,
-<<<<<<< Updated upstream
-            cnic: cnic || undefined,
-            category,
-            address,
-            location: location || undefined,
-            description,
-          };
-          await authService.createVendorProfile(vendorData, result.user.id);
-
-          Alert.alert(
-            'Success!',
-            'Vendor account created successfully! Your account is pending verification.',
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  router.replace('/vendor-dashboard');
-                },
-              },
-            ]
-          );
-        } else {
-          Alert.alert(
-            'Success!',
-            'Account created successfully!',
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  router.replace('/(tabs)/home');
-                },
-              },
-            ]
-          );
-        }
-      } else {
-        Alert.alert('Registration Failed', result.error || 'Please check your information and try again.');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
-=======
             cnic,
             category,
             address,
@@ -169,15 +119,15 @@ export default function RegisterScreen() {
             description,
           };
           await AsyncStorage.setItem('vendorProfile', JSON.stringify(vendorData));
-          
+
           // Create vendor document in Firestore
           const { authService } = await import('../../services/auth');
           await authService.createVendorProfile(vendorData, result.user.id);
         }
-        
+
         Alert.alert(
           'Success!',
-          role === 'vendor' 
+          role === 'vendor'
             ? 'Vendor account created successfully! Your account is pending verification.'
             : 'Account created successfully!',
           [
@@ -199,7 +149,6 @@ export default function RegisterScreen() {
     } catch (error: any) {
       console.error('Registration error:', error);
       Alert.alert('Error', error.message || 'Registration failed. Please try again.');
->>>>>>> Stashed changes
     } finally {
       setLoading(false);
     }
@@ -215,271 +164,271 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join BookForMe today</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join BookForMe today</Text>
 
-          <View style={styles.roleToggle}>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
-              onPress={() => setRole('customer')}
-            >
-              <Ionicons
-                name="person"
-                size={24}
-                color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
-              />
-              <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
-                Customer
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-              onPress={() => setRole('vendor')}
-            >
-              <Ionicons
-                name="business"
-                size={24}
-                color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
-              />
-              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
-                Vendor
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.form}>
-            {/* Name Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>{role === 'vendor' ? "Owner Name *" : "Full Name *"}</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter your name"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
+            <View style={styles.roleToggle}>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
+                onPress={() => setRole('customer')}
+              >
+                <Ionicons
+                  name="person"
+                  size={24}
+                  color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
                 />
-              </View>
+                <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
+                  Customer
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+                onPress={() => setRole('vendor')}
+              >
+                <Ionicons
+                  name="business"
+                  size={24}
+                  color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+                />
+                <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
+                  Vendor
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {role === 'vendor' && (
-              <>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Business Name *</Text>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="briefcase-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter business name"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={businessName}
-                      onChangeText={setBusinessName}
-                      autoCapitalize="words"
-                    />
-                  </View>
+            <View style={styles.form}>
+              {/* Name Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>{role === 'vendor' ? "Owner Name *" : "Full Name *"}</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter your name"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                  />
                 </View>
+              </View>
 
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>CNIC (Optional)</Text>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="card-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="42101-1234567-1"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={cnic}
-                      onChangeText={setCnic}
-                      keyboardType="numeric"
-                    />
+              {role === 'vendor' && (
+                <>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Business Name *</Text>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="briefcase-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Enter business name"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={businessName}
+                        onChangeText={setBusinessName}
+                        autoCapitalize="words"
+                      />
+                    </View>
                   </View>
-                </View>
 
-                <View style={styles.categoryContainer}>
-                  <Text style={styles.label}>Category *</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                    {CATEGORIES.map((cat) => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[
-                          styles.categoryButton,
-                          category === cat.id && styles.categoryButtonActive,
-                        ]}
-                        onPress={() => setCategory(cat.id)}
-                      >
-                        <Text
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>CNIC (Optional)</Text>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="card-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="42101-1234567-1"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={cnic}
+                        onChangeText={setCnic}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.categoryContainer}>
+                    <Text style={styles.label}>Category *</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                      {CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.id}
                           style={[
-                            styles.categoryText,
-                            category === cat.id && styles.categoryTextActive,
+                            styles.categoryButton,
+                            category === cat.id && styles.categoryButtonActive,
                           ]}
+                          onPress={() => setCategory(cat.id)}
                         >
-                          {cat.icon} {cat.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Business Address *</Text>
-                  <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }]}>
-                    <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
-                    <TextInput
-                      style={[styles.textInput, { height: 'auto' }]}
-                      placeholder="Enter business address"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={address}
-                      onChangeText={setAddress}
-                      multiline
-                    />
+                          <Text
+                            style={[
+                              styles.categoryText,
+                              category === cat.id && styles.categoryTextActive,
+                            ]}
+                          >
+                            {cat.icon} {cat.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   </View>
-                </View>
 
-                <Button
-                  title={location ? "Update Location" : "Capture Location (Optional)"}
-                  onPress={getCurrentLocation}
-                  variant="outline"
-                  loading={locationLoading}
-                  style={styles.locationButton}
-                />
-                {location && (
-                  <Text style={styles.locationText}>
-                    Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </Text>
-                )}
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Business Description</Text>
-                  <View style={[styles.inputWrapper, { height: 'auto', minHeight: 80, paddingVertical: 12, alignItems: 'flex-start' }]}>
-                    <Ionicons name="document-text-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
-                    <TextInput
-                      style={[styles.textInput, { height: 'auto', textAlignVertical: 'top' }]}
-                      placeholder="Describe your business (optional)"
-                      placeholderTextColor={COLORS.textMuted}
-                      value={description}
-                      onChangeText={setDescription}
-                      multiline
-                      numberOfLines={3}
-                    />
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Business Address *</Text>
+                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }]}>
+                      <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                      <TextInput
+                        style={[styles.textInput, { height: 'auto' }]}
+                        placeholder="Enter business address"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={address}
+                        onChangeText={setAddress}
+                        multiline
+                      />
+                    </View>
                   </View>
+
+                  <Button
+                    title={location ? "Update Location" : "Capture Location (Optional)"}
+                    onPress={getCurrentLocation}
+                    variant="outline"
+                    loading={locationLoading}
+                    style={styles.locationButton}
+                  />
+                  {location && (
+                    <Text style={styles.locationText}>
+                      Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                    </Text>
+                  )}
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Business Description</Text>
+                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 80, paddingVertical: 12, alignItems: 'flex-start' }]}>
+                      <Ionicons name="document-text-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                      <TextInput
+                        style={[styles.textInput, { height: 'auto', textAlignVertical: 'top' }]}
+                        placeholder="Describe your business (optional)"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline
+                        numberOfLines={3}
+                      />
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email *</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="your@email.com"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
                 </View>
-              </>
-            )}
-
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email *</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="your@email.com"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
               </View>
-            </View>
 
-            {/* Phone Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Phone Number *</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="call-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="+92 300 1234567"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                />
-              </View>
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password *</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Create password (min 6 chars)"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color={COLORS.textMuted}
+              {/* Phone Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Phone Number *</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="call-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="+92 300 1234567"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
                   />
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
 
-            {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password *</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Re-enter password"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color={COLORS.textMuted}
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Password *</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Create password (min 6 chars)"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-outline" : "eye-off-outline"}
+                      size={20}
+                      color={COLORS.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Confirm Password Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Confirm Password *</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Re-enter password"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                      size={20}
+                      color={COLORS.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
+
+            <Button
+              title="Sign Up"
+              onPress={handleRegister}
+              loading={loading}
+              variant="secondary"
+            />
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.linkText}>Login</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 60 }} />
           </View>
-
-          <Button
-            title="Sign Up"
-            onPress={handleRegister}
-            loading={loading}
-            variant="secondary"
-          />
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.linkText}>Login</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 60 }} />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }

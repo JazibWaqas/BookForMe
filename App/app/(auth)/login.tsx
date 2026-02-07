@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,13 +25,15 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-<<<<<<< Updated upstream
 
     try {
       const result = await authService.login(email, password);
 
       if (result.success && result.user && result.token) {
         const userRole = result.user.role || 'customer';
+
+        // Store user role for session persistence
+        await AsyncStorage.setItem('userRole', userRole);
 
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
@@ -71,32 +74,6 @@ export default function LoginScreen() {
     } finally {
       setGoogleLoading(false);
     }
-=======
-    
-    try {
-      const { authService } = await import('../../services/auth');
-      const result = await authService.login(email, password);
-      
-      if (result.success && result.user) {
-        // Store user role
-        await AsyncStorage.setItem('userRole', result.user.role);
-        
-        // Navigate based on role
-        if (result.user.role === 'vendor') {
-          router.replace('/vendor-dashboard');
-        } else {
-          router.replace('/(tabs)/home');
-        }
-      } else {
-        Alert.alert('Login Failed', result.error || 'Invalid email or password');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
->>>>>>> Stashed changes
   };
 
   return (
@@ -109,7 +86,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -120,130 +97,130 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.content}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Choose your role and login</Text>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Choose your role and login</Text>
 
-          <View style={styles.roleToggle}>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
-              onPress={() => setRole('customer')}
-            >
-              <Ionicons
-                name="person"
-                size={24}
-                color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
-              />
-              <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
-                Customer
-              </Text>
-              <Text style={[styles.roleSubtext, role === 'customer' && styles.roleSubtextActive]}>
-                Book venues
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
-              onPress={() => setRole('vendor')}
-            >
-              <Ionicons
-                name="business"
-                size={24}
-                color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
-              />
-              <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
-                Vendor
-              </Text>
-              <Text style={[styles.roleSubtext, role === 'vendor' && styles.roleSubtextActive]}>
-                Manage bookings
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="your@email.com"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
+            <View style={styles.roleToggle}>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
+                onPress={() => setRole('customer')}
+              >
+                <Ionicons
+                  name="person"
+                  size={24}
+                  color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
                 />
-              </View>
+                <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
+                  Customer
+                </Text>
+                <Text style={[styles.roleSubtext, role === 'customer' && styles.roleSubtextActive]}>
+                  Book venues
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
+                onPress={() => setRole('vendor')}
+              >
+                <Ionicons
+                  name="business"
+                  size={24}
+                  color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+                />
+                <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
+                  Vendor
+                </Text>
+                <Text style={[styles.roleSubtext, role === 'vendor' && styles.roleSubtextActive]}>
+                  Manage bookings
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter password"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color={COLORS.textMuted}
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="your@email.com"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter password"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-outline" : "eye-off-outline"}
+                      size={20}
+                      color={COLORS.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity>
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity>
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
+            <Button
+              title="Login"
+              onPress={handleLogin}
+              loading={loading}
+              variant="secondary"
+            />
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtons}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton]}
+                onPress={handleGoogleLogin}
+                disabled={googleLoading || loading}
+              >
+                <Text style={styles.socialButtonText}>
+                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+                <Text style={styles.linkText}>Sign up</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 40 }} />
           </View>
-
-          <Button
-            title="Login"
-            onPress={handleLogin}
-            loading={loading}
-            variant="secondary"
-          />
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialButtons}>
-            <TouchableOpacity
-              style={[styles.socialButton, styles.googleButton]}
-              onPress={handleGoogleLogin}
-              disabled={googleLoading || loading}
-            >
-              <Text style={styles.socialButtonText}>
-                {googleLoading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.linkText}>Sign up</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 40 }} />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }

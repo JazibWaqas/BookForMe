@@ -20,30 +20,29 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Use React Query hooks - data is cached and shared across app
   const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useCategories();
   const { data: padelVendors = [], isLoading: padelLoading, refetch: refetchPadel } = useVendorsBySport('padel');
   const { data: futsalVendors = [], isLoading: futsalLoading, refetch: refetchFutsal } = useVendorsBySport('futsal');
   const { data: cricketVendors = [], isLoading: cricketLoading, refetch: refetchCricket } = useVendorsBySport('cricket');
   const { data: pickleballVendors = [], isLoading: pickleballLoading, refetch: refetchPickleball } = useVendorsBySport('pickleball');
-  
+
   const loading = categoriesLoading || padelLoading || futsalLoading || cricketLoading || pickleballLoading;
   const [refreshing, setRefreshing] = useState(false);
 
   // Combine all vendors for search
-  const allVendors = useMemo(() => 
+  const allVendors = useMemo(() =>
     [...padelVendors, ...futsalVendors, ...cricketVendors, ...pickleballVendors],
     [padelVendors, futsalVendors, cricketVendors, pickleballVendors]
   );
 
-<<<<<<< Updated upstream
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
     if (!searchQuery.trim()) return allVendors;
-    
+
     const query = searchQuery.toLowerCase();
-    return allVendors.filter(vendor => 
+    return allVendors.filter(vendor =>
       vendor.name?.toLowerCase().includes(query) ||
       vendor.area?.toLowerCase().includes(query) ||
       vendor.address?.toLowerCase().includes(query) ||
@@ -55,7 +54,7 @@ export default function HomeScreen() {
   const filteredPadelVendors = useMemo(() => {
     if (!searchQuery.trim()) return padelVendors;
     const query = searchQuery.toLowerCase();
-    return padelVendors.filter(v => 
+    return padelVendors.filter(v =>
       v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
     );
   }, [padelVendors, searchQuery]);
@@ -63,7 +62,7 @@ export default function HomeScreen() {
   const filteredFutsalVendors = useMemo(() => {
     if (!searchQuery.trim()) return futsalVendors;
     const query = searchQuery.toLowerCase();
-    return futsalVendors.filter(v => 
+    return futsalVendors.filter(v =>
       v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
     );
   }, [futsalVendors, searchQuery]);
@@ -71,7 +70,7 @@ export default function HomeScreen() {
   const filteredCricketVendors = useMemo(() => {
     if (!searchQuery.trim()) return cricketVendors;
     const query = searchQuery.toLowerCase();
-    return cricketVendors.filter(v => 
+    return cricketVendors.filter(v =>
       v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
     );
   }, [cricketVendors, searchQuery]);
@@ -79,18 +78,18 @@ export default function HomeScreen() {
   const filteredPickleballVendors = useMemo(() => {
     if (!searchQuery.trim()) return pickleballVendors;
     const query = searchQuery.toLowerCase();
-    return pickleballVendors.filter(v => 
+    return pickleballVendors.filter(v =>
       v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
     );
   }, [pickleballVendors, searchQuery]);
-=======
+
   useEffect(() => {
     // Load vendors initially
     loadVendors();
-    
+
     // Set up real-time listeners for live updates
     const { listenToVendorsByCategory } = require('../../services/realtime');
-    
+
     const unsubscribePadel = listenToVendorsByCategory(
       'Padel Court',
       (vendors) => {
@@ -100,7 +99,7 @@ export default function HomeScreen() {
         console.error('Error in padel vendors listener:', error);
       }
     );
-    
+
     const unsubscribeFutsal = listenToVendorsByCategory(
       'Futsal Court',
       (vendors) => {
@@ -110,14 +109,13 @@ export default function HomeScreen() {
         console.error('Error in futsal vendors listener:', error);
       }
     );
-    
+
     // Cleanup listeners on unmount
     return () => {
       unsubscribePadel();
       unsubscribeFutsal();
     };
   }, []);
->>>>>>> Stashed changes
 
   const onRefresh = async () => {
     setRefreshing(true);

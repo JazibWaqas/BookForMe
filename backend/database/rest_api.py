@@ -13,7 +13,9 @@ from database.slot_service import SlotService
 from database.firestore_v2 import FirestoreV2
 from database.auth_service import AuthService
 from app.firestore import firestore_db
-from whatsapp.agent import WhatsAppAgent
+from app.cache import DataCache, cached
+# TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
+# from whatsapp.agent import WhatsAppAgent
 import os
 import uuid
 from pathlib import Path
@@ -30,8 +32,9 @@ availability_service = AvailabilityService()
 slot_service = SlotService(firestore_db.db)
 firestore_v2 = FirestoreV2(firestore_db.db)
 auth_service = AuthService(firestore_db.db)
+# TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
 # Initialize AI Agent
-ai_agent = WhatsAppAgent()
+# ai_agent = WhatsAppAgent()
 ai_search_service = AISearchService()
 
 # Create uploads directory if it doesn't exist
