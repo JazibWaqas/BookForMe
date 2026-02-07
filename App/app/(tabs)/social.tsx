@@ -51,7 +51,7 @@ export default function SocialScreen() {
       if (!searchQuery) {
         setPosts(feedData);
       } else {
-        setPosts(feedData.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase())));
+        setPosts(feedData.filter((p: Post) => (p.content || '').toLowerCase().includes(searchQuery.toLowerCase())));
       }
     }
   }, [feedData, searchQuery]);
