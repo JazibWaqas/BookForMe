@@ -1,18 +1,7 @@
-import Constants from 'expo-constants';
-
-// Get the local IP address dynamically from Expo
-const getLocalIP = (): string => {
-  const debuggerHost = Constants.expoConfig?.hostUri;
-  if (debuggerHost) {
-    return debuggerHost.split(':')[0];
-  }
-  // Fallback for production or unmanaged workflow
-  return process.env.EXPO_PUBLIC_API_HOST || '192.168.2.103';
-};
-
-export const API_URL = `http://${getLocalIP()}:8000`;
-export const WS_URL = `ws://${getLocalIP()}:8000`;
-export const API_BASE_URL = API_URL;
+// Basic Backend Configuration
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = API_BASE_URL;
+export const WS_URL = API_BASE_URL.replace('http', 'ws');
 
 // API Endpoints
 export const API_ENDPOINTS = {
