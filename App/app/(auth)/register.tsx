@@ -99,17 +99,29 @@ export default function RegisterScreen() {
     }
 
     setLoading(true);
+<<<<<<< Updated upstream
 
     try {
       const result = await authService.register(email, password, name, phone, role);
 
       if (result.success && result.user && result.token) {
         if (role === 'vendor') {
+=======
+    
+    try {
+      const { authService } = await import('../../services/auth');
+      const result = await authService.register(email, password, name, phone, role);
+      
+      if (result.success && result.user) {
+        // Store vendor data if vendor registration
+        if (role === 'vendor' && result.user.id) {
+>>>>>>> Stashed changes
           const vendorData = {
             businessName,
             ownerName: name,
             email,
             phone,
+<<<<<<< Updated upstream
             cnic: cnic || undefined,
             category,
             address,
@@ -149,6 +161,45 @@ export default function RegisterScreen() {
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+=======
+            cnic,
+            category,
+            address,
+            location: location!,
+            description,
+          };
+          await AsyncStorage.setItem('vendorProfile', JSON.stringify(vendorData));
+          
+          // Create vendor document in Firestore
+          const { authService } = await import('../../services/auth');
+          await authService.createVendorProfile(vendorData, result.user.id);
+        }
+        
+        Alert.alert(
+          'Success!',
+          role === 'vendor' 
+            ? 'Vendor account created successfully! Your account is pending verification.'
+            : 'Account created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (role === 'vendor') {
+                  router.replace('/vendor-dashboard');
+                } else {
+                  router.replace('/(tabs)/home');
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Registration Failed', result.error || 'Failed to create account. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      Alert.alert('Error', error.message || 'Registration failed. Please try again.');
+>>>>>>> Stashed changes
     } finally {
       setLoading(false);
     }

@@ -37,6 +37,7 @@ export default function HomeScreen() {
     [padelVendors, futsalVendors, cricketVendors, pickleballVendors]
   );
 
+<<<<<<< Updated upstream
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
     if (!searchQuery.trim()) return allVendors;
@@ -82,6 +83,41 @@ export default function HomeScreen() {
       v.name?.toLowerCase().includes(query) || v.area?.toLowerCase().includes(query)
     );
   }, [pickleballVendors, searchQuery]);
+=======
+  useEffect(() => {
+    // Load vendors initially
+    loadVendors();
+    
+    // Set up real-time listeners for live updates
+    const { listenToVendorsByCategory } = require('../../services/realtime');
+    
+    const unsubscribePadel = listenToVendorsByCategory(
+      'Padel Court',
+      (vendors) => {
+        setPadelVendors(vendors);
+      },
+      (error) => {
+        console.error('Error in padel vendors listener:', error);
+      }
+    );
+    
+    const unsubscribeFutsal = listenToVendorsByCategory(
+      'Futsal Court',
+      (vendors) => {
+        setFutsalVendors(vendors);
+      },
+      (error) => {
+        console.error('Error in futsal vendors listener:', error);
+      }
+    );
+    
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribePadel();
+      unsubscribeFutsal();
+    };
+  }, []);
+>>>>>>> Stashed changes
 
   const onRefresh = async () => {
     setRefreshing(true);

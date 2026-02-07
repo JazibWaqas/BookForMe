@@ -1,4 +1,5 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
+<<<<<<< Updated upstream
 import { getFirestore, collection, CollectionReference, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 // @ts-ignore: getReactNativePersistence is available at runtime but missing in some type definitions
 import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
@@ -30,6 +31,37 @@ enableIndexedDbPersistence(db).catch((err) => {
   if (err.code == 'failed-precondition') {
     console.warn('Firestore persistence failed: Multiple tabs open');
   } else if (err.code == 'unimplemented') {
+=======
+import { getFirestore, collection, CollectionReference, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { Vendor, Booking, Slot, Service } from '../types';
+
+// Firebase configuration - ensure this matches your backend project
+export const firebaseConfig = {
+  apiKey: "AIzaSyDu9mQxmKjL5z1C5YpW8RK_zVvN-tX9xQE",
+  authDomain: "bookforme-c93a6.firebaseapp.com",
+  projectId: "bookforme-c93a6",
+  storageBucket: "bookforme-c93a6.appspot.com",
+  messagingSenderId: "103421160411304955589",
+  appId: "1:103421160411304955589:web:abc123",
+};
+
+// Initialize Firebase
+const app: FirebaseApp = initializeApp(firebaseConfig);
+export const db: Firestore = getFirestore(app);
+export const auth: Auth = getAuth(app);
+
+// Enable offline persistence for better UX
+// This caches data locally so the app works offline
+import { enableIndexedDbPersistence } from 'firebase/firestore';
+
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    // Multiple tabs open, persistence can only be enabled in one tab at a time
+    console.warn('Firestore persistence failed: Multiple tabs open');
+  } else if (err.code == 'unimplemented') {
+    // The current browser does not support all of the features required
+>>>>>>> Stashed changes
     console.warn('Firestore persistence not available in this browser');
   } else {
     console.error('Firestore persistence error:', err);
@@ -40,5 +72,19 @@ export const vendorsCollection = collection(db, 'vendors') as CollectionReferenc
 export const bookingsCollection = collection(db, 'bookings') as CollectionReference<Booking>;
 export const slotsCollection = collection(db, 'slots') as CollectionReference<Slot>;
 export const servicesCollection = collection(db, 'services') as CollectionReference<Service>;
+export const usersCollection = collection(db, 'users') as CollectionReference<User>;
+
+// User interface for Firestore
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  role: 'customer' | 'vendor';
+  vendor_id?: string;
+  created_at?: any;
+  updated_at?: any;
+}
+
 export const usersCollection = collection(db, 'users') as CollectionReference<User>;
 

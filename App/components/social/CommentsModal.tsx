@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, Modal, StyleSheet, TouchableOpacity, TextInput,
-    FlatList, Image, ActivityIndicator, KeyboardAvoidingView, Platform, Alert
+    FlatList, Image, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
@@ -13,9 +13,10 @@ interface CommentsModalProps {
     visible: boolean;
     postId: string;
     onClose: () => void;
+    onCommentPosted?: (postId: string) => void;
 }
 
-export default function CommentsModal({ visible, postId, onClose }: CommentsModalProps) {
+export default function CommentsModal({ visible, postId, onClose, onCommentPosted }: CommentsModalProps) {
     const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState('');
@@ -45,14 +46,44 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
     };
 
     const handleSend = async () => {
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || !currentUser) return;
+
+        const commentText = newComment.trim();
         setSending(true);
+
+        // Clear input immediately for better UX
+        setNewComment('');
+        Keyboard.dismiss();
+
+        // Optimistic update - add comment immediately to UI
+        const tempComment = {
+            id: 'temp_' + Date.now(),
+            content: commentText,
+            created_at: new Date().toISOString(),
+            author: {
+                id: currentUser.id,
+                name: currentUser.name || 'You',
+                avatar_url: currentUser.avatar_url,
+                rank: 0,
+                points: 0
+            }
+        };
+        setComments([tempComment, ...comments]);
+
         try {
-            const comment = await SocialService.createComment(postId, newComment);
-            setComments([comment, ...comments]);
-            setNewComment('');
+            // Post to server
+            await SocialService.createComment(postId, commentText);
+            // Notify parent to update count
+            if (onCommentPosted) {
+                onCommentPosted(postId);
+            }
+            // Refresh to get actual data from server
+            await loadData();
         } catch (error) {
+            console.error('Error posting comment:', error);
             Alert.alert('Error', 'Failed to post comment');
+            // Remove temp comment on error
+            setComments(comments);
         } finally {
             setSending(false);
         }

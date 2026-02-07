@@ -148,6 +148,37 @@ class FirestoreV2:
             logger.error(f"Error getting resources for vendor {vendor_id}: {e}")
             return []
     
+    async def get_vendors_by_service(self, sport_type: str) -> List[Dict[str, Any]]:
+        """Get all vendors that offer a specific sport type"""
+        try:
+            # 1. Find all services for this sport
+            services = self.db.collection(Collections.SERVICES).where('sport_type', '==', sport_type).stream()
+            vendor_ids = set()
+            for doc in services:
+                data = doc.to_dict()
+                if 'vendor_id' in data:
+                    vendor_ids.add(data['vendor_id'])
+            
+            if not vendor_ids:
+                return []
+                
+            # 2. Fetch all unique vendors
+            vendors = []
+            # Firestore 'in' query supports max 10 items. If we have more, we need multiple queries or fetch all.
+            # Since we expect < 100 vendors total, fetching individually or by batch is fine.
+            # Let's use simple fetching for now.
+            for v_id in vendor_ids:
+                vendor_doc = self.db.collection(Collections.VENDORS).document(v_id).get()
+                if vendor_doc.exists:
+                    v_data = vendor_doc.to_dict()
+                    v_data['id'] = vendor_doc.id
+                    vendors.append(v_data)
+                    
+            return vendors
+        except Exception as e:
+            logger.error(f"Error getting vendors by service {sport_type}: {e}")
+            return []
+
     async def get_resource(self, resource_id: str) -> Optional[Dict[str, Any]]:
         try:
             doc = self.db.collection(Collections.RESOURCES).document(resource_id).get()
@@ -233,7 +264,9 @@ class FirestoreV2:
                 
                 slots.append(data)
             
-            return sorted(slots, key=lambda x: x.get('start_time', datetime.min))
+            # Sort by start_time, handling timezone-aware datetimes
+            from datetime import timezone
+            return sorted(slots, key=lambda x: x.get('start_time') or datetime.min.replace(tzinfo=timezone.utc))
         except Exception as e:
             logger.error(f"Error getting available slots: {e}")
             return []
