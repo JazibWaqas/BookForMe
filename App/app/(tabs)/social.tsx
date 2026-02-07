@@ -14,19 +14,50 @@ import { COLORS } from '../../constants/colors';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 import { SocialService, Post, Match, UserProfileSocial } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
+import { useSocialFeed, useSocialMatches, useSocialLeaderboard } from '../../hooks/useQueries';
 import React, { useState, useEffect } from 'react';
 
 export default function SocialScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'friends' | 'leaderboard'>('forum');
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Data States
+  // React Query Hooks (Cached Data)
+  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useSocialFeed('all');
+  const { data: matchesData, isLoading: matchesLoading, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
+  const { data: leaderboardData, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useSocialLeaderboard();
+
+  // Local State (for filtering and optimistic updates)
   const [posts, setPosts] = useState<Post[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<UserProfileSocial[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Sync cached data to local state
+  useEffect(() => {
+    if (feedData) {
+      if (!searchQuery) {
+        setPosts(feedData);
+      } else {
+        // Apply client-side search
+        setPosts(feedData.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase())));
+      }
+    }
+  }, [feedData, searchQuery]);
+
+  useEffect(() => {
+    if (matchesData) {
+      setMatches(matchesData); // Search is handled by backend or could be client side
+    }
+  }, [matchesData]);
+
+  useEffect(() => {
+    if (leaderboardData) setLeaderboard(leaderboardData);
+  }, [leaderboardData]);
+
+  // Data States
+  // ... deleted old state declarations that are now above ...
 
   // Input States
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,49 +85,40 @@ export default function SocialScreen() {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab, selectedFilter]);
+  // Removed old manual fetchData useEffect
+  // useEffect(() => { fetchData(); }, [activeTab, selectedFilter]);
 
   const loadUser = async () => {
     const user = await authService.getCurrentUser();
     setCurrentUser(user);
+    if (user && activeTab === 'chats') {
+      loadChats(user.id);
+    }
   };
 
-  const fetchData = async () => {
+  const loadChats = async (userId: string) => {
     setLoading(true);
     try {
-      if (activeTab === 'forum') {
-        const feed = await SocialService.getFeed(20, 'all', false) as Post[];
-        // Client side search for posts for now
-        const filteredFeed = searchQuery
-          ? feed.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase()))
-          : feed;
-        setPosts(filteredFeed);
-      } else if (activeTab === 'matches') {
-        const sportFilter = selectedFilter === 'All' ? 'all' : selectedFilter;
-        const matchList = await SocialService.getMatches(sportFilter, searchQuery);
-        setMatches(matchList);
-      } else if (activeTab === 'chats') {
-        if (!currentUser) {
-          setLoading(false);
-          return;
-        }
-        const chatList = await SocialService.getConversations(currentUser.id!);
-        const filteredChats = searchQuery
-          ? chatList.filter((c: any) => c.last_message?.toLowerCase().includes(searchQuery.toLowerCase()))
-          : chatList;
-        setChats(filteredChats);
-      } else if (activeTab === 'leaderboard') {
-        const leaders = await SocialService.getLeaderboard();
-        setLeaderboard(leaders);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      const chatList = await SocialService.getConversations(userId);
+      const filteredChats = searchQuery
+        ? chatList.filter((c: any) => c.last_message?.toLowerCase().includes(searchQuery.toLowerCase()))
+        : chatList;
+      setChats(filteredChats);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Refresh handler
+  const onRefresh = async () => {
+    if (activeTab === 'forum') await refetchFeed();
+    if (activeTab === 'matches') await refetchMatches();
+    if (activeTab === 'leaderboard') await refetchLeaderboard();
+    if (activeTab === 'chats' && currentUser) loadChats(currentUser.id);
+  };
+
 
   // --- Handlers ---
 
