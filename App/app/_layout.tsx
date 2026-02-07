@@ -1,20 +1,17 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-<<<<<<< Updated upstream
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../providers/QueryProvider';
-=======
 import { useEffect } from 'react';
 import { setupNotificationListeners, getExpoPushToken } from '../services/notifications';
 import { authService } from '../services/auth';
 import { runIntegrationTest } from '../services/database-integration';
->>>>>>> Stashed changes
 
 export default function RootLayout() {
   useEffect(() => {
     // Run integration test on app start
     runIntegrationTest();
-    
+
     // Initialize notifications
     const initializeNotifications = async () => {
       try {
@@ -22,7 +19,7 @@ export default function RootLayout() {
         const token = await getExpoPushToken();
         if (token) {
           console.log('Expo Push Token:', token);
-          
+
           // Get current user and send token to backend
           const user = await authService.getCurrentUser();
           if (user) {
@@ -30,7 +27,7 @@ export default function RootLayout() {
             await sendTokenToBackend(token, user.id);
           }
         }
-        
+
         // Setup notification listeners
         setupNotificationListeners(
           (notification) => {
@@ -47,7 +44,7 @@ export default function RootLayout() {
         console.error('Error initializing notifications:', error);
       }
     };
-    
+
     initializeNotifications();
   }, []);
 
