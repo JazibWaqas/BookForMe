@@ -5,6 +5,8 @@ Supports text messages and payment screenshot images
 """
 
 import logging
+import os
+from pathlib import Path
 from typing import Dict, Any, Optional
 from app.config import settings
 
@@ -119,13 +121,25 @@ class WhatsAppAgent:
                 return "You don't have a pending payment. Please book a slot first and I'll send you payment details."
             
             logger.info(f"Found locked slot: {locked_slot_id}, expected amount: {expected_amount}")
-            
+
+            payment_ref = f"wa_{phone_number}_{locked_slot_id}"
+            ext = "jpg"
+            if caption and "." in caption:
+                ext = caption.rsplit(".", 1)[-1].lower()
+                if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
+                    ext = "jpg"
+            upload_dir = Path("uploads/payments")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            safe_ref = "".join(c if c.isalnum() or c in "_-" else "_" for c in payment_ref)
+            filename = f"{safe_ref}.{ext}"
+            filepath = upload_dir / filename
+            filepath.write_bytes(image_bytes)
+            logger.info(f"Payment screenshot saved: {filepath}")
+
             from app.firestore import firestore_db
             from database.slot_service import SlotService
-            
+
             slot_service = SlotService(firestore_db.db)
-            
-            payment_ref = f"wa_{phone_number}_{locked_slot_id}"
             payment_result = slot_service.submit_payment(locked_slot_id, phone_number, payment_ref)
             
             if not payment_result.get('success'):

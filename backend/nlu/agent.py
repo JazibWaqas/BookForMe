@@ -1246,7 +1246,7 @@ Generate a helpful, friendly response that:
 2. Addresses the {intent} intent directly
 3. Uses the extracted entities naturally: {entities}
 4. {"Presents the REAL availability data from database clearly" if availability_info else "Guides the user to provide missing information"}
-5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot" if booking_info and "LOCKED" in booking_info else ""}
+5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot here in chat. Do NOT suggest calling any number or contacting by phone." if booking_info and "LOCKED" in booking_info else ""}
 6. {"If BOOKING CONFIRMED: Confirm the booking with the booking ID and thank the customer" if booking_info and "CONFIRMED" in booking_info else ""}
 7. {"If booking failed: Apologize and suggest trying again or selecting a different slot" if booking_info and "FAILED" in booking_info else ""}
 

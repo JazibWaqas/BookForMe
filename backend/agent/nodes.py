@@ -778,6 +778,10 @@ async def generate_response_node(state: AgentState) -> AgentState:
                     "What would you like to book?"
                 )
             return state
+
+        if booking_result and booking_result.get("success") and booking_result.get("status") == "locked" and booking_result.get("message"):
+            state["response"] = booking_result["message"]
+            return state
         
         context = {
             "query_result": query_result,
