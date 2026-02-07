@@ -2,16 +2,19 @@
 FastAPI Main Application - Simplified for WhatsApp + Firestore
 Entry point for the BookForMe backend server
 Handles WhatsApp webhook and provides REST API for frontend
+Includes dev-chat API and UI at /dev-api and /chat
 """
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+import os
 import logging
 
-from app.config import settings
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-# Import from modular structure
+from app.config import settings
 from whatsapp.webhook import WhatsAppWebhookHandler
 from database.rest_api import router as rest_api_router
 from database.auth_api import router as auth_router
@@ -31,12 +34,13 @@ app = FastAPI(
     description="AI-powered WhatsApp booking bot with Firestore backend"
 )
 
-# Mount static files
-from fastapi.staticfiles import StaticFiles
-import os
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_dev_chat_path = os.path.join(_backend_dir, "scripts", "dev_chat")
+if os.path.exists(_dev_chat_path):
+    app.mount("/chat", StaticFiles(directory=_dev_chat_path, html=True), name="dev_chat")
 
 # Include REST API router
 app.include_router(rest_api_router)
@@ -56,6 +60,73 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ============================================================================
+# DEV-CHAT API AND UI (uses whatsapp_handler.whatsapp_agent from startup)
+# ============================================================================
+
+class ChatRequest(BaseModel):
+    message: str
+    phone_number: str = "+923001234567"
+
+class ClearRequest(BaseModel):
+    phone_number: str = "+923001234567"
+
+class ChatResponse(BaseModel):
+    response: str
+
+@app.get("/chat", include_in_schema=False)
+async def dev_chat_redirect():
+    return RedirectResponse(url="/chat/index.html")
+
+@app.post("/dev-api/chat", response_model=ChatResponse)
+async def dev_chat_message(request: ChatRequest):
+    agent = whatsapp_handler.whatsapp_agent
+    if not agent:
+        raise HTTPException(status_code=503, detail="Chat agent not initialized")
+    try:
+        response_text = await agent.process_message(
+            phone_number=request.phone_number,
+            message=request.message
+        )
+        return ChatResponse(response=response_text)
+    except Exception as e:
+        logger.error(f"Dev chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/dev-api/clear")
+async def dev_chat_clear(request: ClearRequest):
+    from nlu.state_manager import StateManager
+    from agent.session_store import session_store
+    try:
+        state_manager = StateManager()
+        await state_manager.clear_session(request.phone_number)
+        session_store.clear_session(request.phone_number)
+        return {"status": "success", "message": "History cleared"}
+    except Exception as e:
+        logger.error(f"Dev chat clear error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/dev-api/upload-image", response_model=ChatResponse)
+async def dev_chat_upload(
+    file: UploadFile = File(...),
+    phone_number: str = Form(...)
+):
+    agent = whatsapp_handler.whatsapp_agent
+    if not agent:
+        raise HTTPException(status_code=503, detail="Chat agent not initialized")
+    try:
+        image_bytes = await file.read()
+        response_text = await agent.process_payment_image(
+            phone_number=phone_number,
+            image_bytes=image_bytes,
+            caption=file.filename or ""
+        )
+        return ChatResponse(response=response_text)
+    except Exception as e:
+        logger.error(f"Dev chat upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
@@ -100,7 +171,9 @@ async def root():
         "endpoints": {
             "whatsapp_webhook": "/webhook/whatsapp",
             "health": "/health",
-            "api_docs": "/docs"
+            "api_docs": "/docs",
+            "dev_chat": "/chat",
+            "dev_api": "/dev-api/chat"
         }
     }
 
