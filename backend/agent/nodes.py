@@ -257,8 +257,24 @@ async def classify_intent_node(state: AgentState) -> AgentState:
         ]
         
         nlu_result = await nlu_agent.extract_intent(last_message, conversation_history)
-        
-        state["current_intent"] = nlu_result.get("intent", "unknown")
+        raw_intent = nlu_result.get("intent", "unknown")
+        intent_5 = {
+            "booking_request": "inquiry",
+            "availability_inquiry": "inquiry",
+            "service_selection": "inquiry",
+            "date_selection": "inquiry",
+            "time_selection": "inquiry",
+            "price_inquiry": "info_request",
+            "information": "info_request",
+            "payment_related": "info_request",
+            "confirmation": "transaction",
+            "cancellation": "transaction",
+            "modification": "transaction",
+            "greeting": "greeting",
+            "name_provided": "unknown",
+            "unknown": "unknown",
+        }.get(raw_intent, "unknown" if raw_intent not in ("inquiry", "info_request", "transaction", "greeting") else raw_intent)
+        state["current_intent"] = intent_5
         entities = nlu_result.get("entities", {})
         state["entities"] = {k: v for k, v in entities.items() if v is not None}
         
@@ -390,12 +406,11 @@ async def validate_state_node(state: AgentState) -> AgentState:
         entities = state.get("entities", {})
         
         required_fields = {
-            "booking_request": ["date"],
-            "availability_inquiry": ["date"],
-            "confirmation": [],
-            "price_inquiry": [],
+            "inquiry": ["date"],
+            "info_request": [],
+            "transaction": [],
             "greeting": [],
-            "information": []
+            "unknown": []
         }
         
         required = required_fields.get(intent, [])
@@ -486,7 +501,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
         intent = state.get("current_intent", "")
         
         service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
-        area = entities.get("area") or "DHA"
+        area = entities.get("area")
         date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
         user_selected_for_date = state.get("selected_slot")
         if user_selected_for_date and (user_selected_for_date.get("slot_id") or user_selected_for_date.get("id")):
@@ -510,7 +525,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
                 "konsey din" in last_message or
                 "alternative" in last_message or
                 "dosri date" in last_message or
-                intent == "availability_inquiry"
+                intent == "inquiry"
             )
         )
         
@@ -622,7 +637,7 @@ async def query_info_node(state: AgentState) -> AgentState:
         
         intent = state.get("current_intent", "")
         
-        if intent == "price_inquiry":
+        if intent == "info_request":
             state["query_result"] = get_pricing()
             logger.info("Retrieved pricing info")
         else:
@@ -932,39 +947,40 @@ def generate_fallback_response(state: AgentState) -> str:
 # =============================================================================
 
 def route_by_intent(state: AgentState) -> str:
-    """Route to appropriate node based on intent"""
+    """Route by 5 intents. Special case: TRANSACTION with slot_id in message -> query_availability then execute_booking."""
     intent = state.get("current_intent", "")
     awaiting = state.get("awaiting_confirmation", False)
     entities = state.get("entities", {})
     selected_slot = state.get("selected_slot") or {}
+    has_slot_id = bool(selected_slot.get("slot_id"))
     has_time = bool(entities.get("time") or entities.get("time_range") or selected_slot.get("slot_time"))
     has_vendor = bool(entities.get("vendor_id") or entities.get("vendor_name") or state.get("vendor_id"))
-    
-    if awaiting and intent in ["confirmation", "cancellation", "modification", "booking_request", "unknown"]:
+
+    if awaiting and intent in ["transaction", "unknown"]:
         return "check_confirmation"
-    
-    if intent in ["availability_inquiry", "booking_request"]:
+
+    if intent == "inquiry":
         return "query_availability"
-    elif intent == "confirmation" and (has_time or has_vendor):
+    if intent == "transaction" and has_slot_id:
         return "query_availability"
-    elif intent in ["price_inquiry", "information"]:
+    if intent == "transaction" and (has_time or has_vendor):
+        return "query_availability"
+    if intent == "transaction":
+        return "check_confirmation"
+    if intent == "info_request":
         return "query_info"
-    elif intent == "greeting":
+    if intent == "greeting":
         return "generate_response"
-    elif intent == "confirmation":
-        return "check_confirmation"
-    else:
-        return "generate_response"
+    return "generate_response"
 
 
 def route_after_availability(state: AgentState) -> str:
-    """Route after availability query. Skip straight to execute_booking
-    when the user already said 'confirm [slot_id]' and we matched the slot."""
+    """After availability: if intent was TRANSACTION and we have a resolved slot, go to execute_booking."""
     intent = state.get("current_intent", "")
     pending = state.get("pending_booking")
     has_slot_id = pending and pending.get("slot_id")
 
-    if intent == "confirmation" and has_slot_id:
+    if intent == "transaction" and has_slot_id:
         state["user_confirmed"] = True
         state["confirmation_action"] = "proceed"
         logger.info(f"Auto-executing booking: intent={intent}, slot_id={pending.get('slot_id')}")

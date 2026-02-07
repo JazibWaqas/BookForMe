@@ -23,7 +23,7 @@ from agent.booking_rules import check_slot_conflict, filter_conflicting_slots, v
 
 async def check_availability(
     sport_type: str,
-    area: str,
+    area: Optional[str],
     date: str,
     time_range: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ async def check_availability(
 
     Args:
         sport_type: Type of sport (e.g., "padel", "tennis")
-        area: Area/location to search in (e.g., "DHA", "Gulberg")
+        area: Area/location to search in (e.g., "DHA", "Clifton"). If None/empty, returns ALL vendors for the sport.
         date: Date in YYYY-MM-DD format
         time_range: Optional dict with "start" and "end" times (HH:MM format)
 
@@ -40,29 +40,29 @@ async def check_availability(
         Dict with available slots from multiple vendors
     """
     try:
-        logger.info(f"Checking availability for sport: {sport_type}, area: {area}, date: {date}, time_range: {time_range}")
+        logger.info(f"Checking availability for sport: {sport_type}, area: {area or 'all'}, date: {date}, time_range: {time_range}")
 
-        # Initialize Firestore client
         fs_client = FirestoreV2(firestore_db.db)
 
-        # Step 1: Get vendors by sport type and area
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
-        vendors_by_area = await fs_client.get_vendors_by_area(area)
 
-        # Find intersection of vendors that match both sport and area
-        vendor_ids_by_sport = {v['id'] for v in vendors_by_sport}
-        vendor_ids_by_area = {v['id'] for v in vendors_by_area}
-        matching_vendor_ids = vendor_ids_by_sport.intersection(vendor_ids_by_area)
+        if area:
+            vendors_by_area = await fs_client.get_vendors_by_area(area)
+            vendor_ids_by_sport = {v['id'] for v in vendors_by_sport}
+            vendor_ids_by_area = {v['id'] for v in vendors_by_area}
+            matching_vendor_ids = vendor_ids_by_sport.intersection(vendor_ids_by_area)
+        else:
+            matching_vendor_ids = {v['id'] for v in vendors_by_sport}
 
         if not matching_vendor_ids:
-            logger.warning(f"No vendors found for sport '{sport_type}' in area '{area}'")
+            logger.warning(f"No vendors found for sport '{sport_type}'" + (f" in area '{area}'" if area else ""))
             return {
                 "success": True,
                 "date": date,
                 "sport_type": sport_type,
-                "area": area,
+                "area": area or "all",
                 "vendors": [],
-                "message": f"No vendors found offering {sport_type} in {area}"
+                "message": f"No vendors found offering {sport_type}" + (f" in {area}" if area else "")
             }
 
         # Step 2: For each matching vendor, get their services and available slots

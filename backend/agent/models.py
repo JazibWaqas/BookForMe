@@ -22,18 +22,9 @@ class SlotStatus(str, Enum):
 
 class Intent(str, Enum):
     GREETING = "greeting"
-    BOOKING_REQUEST = "booking_request"
-    AVAILABILITY_INQUIRY = "availability_inquiry"
-    SERVICE_SELECTION = "service_selection"
-    DATE_SELECTION = "date_selection"
-    TIME_SELECTION = "time_selection"
-    PRICE_INQUIRY = "price_inquiry"
-    CONFIRMATION = "confirmation"
-    CANCELLATION = "cancellation"
-    MODIFICATION = "modification"
-    INFORMATION = "information"
-    PAYMENT_RELATED = "payment_related"
-    NAME_PROVIDED = "name_provided"
+    INQUIRY = "inquiry"
+    INFO_REQUEST = "info_request"
+    TRANSACTION = "transaction"
     UNKNOWN = "unknown"
 
 

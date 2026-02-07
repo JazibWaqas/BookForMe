@@ -880,7 +880,7 @@ class NLUAgent:
         Check if we have all required details to check database availability
         
         Returns True if:
-        - Intent is availability_inquiry or booking_request
+        - Intent is inquiry
         - Service type is provided
         - Date is provided
         - Time is provided (optional but preferred)
@@ -889,8 +889,7 @@ class NLUAgent:
         logger.info(f"   Intent: {intent}")
         logger.info(f"   Entities: {entities}")
         
-        # Check if intent requires availability check
-        if intent not in ["availability_inquiry", "booking_request"]:
+        if intent != "inquiry":
             logger.info(f"   ❌ Intent '{intent}' does not require availability check")
             return False
         logger.info(f"   ✅ Intent '{intent}' requires availability check")

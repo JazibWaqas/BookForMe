@@ -44,19 +44,26 @@ We will replace the 14 intents with these 5 Core Intents:
 ### Step 3: Update Routing Logic
 **File:** `backend/agent/nodes.py`
 *   **Action 1 (`route_by_intent`):** Map the 5 intents to the graph nodes.
-    *   `INQUIRY` -> `query_availability` (The big funnel)
-    *   `INFO_REQUEST` -> `query_info`
-    *   `TRANSACTION` -> `check_confirmation`
-    *   `GREETING` -> `generate_response`
+    *   `inquiry` -> `query_availability` (The big funnel)
+    *   `info_request` -> `query_info`
+    *   `transaction` -> `check_confirmation` (or see special case below)
+    *   `greeting` -> `generate_response`
+    *   `unknown` -> `generate_response`
 *   **Action 2 (`validate_state_node`):** Update the `required_fields` map.
-    *   `INQUIRY`: Requires `['date']` (and potentially `['service']` if we want to be strict, but usually we just ask).
+    *   `inquiry`: Requires `['date']` (optional: `['service']`).
+*   **Special case – TRANSACTION with explicit slot ID:** When the user says "confirm 20260208_0900_ace_3" (or any message that is both a transaction and contains a slot ID), we must **not** route to `check_confirmation` only. We need to resolve the slot first, then execute the booking. So:
+    *   If intent is `transaction` **and** `selected_slot` has a `slot_id` (extracted from the message by `extract_slot_node`), route to **`query_availability`** instead of `check_confirmation`.
+    *   In `query_availability_node` we use the slot ID to find the slot and set `pending_booking`; then `route_after_availability` sees `transaction` + `pending_booking.slot_id` and sends the flow to **`execute_booking`**.
+    *   Result: one message "confirm 20260208_0900_ace_3" → query_availability (resolve slot) → execute_booking → user gets "Slot locked, send payment screenshot".
+    *   This is documented in code in `route_by_intent`: "TRANSACTION with slot_id: route to query_availability to resolve slot then execute_booking".
 
 ### Step 4: Verification
 **Test Cases to Verify:**
-1.  **"Do you have a slot?"** -> `INQUIRY` -> Routing asks for date.
-2.  **"Book tomorrow"** -> `INQUIRY` -> Params extracted -> Routing checks availability.
-3.  **"How much is Padel?"** -> `INFO_REQUEST` -> Routing returns pricing.
-4.  **"Yes confirm"** -> `TRANSACTION` -> Routing executes booking.
+1.  **"Do you have a slot?"** -> `inquiry` -> Routing asks for date.
+2.  **"Book tomorrow"** -> `inquiry` -> Params extracted -> Routing checks availability.
+3.  **"How much is Padel?"** -> `info_request` -> Routing returns pricing.
+4.  **"Yes confirm"** -> `transaction` -> Routing executes booking (when already awaiting confirmation).
+5.  **"confirm 20260208_0900_ace_3"** -> Treated as `inquiry` in NLU (slot ID present) or `transaction` with slot_id in state -> `query_availability` -> `execute_booking` (special case).
 
 ## 4. Execution Order
 1.  Verify exact file paths.
