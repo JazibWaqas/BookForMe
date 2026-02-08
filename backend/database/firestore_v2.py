@@ -256,8 +256,13 @@ class FirestoreV2:
                 # Normalize: extract time string from start_time timestamp
                 if 'start_time' in data and data['start_time']:
                     try:
+                        import pytz
+                        KARACHI_TZ = pytz.timezone('Asia/Karachi')
                         start_ts = data['start_time']
-                        if hasattr(start_ts, 'strftime'):
+                        if hasattr(start_ts, 'astimezone'):
+                            start_karachi = start_ts.astimezone(KARACHI_TZ)
+                            data['time'] = start_karachi.strftime('%H:%M')
+                        elif hasattr(start_ts, 'strftime'):
                             data['time'] = start_ts.strftime('%H:%M')
                     except:
                         pass

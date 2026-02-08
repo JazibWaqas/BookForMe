@@ -42,17 +42,3 @@ export const slotsCollection = collection(db, 'slots') as CollectionReference<Sl
 export const servicesCollection = collection(db, 'services') as CollectionReference<Service>;
 export const usersCollection = collection(db, 'users') as CollectionReference<User>;
 
-// User interface for Firestore
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone: string;
-  role: 'customer' | 'vendor';
-  vendor_id?: string;
-  created_at?: any;
-  updated_at?: any;
-}
-
-export const usersCollection = collection(db, 'users') as CollectionReference<User>;
-
