@@ -106,11 +106,16 @@ export default function MatchCard({ match, onSwipeRight, onSwipeLeft, isFirst }:
             'Padel': '🎾',
             'Tennis': '🎾',
             'Football': '⚽',
+            'Futsal': '⚽',
             'Basketball': '🏀',
             'Volleyball': '🏐',
             'Badminton': '🏸',
+            'Cricket': '🏏',
+            'Squash': '🎾',
+            'TableTennis': '🏓',
+            'Hockey': '🏒',
         };
-        return icons[sport] || '🏃';
+        return icons[sport] || '⚽';
     };
 
     const currentPlayers = match.participants?.length || 1;

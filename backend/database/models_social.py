@@ -66,6 +66,7 @@ class PostResponse(PostBase):
     user_id: str
     likes_count: int = 0
     comments_count: int = 0
+    likes: List[str] = []  # Array of user IDs who liked this post
     created_at: datetime
     updated_at: datetime
     # Optional: include author details if needed often

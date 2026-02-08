@@ -2,7 +2,7 @@
 Social Features API
 Handles Connections, Chat, Matchmaking, and Ranking
 """
-from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status, Request
 from typing import List, Optional, Dict
 from datetime import datetime
 from google.cloud import firestore
@@ -24,6 +24,10 @@ from fastapi import File, UploadFile, Form
 # Assuming you have an auth dependency to get current user
 # If not, we'll mock it or you might need to import it from auth_api.py
 # from database.auth_api import get_current_user 
+import logging
+import asyncio
+
+logger = logging.getLogger(__name__) 
 
 router = APIRouter(
     prefix="/api/social",
@@ -69,26 +73,71 @@ async def get_user_profile_social(user_id: str) -> UserProfileSocial:
 UPLOAD_DIR = Path("uploads/social")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# DEBUG ENDPOINT - accepts ANY body
+@router.post("/upload-debug")
+async def upload_debug(request: Request):
+    """Debug endpoint to see what we're actually receiving"""
+    try:
+        logger.info("=" * 60)
+        logger.info("🔍 DEBUG UPLOAD - Raw Request Analysis")
+        logger.info("=" * 60)
+        logger.info(f"Method: {request.method}")
+        logger.info(f"URL: {request.url}")
+        logger.info(f"Headers:")
+        for key, value in request.headers.items():
+            logger.info(f"  {key}: {value}")
+        
+        # Try to read body
+        body = await request.body()
+        logger.info(f"Body length: {len(body)} bytes")
+        logger.info(f"Body preview (first 1000 chars):")
+        logger.info(body[:1000])
+        logger.info("=" * 60)
+        
+        return {"status": "received", "body_length": len(body)}
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}", exc_info=True)
+        return {"error": str(e)}
+
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    type: str = Form("general") # post, chat_image, chat_audio
+    type: str = Form("post")
 ):
     """Upload a file for social features"""
-    # Create type specific subdir
-    type_dir = UPLOAD_DIR / type
-    type_dir.mkdir(parents=True, exist_ok=True)
-    
-    file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = type_dir / unique_filename
-    
-    with open(file_path, "wb") as buffer:
-        content = await file.read()
-        buffer.write(content)
+    try:
+        logger.info(f"📤 Upload request received!")
+        logger.info(f"   - filename: {file.filename}")
+        logger.info(f"   - content_type: {file.content_type}")
+        logger.info(f"   - type param: {type}")
         
-    # Return URL (assuming static mount at /uploads)
-    return {"url": f"/uploads/social/{type}/{unique_filename}", "type": type}
+        # Create type specific subdir
+        type_dir = UPLOAD_DIR / type
+        type_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = type_dir / unique_filename
+        
+        logger.info(f"💾 Saving to: {file_path}")
+        
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+            logger.info(f"✅ File saved successfully - size: {len(content)} bytes")
+        
+        # Return URL (assuming static mount at /uploads)
+        url = f"/uploads/social/{type}/{unique_filename}"
+        logger.info(f"🔗 Generated URL: {url}")
+        
+        return {"url": url, "type": type, "filename": unique_filename}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Upload failed: {str(e)}")
+        logger.error(f"   Exception type: {type(e).__name__}")
+        logger.error(f"   Traceback:", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 # --- 0. Posts ---
 
@@ -259,6 +308,28 @@ async def get_posts_feed(
     
     return posts
 
+# ========================================
+# Comments
+# ========================================
+
+@router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
+async def get_comments(post_id: str):
+    """Get all comments for a post"""
+    comments_ref = db.collection('comments').where('post_id', '==', post_id).order_by('created_at', direction=firestore.Query.DESCENDING)
+    comments_docs = await asyncio.to_thread(lambda: list(comments_ref.stream()))
+    
+    comments = []
+    for doc in comments_docs:
+        data = doc.to_dict()
+        author = await get_user_profile_social(data.get('user_id'))
+        comments.append(CommentResponse(
+            id=doc.id,
+            author=author,
+            **data
+        ))
+    
+    return comments
+
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse)
 async def create_comment(
     post_id: str, 
@@ -271,7 +342,7 @@ async def create_comment(
 
     # 1. Verify Post Exists
     post_ref = db.collection('posts').document(post_id)
-    post = post_ref.get()
+    post = await asyncio.to_thread(post_ref.get)
     if not post.exists:
         raise HTTPException(status_code=404, detail="Post not found")
     
@@ -282,10 +353,10 @@ async def create_comment(
         "content": comment.content,
         "created_at": datetime.now()
     }
-    doc_ref = db.collection('comments').add(comment_data)[1]
+    doc_ref = await asyncio.to_thread(lambda: db.collection('comments').add(comment_data)[1])
     
     # 3. Update Post Stats (Increment comments_count)
-    post_ref.update({"comments_count": firestore.Increment(1)})
+    await asyncio.to_thread(post_ref.update, {"comments_count": firestore.Increment(1)})
     
     # 4. Notify Post Author
     post_data = post.to_dict()
@@ -571,7 +642,8 @@ async def list_matches(
         response_data = data.copy()
         response_data['id'] = doc.id
         p_ids = data.get('participants_ids', [])
-        response_data['participants'] = [get_user_profile_social(pid) for pid in p_ids]
+        # Await all participant profile fetches in parallel
+        response_data['participants'] = await asyncio.gather(*[get_user_profile_social(pid) for pid in p_ids])
         
         # Handle timestamp conversion
         if 'created_at' not in response_data or response_data['created_at'] is None:

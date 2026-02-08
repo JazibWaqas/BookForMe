@@ -134,20 +134,29 @@ export default function SocialScreen() {
     try {
       let imageUrl = null;
       if (newPostImage) {
+        console.log('📤 Uploading image:', newPostImage);
         const uploadRes = await SocialService.uploadFile(newPostImage, 'post');
+        console.log('✅ Upload response:', uploadRes);
         imageUrl = uploadRes.url;
+        console.log('🔗 Image URL:', imageUrl);
       }
 
-      await SocialService.createPost({
+      const postData = {
         content: newPostContent,
         type: 'general',
         image_url: imageUrl || undefined
-      });
+      };
+      console.log('📝 Creating post with data:', postData);
+
+      await SocialService.createPost(postData);
+      console.log('✅ Post created successfully');
+
       setNewPostContent('');
       setNewPostImage(null);
       fetchData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create post');
+    } catch (error: any) {
+      console.error('❌ Error creating post:', error);
+      Alert.alert('Error', `Failed to create post: ${error.message || 'Unknown error'}`);
     } finally {
       setSendingPost(false);
     }
@@ -168,11 +177,18 @@ export default function SocialScreen() {
   const handleLikePost = async (post: Post) => {
     if (!currentUser) return;
     try {
+      console.log('👍 Liking post:', post.id);
+      console.log('   Current likes:', post.likes);
+      console.log('   Current likes_count:', post.likes_count);
+
       // Optimistic Update
       const isLiked = (post.likes || []).includes(currentUser.id!);
       const newLikes = isLiked
         ? (post.likes || []).filter(id => id !== currentUser.id)
         : [...(post.likes || []), currentUser.id!];
+
+      console.log('   New likes array:', newLikes);
+      console.log('   New likes_count:', newLikes.length);
 
       setPosts(posts.map(p =>
         p.id === post.id
@@ -180,10 +196,33 @@ export default function SocialScreen() {
           : p
       ));
 
-      await SocialService.toggleLike(post.id, currentUser.id!);
-    } catch (error) {
+      const response = await SocialService.toggleLike(post.id, currentUser.id!);
+      console.log('✅ Backend response:', response);
+    } catch (error: any) {
+      console.error('❌ Like failed:', error);
       fetchData(); // Revert
     }
+  };
+
+  const handleOpenComments = (post: Post) => {
+    setSelectedPostId(post.id);
+    setIsCommentsVisible(true);
+  };
+
+  const handleCommentPosted = (postId: string) => {
+    // Optimistically update comment count
+    setPosts(posts.map(p =>
+      p.id === postId
+        ? { ...p, comments_count: p.comments_count + 1 }
+        : p
+    ));
+  };
+
+  const handleCloseComments = () => {
+    setIsCommentsVisible(false);
+    setSelectedPostId(null);
+    // Refresh posts to get updated counts
+    refetchFeed();
   };
 
   const handleCreateMatch = async () => {
@@ -218,11 +257,6 @@ export default function SocialScreen() {
       // Ideally parse error message
       Alert.alert('Error', 'Failed to join match (Full or Already Joined)');
     }
-  };
-
-  const handleOpenComments = (post: Post) => {
-    setSelectedPostId(post.id);
-    setIsCommentsVisible(true);
   };
 
   const tabs = [
@@ -573,7 +607,7 @@ export default function SocialScreen() {
 
             <TextInput
               style={styles.input}
-              placeholder="Sport (e.g. Padel)"
+              placeholder="Sport (e.g. Padel, Futsal, Tennis)"
               value={newMatchData.sport}
               onChangeText={t => setNewMatchData({ ...newMatchData, sport: t })}
             />
@@ -584,20 +618,54 @@ export default function SocialScreen() {
               editable={!newMatchData.slot_id}
               onChangeText={t => setNewMatchData({ ...newMatchData, location: t })}
             />
-            <TextInput
-              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
-              placeholder="Date (YYYY-MM-DD)"
-              value={newMatchData.date}
-              editable={!newMatchData.slot_id}
-              onChangeText={t => setNewMatchData({ ...newMatchData, date: t })}
-            />
-            <TextInput
-              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
-              placeholder="Time (HH:MM)"
-              value={newMatchData.time}
-              editable={!newMatchData.slot_id}
-              onChangeText={t => setNewMatchData({ ...newMatchData, time: t })}
-            />
+
+            {/* Date Selection */}
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Date</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                {['Today', 'Tomorrow', 'Saturday', 'Sunday'].map(d => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[styles.bookingChip, newMatchData.date === d && styles.bookingChipActive]}
+                    onPress={() => !newMatchData.slot_id && setNewMatchData({ ...newMatchData, date: d })}
+                    disabled={!!newMatchData.slot_id}
+                  >
+                    <Text style={newMatchData.date === d ? styles.bookingChipTextActive : styles.bookingChipText}>{d}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TextInput
+                style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
+                placeholder="Or enter date (YYYY-MM-DD)"
+                value={newMatchData.date}
+                editable={!newMatchData.slot_id}
+                onChangeText={t => setNewMatchData({ ...newMatchData, date: t })}
+              />
+            </View>
+
+            {/* Time Selection */}
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Time</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                {['7:00 AM', '9:00 AM', '5:00 PM', '7:00 PM', '9:00 PM'].map(t => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.bookingChip, newMatchData.time === t && styles.bookingChipActive]}
+                    onPress={() => !newMatchData.slot_id && setNewMatchData({ ...newMatchData, time: t })}
+                    disabled={!!newMatchData.slot_id}
+                  >
+                    <Text style={newMatchData.time === t ? styles.bookingChipTextActive : styles.bookingChipText}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TextInput
+                style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
+                placeholder="Or enter time (HH:MM)"
+                value={newMatchData.time}
+                editable={!newMatchData.slot_id}
+                onChangeText={t => setNewMatchData({ ...newMatchData, time: t })}
+              />
+            </View>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
               <Button title="Cancel" variant="outline" onPress={() => setIsMatchModalVisible(false)} />
@@ -608,15 +676,18 @@ export default function SocialScreen() {
       </Modal>
 
       {/* Comments Modal */}
-      {selectedPostId && (
-        <CommentsModal
-          visible={isCommentsVisible}
-          postId={selectedPostId}
-          onClose={() => setIsCommentsVisible(false)}
-        />
-      )}
+      {
+        selectedPostId && (
+          <CommentsModal
+            visible={isCommentsVisible}
+            postId={selectedPostId}
+            onClose={handleCloseComments}
+            onCommentPosted={handleCommentPosted}
+          />
+        )
+      }
 
-    </View>
+    </View >
   );
 }
 
@@ -651,6 +722,10 @@ const styles = StyleSheet.create({
   postFooter: { flexDirection: 'row', paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
   actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
   actionText: { marginLeft: 6, color: COLORS.textMuted },
+
+  // Picker Styles
+  pickerContainer: { marginBottom: 12 },
+  pickerLabel: { color: COLORS.textMuted, marginBottom: 8, fontSize: 12, marginLeft: 4 },
 
   // Match Styles
   matchHeader: { flexDirection: 'row', marginBottom: 16, gap: 10 },

@@ -36,19 +36,20 @@ export default function MatchSwiper({ matches, onJoinMatch, onSkipMatch, onRefre
         setSkippedMatches([]);
     }, [matches]);
 
-    const handleSwipeRight = useCallback(async () => {
+    const handleSwipeRight = useCallback(() => {
         if (currentIndex >= matches.length) return;
 
         const match = matches[currentIndex];
 
-        try {
-            await onJoinMatch(match.id);
-            Alert.alert('Joined!', `You've joined the ${match.sport_type} match!`);
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to join match');
-        }
-
+        // Optimistic update: Move to next card immediately
         setCurrentIndex(prev => prev + 1);
+
+        // Perform async action
+        onJoinMatch(match.id).catch(error => {
+            console.error('Join match failed:', error);
+            Alert.alert('Error', 'Failed to join match');
+            // We could optionally revert the swipe here if needed
+        });
     }, [currentIndex, matches, onJoinMatch]);
 
     const handleSwipeLeft = useCallback(() => {

@@ -1,4 +1,4 @@
-import { apiClient } from '../config/api';
+import { apiClient, API_BASE_URL } from '../config/api';
 
 // Types (matching Backend)
 export interface UserProfileSocial {
@@ -41,31 +41,91 @@ export interface Match {
     participants: UserProfileSocial[];
 }
 
+export interface Comment {
+    id: string;
+    post_id: string;
+    user_id: string;
+    content: string;
+    created_at: string;
+    author?: UserProfileSocial;
+}
+
 // Service
 export const SocialService = {
     // --- Upload ---
     async uploadFile(fileUri: string, type: 'post' | 'chat_image' | 'chat_audio' = 'post') {
-        const formData = new FormData();
-        // Need to infer filename and type
-        const filename = fileUri.split('/').pop() || `upload_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const ext = match ? match[1] : 'jpg';
+        try {
+            console.log('🔧 Starting file upload...', { fileUri, type });
 
-        // FormData expects an object with uri, name, type for React Native
-        formData.append('file', {
-            uri: fileUri,
-            name: filename,
-            type: type === 'chat_audio' ? 'audio/m4a' : `image/${ext}`
-        } as any);
+            const formData = new FormData();
 
-        formData.append('type', type);
+            // Need to infer filename and type
+            const filename = fileUri.split('/').pop() || `upload_${Date.now()}.jpg`;
+            const match = /\.(\w+)$/.exec(filename);
+            const ext = match ? match[1] : 'jpg';
+            const mimeType = type === 'chat_audio' ? 'audio/m4a' : `image/${ext}`;
 
-        const response = await apiClient.post('/api/social/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        return response.data; // { url: ..., type: ... }
+            console.log('📄 File details:', { filename, ext, mimeType });
+
+            // Check if we're on web or native
+            const isWeb = fileUri.startsWith('http') || fileUri.startsWith('blob:') || fileUri.startsWith('data:');
+
+            if (isWeb) {
+                // WEB: Fetch the blob from the URI
+                console.log('🌐 Web platform detected - fetching blob from URI');
+                const response = await fetch(fileUri);
+                const blob = await response.blob();
+                console.log('📦 Blob created:', { size: blob.size, type: blob.type });
+
+                // Create a File object from the blob (web browsers expect this)
+                const file = new File([blob], filename, { type: mimeType });
+                formData.append('file', file);
+            } else {
+                // NATIVE: Use React Native's file object format
+                console.log('📱 Native platform detected - using RN file format');
+                formData.append('file', {
+                    uri: fileUri,
+                    name: filename,
+                    type: mimeType,
+                } as any);
+            }
+
+            formData.append('type', type);
+
+            console.log('🚀 Sending upload request via fetch');
+
+            // Use fetch instead of axios for better multipart/form-data handling
+            const token = await import('@react-native-async-storage/async-storage').then(m => m.default.getItem('authToken'));
+
+            const response = await fetch(`${API_BASE_URL}/api/social/upload`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    // Don't set Content-Type, let the browser/RN set it with boundary
+                },
+                body: formData,
+            });
+
+            console.log('📥 Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Upload failed with error:', errorText);
+                throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Upload successful:', data);
+
+            return data; // { url: ..., type: ... }
+        } catch (error: any) {
+            console.error('❌ Upload failed:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
     },
 
     // --- Posts ---
@@ -89,6 +149,19 @@ export const SocialService = {
     async toggleLike(postId: string, userId: string) {
         const response = await apiClient.post(`/api/social/posts/${postId}/like`, null, {
             params: { user_id: userId }
+        });
+        return response.data;
+    },
+
+    // --- Comments ---
+    async getComments(postId: string) {
+        const response = await apiClient.get(`/api/social/posts/${postId}/comments`);
+        return response.data;
+    },
+
+    async createComment(postId: string, content: string) {
+        const response = await apiClient.post(`/api/social/posts/${postId}/comments`, {
+            content
         });
         return response.data;
     },
@@ -144,16 +217,6 @@ export const SocialService = {
         const response = await apiClient.get('/api/social/notifications', {
             params: { user_id: userId }
         });
-        return response.data;
-    },
-
-    async getComments(postId: string) {
-        const response = await apiClient.get(`/api/social/posts/${postId}/comments`);
-        return response.data;
-    },
-
-    async createComment(postId: string, content: string) {
-        const response = await apiClient.post(`/api/social/posts/${postId}/comments`, { content });
         return response.data;
     }
 };
