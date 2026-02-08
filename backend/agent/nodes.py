@@ -9,6 +9,7 @@ import re
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from agent.state import AgentState
+from app.firestore import firestore_db
 from agent.tools import check_availability, get_pricing, get_vendor_info
 from agent.duration import parse_duration
 from agent.models import (
@@ -183,7 +184,7 @@ def extract_slot_from_message(message: str) -> Optional[Dict[str, str]]:
     """Extract slot directly from message text (including explicit slot IDs)"""
     msg = message.strip()
     msg_lower = msg.lower()
-    slot_id_pattern = r"\b(\d{8}_\d{4}_[a-z0-9_]+)\b"
+    slot_id_pattern = r"\b(\d{8}_\d{2,4}_[a-z0-9_]+)\b"
     slot_id_match = re.search(slot_id_pattern, msg_lower)
     if slot_id_match:
         raw_id = slot_id_match.group(1)
@@ -363,14 +364,11 @@ async def extract_slot_node(state: AgentState) -> AgentState:
         messages = state.get("messages", [])
         last_message = messages[-1].get("content", "") if messages else ""
         
-        slot_match = None
-        
-        time_data = entities.get("time_range") or entities.get("time")
-        if time_data:
-            slot_match = extract_slot_from_time_data(time_data)
-        
-        if not slot_match:
-            slot_match = extract_slot_from_message(last_message)
+        slot_match = extract_slot_from_message(last_message)
+        if not slot_match or not slot_match.get("slot_id"):
+            time_data = entities.get("time_range") or entities.get("time")
+            if time_data:
+                slot_match = extract_slot_from_time_data(time_data)
         
         if slot_match:
             state["selected_slot"] = slot_match
@@ -455,6 +453,17 @@ def date_from_slot_id(slot_id: str) -> Optional[str]:
     return None
 
 
+def infer_sport_from_slot_id(slot_id: str) -> Optional[str]:
+    slot_lower = (slot_id or "").lower()
+    if "cricket" in slot_lower:
+        return "cricket"
+    if "padel" in slot_lower:
+        return "padel"
+    if "futsal" in slot_lower:
+        return "futsal"
+    return None
+
+
 def find_slot_by_id(slot_id: str, vendors: List[Dict]) -> Optional[Dict]:
     """Find exact slot by slot_id in query results."""
     if not slot_id:
@@ -500,7 +509,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
         last_message = messages[-1].get("content", "").lower() if messages else ""
         intent = state.get("current_intent", "")
         
-        service_type = entities.get("service_type") or entities.get("sport_type") or "padel"
+        service_type = entities.get("service_type") or entities.get("sport_type")
         area = entities.get("area")
         date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
         user_selected_for_date = state.get("selected_slot")
@@ -510,10 +519,61 @@ async def query_availability_node(state: AgentState) -> AgentState:
                 date = parsed
                 state["selected_date"] = parsed
                 logger.info(f"Using date from slot ID: {date}")
+            if not service_type:
+                service_type = infer_sport_from_slot_id(user_selected_for_date.get("slot_id") or user_selected_for_date.get("id") or "")
+        service_type = service_type or "padel"
         time_range = entities.get("time_range")
-        
+
+        user_selected = state.get("selected_slot")
+        explicit_slot_id = (user_selected or {}).get("slot_id") or (user_selected or {}).get("id")
+
+        if explicit_slot_id:
+            from database.firestore_v2 import FirestoreV2
+            from database.schema import SlotStatus
+            import pytz
+            fs = FirestoreV2(firestore_db.db)
+            direct_slot = await fs.get_slot(explicit_slot_id)
+            if direct_slot and direct_slot.get("status") == SlotStatus.AVAILABLE.value:
+                raw_start = direct_slot.get("start_time")
+                if hasattr(raw_start, "astimezone"):
+                    slot_start = raw_start.astimezone(pytz.timezone("Asia/Karachi")).strftime("%H:%M")
+                elif raw_start:
+                    slot_start = str(raw_start)[:5]
+                else:
+                    slot_start = (user_selected or {}).get("slot_time", "09:00")
+                h = int(slot_start.split(":")[0]) if ":" in str(slot_start) else 9
+                slot_end = f"{(h + 1) % 24:02d}:00"
+                vendor_id = direct_slot.get("vendor_id", "")
+                price = int(direct_slot.get("price", 0))
+                slot_date = direct_slot.get("date", date)
+                inferred_sport = infer_sport_from_slot_id(explicit_slot_id) or service_type
+
+                full_slot = {
+                    "slot_id": explicit_slot_id,
+                    "slot_time": slot_start,
+                    "end_time": slot_end,
+                    "price": price,
+                    "resource_id": direct_slot.get("resource_id", ""),
+                    "vendor_id": vendor_id
+                }
+                state["selected_slot"] = full_slot
+                state["vendor_id"] = vendor_id
+                state["awaiting_confirmation"] = True
+                state["confirmation_type"] = "booking"
+                state["pending_booking"] = {
+                    "slot": full_slot,
+                    "slot_id": explicit_slot_id,
+                    "price": price,
+                    "date": slot_date,
+                    "vendor_id": vendor_id,
+                    "service_type": inferred_sport,
+                    "area": area or "Karachi"
+                }
+                state["query_result"] = {"success": True, "date": slot_date, "sport_type": inferred_sport, "area": area or "Karachi", "vendors": []}
+                logger.info(f"Slot found directly by ID: {explicit_slot_id}, price={price}")
+                return state
+
         logger.info(f"Checking availability: {service_type} in {area} on {date}")
-        
         query_result = await check_availability(service_type, area, date, time_range)
         
         has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
