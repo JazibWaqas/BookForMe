@@ -1,0 +1,3 @@
+[submodule "intent-api"]
+	path = intent-api
+	url = https://github.com/elmo1573/Intent_Classifier
