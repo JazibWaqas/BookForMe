@@ -41,7 +41,7 @@ class SessionStore:
         """Save session state for a user (only persists booking-related fields)"""
         persisted_keys = [
             "awaiting_confirmation",
-            "confirmation_type", 
+            "confirmation_type",
             "pending_booking",
             "selected_slot",
             "selected_date",
@@ -51,7 +51,11 @@ class SessionStore:
             "vendor_name",
             "locked_slot_id",
             "awaiting_payment",
-            "payment_amount"
+            "payment_amount",
+            "slot_options",
+            "awaiting_slot_selection",
+            "selected_sport_type",
+            "selected_area",
         ]
         
         session_data = {}
