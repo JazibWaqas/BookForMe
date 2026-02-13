@@ -259,13 +259,16 @@ def update_user_stats(db):
     for user_id, stats in USER_STATS_DATA.items():
         db.collection(Collections.USERS).document(user_id).update({
             "points": stats["points"],
-            "matches_played": stats["matches_played"],
-            "wins": stats["wins"],
-            "losses": stats["losses"],
-            "win_rate": stats["win_rate"],
-            "rank": stats["rank"],
+            "level": 1,  # Default level, or calculate based on points
+            "stats": {
+                "matches_played": stats["matches_played"],
+                "wins": stats["wins"],
+                "losses": stats["losses"],
+                "win_rate": stats["win_rate"]
+            },
+            # "rank": stats["rank"], # Rank might be dynamic or separate
             "avatar_url": f"https://i.pravatar.cc/150?u={user_id}",
-            "online_status": False
+            "is_online": False 
         })
         logger.info(f"  Updated stats for: {user_id}")
     

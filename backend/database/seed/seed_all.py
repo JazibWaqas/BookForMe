@@ -48,13 +48,34 @@ def seed_users(db):
     logger.info("Seeding users collection...")
     
     for user in USERS_DATA:
+        # Canonical user schema - matches firestore_v2.create_user()
         user_doc = {
             "phone": user["phone"],
             "name": user["name"],
             "email": user["email"],
             "role": user["role"],
             "vendor_id": user["vendor_id"],
-            "created_at": firestore.SERVER_TIMESTAMP
+            "created_at": firestore.SERVER_TIMESTAMP,
+            "last_active": firestore.SERVER_TIMESTAMP,
+            "is_online": False,
+            
+            # Social fields (initialized to safe defaults)
+            "points": 0,
+            "level": 1,
+            "skill_rating": 1000.0,
+            "avatar_url": "default_avatar.png",
+            "bio": "",
+            
+            # Nested objects (must exist for social features)
+            "stats": {
+                "matches_played": 0,
+                "wins": 0,
+                "losses": 0
+            },
+            "preferences": {
+                "notifications": True
+            },
+            "badges": []
         }
         db.collection(Collections.USERS).document(user["id"]).set(user_doc)
         logger.info(f"  Created user: {user['name']}")
@@ -78,7 +99,16 @@ def seed_vendors(db):
             "operating_hours": vendor["operating_hours"],
             "description": vendor.get("description", ""),
             "default_payment_id": get_vendor_default_payment(vendor["id"]),
-            "created_at": firestore.SERVER_TIMESTAMP
+            "created_at": firestore.SERVER_TIMESTAMP,
+            
+            # Analytics fields (for vendor dashboard)
+            "rating_sum": 0,
+            "rating_count": 0,
+            "average_rating": 0.0,
+            "revenue_today": 0,
+            "revenue_week": 0,
+            "revenue_month": 0,
+            "booking_count_today": 0
         }
         db.collection(Collections.VENDORS).document(vendor["id"]).set(vendor_doc)
         logger.info(f"  Created vendor: {vendor['name']}")

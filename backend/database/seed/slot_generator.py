@@ -182,64 +182,14 @@ def generate_all_slots(
 
 
 def apply_test_states(slots: List[Dict[str, Any]], users_data: list) -> List[Dict[str, Any]]:
-    if len(slots) < 10:
-        return slots
+    """
+    DISABLED: Test states should be applied via API after seeding
+    This prevents hardcoded user IDs and ensures referential integrity
     
-    from datetime import timezone
-    
-    now = datetime.now(timezone.utc)
-    tomorrow = now + timedelta(days=1)
-    
-    locked_slot = None
-    pending_slot = None
-    confirmed_slots = []
-    cancelled_slot = None
-    
-    for slot in slots:
-        slot_date = datetime.strptime(slot["date"], "%Y-%m-%d")
-        start_time = slot["start_time"]
-        
-        if isinstance(start_time, datetime):
-            slot_hour_pkt = start_time.astimezone(PKT).hour
-        else:
-            slot_hour_pkt = int(str(start_time).split(":")[0]) if ":" in str(start_time) else 0
-        
-        if slot_date.date() == now.date() and slot["status"] == SlotStatus.AVAILABLE.value:
-            now_hour_pkt = now.astimezone(PKT).hour
-            if not locked_slot and slot_hour_pkt >= now_hour_pkt + 1:
-                locked_slot = slot
-            elif not pending_slot and slot_hour_pkt >= now_hour_pkt + 2:
-                pending_slot = slot
-            elif len(confirmed_slots) < 3:
-                confirmed_slots.append(slot)
-            elif not cancelled_slot:
-                cancelled_slot = slot
-        
-        elif slot_date.date() == tomorrow.date() and slot["status"] == SlotStatus.AVAILABLE.value:
-            if len(confirmed_slots) < 5:
-                confirmed_slots.append(slot)
-    
-    if locked_slot:
-        locked_slot["status"] = SlotStatus.LOCKED.value
-        locked_slot["user_id"] = users_data[0]["id"] if users_data else "user_ahmad"
-        locked_slot["hold_expires_at"] = now + timedelta(minutes=5)
-    
-    if pending_slot:
-        pending_slot["status"] = SlotStatus.PENDING.value
-        pending_slot["user_id"] = users_data[1]["id"] if len(users_data) > 1 else "user_taha"
-        pending_slot["payment_id"] = "payment_test_2"
-    
-    for i, slot in enumerate(confirmed_slots):
-        user_idx = (i + 2) % len(users_data) if users_data else 0
-        slot["status"] = SlotStatus.CONFIRMED.value
-        slot["user_id"] = users_data[user_idx]["id"] if users_data else f"user_{i}"
-        if i == 0:
-            slot["payment_id"] = "payment_test_1"
-    
-    if cancelled_slot:
-        cancelled_slot["status"] = SlotStatus.CANCELLED.value
-        cancelled_slot["user_id"] = users_data[-2]["id"] if len(users_data) > 1 else "user_bilal"
-    
+    All slots are generated as 'available' by default.
+    To create test bookings, use the booking API endpoints after seeding.
+    """
+    # Return slots unchanged - all will remain 'available'
     return slots
 
 

@@ -48,13 +48,34 @@ class FirestoreV2:
     
     async def create_user(self, user_data: Dict[str, Any]) -> Optional[str]:
         try:
+            # Canonical user schema - ALL users get these fields (App + WhatsApp)
             user_doc = {
                 'phone': user_data.get('phone'),
                 'name': user_data.get('name', ''),
                 'email': user_data.get('email', ''),
                 'role': user_data.get('role', UserRole.CUSTOMER.value),
                 'vendor_id': user_data.get('vendor_id'),
-                'created_at': firestore.SERVER_TIMESTAMP
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'last_active': firestore.SERVER_TIMESTAMP,
+                'is_online': False,
+                
+                # Social fields (initialized to safe defaults)
+                'points': user_data.get('points', 0),
+                'level': user_data.get('level', 1),
+                'skill_rating': user_data.get('skill_rating', 1000.0),
+                'avatar_url': user_data.get('avatar_url', 'default_avatar.png'),
+                'bio': user_data.get('bio', ''),
+                
+                # Nested objects (must exist for social features)
+                'stats': user_data.get('stats', {
+                    'matches_played': 0,
+                    'wins': 0,
+                    'losses': 0
+                }),
+                'preferences': user_data.get('preferences', {
+                    'notifications': True
+                }),
+                'badges': user_data.get('badges', [])
             }
             
             if 'password_hash' in user_data:
