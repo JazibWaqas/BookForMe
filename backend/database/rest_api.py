@@ -721,14 +721,21 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
         # Sort by date/time (descending)
         bookings.sort(key=lambda x: (x.get('date') or '', x.get('time') or ''), reverse=True)
         
-        return bookings
+        return {
+            "success": True,
+            "bookings": bookings,
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting user bookings: {e}")
         # Return empty list instead of error for resilience
-        return []
+        return {
+            "success": False,
+            "bookings": [],
+            "error": str(e),
+        }
 
 
 class ChatRequest(BaseModel):

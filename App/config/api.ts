@@ -1,5 +1,19 @@
+import Constants from 'expo-constants';
+
+const getExpoHost = (): string | null => {
+  const hostUri = (Constants.expoConfig as any)?.hostUri as string | undefined;
+  if (hostUri) return hostUri.split(':')[0] || null;
+
+  const debuggerHost = (Constants.manifest as any)?.debuggerHost as string | undefined;
+  if (debuggerHost) return debuggerHost.split(':')[0] || null;
+
+  return null;
+};
+
 //Basic Backend Configuration
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.67:8000';
+const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+const expoHost = getExpoHost();
+export const API_BASE_URL = envApiUrl || (expoHost ? `http://${expoHost}:8000` : 'http://localhost:8000');
 export const API_URL = API_BASE_URL;
 export const WS_URL = API_BASE_URL.replace('http', 'ws');
 
