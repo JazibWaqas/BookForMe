@@ -236,7 +236,8 @@ class NLUAgent:
             Extract entities:
             - service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
             - date: tomorrow, today, specific date, "kal", "aaj"
-            - time: 6-9, evening, morning, "shaam", "raat", specific time
+            - time: 6-9, evening, morning, "shaam", "raat", "subah", specific time (evening=4-11pm, morning=6-12am, afternoon=12-4pm)
+            - area: DHA, Clifton, Gulshan, Gulberg, Karachi, etc. - location/area if user specifies
             - customer_name: Full name or first name - ONLY if explicitly mentioned in the CURRENT message (e.g., "My name is X", "I am X", or just "X" where X is clearly a name). DO NOT extract names from conversation history. If no name is mentioned in the current message, set customer_name to null.
 
             CRITICAL: Only extract customer_name if the user explicitly provides it in the CURRENT message. Do NOT infer names from conversation history or previous messages. If the current message does not contain a name, customer_name must be null.

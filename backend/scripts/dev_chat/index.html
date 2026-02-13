@@ -16,8 +16,18 @@
             --text-secondary: #8696a0;
             --input-bg: #2a3942;
             --accent: #00a884;
+            --card-bg: #2a3942;
+            --card-border: rgba(255,255,255,0.08);
+            --card-radius: 12px;
+            --slot-card-radius: 8px;
+            --venue-separator: 1px solid rgba(255,255,255,0.06);
+            --hover-bg: rgba(255,255,255,0.05);
+            --success-bg: rgba(0,168,132,0.15);
+            --max-bubble-width: 85%;
+            --max-content-width: 480px;
         }
 
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -30,216 +40,252 @@
 
         .app-container {
             width: 100%;
-            max-width: 1600px;
+            max-width: 640px;
             height: 100%;
             display: flex;
             flex-direction: column;
             background-color: var(--chat-bg);
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-repeat: repeat;
-            background-size: 400px;
-            opacity: 0.95;
-        }
-
-        /* Overlay to darken background image */
-        .app-container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--chat-bg);
-            opacity: 0.9;
-            z-index: -1;
+            position: relative;
         }
 
         header {
             background-color: var(--header-bg);
-            padding: 10px 16px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             z-index: 10;
+            flex-shrink: 0;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
+        .user-info { display: flex; align-items: center; gap: 12px; }
         .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #008f6b);
+            display: flex; align-items: center; justify-content: center;
             font-size: 20px;
-            color: white;
         }
-
-        .user-details h2 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .user-details span {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
+        .user-details h2 { margin: 0; font-size: 16px; font-weight: 600; }
+        .user-details span { font-size: 12px; color: var(--text-secondary); }
         .actions button {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
+            background: none; border: none; color: var(--text-secondary);
+            cursor: pointer; padding: 8px; border-radius: 8px;
         }
-
-        .actions button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
+        .actions button:hover { background: var(--hover-bg); color: var(--text-primary); }
 
         #chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 5%;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            flex: 1; overflow-y: auto;
+            padding: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth;
         }
 
         .message {
-            max-width: 65%;
-            padding: 6px 7px 8px 9px;
-            border-radius: 7.5px;
-            font-size: 14.2px;
-            line-height: 19px;
+            max-width: var(--max-bubble-width);
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
             position: relative;
-            animation: fadeIn 0.2s ease;
+            animation: fadeIn 0.25s ease;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .message.incoming {
             align-self: flex-start;
             background-color: var(--incoming-bg);
-            border-top-left-radius: 0;
+            border-top-left-radius: 4px;
         }
-
         .message.outgoing {
             align-self: flex-end;
             background-color: var(--outgoing-bg);
-            border-top-right-radius: 0;
+            border-top-right-radius: 4px;
         }
-
         .message-content {
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-
         .message-time {
-            float: right;
-            margin-left: 10px;
-            margin-top: 4px;
+            display: block;
+            margin-top: 8px;
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255,255,255,0.5);
         }
+        .message-status { margin-left: 4px; color: #53bdeb; }
 
-        .message-status {
-            display: inline-block;
-            margin-left: 3px;
-            color: #53bdeb;
-        }
-
-        .input-area {
-            background-color: var(--header-bg);
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        #message-input {
-            flex: 1;
-            background-color: var(--input-bg);
-            border: none;
-            border-radius: 8px;
-            padding: 9px 12px;
-            color: var(--text-primary);
-            font-size: 15px;
-            outline: none;
-        }
-
-        #send-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-
-        #send-btn:hover {
-            color: var(--accent);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .typing-indicator {
             display: none;
-            padding: 10px;
-            background-color: var(--incoming-bg);
-            border-radius: 10px;
-            border-top-left-radius: 0;
             align-self: flex-start;
-            margin-bottom: 10px;
-            width: fit-content;
+            background-color: var(--incoming-bg);
+            border-radius: 12px;
+            border-top-left-radius: 4px;
+            padding: 14px 18px;
+            max-width: var(--max-bubble-width);
         }
-
-        .typing-dots {
-            display: flex;
-            gap: 4px;
-        }
-
+        .typing-inner { display: flex; align-items: center; gap: 12px; }
+        .typing-dots { display: flex; gap: 4px; }
         .dot {
-            width: 6px;
-            height: 6px;
+            width: 6px; height: 6px;
             background-color: var(--text-secondary);
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out;
         }
-
-        .dot:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-
-        .dot:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-text { font-size: 13px; color: var(--text-secondary); }
         @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
 
-            0%,
-            80%,
-            100% {
-                transform: scale(0);
-            }
+        .slot-results-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            max-width: var(--max-content-width);
+        }
+        .slot-results-header {
+            padding: 14px 16px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-bottom: var(--venue-separator);
+        }
+        .slot-results-header strong { color: var(--accent); }
+        .venue-section {
+            padding: 12px 16px;
+            border-bottom: var(--venue-separator);
+        }
+        .venue-section:last-of-type { border-bottom: none; }
+        .venue-header {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .venue-address {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+        }
+        .slot-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--card-border);
+            border-radius: var(--slot-card-radius);
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .slot-card:hover {
+            background: var(--hover-bg);
+            border-color: rgba(0,168,132,0.3);
+        }
+        .slot-time {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .slot-price {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+        .slot-select-btn {
+            margin-top: 8px;
+            width: 100%;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--accent);
+            color: #111;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .slot-select-btn:hover { opacity: 0.9; }
+        .slot-cta {
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+            border-top: var(--venue-separator);
+        }
 
-            40% {
-                transform: scale(1);
-            }
+        .confirmation-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--card-radius);
+            padding: 16px;
+            max-width: var(--max-content-width);
+        }
+        .confirmation-card.locked { border-color: rgba(0,168,132,0.3); }
+        .confirmation-card.confirmed { background: var(--success-bg); border-color: rgba(0,168,132,0.4); }
+        .confirmation-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .confirmation-row:last-child { margin-bottom: 0; }
+        .confirmation-label { color: var(--text-secondary); }
+        .confirmation-value { font-weight: 600; color: var(--text-primary); }
+        .confirmation-amount { color: var(--accent); font-size: 16px; }
+        .confirmation-cta {
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .input-area {
+            background: var(--header-bg);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        #message-input {
+            flex: 1;
+            background: var(--input-bg);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+        }
+        #message-input:focus { box-shadow: 0 0 0 2px rgba(0,168,132,0.3); }
+        #send-btn {
+            background: var(--accent);
+            color: #111;
+            border: none;
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.15s;
+        }
+        #send-btn:hover { opacity: 0.9; }
+        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 480px) {
+            .message, .typing-indicator { max-width: 92%; }
+            .slot-grid { grid-template-columns: 1fr; }
+            .slot-results-card, .confirmation-card { max-width: 100%; }
         }
     </style>
 </head>
@@ -250,30 +296,32 @@
             <div class="user-info">
                 <div class="avatar">🤖</div>
                 <div class="user-details">
-                    <h2>Agent</h2>
+                    <h2>Booking Agent</h2>
                     <span id="header-status">online</span>
                 </div>
             </div>
             <div class="actions">
-                <button onclick="clearHistory()" title="Clear Chat History">🗑️</button>
+                <button onclick="clearHistory()" title="Clear Chat">🗑️</button>
             </div>
         </header>
 
         <div id="chat-container">
             <div class="typing-indicator" id="typing-indicator">
-                <div class="typing-dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
+                <div class="typing-inner">
+                    <div class="typing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="typing-text" id="typing-text">Typing...</span>
                 </div>
             </div>
         </div>
 
         <div class="input-area">
-            <button>😊</button>
-            <button onclick="document.getElementById('image-input').click()">📎</button>
+            <button onclick="document.getElementById('image-input').click()" title="Upload image">📎</button>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <input type="text" id="message-input" placeholder="Type a message">
+            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
             <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
     </div>
@@ -281,18 +329,18 @@
     <script>
         const API_URL = '/dev-api';
         const PHONE_NUMBER = '+923001234567';
+        const MAX_SLOTS_PER_VENUE = 8;
 
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const imageInput = document.getElementById('image-input');
         const typingIndicator = document.getElementById('typing-indicator');
+        const typingText = document.getElementById('typing-text');
 
         messageInput.focus();
 
         messageInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+            if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
         });
 
         imageInput.addEventListener('change', function () {
@@ -302,48 +350,176 @@
             }
         });
 
-        function formatTime() {
-            const now = new Date();
-            return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        function setTypingStatus(text) {
+            typingText.textContent = text || 'Typing...';
         }
 
-        function addMessage(text, type) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message', type);
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-            contentDiv.innerText = text;
-
-            const timeDiv = document.createElement('div');
-            timeDiv.classList.add('message-time');
-
-            let timeHtml = formatTime();
-            if (type === 'outgoing') {
-                timeHtml += '<span class="message-status">✓✓</span>';
-            }
-            timeDiv.innerHTML = timeHtml;
-
-            msgDiv.appendChild(contentDiv);
-            msgDiv.appendChild(timeDiv);
-
-            chatContainer.insertBefore(msgDiv, typingIndicator);
+        function showTyping(statusText) {
+            setTypingStatus(statusText || 'Checking availability…');
+            typingIndicator.style.display = 'block';
+            document.getElementById('header-status').textContent = 'typing...';
             scrollToBottom();
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+            document.getElementById('header-status').textContent = 'online';
         }
 
         function scrollToBottom() {
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function showTyping() {
-            typingIndicator.style.display = 'block';
-            document.getElementById('header-status').innerText = 'typing...';
-            scrollToBottom();
+        function formatTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        function hideTyping() {
-            typingIndicator.style.display = 'none';
-            document.getElementById('header-status').innerText = 'online';
+        function parseAgentResponse(text) {
+            if (!text || typeof text !== 'string') return { type: 'plain', text: text || '' };
+
+            const trimmed = text.trim();
+
+            const lockedMatch = trimmed.match(/Slot locked! Please transfer Rs (\d+)[^\n]*/);
+            if (lockedMatch) {
+                return { type: 'locked', amount: parseInt(lockedMatch[1], 10), fullText: trimmed };
+            }
+
+            const bookingIdMatch = trimmed.match(/Booking ID:\s*([a-z0-9_]+)/);
+            const amountMatch = trimmed.match(/Amount:\s*Rs\s*(\d+)/);
+            if (trimmed.includes('Payment received') && trimmed.includes('confirmed') && bookingIdMatch && amountMatch) {
+                return { type: 'confirmed', bookingId: bookingIdMatch[1], amount: parseInt(amountMatch[1], 10), fullText: trimmed };
+            }
+
+            const headerMatch = trimmed.match(/📅\s*(.+?)\s+ko\s+(.+?)\s+me\s+\*\*(.+?)\*\*\s+ke\s+(\d+)\s+slot/i);
+            if (headerMatch) {
+                const venues = [];
+                const lines = trimmed.split('\n');
+                let currentVenue = null;
+                const slotRe = /^\s*[-–]\s*(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})\s*\(Rs\s*(\d+)\)\s*ID:\s*([a-z0-9_]+)/i;
+
+                for (const line of lines) {
+                    const venueMatch = line.match(/^\s*\*\*(.+?)\*\*\s*\(([^)]+)\)/);
+                    if (venueMatch) {
+                        currentVenue = { name: venueMatch[1].trim(), address: venueMatch[2].trim(), slots: [] };
+                        venues.push(currentVenue);
+                        continue;
+                    }
+                    const slotMatch = line.match(slotRe);
+                    if (slotMatch && currentVenue) {
+                        currentVenue.slots.push({
+                            time: slotMatch[1],
+                            end: slotMatch[2],
+                            price: parseInt(slotMatch[3], 10),
+                            slotId: slotMatch[4]
+                        });
+                    }
+                }
+
+                const ctaMatch = trimmed.match(/["']Confirm \[Slot ID\][^"'\n]*["']/);
+                if (venues.some(v => v.slots.length > 0)) {
+                    return {
+                        type: 'slots',
+                        header: { line: headerMatch[0], date: headerMatch[1], area: headerMatch[2], sport: headerMatch[3], count: headerMatch[4] },
+                        venues: venues.filter(v => v.slots.length > 0),
+                        cta: ctaMatch ? ctaMatch[0] : 'Type "Confirm [Slot ID]" to book.'
+                    };
+                }
+            }
+
+            return { type: 'plain', text: trimmed };
+        }
+
+        function renderMessage(content, type) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', type);
+
+            const parsed = type === 'incoming' ? parseAgentResponse(content) : { type: 'plain', text: content };
+
+            if (type === 'outgoing') {
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.textContent = content;
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.innerHTML = formatTime() + '<span class="message-status">✓✓</span>';
+                msgDiv.appendChild(contentDiv);
+                msgDiv.appendChild(timeDiv);
+            } else if (parsed.type === 'slots') {
+                const card = document.createElement('div');
+                card.classList.add('slot-results-card');
+                card.innerHTML = '<div class="slot-results-header">' + parsed.header.line.replace(/\*\*/g, '') + '</div>';
+                for (const venue of parsed.venues) {
+                    const section = document.createElement('div');
+                    section.classList.add('venue-section');
+                    const slotsToShow = venue.slots.slice(0, MAX_SLOTS_PER_VENUE);
+                    let slotHtml = '';
+                    for (const slot of slotsToShow) {
+                        slotHtml += '<div class="slot-card" data-slot-id="' + slot.slotId + '">' +
+                            '<div class="slot-time">' + slot.time + ' – ' + slot.end + '</div>' +
+                            '<div class="slot-price">Rs ' + slot.price + '</div>' +
+                            '<button type="button" class="slot-select-btn" data-slot-id="' + slot.slotId + '">Select</button>' +
+                            '</div>';
+                    }
+                    if (venue.slots.length > MAX_SLOTS_PER_VENUE) {
+                        slotHtml += '<div class="slot-card" style="grid-column:1/-1;cursor:default;opacity:0.8">+' + (venue.slots.length - MAX_SLOTS_PER_VENUE) + ' more slots</div>';
+                    }
+                    section.innerHTML = '<div class="venue-header">' + venue.name + '</div>' +
+                        '<div class="venue-address">' + venue.address + '</div>' +
+                        '<div class="slot-grid">' + slotHtml + '</div>';
+                    card.appendChild(section);
+                }
+                card.innerHTML += '<div class="slot-cta">' + (parsed.cta || '') + '</div>';
+                card.querySelectorAll('.slot-card[data-slot-id]').forEach(el => {
+                    const sid = el.getAttribute('data-slot-id');
+                    if (sid) {
+                        el.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            messageInput.value = 'Confirm ' + sid;
+                            messageInput.focus();
+                        });
+                    }
+                });
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.textContent = formatTime();
+                msgDiv.appendChild(card);
+                msgDiv.appendChild(timeDiv);
+            } else if (parsed.type === 'locked') {
+                const card = document.createElement('div');
+                card.classList.add('confirmation-card', 'locked');
+                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">Status</span><span class="confirmation-value">Slot on hold</span></div>' +
+                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
+                    '<div class="confirmation-cta">Transfer Rs ' + parsed.amount + ' and send payment screenshot here within 10 minutes.</div>';
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.textContent = formatTime();
+                msgDiv.appendChild(card);
+                msgDiv.appendChild(timeDiv);
+            } else if (parsed.type === 'confirmed') {
+                const card = document.createElement('div');
+                card.classList.add('confirmation-card', 'confirmed');
+                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">✓ Booking confirmed</span></div>' +
+                    '<div class="confirmation-row"><span class="confirmation-label">Booking ID</span><span class="confirmation-value">' + parsed.bookingId + '</span></div>' +
+                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
+                    '<div class="confirmation-cta">Thank you for booking with us! See you soon.</div>';
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.textContent = formatTime();
+                msgDiv.appendChild(card);
+                msgDiv.appendChild(timeDiv);
+            } else {
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.textContent = parsed.text || content;
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.textContent = formatTime();
+                msgDiv.appendChild(contentDiv);
+                msgDiv.appendChild(timeDiv);
+            }
+
+            chatContainer.insertBefore(msgDiv, typingIndicator);
+            scrollToBottom();
         }
 
         const CHAT_TIMEOUT_MS = 60000;
@@ -353,14 +529,14 @@
             if (!text) return;
 
             messageInput.value = '';
-            addMessage(text, 'outgoing');
-            showTyping();
+            renderMessage(text, 'outgoing');
+            showTyping('Checking availability…');
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
 
             try {
-                const response = await fetch(`${API_URL}/chat`, {
+                const response = await fetch(API_URL + '/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text, phone_number: PHONE_NUMBER }),
@@ -369,86 +545,76 @@
 
                 clearTimeout(timeoutId);
                 let data;
-                try {
-                    data = await response.json();
-                } catch (_) {
+                try { data = await response.json(); } catch (_) {
                     hideTyping();
-                    addMessage('Server returned an invalid response. Try again.', 'incoming');
+                    renderMessage('Server returned an invalid response. Try again.', 'incoming');
                     return;
                 }
 
                 hideTyping();
                 if (response.ok) {
-                    addMessage(data.response, 'incoming');
+                    renderMessage(data.response, 'incoming');
                 } else {
-                    addMessage(`Error: ${data.detail || 'Failed to send message'}`, 'incoming');
+                    renderMessage('Error: ' + (data.detail || 'Failed to send message'), 'incoming');
                 }
             } catch (error) {
                 clearTimeout(timeoutId);
                 hideTyping();
                 if (error.name === 'AbortError') {
-                    addMessage('Request took too long. Check that the backend is running and try again.', 'incoming');
+                    renderMessage('Request took too long. Check that the backend is running and try again.', 'incoming');
                 } else if (error.message && error.message.toLowerCase().includes('fetch')) {
-                    addMessage('Could not reach the server. Make sure the backend is running (e.g. python scripts/chat_web.py) and try again.', 'incoming');
+                    renderMessage('Could not reach the server. Make sure the backend is running (e.g. python scripts/chat_web.py) and try again.', 'incoming');
                 } else {
-                    addMessage(`Network Error: ${error.message}`, 'incoming');
+                    renderMessage('Network Error: ' + error.message, 'incoming');
                 }
-                console.error('Error:', error);
             }
         }
 
         async function uploadImage(file) {
-            addMessage(`[Sending Image: ${file.name}]`, 'outgoing');
-            showTyping();
+            renderMessage('[Sending Image: ' + file.name + ']', 'outgoing');
+            showTyping('Processing payment…');
 
             const formData = new FormData();
             formData.append('file', file);
             formData.append('phone_number', PHONE_NUMBER);
 
             try {
-                const response = await fetch(`${API_URL}/upload-image`, {
+                const response = await fetch(API_URL + '/upload-image', {
                     method: 'POST',
                     body: formData
                 });
-
                 const data = await response.json();
                 hideTyping();
-
                 if (response.ok) {
-                    addMessage(data.response, 'incoming');
+                    renderMessage(data.response, 'incoming');
                 } else {
-                    addMessage(`Error uploading image: ${data.detail || 'Unknown error'}`, 'incoming');
+                    renderMessage('Error: ' + (data.detail || 'Unknown error'), 'incoming');
                 }
             } catch (error) {
                 hideTyping();
-                addMessage(`Network Error: ${error.message}`, 'incoming');
+                renderMessage('Network Error: ' + error.message, 'incoming');
             }
         }
 
         async function clearHistory() {
-            if (!confirm('Are you sure you want to clear the conversation history?')) return;
-
+            if (!confirm('Clear conversation history?')) return;
             try {
-                const response = await fetch(`${API_URL}/clear`, {
+                const response = await fetch(API_URL + '/clear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone_number: PHONE_NUMBER })
                 });
-
                 if (response.ok) {
-                    chatContainer.innerHTML = '';
-                    chatContainer.appendChild(typingIndicator);
-                    addMessage('Conversation history cleared.', 'incoming');
+                    [...chatContainer.children].forEach(c => { if (c !== typingIndicator) c.remove(); });
+                    if (!chatContainer.contains(typingIndicator)) chatContainer.appendChild(typingIndicator);
+                    renderMessage('Conversation cleared.', 'incoming');
                 } else {
                     alert('Failed to clear history');
                 }
             } catch (error) {
-                console.error('Error clearing history:', error);
                 alert('Error clearing history');
             }
         }
-
-        setTimeout(() => {}, 500);
     </script>
 </body>
 

@@ -97,12 +97,24 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - Profile page with booking history
 - Performance optimizations (token caching, background refetch)
 
-### AI Agent ✅
+### AI Agent (UX Improvements) ✅
+- Two-phase slot selection: choose slot (1-9) then confirm with "yes"
+- Numbered slot display (no raw IDs); max 3 vendors shown
+- Generic queries ask for time (morning/evening/night) before showing slots
+- Area filtering: only vendors in user-specified area; clear error if none found
+- Explicit confirmation before slot lock (prevents accidental booking)
+
+### AI Agent Core ✅
 - LangGraph state machine (`backend/agent/graph.py`)
 - Intent classification via Groq (Qwen 3 32B) NLU
 - Entity extraction (date, time, service type)
 - Tool calling for availability checks
 - WhatsApp webhook integration
+
+### Agent Stress Test ✅
+- `backend/scripts/agent_stress_test.py` - 12 industry-standard test cases
+- Run: `python scripts/agent_stress_test.py` (from backend, with GROQ_API_KEY and Firestore credentials)
+- Covers: English/Urdu greetings, generic query (asks time), complete query, numeric selection, area filter, cancel flow, mixed language, date variations, price inquiry, incomplete queries
 
 ---
 
@@ -159,7 +171,7 @@ A dual-app architecture where both the mobile app and WhatsApp agent read/write 
 - `backend/database/rest_api.py` - REST API endpoints
 - `backend/nlu/agent.py` - Groq (Qwen 3 32B) NLU integration
 - `backend/whatsapp/webhook.py` - WhatsApp webhook handler
-- `backend/scripts/dev_chat/index.html` - Dev chat UI for testing the agent (run: `python backend/scripts/chat_web.py`)
+- `backend/scripts/dev_chat/index.html` - Dev chat UI with card-based slot display, confirmation cards, and status indicators (run: `python scripts/chat_web.py` from backend)
 
 ### 🗄️ Database (`backend/database/`)
 - **`backend/database/DATABASE_DOCUMENTATION.md`** - Complete schema reference (1100+ lines)

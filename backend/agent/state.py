@@ -32,6 +32,10 @@ class AgentState(TypedDict):
     
     # Query Results
     query_result: Optional[Dict[str, Any]]
+    slot_options: Optional[List[Dict[str, Any]]]
+    awaiting_slot_selection: bool
+    selected_sport_type: Optional[str]
+    selected_area: Optional[str]
     
     # Confirmation Flow State
     awaiting_confirmation: bool

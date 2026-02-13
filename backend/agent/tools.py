@@ -46,11 +46,12 @@ async def check_availability(
 
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
 
-        if area:
+        if area and area.lower().strip() not in ("all", "karachi", ""):
             area_lower = area.lower().strip()
             matching = [v for v in vendors_by_sport if area_lower in v.get('area', '').lower()]
             matching_vendor_ids = {v['id'] for v in matching}
         else:
+            area = None
             matching_vendor_ids = {v['id'] for v in vendors_by_sport}
 
         if not matching_vendor_ids:
@@ -66,7 +67,7 @@ async def check_availability(
 
         # Step 2: For each matching vendor, get their services and available slots
         vendors_data = []
-        for vendor_id in list(matching_vendor_ids)[:15]:
+        for vendor_id in list(matching_vendor_ids)[:7]:
             try:
                 # Get vendor details
                 vendor = await fs_client.get_vendor(vendor_id)
