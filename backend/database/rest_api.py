@@ -38,7 +38,7 @@ auth_service = AuthService(firestore_db.db)
 ai_search_service = AISearchService()
 
 # Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/payments")
+UPLOAD_DIR = Path("../uploads/payments")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 

@@ -130,7 +130,7 @@ class WhatsAppAgent:
                 ext = caption.rsplit(".", 1)[-1].lower()
                 if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
                     ext = "jpg"
-            upload_dir = Path("uploads/payments")
+            upload_dir = Path(settings.UPLOADS_DIR) / "payments"
             upload_dir.mkdir(parents=True, exist_ok=True)
             safe_ref = "".join(c if c.isalnum() or c in "_-" else "_" for c in payment_ref)
             filename = f"{safe_ref}.{ext}"

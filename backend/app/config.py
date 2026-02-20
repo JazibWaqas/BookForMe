@@ -53,6 +53,24 @@ class Settings(BaseSettings):
             return v.lower() in ('true', '1', 'yes', 'on')
         return bool(v)
     
+    # PATHS
+    @property
+    def BASE_DIR(self) -> str:
+        # This is backend/
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    @property
+    def PROJECT_ROOT(self) -> str:
+        # This is JHAT/
+        return os.path.dirname(self.BASE_DIR)
+    
+    @property
+    def UPLOADS_DIR(self) -> str:
+        # This is JHAT/uploads/
+        path = os.path.join(self.PROJECT_ROOT, "uploads")
+        os.makedirs(path, exist_ok=True)
+        return path
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
