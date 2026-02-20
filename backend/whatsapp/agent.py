@@ -138,18 +138,6 @@ class WhatsAppAgent:
             filepath.write_bytes(image_bytes)
             logger.info(f"Payment screenshot saved: {filepath}")
 
-            from app.firestore import firestore_db
-            from database.slot_service import SlotService
-
-            slot_service = SlotService(firestore_db.db)
-            payment_result = slot_service.submit_payment(locked_slot_id, phone_number, payment_ref)
-            
-            if not payment_result.get('success'):
-                logger.error(f"Failed to submit payment: {payment_result.get('error')}")
-                return f"Sorry, there was an error processing your payment. Please try again or contact support."
-            
-            logger.info(f"Payment submitted for slot {locked_slot_id}")
-            
             ocr_result = await self.payment_ocr.verify_payment(image_bytes, expected_amount)
 
             if not ocr_result["verified"]:
@@ -160,7 +148,23 @@ class WhatsAppAgent:
                         f"Expected: Rs {expected_amount} — Found: Rs {int(extracted)}\n"
                         "Please send the correct payment screenshot. Your slot is still held for a few more minutes."
                     )
-                logger.warning(f"OCR failed for {phone_number}, falling back to auto-confirm. Error: {ocr_result.get('error')}")
+                logger.warning(f"OCR could not verify payment for {phone_number}. Error: {ocr_result.get('error')}")
+                return (
+                    "I couldn't read the payment amount from that image. "
+                    "Please send a clear screenshot of your payment confirmation showing the transferred amount."
+                )
+
+            from app.firestore import firestore_db
+            from database.slot_service import SlotService
+
+            slot_service = SlotService(firestore_db.db)
+            payment_result = slot_service.submit_payment(locked_slot_id, phone_number, payment_ref)
+            
+            if not payment_result.get('success'):
+                logger.error(f"Failed to submit payment: {payment_result.get('error')}")
+                return "Sorry, there was an error processing your payment. Please try again or contact support."
+            
+            logger.info(f"Payment submitted and OCR verified for slot {locked_slot_id}")
             
             confirm_result = slot_service.confirm_booking(locked_slot_id, vendor_id)
             
