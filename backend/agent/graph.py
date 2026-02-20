@@ -15,6 +15,8 @@ from langgraph.graph import StateGraph, START, END
 from agent.state import AgentState
 from agent.session_store import session_store
 from agent.nodes import (
+    guardrails_node,
+    route_after_guardrails,
     classify_intent_node,
     normalize_entities_node,
     extract_slot_node,
@@ -41,6 +43,7 @@ class BookingAgent:
         
         self.workflow = StateGraph(AgentState)
         
+        self.workflow.add_node("guardrails", guardrails_node)
         self.workflow.add_node("classify_intent", classify_intent_node)
         self.workflow.add_node("normalize_entities", normalize_entities_node)
         self.workflow.add_node("extract_slot", extract_slot_node)
@@ -51,7 +54,15 @@ class BookingAgent:
         self.workflow.add_node("execute_booking", execute_booking_node)
         self.workflow.add_node("generate_response", generate_response_node)
         
-        self.workflow.add_edge(START, "classify_intent")
+        self.workflow.add_edge(START, "guardrails")
+        self.workflow.add_conditional_edges(
+            "guardrails",
+            route_after_guardrails,
+            {
+                "classify_intent": "classify_intent",
+                "generate_response": "generate_response"
+            }
+        )
         self.workflow.add_edge("classify_intent", "normalize_entities")
         self.workflow.add_edge("normalize_entities", "extract_slot")
         self.workflow.add_edge("extract_slot", "validate_state")
@@ -145,6 +156,7 @@ class BookingAgent:
                 "payment_amount": persisted.get("payment_amount"),
                 "missing_fields": None,
                 "requires_clarification": False,
+                "guardrail_block": None,
                 "error": None,
                 "response": ""
             }

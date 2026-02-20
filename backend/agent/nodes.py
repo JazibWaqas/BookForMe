@@ -17,15 +17,86 @@ from agent.models import (
     find_matching_slot, slot_from_query_result
 )
 from nlu.agent import NLUAgent
+from better_profanity import profanity
 
 logger = logging.getLogger(__name__)
 
 nlu_agent = NLUAgent()
 
+profanity.load_censor_words()
+
+BOOKING_KEYWORDS = {
+    "padel", "futsal", "cricket", "court", "slot", "book", "booking", "available",
+    "availability", "price", "cancel", "time", "date", "tomorrow", "today", "morning",
+    "evening", "afternoon", "night", "kal", "aaj", "shaam", "subah", "raat", "dopahar",
+    "reserve", "confirm", "yes", "no", "ok", "done", "schedule", "payment", "pay",
+    "transfer", "screenshot", "receipt", "salon", "sports", "venue", "dha", "clifton",
+    "gulshan", "defense", "karachi", "pitch", "net", "smash", "ace", "golden",
+    "match", "game", "play", "ground", "field", "hour", "ghanta", "minute",
+    "discount", "charges", "rate", "kitna", "price", "cost", "rupee", "rs",
+    "haan", "han", "ji", "theek", "bilkul", "chahiye", "karna", "hai", "hei",
+    "slot", "slots", "show", "list", "change", "modify", "different", "other",
+    "feb", "march", "april", "may", "june", "july", "monday", "tuesday", "wednesday",
+    "thursday", "friday", "saturday", "sunday", "week", "parso", "next",
+    "pm", "am", "bajay", "baje", "around", "after", "before",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
+    "hi", "hello", "hey", "aoa", "salam", "assalamualaikum", "walaikum",
+}
+
+
+def check_guardrails(message: str) -> Optional[str]:
+    msg = message.strip()
+    if not msg:
+        return None
+
+    if profanity.contains_profanity(msg):
+        return "vulgar"
+
+    msg_lower = msg.lower()
+    words = set(re.findall(r"[a-z0-9]+", msg_lower))
+    if words and not words.intersection(BOOKING_KEYWORDS):
+        if len(msg) > 2:
+            return "off_topic"
+
+    return None
+
+
+def route_after_guardrails(state: AgentState) -> str:
+    if state.get("guardrail_block"):
+        return "generate_response"
+    return "classify_intent"
+
 
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
+
+async def guardrails_node(state: AgentState) -> AgentState:
+    try:
+        messages = state.get("messages", [])
+        if not messages:
+            return state
+
+        last_message = messages[-1].get("content", "")
+        block_reason = check_guardrails(last_message)
+
+        if block_reason:
+            state["guardrail_block"] = block_reason
+            if block_reason == "vulgar":
+                state["response"] = "Please keep the conversation respectful. I can only help with sports court availability and booking."
+            else:
+                state["response"] = "I can only help with sports court availability and booking. Please ask about padel, futsal, or cricket slots."
+            logger.info(f"Guardrail triggered: {block_reason} for message: '{last_message[:50]}'")
+        else:
+            state["guardrail_block"] = None
+
+        return state
+
+    except Exception as e:
+        logger.error(f"Guardrails check failed: {e}")
+        state["guardrail_block"] = None
+        return state
+
 
 def normalize_date(date_text: str) -> str:
     """
@@ -922,6 +993,10 @@ async def generate_response_node(state: AgentState) -> AgentState:
     """Generate natural language response"""
     try:
         logger.info("🔵 Node: generate_response")
+        
+        if state.get("guardrail_block"):
+            logger.info(f"Guardrail block active: {state['guardrail_block']}")
+            return state
         
         intent = state.get("current_intent", "")
         entities = state.get("entities", {})

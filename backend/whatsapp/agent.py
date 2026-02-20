@@ -13,6 +13,7 @@ from app.config import settings
 from agent.graph import BookingAgent
 from agent.session_store import session_store
 from nlu.state_manager import StateManager
+from nlu.ocr import PaymentOCR
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class WhatsAppAgent:
         """Initialize WhatsApp agent with LangGraph"""
         self.booking_agent = BookingAgent()
         self.state_manager = StateManager()
+        self.payment_ocr = PaymentOCR()
         logger.info("WhatsApp Agent initialized with LangGraph")
     
     async def process_message(self, phone_number: str, message: str) -> str:
@@ -148,8 +150,17 @@ class WhatsAppAgent:
             
             logger.info(f"Payment submitted for slot {locked_slot_id}")
             
-            # TODO: Implement OCR verification here
-            # For now, auto-confirm the booking (or you can wait for vendor approval)
+            ocr_result = await self.payment_ocr.verify_payment(image_bytes, expected_amount)
+
+            if not ocr_result["verified"]:
+                extracted = ocr_result.get("extracted_amount")
+                if extracted is not None:
+                    return (
+                        f"Payment screenshot received, but the amount doesn't match.\n"
+                        f"Expected: Rs {expected_amount} — Found: Rs {int(extracted)}\n"
+                        "Please send the correct payment screenshot. Your slot is still held for a few more minutes."
+                    )
+                logger.warning(f"OCR failed for {phone_number}, falling back to auto-confirm. Error: {ocr_result.get('error')}")
             
             confirm_result = slot_service.confirm_booking(locked_slot_id, vendor_id)
             
