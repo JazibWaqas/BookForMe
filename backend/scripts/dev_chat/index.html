@@ -3,289 +3,434 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Dev Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agent Dev Chat | BookForMe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #111b21;
-            --header-bg: #202c33;
+            --bg-deep: #080c0e;
+            --panel-bg: rgba(32, 44, 51, 0.85);
             --chat-bg: #0b141a;
-            --incoming-bg: #202c33;
-            --outgoing-bg: #005c4b;
-            --text-primary: #e9edef;
-            --text-secondary: #8696a0;
-            --input-bg: #2a3942;
-            --accent: #00a884;
-            --card-bg: #2a3942;
-            --card-border: rgba(255,255,255,0.08);
-            --card-radius: 12px;
-            --slot-card-radius: 8px;
-            --venue-separator: 1px solid rgba(255,255,255,0.06);
-            --hover-bg: rgba(255,255,255,0.05);
-            --success-bg: rgba(0,168,132,0.15);
-            --max-bubble-width: 85%;
-            --max-content-width: 480px;
+            --text-main: #f0f2f5;
+            --text-dim: #aebac1;
+            --wa-green: #00a884;
+            --wa-green-light: #005c4b;
+            --wa-incoming: #202c33;
+            --wa-check: #53bdeb;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(0, 168, 132, 0.3);
+            --glass-blur: blur(25px);
         }
 
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             justify-content: center;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% -20%, #1a2a33, #080c0e);
         }
 
         .app-container {
             width: 100%;
-            max-width: 640px;
-            height: 100%;
+            max-width: 850px;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             background-color: var(--chat-bg);
             position: relative;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7);
+            z-index: 1;
+            border-left: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border);
+        }
+
+        .app-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.18;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            pointer-events: none;
+            z-index: 0;
+            filter: invert(1) brightness(0.8);
         }
 
         header {
-            background-color: var(--header-bg);
-            padding: 12px 16px;
+            background-color: var(--panel-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            padding: 14px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             z-index: 10;
-            flex-shrink: 0;
+            border-bottom: 1px solid var(--glass-border);
         }
 
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .avatar {
-            width: 40px; height: 40px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #008f6b);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-        }
-        .user-details h2 { margin: 0; font-size: 16px; font-weight: 600; }
-        .user-details span { font-size: 12px; color: var(--text-secondary); }
-        .actions button {
-            background: none; border: none; color: var(--text-secondary);
-            cursor: pointer; padding: 8px; border-radius: 8px;
-        }
-        .actions button:hover { background: var(--hover-bg); color: var(--text-primary); }
-
-        #chat-container {
-            flex: 1; overflow-y: auto;
-            padding: 16px;
-            display: flex; flex-direction: column; gap: 12px;
-            scroll-behavior: smooth;
-        }
-
-        .message {
-            max-width: var(--max-bubble-width);
-            padding: 14px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.5;
-            position: relative;
-            animation: fadeIn 0.25s ease;
-        }
-        .message.incoming {
-            align-self: flex-start;
-            background-color: var(--incoming-bg);
-            border-top-left-radius: 4px;
-        }
-        .message.outgoing {
-            align-self: flex-end;
-            background-color: var(--outgoing-bg);
-            border-top-right-radius: 4px;
-        }
-        .message-content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .message-time {
-            display: block;
-            margin-top: 8px;
-            font-size: 11px;
-            color: rgba(255,255,255,0.5);
-        }
-        .message-status { margin-left: 4px; color: #53bdeb; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .typing-indicator {
-            display: none;
-            align-self: flex-start;
-            background-color: var(--incoming-bg);
-            border-radius: 12px;
-            border-top-left-radius: 4px;
-            padding: 14px 18px;
-            max-width: var(--max-bubble-width);
-        }
-        .typing-inner { display: flex; align-items: center; gap: 12px; }
-        .typing-dots { display: flex; gap: 4px; }
-        .dot {
-            width: 6px; height: 6px;
-            background-color: var(--text-secondary);
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out;
-        }
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
-        .typing-text { font-size: 13px; color: var(--text-secondary); }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
-
-        .slot-results-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--card-radius);
-            overflow: hidden;
-            max-width: var(--max-content-width);
-        }
-        .slot-results-header {
-            padding: 14px 16px;
-            font-size: 14px;
-            color: var(--text-primary);
-            border-bottom: var(--venue-separator);
-        }
-        .slot-results-header strong { color: var(--accent); }
-        .venue-section {
-            padding: 12px 16px;
-            border-bottom: var(--venue-separator);
-        }
-        .venue-section:last-of-type { border-bottom: none; }
-        .venue-header {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-        .venue-address {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-        }
-        .slot-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-        }
-        .slot-card {
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--card-border);
-            border-radius: var(--slot-card-radius);
-            padding: 10px 12px;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
-        }
-        .slot-card:hover {
-            background: var(--hover-bg);
-            border-color: rgba(0,168,132,0.3);
-        }
-        .slot-time {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .slot-price {
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 500;
-            margin-top: 2px;
-        }
-        .slot-select-btn {
-            margin-top: 8px;
-            width: 100%;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 600;
-            background: var(--accent);
-            color: #111;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: opacity 0.15s;
-        }
-        .slot-select-btn:hover { opacity: 0.9; }
-        .slot-cta {
-            padding: 12px 16px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-align: center;
-            border-top: var(--venue-separator);
-        }
-
-        .confirmation-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--card-radius);
-            padding: 16px;
-            max-width: var(--max-content-width);
-        }
-        .confirmation-card.locked { border-color: rgba(0,168,132,0.3); }
-        .confirmation-card.confirmed { background: var(--success-bg); border-color: rgba(0,168,132,0.4); }
-        .confirmation-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .confirmation-row:last-child { margin-bottom: 0; }
-        .confirmation-label { color: var(--text-secondary); }
-        .confirmation-value { font-weight: 600; color: var(--text-primary); }
-        .confirmation-amount { color: var(--accent); font-size: 16px; }
-        .confirmation-cta {
-            margin-top: 14px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .input-area {
-            background: var(--header-bg);
-            padding: 12px 16px;
+        .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
+            gap: 16px;
         }
-        #message-input {
-            flex: 1;
-            background: var(--input-bg);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 14px;
-            color: var(--text-primary);
-            font-size: 15px;
-            outline: none;
+
+        .avatar-container {
+            position: relative;
         }
-        #message-input:focus { box-shadow: 0 0 0 2px rgba(0,168,132,0.3); }
-        #send-btn {
-            background: var(--accent);
-            color: #111;
-            border: none;
-            border-radius: 10px;
-            width: 44px;
-            height: 44px;
-            font-size: 18px;
-            cursor: pointer;
+
+        .avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #00a884, #00d2ad);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.15s;
+            font-size: 26px;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            transition: all 0.3s ease;
         }
-        #send-btn:hover { opacity: 0.9; }
-        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        @media (max-width: 480px) {
-            .message, .typing-indicator { max-width: 92%; }
-            .slot-grid { grid-template-columns: 1fr; }
-            .slot-results-card, .confirmation-card { max-width: 100%; }
+        .online-dot {
+            position: absolute;
+            bottom: -3px;
+            right: -3px;
+            width: 14px;
+            height: 14px;
+            background: #00f2c3;
+            border-radius: 50%;
+            border: 3px solid #111b21;
+            box-shadow: 0 0 10px #00f2c3;
+            animation: pulse-online 2s infinite;
+        }
+
+        @keyframes pulse-online {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 242, 195, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 10px rgba(0, 242, 195, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 242, 195, 0);
+            }
+        }
+
+        .user-details h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #fff;
+        }
+
+        .user-details span {
+            font-size: 13px;
+            color: #00d2ad;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .actions button {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .actions button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 7%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+            z-index: 1;
+        }
+
+        #chat-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #chat-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .message {
+            max-width: 82%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+
+        .message.incoming {
+            align-self: flex-start;
+            background: rgba(32, 44, 51, 0.95);
+            border: 1px solid var(--glass-border);
+            border-bottom-left-radius: 4px;
+            color: #e9edef;
+            backdrop-filter: blur(5px);
+        }
+
+        .message.outgoing {
+            align-self: flex-end;
+            background: linear-gradient(145deg, #005c4b, #007a63);
+            border-bottom-right-radius: 4px;
+            color: #fff;
+            box-shadow: 0 10px 25px rgba(0, 92, 75, 0.3);
+        }
+
+        .message:hover {
+            transform: scale(1.01);
+        }
+
+        .message-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 6px;
+            opacity: 0.6;
+        }
+
+        .message-time {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .message-status {
+            margin-left: 6px;
+        }
+
+        /* Premium Components */
+        .rich-card {
+            background: rgba(15, 25, 30, 0.7);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            margin: 15px 0;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            animation: cardReveal 0.6s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        @keyframes cardReveal {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .rich-header {
+            background: linear-gradient(to right, rgba(0, 168, 132, 0.2), transparent);
+            padding: 16px 24px;
+            font-weight: 700;
+            color: #00f2c3;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .venue-block {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .slot-pill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .slot-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .slot-pill:hover {
+            background: rgba(0, 168, 132, 0.12);
+            border-color: #00f2c3;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 168, 132, 0.2);
+        }
+
+        .slot-pill .time {
+            font-weight: 700;
+            font-size: 15px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .slot-pill .price {
+            font-weight: 600;
+            color: #00f2c3;
+            font-size: 13px;
+        }
+
+        .typing-bubble {
+            display: none;
+            align-self: flex-start;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            border-radius: 24px;
+            border-bottom-left-radius: 4px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+        }
+
+        .input-wrapper {
+            background: var(--panel-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .input-bar {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            padding: 0 16px;
+            transition: all 0.3s;
+        }
+
+        .input-bar:focus-within {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(0, 168, 132, 0.4);
+        }
+
+        #message-input {
+            width: 100%;
+            background: transparent !important;
+            border: none !important;
+            color: #fff !important;
+            font-size: 14.5px;
+            padding: 10px 0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .input-action {
+            color: #8696a0;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .input-action:hover {
+            color: #e9edef;
+        }
+
+        #send-btn {
+            width: 44px;
+            height: 44px;
+            background-color: var(--wa-green);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #send-btn:hover {
+            background-color: #018669;
+            transform: scale(1.05);
+        }
+
+        #send-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #fff;
+        }
+
+        @media (max-width: 600px) {
+            #chat-container {
+                padding: 20px 4%;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        /* Media Queries for Mobile */
+        @media (max-width: 500px) {
+            #chat-container {
+                padding: 16px 12px;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .slot-pill-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -294,35 +439,59 @@
     <div class="app-container">
         <header>
             <div class="user-info">
-                <div class="avatar">🤖</div>
+                <div class="avatar-container">
+                    <div class="avatar">🤖</div>
+                    <div class="online-dot"></div>
+                </div>
                 <div class="user-details">
                     <h2>Booking Agent</h2>
                     <span id="header-status">online</span>
                 </div>
             </div>
             <div class="actions">
-                <button onclick="clearHistory()" title="Clear Chat">🗑️</button>
+                <button onclick="clearHistory()" title="Clear Chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
             </div>
         </header>
 
         <div id="chat-container">
-            <div class="typing-indicator" id="typing-indicator">
-                <div class="typing-inner">
-                    <div class="typing-dots">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <span class="typing-text" id="typing-text">Typing...</span>
+            <!-- Messages will appear here -->
+
+            <!-- Typing Indicator Shell -->
+            <div class="typing-bubble" id="typing-bubble">
+                <div class="dots">
+                    <div></div>
+                    <div></div>
+                    <div></div>
                 </div>
             </div>
         </div>
 
-        <div class="input-area">
-            <button onclick="document.getElementById('image-input').click()" title="Upload image">📎</button>
+        <div class="input-wrapper">
+            <div class="input-bar">
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+            </div>
+            <span class="input-action" onclick="document.getElementById('image-input').click()" title="Attach image">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                    </path>
+                </svg>
+            </span>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">➤</button>
+            <button id="send-btn" onclick="sendMessage()" title="Send message">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="#ffffff"></path>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -334,8 +503,7 @@
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const imageInput = document.getElementById('image-input');
-        const typingIndicator = document.getElementById('typing-indicator');
-        const typingText = document.getElementById('typing-text');
+        const typingBubble = document.getElementById('typing-bubble');
 
         messageInput.focus();
 
@@ -350,33 +518,29 @@
             }
         });
 
-        function setTypingStatus(text) {
-            typingText.textContent = text || 'Typing...';
-        }
-
-        function showTyping(statusText) {
-            setTypingStatus(statusText || 'Checking availability…');
-            typingIndicator.style.display = 'block';
+        function showTyping() {
+            typingBubble.style.display = 'block';
             document.getElementById('header-status').textContent = 'typing...';
             scrollToBottom();
         }
 
         function hideTyping() {
-            typingIndicator.style.display = 'none';
+            typingBubble.style.display = 'none';
             document.getElementById('header-status').textContent = 'online';
         }
 
         function scrollToBottom() {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 10);
         }
 
         function formatTime() {
-            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
         }
 
         function parseAgentResponse(text) {
             if (!text || typeof text !== 'string') return { type: 'plain', text: text || '' };
-
             const trimmed = text.trim();
 
             const lockedMatch = trimmed.match(/Slot locked! Please transfer Rs (\d+)[^\n]*/);
@@ -435,91 +599,98 @@
 
             const parsed = type === 'incoming' ? parseAgentResponse(content) : { type: 'plain', text: content };
 
-            if (type === 'outgoing') {
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('message-content');
-                contentDiv.textContent = content;
-                const timeDiv = document.createElement('div');
-                timeDiv.classList.add('message-time');
-                timeDiv.innerHTML = formatTime() + '<span class="message-status">✓✓</span>';
-                msgDiv.appendChild(contentDiv);
-                msgDiv.appendChild(timeDiv);
-            } else if (parsed.type === 'slots') {
-                const card = document.createElement('div');
-                card.classList.add('slot-results-card');
-                card.innerHTML = '<div class="slot-results-header">' + parsed.header.line.replace(/\*\*/g, '') + '</div>';
-                for (const venue of parsed.venues) {
-                    const section = document.createElement('div');
-                    section.classList.add('venue-section');
-                    const slotsToShow = venue.slots.slice(0, MAX_SLOTS_PER_VENUE);
-                    let slotHtml = '';
-                    for (const slot of slotsToShow) {
-                        slotHtml += '<div class="slot-card" data-slot-id="' + slot.slotId + '">' +
-                            '<div class="slot-time">' + slot.time + ' – ' + slot.end + '</div>' +
-                            '<div class="slot-price">Rs ' + slot.price + '</div>' +
-                            '<button type="button" class="slot-select-btn" data-slot-id="' + slot.slotId + '">Select</button>' +
-                            '</div>';
-                    }
-                    if (venue.slots.length > MAX_SLOTS_PER_VENUE) {
-                        slotHtml += '<div class="slot-card" style="grid-column:1/-1;cursor:default;opacity:0.8">+' + (venue.slots.length - MAX_SLOTS_PER_VENUE) + ' more slots</div>';
-                    }
-                    section.innerHTML = '<div class="venue-header">' + venue.name + '</div>' +
-                        '<div class="venue-address">' + venue.address + '</div>' +
-                        '<div class="slot-grid">' + slotHtml + '</div>';
-                    card.appendChild(section);
-                }
-                card.innerHTML += '<div class="slot-cta">' + (parsed.cta || '') + '</div>';
-                card.querySelectorAll('.slot-card[data-slot-id]').forEach(el => {
-                    const sid = el.getAttribute('data-slot-id');
-                    if (sid) {
-                        el.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            messageInput.value = 'Confirm ' + sid;
-                            messageInput.focus();
-                        });
-                    }
-                });
-                const timeDiv = document.createElement('div');
-                timeDiv.classList.add('message-time');
-                timeDiv.textContent = formatTime();
-                msgDiv.appendChild(card);
-                msgDiv.appendChild(timeDiv);
-            } else if (parsed.type === 'locked') {
-                const card = document.createElement('div');
-                card.classList.add('confirmation-card', 'locked');
-                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">Status</span><span class="confirmation-value">Slot on hold</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
-                    '<div class="confirmation-cta">Transfer Rs ' + parsed.amount + ' and send payment screenshot here within 10 minutes.</div>';
-                const timeDiv = document.createElement('div');
-                timeDiv.classList.add('message-time');
-                timeDiv.textContent = formatTime();
-                msgDiv.appendChild(card);
-                msgDiv.appendChild(timeDiv);
-            } else if (parsed.type === 'confirmed') {
-                const card = document.createElement('div');
-                card.classList.add('confirmation-card', 'confirmed');
-                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">✓ Booking confirmed</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Booking ID</span><span class="confirmation-value">' + parsed.bookingId + '</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
-                    '<div class="confirmation-cta">Thank you for booking with us! See you soon.</div>';
-                const timeDiv = document.createElement('div');
-                timeDiv.classList.add('message-time');
-                timeDiv.textContent = formatTime();
-                msgDiv.appendChild(card);
-                msgDiv.appendChild(timeDiv);
-            } else {
+            if (parsed.type === 'plain') {
                 const contentDiv = document.createElement('div');
                 contentDiv.classList.add('message-content');
                 contentDiv.textContent = parsed.text || content;
-                const timeDiv = document.createElement('div');
-                timeDiv.classList.add('message-time');
-                timeDiv.textContent = formatTime();
                 msgDiv.appendChild(contentDiv);
-                msgDiv.appendChild(timeDiv);
+            } else if (parsed.type === 'slots') {
+                const card = document.createElement('div');
+                card.classList.add('rich-card');
+                card.innerHTML = `<div class="rich-header">${parsed.header.sport} Availability</div>`;
+
+                for (const venue of parsed.venues) {
+                    const section = document.createElement('div');
+                    section.classList.add('venue-block');
+                    const slotsToShow = venue.slots.slice(0, MAX_SLOTS_PER_VENUE);
+
+                    let slotHtml = '';
+                    for (const slot of slotsToShow) {
+                        slotHtml += `
+                            <div class="slot-pill" onclick="selectSlot('${slot.slotId}')">
+                                <span class="time">${slot.time} – ${slot.end}</span>
+                                <span class="price">Rs ${slot.price}</span>
+                                <span class="select-tag">Tap to select</span>
+                            </div>`;
+                    }
+
+                    if (venue.slots.length > MAX_SLOTS_PER_VENUE) {
+                        slotHtml += `<div style="grid-column:1/-1; font-size:12px; opacity:0.6; text-align:center; padding:8px;">+ ${venue.slots.length - MAX_SLOTS_PER_VENUE} more available</div>`;
+                    }
+
+                    section.innerHTML = `
+                        <div class="venue-name">${venue.name}</div>
+                        <div class="venue-info">${venue.address}</div>
+                        <div class="slot-pill-grid">${slotHtml}</div>`;
+                    card.appendChild(section);
+                }
+                msgDiv.appendChild(card);
+            } else if (parsed.type === 'locked') {
+                const card = document.createElement('div');
+                card.classList.add('rich-card');
+                card.innerHTML = `
+                    <div class="rich-header">Booking Status</div>
+                    <div style="padding:16px;">
+                        <span class="status-badge on-hold">⏳ Slot on hold</span>
+                        <div style="font-size:18px; font-weight:700; color:var(--wa-accent); margin-bottom:8px;">Rs ${parsed.amount}</div>
+                        <div style="font-size:13px; line-height:1.5; opacity:0.8;">
+                            Please transfer the amount and send a clear screenshot of the receipt here to confirm your court.
+                        </div>
+                    </div>`;
+                msgDiv.appendChild(card);
+            } else if (parsed.type === 'confirmed') {
+                const card = document.createElement('div');
+                card.classList.add('rich-card');
+                card.innerHTML = `
+                    <div class="rich-header">Confirmed</div>
+                    <div style="padding:16px;">
+                        <span class="status-badge confirmed">✅ Payment Verified</span>
+                        <div style="font-size:16px; font-weight:600; margin-bottom:4px;">Booking ID: ${parsed.bookingId}</div>
+                        <div style="font-size:14px; color:var(--wa-accent); font-weight:600; margin-bottom:12px;">Amount: Rs ${parsed.amount}</div>
+                        <div style="font-size:13px; line-height:1.5; opacity:0.8;">
+                            Your sport court is ready! Just show this booking ID at the venue gate.
+                        </div>
+                    </div>`;
+                msgDiv.appendChild(card);
             }
 
-            chatContainer.insertBefore(msgDiv, typingIndicator);
+            const footer = document.createElement('div');
+            footer.classList.add('message-footer');
+            footer.innerHTML = `<span class="message-time">${formatTime()}</span>`;
+            if (type === 'outgoing') {
+                footer.innerHTML += `<span class="message-status">
+                    <svg width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.33333 9.16667L4.16667 5L3.33333 5.83333L8.33333 10.8333L15.8333 3.33333L15 2.5L8.33333 9.16667Z" fill="currentColor"/>
+                        <path d="M5.83333 9.16667L1.66667 5L0.833333 5.83333L5.83333 10.8333L6.66667 10L5.83333 9.16667Z" fill="currentColor"/>
+                    </svg>
+                </span>`;
+            }
+            msgDiv.appendChild(footer);
+
+            chatContainer.insertBefore(msgDiv, typingBubble);
             scrollToBottom();
+        }
+
+        // Add Welcome Message
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                renderMessage("Hi! I'm your Booking Agent. How can I help you today?", 'incoming');
+            }, 500);
+        });
+
+        function selectSlot(id) {
+            messageInput.value = `Confirm ${id}`;
+            messageInput.focus();
         }
 
         const CHAT_TIMEOUT_MS = 60000;
@@ -530,7 +701,7 @@
 
             messageInput.value = '';
             renderMessage(text, 'outgoing');
-            showTyping('Checking availability…');
+            showTyping();
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
@@ -561,18 +732,16 @@
                 clearTimeout(timeoutId);
                 hideTyping();
                 if (error.name === 'AbortError') {
-                    renderMessage('Request took too long. Check that the backend is running and try again.', 'incoming');
-                } else if (error.message && error.message.toLowerCase().includes('fetch')) {
-                    renderMessage('Could not reach the server. Make sure the backend is running (e.g. python scripts/chat_web.py) and try again.', 'incoming');
+                    renderMessage('Request timed out. Try again.', 'incoming');
                 } else {
-                    renderMessage('Network Error: ' + error.message, 'incoming');
+                    renderMessage('Connection Error. Check backend status.', 'incoming');
                 }
             }
         }
 
         async function uploadImage(file) {
             renderMessage('[Sending Image: ' + file.name + ']', 'outgoing');
-            showTyping('Processing payment…');
+            showTyping();
 
             const formData = new FormData();
             formData.append('file', file);
@@ -588,7 +757,7 @@
                 if (response.ok) {
                     renderMessage(data.response, 'incoming');
                 } else {
-                    renderMessage('Error: ' + (data.detail || 'Unknown error'), 'incoming');
+                    renderMessage('Error: ' + (data.detail || 'Upload failed'), 'incoming');
                 }
             } catch (error) {
                 hideTyping();
@@ -597,7 +766,7 @@
         }
 
         async function clearHistory() {
-            if (!confirm('Clear conversation history?')) return;
+            if (!confirm('Clear session history?')) return;
             try {
                 const response = await fetch(API_URL + '/clear', {
                     method: 'POST',
@@ -605,14 +774,11 @@
                     body: JSON.stringify({ phone_number: PHONE_NUMBER })
                 });
                 if (response.ok) {
-                    [...chatContainer.children].forEach(c => { if (c !== typingIndicator) c.remove(); });
-                    if (!chatContainer.contains(typingIndicator)) chatContainer.appendChild(typingIndicator);
+                    [...chatContainer.children].forEach(c => { if (c !== typingBubble) c.remove(); });
                     renderMessage('Conversation cleared.', 'incoming');
-                } else {
-                    alert('Failed to clear history');
                 }
             } catch (error) {
-                alert('Error clearing history');
+                alert('Connection Error');
             }
         }
     </script>
