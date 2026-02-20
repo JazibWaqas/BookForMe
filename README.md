@@ -64,16 +64,20 @@ python backend/scripts/seed_all.py
 
 ## 📚 Core Documentation
 
+### 🎯 **Project Entrance** (Start Here)
+👉 **[contextFiles/README.md](./contextFiles/README.md)**  
+*Complete documentation hub with navigation guide*
+
 ### 🧠 **System Architecture** (Must Read First)
-👉 **[ARCHITECTURE_MASTER_SPEC.md](./ARCHITECTURE_MASTER_SPEC.md)**  
+👉 **[contextFiles/ARCHITECTURE_MASTER_SPEC.md](./contextFiles/ARCHITECTURE_MASTER_SPEC.md)**  
 *Complete technical foundation - database schema, AI system, API design, security model*
 
 ### 🚦 **Current Project Status**  
-👉 **[PROJECT_STATUS_REPORT.md](./PROJECT_STATUS_REPORT.md)**  
+👉 **[contextFiles/PROJECT_STATUS_REPORT.md](./contextFiles/PROJECT_STATUS_REPORT.md)**  
 *Real-time progress, completion metrics, current blockers, roadmap*
 
 ### 🎯 **Active Development Focus**
-👉 **[VENDOR_DASHBOARD_PLAN.md](./VENDOR_DASHBOARD_PLAN.md)**  
+👉 **[contextFiles/VENDOR_DASHBOARD_PLAN.md](./contextFiles/VENDOR_DASHBOARD_PLAN.md)**  
 *Vendor dashboard PRD, technical requirements, implementation strategy*
 
 ---
