@@ -37,7 +37,12 @@ class Settings(BaseSettings):
     
     # Firestore (instead of PostgreSQL)
     FIRESTORE_PROJECT_ID: str = "bookforme-dev"
-    FIRESTORE_CREDENTIALS_FILE: str = "./backend/credentials/firestore-service-account.json"
+    
+    @property
+    def FIRESTORE_CREDENTIALS_FILE(self) -> str:
+        # Resolves to: JHAT/backend/credentials/firestore-service-account.json
+        return os.path.join(self.BASE_DIR, "credentials", "firestore-service-account.json")
+    
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     
     # Authentication
