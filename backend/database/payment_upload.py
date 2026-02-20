@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 # Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/payments")
+UPLOAD_DIR = Path("../uploads/payments")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
