@@ -34,11 +34,10 @@ app = FastAPI(
     description="Booking backend with chat API for browser UI"
 )
 
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
 
-_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_dev_chat_path = os.path.join(_backend_dir, "scripts", "dev_chat")
+_dev_chat_path = os.path.join(settings.BASE_DIR, "scripts", "dev_chat")
 if os.path.exists(_dev_chat_path):
     app.mount("/chat", StaticFiles(directory=_dev_chat_path, html=True), name="dev_chat")
 

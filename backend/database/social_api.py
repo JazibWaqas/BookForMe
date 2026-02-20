@@ -70,7 +70,7 @@ async def get_user_profile_social(user_id: str) -> UserProfileSocial:
     return profile
 
 # --- Uploads ---
-UPLOAD_DIR = Path("../uploads/social")
+UPLOAD_DIR = Path(settings.UPLOADS_DIR) / "social"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # DEBUG ENDPOINT - accepts ANY body

@@ -8,8 +8,10 @@ import os
 import uuid
 from pathlib import Path
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("../uploads/payments")
+from app.config import settings
+
+# Use centralized uploads directory
+UPLOAD_DIR = Path(settings.UPLOADS_DIR) / "payments"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
