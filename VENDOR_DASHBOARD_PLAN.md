@@ -1,103 +1,79 @@
-# Vendor Dashboard Product Plan: "The Venue OS"
+# Vendor Dashboard PRD: "The Venue OS"
 
-## 1. Product Vision
-To build a "Mission Control" for sports venue owners that is so useful they can't imagine running their business without it. It moves them from "messy distinct tools" (WhatsApp + Notebooks) to a **single, unified operating system**.
+## 🎯 1. The High-Level Vision
+To build a **"Mission Control"** for sports venue owners in Karachi. Currently, these owners are drowning in phone calls, unorganized WhatsApp chats, and paper notebooks. 
 
-**The app is the Single Source of Truth.** Every booking—whether from the mobile app, the WhatsApp AI Agent, or a manual walk-in—lives in our Firestore database. There is no external sync to worry about, ensuring 100% reliability and zero double-bookings.
-
-**Core Value Props:**
-1.  **Peace of Mind**: "I know exactly what's happening at my venue right now, even if I'm not there."
-2.  **Revenue Maximization**: "The system helps me fill empty slots."
-3.  **AI Superpowers**: "I have a 24/7 receptionist who works for free."
+**"The Venue OS"** isn't just an admin panel; it's a silent partner that:
+*   **Decentralizes Operations**: The owner can see the venue's health from home, while the receptionist manages the desk at the venue.
+*   **Automates the Mundane**: From 2AM booking inquiries to Verifying Bank Al-Falah screenshots.
+*   **Maximizes Revenue**: Identifying "dead zones" in the schedule and filling them via AI.
 
 ---
 
-## 2. Information Architecture (Sitemap)
+## 🏛️ 2. The Five Pillars of the Dashboard
+*Sonnet should focus on these as functional zones. You are encouraged to propose the best UI patterns (Modals vs. Sidebars, Grid vs. List) for these.*
 
-The Vendor Dashboard will consist of 5 Core Pillars:
+### A. 🏠 Control Center (HUD)
+*The heartbeat.* Immediate awareness. 
+- "Who is on which court right now?"
+- "How much cash did we make today?"
+- **Actionable HUD**: Alerts that require human eyes (payment verifications, high-priority manual requests).
 
-### A. 🏠 Dashboard (The "Heads-Up Display")
-*Goal: Quick status check and immediate actions.*
-*   **Live Status**: "3 Courts Occupied", "2 Bookings Starting in 15 mins".
-*   **KPI Cards**: Today's Revenue, Occupancy Rate %, Pending Payment Verifications.
-*   **Action Stream**:
-    *   "⚠️ User x uploaded a payment screenshot. Verify?"
-    *   "ℹ️ AI Agent handled 12 queries today."
-    *   "📅 Court 2 has a gap at 6 PM. Want to broadcast a deal?"
+### B. 📅 Operations (The Unified Schedule)
+*Single Source of Truth.*
+- **The App is the Master**: No more external sheets. Every slot—WhatsApp, App, or Walk-in—lives in Firestore.
+- **Speed is King**: A receptionist needs to book a "Walk-in" customer in < 5 seconds.
+- **Visibility**: Clear visual distinction between sources (e.g., WhatsApp vs. App vs. Staff-entered).
 
-### B. 📅 Schedule & Bookings (The "Operations Center")
-*Goal: Managing the daily flow and manual entries.*
-*   **Unified Calendar View**:
-    *   Color-coded events: 🟢 App Booking, 🔵 AI/WhatsApp Booking, 🟡 Manual Walk-in, 🔴 Blocked/Maintenance.
-    *   Day / Week / Month views.
-*   **Quick Actions**:
-    *   **"Add Walk-in"**: One-tap button to book a slot for a customer standing at the desk (updates Firestore instantly).
-    *   **"Block Time"**: "Close Court 1 for repair" (removes from availability instantly).
-*   **Booking List**:
-    *   Filterable list (Pending, Confirmed, Completed).
-    *   Search by customer name or phone number.
+### C. 🤖 AI Staff (Receptionist Oversight)
+*The "Digital Employee" supervisor.*
+- **Monitoring**: Live-reading the AI agent’s conversations.
+- **Intervention**: The "Wait, let me talk" moment. If a human intervenes, the AI takes a backseat.
+- **Wisdom Management**: Updating the AI's knowledge (e.g., "The Futsal lights are fixed now, tell anyone who asks").
 
-### C. 🤖 AI Receptionist (The "Digital Staff")
-*Goal: Oversight and control over the automated agent.*
-*   **Live Conversation Feed**: Read-only view of active chats the AI is handling.
-*   **Intervention Mode**: a "Take Over" button to pause the AI for a specific chat and reply manually as the vendor.
-*   **Knowledge Base**: Simple toggle switches for the AI's brain:
-    *   "Generator Available?" [Yes/No]
-    *   "Parking Free?" [Yes/No]
-    *   "Equipment Rental?" [Yes/No]
-
-### D. 💰 Financials & Analytics (The "Growth Engine")
-*Goal: Understanding business health and verifying income.*
-*   **Payment Verification Queue**:
-    *   Side-by-side view: Uploaded Screenshot vs. Booking Details.
-    *   One-click "Confirm" or "Reject".
-*   **Insights**:
-    *   **Peak Hours Heatmap**: "You are 100% booked M-F 8-11 PM."
-    *   **Dead Zones**: "Tuesday afternoons are empty. Create a discount?"
-    *   **Source Split**: "60% WhatsApp, 30% App, 10% Walk-in."
-
-### E. ⚙️ Venue Profile (The "Identity")
-*Goal: Self-service management of how the venue looks to users.*
-*   **Service Menu**: Add/Remove sports, update prices.
-*   **Gallery**: Upload photos of courts/amenities.
-*   **Staff Management**: Add sub-accounts for receptionists (limited access).
+### D. 💰 The Vault (Financials & Analytics)
+*Trust and Growth.*
+- **The Screenshot Problem**: Manually checking EasyPaisa screenshots is a nightmare. This pillar automates that verification.
+- **Growth Heatmaps**: Showing owners *when* they are losing money (empty courts) so they can run promotions.
 
 ---
 
-## 3. High-Priority "Killer Features" (MVP)
+## 🚀 3. "Killer Features" (The WOW Factor)
+*These are the features that make a vendor switch to JHAT.*
 
-These features address the specific pain points of Karachi sports vendors:
-
-1.  **"Magic Verification"**: Uses the Gemini Vision AI to read the payment screenshot amount and highlights it in Green if it matches the slot price, Red if it doesn't.
-2.  **"Broadcast Blast"**: A tool to send a WhatsApp template message to all customers who played in the last 30 days: "50% off slots this Tuesday!"
-3.  **Real-time Notifications**: Desktop and mobile push alerts the moment a booking is locked or paid.
-
----
-
-## 4. Technical Requirements for Vendor Dashboard
-
-### Frontend (React/Next.js or React Native Tablet)
-*   **Responsive Design**: Must work perfectly on mobile (owner on the go) and Tablet/Desktop (receptionist at desk).
-*   **Real-time Sockets**: The Dashboard *cannot* require a refresh. New bookings must 'pop' in instantly (Firestore `onSnapshot`).
-
-### Backend Support Needed
-*   **`GET /api/vendor/analytics`**: New endpoint to aggregate Firestore data into stats.
-*   **`POST /api/vendor/intervention`**: Endpoint to pause the LangGraph agent for a specific `thread_id`.
-*   **`POST /api/vendor/broadcast`**: Endpoint to trigger WhatsApp template messages.
+1.  **"Magic Vision"**: Using Gemini Vision to "read" payment screenshots. If a user tries to pay 1000 for a 2000 slot, the system flags it in bright red.
+2.  **"Broadcast Blast"**: One-click "Send 30% discount to everyone who played Padel last week."
+3.  **"Handover Mode"**: Seamlessly swapping between the AI agent and the human vendor in a single WhatsApp thread.
 
 ---
 
-## 5. Implementation Phases
+## 🏗️ 4. Technical Context (The "Anchor" for Sonnet)
+*Use these existing patterns. Don't reinvent the wheel.*
 
-1.  **Phase 1: The Basics (Now)**
-    *   Build the **Booking List & Calendar View** (Read/Write to Firestore).
-    *   Implement **"Add Walk-in"** (Manual booking creation using Firestore Transactions).
-    *   Build **Payment Verification** Screen.
+### 📂 Firestore Collections
+- `vendors`: Store business metadata and aggregate revenue stats.
+- `slots`: Keyed by `v_{vendor}_{date}_{time}_{res}`. This is the master ledger.
+- `payments`: Links slots to user-uploaded screenshots.
+- `conversations`: Stores thread history for the AI Agent.
 
-2.  **Phase 2: AI Control (Next)**
-    *   Build the **Live Chat Feed**.
-    *   Implement **Knowledge Base** settings and intervention toggle.
+### � Existing Backend Logic
+- `SlotService (backend/database/slot_service.py)`: Contains the "Sacred Logic" for transactions. 
+    - **Use `manual_booking`** for walk-ins.
+    - **Use `confirm_booking`** for payment approval.
+    - **Use `block_slot`** for maintenance.
+- `AvailabilityService`: Use this for all generation/conflict logic.
 
-3.  **Phase 4: Intelligence (Later)**
-    *   Analytics & Insights Dashboard (Revenue aggregation).
-    *   CRM / Customer List based on booking history.
+### � Auth & Identity
+- Vendor identity is tied to their `user` document with `role: "vendor"`.
+- Requests expect a JWT Bearer token.
+
+---
+
+## � 5. Implementation Strategy (Our Path Forward)
+*Sonnet: Use your judgment here. Start with utility, end with intelligence.*
+
+1.  **Phase 1: Operations Foundation**: Build the Calendar and the Manual Booking flow. Make it feel "snappy."
+2.  **Phase 2: AI Control & Screenshots**: Build the review systems for Payment Screenshots and Live Chats.
+3.  **Phase 3: Insights & Analytics**: Aggregating the data into beautiful, actionable graphs.
+
+> **Note to Developer**: You are the architect. If you see a way to make the UX simpler for a venue receptionist who is busy/stressed, do it. The technical context is your boundary, but the UI is your canvas.
