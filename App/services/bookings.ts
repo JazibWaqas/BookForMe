@@ -82,9 +82,13 @@ export const getAvailableSlots = async (
  */
 export const lockSlot = async (slotId: string): Promise<LockSlotResponse> => {
   try {
+    console.log(`\n[🔒 X-RAY: Locking Slot]`);
+    console.log(`- Attempting to lock slot: ${slotId}`);
+
     const response = await apiClient.post(`/api/slots/${slotId}/lock`);
 
     if (response.data.success) {
+      console.log(`- Lock Response:`, JSON.stringify(response.data, null, 2));
       return {
         success: true,
         slot_id: response.data.slot_id || slotId,
@@ -193,25 +197,35 @@ export const getUserBookings = async (): Promise<Booking[]> => {
     const response = await apiClient.get(API_ENDPOINTS.bookings.list);
 
     if (response.data.success && response.data.bookings) {
-      return response.data.bookings.map((booking: any) => ({
+      const mappedBookings = response.data.bookings.map((booking: any) => ({
         id: booking.id || booking.slot_id,
         slot_id: booking.slot_id || booking.id,
         vendor_id: booking.vendor_id,
-        customer_name: booking.vendor?.owner_name || '',
-        customer_phone: booking.vendor?.phone || '',
-        customer_email: booking.vendor?.email || '',
-        service_id: '',
+        customer_name: booking.customer_name || '',
+        customer_phone: booking.customer_phone || '',
+        customer_email: booking.customer_email || '',
+        service_id: booking.service_id || '',
         date: booking.date,
-        time: booking.start_time,
-        source: 'app',
+        time: booking.start_time || booking.time,
+        source: booking.source || 'app',
         status: booking.status,
         created_at: booking.created_at || new Date().toISOString(),
-        updated_at: booking.created_at || new Date().toISOString(),
-        vendor: booking.vendor,
-        amount: booking.payment?.amount_claimed
+        updated_at: booking.updated_at || new Date().toISOString(),
+        vendor: {
+          ...booking.vendor,
+          name: booking.vendor?.name || booking.vendor?.business_name || booking.vendor_name || 'Unknown Vendor'
+        },
+        amount: booking.price || booking.amount || (booking.payment && booking.payment.amount_claimed) || 0
       } as Booking));
+
+      console.log(`- Mapped Bookings Count: ${mappedBookings.length}`);
+      if (mappedBookings.length > 0) {
+        console.log(`- Sample Mapped Booking [0]:`, JSON.stringify(mappedBookings[0], null, 2));
+      }
+      return mappedBookings;
     }
 
+    console.log(`- No bookings found in data array.`);
     return [];
   } catch (error: any) {
     console.error('Error fetching user bookings from backend:', error);

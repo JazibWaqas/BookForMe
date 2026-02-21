@@ -18,6 +18,8 @@
 - **[🚀 DEVELOPER_ONBOARDING.md](./DEVELOPER_ONBOARDING.md)** - Setup and development guide
 - **[🔧 TROUBLESHOOTING_GUIDE.md](./TROUBLESHOOTING_GUIDE.md)** - Common issues and solutions
 
+Pdf files are the srs,sds, literature review documents which can serve as a good way to understand high level vision 
+
 ---
 
 ## 📋 **Documentation Overview**

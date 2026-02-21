@@ -428,9 +428,12 @@ async def lock_slot(slot_id: str, user_id: str = Depends(get_current_user_id)):
         Lock confirmation with expiry time
     """
     try:
+        print(f"\n[🔒 X-RAY BACKEND: Locking Slot]")
+        print(f"- Slot ID: {slot_id} | User ID: {user_id}")
         logger.info(f"Locking slot {slot_id} for user {user_id}")
         
         result = slot_service.lock_slot(slot_id, user_id, "app")
+        print(f"- Lock Core Result: {result}")
         
         if result['success']:
             return {
@@ -566,6 +569,8 @@ async def submit_payment(payment_data: PaymentRequest, user_id: str = Depends(ge
         Payment confirmation
     """
     try:
+        print(f"\n[💳 X-RAY BACKEND: Submitting Payment]")
+        print(f"- Slot ID: {payment_data.slot_id} | Amount Claimed: {payment_data.amount_claimed}")
         logger.info(f"Submitting payment for slot {payment_data.slot_id} by user {user_id}")
         
         slot = await firestore_v2.get_slot(payment_data.slot_id)
@@ -633,6 +638,8 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
     Get all bookings for the current user (Optimized)
     """
     try:
+        print(f"\n[🔍 X-RAY BACKEND: Fetching Bookings]")
+        print(f"- User ID: {user_id}")
         logger.info(f"Getting bookings for user {user_id}")
         
         # 1. Fetch all slots (bookings)
@@ -687,6 +694,8 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                  if hasattr(t, 'strftime'): return t.strftime(fmt)
                  if isinstance(t, str): return t
                  return None
+                   # Print to inspect raw slot content
+            print(f"--- Slot {slot_id} RAW KEYS: {list(slot_data.keys())} | Price: {slot_data.get('price')} Amount: {slot_data.get('amount')} ---")
             
             def safe_iso(t):
                 if hasattr(t, 'isoformat'): return t.isoformat()
@@ -694,6 +703,21 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                 return None
 
             time_str = safe_format_time(start_time)
+            
+            # --- FORCE IDENTICAL LOGIC AS AVAILABLE SLOTS (firestore_v2.py) ---
+            if start_time:
+                try:
+                    import pytz
+                    KARACHI_TZ = pytz.timezone('Asia/Karachi')
+                    if hasattr(start_time, 'astimezone'):
+                        start_karachi = start_time.astimezone(KARACHI_TZ)
+                        time_str = start_karachi.strftime('%H:%M')
+                    elif hasattr(start_time, 'strftime'):
+                        time_str = start_time.strftime('%H:%M')
+                except Exception as e:
+                    print(f"Error applying timezone fix: {e}")
+            # -------------------------------------------------------------------
+            
             start_time_str = safe_iso(start_time)
             end_time_str = safe_iso(end_time)
             
@@ -707,11 +731,11 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
                 'end_time': end_time_str,
                 'duration': slot_data.get('duration', 60),
                 'price': slot_data.get('price'),
+                'amount': slot_data.get('price'),
                 'status': slot_data.get('status'),
                 'resource_name': slot_data.get('resource_name'),
                 'service_name': slot_data.get('service_name'),
-                'vendor_name': vendor.get('businessName') if vendor else 'Unknown Vendor',
-                'vendor_address': vendor.get('address') if vendor else '',
+                'vendor': vendor,
                 'payment': payment
             }
 
@@ -721,6 +745,7 @@ async def get_user_bookings(user_id: str = Depends(get_current_user_id)):
         # Sort by date/time (descending)
         bookings.sort(key=lambda x: (x.get('date') or '', x.get('time') or ''), reverse=True)
         
+        print(f"- Complete mapped bookings prepared for dispatch: {len(bookings)}")
         return {
             "success": True,
             "bookings": bookings,

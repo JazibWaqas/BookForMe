@@ -48,7 +48,7 @@ export default function BookingScreen() {
 
   const priceVal = Array.isArray(price) ? price[0] : price;
   const priceNum = parseFloat(priceVal || '0');
-  const total = priceNum;
+  const total = isNaN(priceNum) ? 0 : priceNum;
 
   // Initialize countdown from holdExpiresAt
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function BookingScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       aspect: [3, 4],
       quality: 0.8,
@@ -159,7 +159,7 @@ export default function BookingScreen() {
       if (paymentResponse.data.success) {
         setVerificationStatus('verified');
         setBookingConfirmed(true);
-        
+
         // Force immediate refetch of slots and bookings to show updated data
         await queryClient.refetchQueries({ queryKey: ['slots'] });
         await queryClient.refetchQueries({ queryKey: ['bookings'] });

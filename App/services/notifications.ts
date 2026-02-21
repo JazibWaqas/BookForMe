@@ -6,6 +6,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { buildApiUrl } from '../config/api';
 import axios from 'axios';
 
@@ -28,6 +29,12 @@ const NOTIFICATION_TOKEN_KEY = 'expo_push_token';
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === 'web') {
     console.warn('Push notifications not supported on web');
+    return false;
+  }
+
+  // Disable push notifications in Expo Go to prevent crashes in SDK 53+
+  if (Constants.appOwnership === 'expo') {
+    console.log('Skipping push notification setup in Expo Go.');
     return false;
   }
 
@@ -71,13 +78,13 @@ export async function getExpoPushToken(): Promise<string | null> {
     });
 
     const token = tokenData.data;
-    
+
     // Store the token
     await AsyncStorage.setItem(NOTIFICATION_TOKEN_KEY, token);
-    
+
     // TODO: Send token to your backend API
     // await sendTokenToBackend(token);
-    
+
     return token;
   } catch (error) {
     console.error('Error getting Expo push token:', error);
@@ -94,7 +101,7 @@ export async function sendTokenToBackend(token: string, userId: string): Promise
       buildApiUrl('/api/users/push-token'),
       { token, userId, platform: Platform.OS }
     );
-    
+
     return response.data.success === true;
   } catch (error) {
     console.error('Error sending token to backend:', error);

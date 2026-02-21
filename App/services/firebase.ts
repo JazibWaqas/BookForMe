@@ -1,5 +1,5 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, collection, CollectionReference, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, collection, CollectionReference, Firestore } from 'firebase/firestore';
 // @ts-ignore: getReactNativePersistence is available at runtime but missing in some type definitions
 import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -25,16 +25,6 @@ export const auth: Auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
 export const storage: FirebaseStorage = getStorage(app);
-
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.warn('Firestore persistence failed: Multiple tabs open');
-  } else if (err.code == 'unimplemented') {
-    console.warn('Firestore persistence not available in this browser');
-  } else {
-    console.error('Firestore persistence error:', err);
-  }
-});
 
 export const vendorsCollection = collection(db, 'vendors') as CollectionReference<Vendor>;
 export const bookingsCollection = collection(db, 'bookings') as CollectionReference<Booking>;

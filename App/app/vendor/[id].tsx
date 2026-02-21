@@ -92,14 +92,20 @@ export default function VendorDetailScreen() {
       setSelectedSlot(foundSlot);
     }
 
-    // Only clear if slot is definitively booked/unavailable
-    if (foundSlot && (slotBooked || (!slotStillLocked && (foundSlot as SlotDetails).status !== 'available'))) {
+    // Check if slot's date matches the current UI date
+    const isShowingSameDate = selectedSlot && selectedSlot.date === format(selectedDate, 'yyyy-MM-dd');
+
+    // Only clear if slot is definitively booked/unavailable OR if it disappeared perfectly from the current day's payload
+    if (
+      (isShowingSameDate && !slotFound) ||
+      (foundSlot && (slotBooked || (!slotStillLocked && (foundSlot as SlotDetails).status !== 'available')))
+    ) {
       setLockedSlotId(null);
       setSelectedSlot(null);
       setLockExpiry(null);
       setCountdown(0);
     }
-  }, [resourceGroups, lockedSlotId]);
+  }, [resourceGroups, lockedSlotId, selectedDate, selectedSlot]);
 
   // Auto-expand first resource when data loads
   useEffect(() => {

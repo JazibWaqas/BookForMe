@@ -164,7 +164,7 @@ export default function SocialScreen() {
 
   const pickImageForPost = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       quality: 0.7,
     });
