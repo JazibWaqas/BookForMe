@@ -59,5 +59,8 @@
     "babel-preset-expo": "^54.0.7",
     "typescript": "~5.9.2"
   },
+  "overrides": {
+    "@react-native-masked-view/masked-view": "0.3.2"
+  },
   "private": true
 }

@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+
+    # Slot cleanup (cron hitting /internal/cleanup-expired-locks every 10 min)
+    CLEANUP_CRON_SECRET: Optional[str] = None
     
     @field_validator('DEBUG', mode='before')
     @classmethod

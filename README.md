@@ -219,6 +219,14 @@ JHAT/
 - **Monitoring**: Real-time error tracking and alerting
 - **Backup Strategy**: Automated daily backups
 
+### Slot Cleanup (Cron)
+Expired slot locks are released by hitting the cleanup endpoint. **Use an external cron service** (e.g. [cron-job.org](https://cron-job.org)) to call it **every 10 minutes**.
+
+1. **URL**: `https://jhat-to9p.onrender.com/internal/cleanup-expired-locks`
+2. **Method**: GET
+3. **Schedule**: Every 10 minutes (cron: `*/10 * * * *`)
+4. **Optional auth**: Set `CLEANUP_CRON_SECRET` in Render env vars, then add header `X-Cron-Secret: <your-secret>` in the cron job.
+
 ---
 
 ## 🤝 Contributing to BookForMe

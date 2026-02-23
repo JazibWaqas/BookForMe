@@ -7,7 +7,7 @@ Chat: your index.html calls POST /dev-api/chat; static UI at /chat.
 import os
 import logging
 
-from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -139,6 +139,14 @@ async def startup_event():
     logger.info("Starting BookForMe Backend Server...")
     logger.info("Firestore initialized")
     try:
+        from app.firestore import firestore_db
+        from database.slot_service import SlotService
+        result = SlotService(firestore_db.db).cleanup_expired_locks()
+        if result.get('released_count', 0) > 0:
+            logger.info("Startup: released %d expired slot locks", result['released_count'])
+    except Exception as e:
+        logger.warning("Startup slot cleanup failed: %s", e)
+    try:
         from whatsapp.agent import WhatsAppAgent
         global dev_chat_agent
         dev_chat_agent = WhatsAppAgent()
@@ -176,7 +184,8 @@ async def root():
             "health": "/health",
             "api_docs": "/docs",
             "dev_chat": "/chat",
-            "dev_api": "/dev-api/chat"
+            "dev_api": "/dev-api/chat",
+            "cleanup_cron": "/internal/cleanup-expired-locks"
         }
     }
 
@@ -190,6 +199,20 @@ async def health_check():
         "ai": "gemini",           # TODO: Check Gemini API connection
         "whatsapp": "meta"        # Updated to reflect Meta API
     }
+
+
+@app.get("/internal/cleanup-expired-locks", include_in_schema=False)
+async def cleanup_expired_locks(x_cron_secret: str = Header(None, alias="X-Cron-Secret")):
+    """
+    Release expired slot locks. Intended for external cron (e.g. cron-job.org)
+    hitting every 10 minutes. If CLEANUP_CRON_SECRET is set, X-Cron-Secret header must match.
+    """
+    if settings.CLEANUP_CRON_SECRET and x_cron_secret != settings.CLEANUP_CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Cron-Secret")
+    from app.firestore import firestore_db
+    from database.slot_service import SlotService
+    result = SlotService(firestore_db.db).cleanup_expired_locks()
+    return result
 
 
 @app.post("/test-webhook")
