@@ -252,8 +252,8 @@ class SlotService:
                 if slot_data.get('vendor_id') != vendor_id:
                     return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
                 
-                if slot_data.get('status') != SlotStatus.PENDING.value:
-                    return {'success': False, 'error': 'Slot is not in pending state'}
+                if slot_data.get('status') not in [SlotStatus.PENDING.value, SlotStatus.CONFIRMED.value, SlotStatus.COMPLETED.value]:
+                    return {'success': False, 'error': 'Slot is not in a cancellable state'}
                 
                 transaction.update(slot_ref, {
                     'status': SlotStatus.CANCELLED.value,

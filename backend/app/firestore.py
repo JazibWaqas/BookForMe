@@ -334,26 +334,78 @@ class FirestoreDB:
             return None
     
     async def get_vendor_bookings(self, vendor_id: str, date: str = None) -> List[Dict[str, Any]]:
-        """Get bookings for vendor - bookings are confirmed slots"""
+        """Get bookings for vendor — returns clean, display-ready data."""
         try:
             from google.cloud.firestore_v1.base_query import FieldFilter
-            
+            import pytz
+
+            KARACHI_TZ = pytz.timezone('Asia/Karachi')
+
             bookings = []
-            # Query slots collection for confirmed bookings
             query = self.db.collection('slots')\
                 .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
-                .where(filter=FieldFilter('status', 'in', ['confirmed', 'completed']))
-            
+                .where(filter=FieldFilter('status', 'in', [
+                    'locked', 'pending', 'confirmed', 'completed', 'cancelled', 'blocked'
+                ]))
+
             if date:
                 query = query.where(filter=FieldFilter('date', '==', date))
-            
+
             docs = query.stream()
             for doc in docs:
                 booking_data = doc.to_dict()
                 booking_data['id'] = doc.id
+
+                # ── Derive a human-readable PKT time string ──────────────────
+                start_time = booking_data.get('start_time')
+                if start_time and hasattr(start_time, 'astimezone'):
+                    try:
+                        start_khi = start_time.astimezone(KARACHI_TZ)
+                        booking_data['time'] = start_khi.strftime('%I:%M %p')   # "07:00 AM"
+                        # Ensure date reflects PKT day (not UTC)
+                        if not booking_data.get('date'):
+                            booking_data['date'] = start_khi.strftime('%Y-%m-%d')
+                    except Exception:
+                        booking_data['time'] = str(start_time)
+                elif isinstance(start_time, str):
+                    booking_data['time'] = start_time
+
+                # ── Customer name: prefer what's already on the slot ─────────
+                # WhatsApp agent & walk-ins write customer_name directly onto
+                # the slot doc. Only look up the users collection if it's blank.
+                if not booking_data.get('customer_name'):
+                    user_id = booking_data.get('user_id')
+                    if user_id:
+                        try:
+                            user_doc = self.db.collection('users').document(user_id).get()
+                            if user_doc.exists:
+                                u = user_doc.to_dict()
+                                booking_data['customer_name'] = (
+                                    u.get('name') or u.get('full_name') or
+                                    u.get('display_name') or u.get('phone_number') or
+                                    'Customer'
+                                )
+                        except Exception:
+                            pass
+
+                # ── Hydrate payment screenshot if linked ─────────────────────
+                payment_id = booking_data.get('payment_id')
+                if payment_id:
+                    try:
+                        payment_doc = self.db.collection('payments').document(payment_id).get()
+                        if payment_doc.exists:
+                            booking_data['payment'] = payment_doc.to_dict()
+                    except Exception:
+                        pass
+
                 bookings.append(booking_data)
-            
-            return sorted(bookings, key=lambda x: x.get('updated_at', ''), reverse=True)
+
+            # Sort by date desc, then time desc — safe for mixed None types
+            def _sort_key(b):
+                return (b.get('date') or '0000-00-00', b.get('time') or '00:00 AM')
+
+            return sorted(bookings, key=_sort_key, reverse=True)
+
         except Exception as e:
             logger.error(f"Error getting vendor bookings: {e}")
             return []

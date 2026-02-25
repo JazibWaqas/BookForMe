@@ -10,11 +10,13 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { COLORS } from '../../constants/colors';
 import { CATEGORIES } from '../../constants/categories';
+import { authService } from '../../services/auth';
+import { apiClient, API_ENDPOINTS } from '../../config/api';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+
   const [loading, setLoading] = useState(false);
   const [businessName, setBusinessName] = useState('Golden Court Padel Club');
   const [ownerName, setOwnerName] = useState('Ahmed Khan');
@@ -33,20 +35,28 @@ export default function VendorProfileScreen() {
   }, []);
 
   const loadProfileData = async () => {
-    // Load saved profile data from AsyncStorage
     try {
+      const user = await authService.getCurrentUser();
+      if (!user || !user.vendor_id) return;
+
+      const res = await apiClient.get(API_ENDPOINTS.vendors.get(user.vendor_id));
+      if (res.data.success && res.data.vendor) {
+        const vendor = res.data.vendor;
+        setBusinessName(vendor.name || vendor.business_name || '');
+        setOwnerName(vendor.owner_name || '');
+        setEmail(vendor.email || '');
+        setPhone(vendor.phone || '');
+        setAddress(vendor.address || '');
+        setDescription(vendor.description || '');
+      }
+
+      // Also grab async storage stuff (like local photos which dont sync yet)
       const savedData = await AsyncStorage.getItem('vendorProfile');
       if (savedData) {
         const data = JSON.parse(savedData);
-        setBusinessName(data.businessName || '');
-        setOwnerName(data.ownerName || '');
-        setEmail(data.email || '');
-        setPhone(data.phone || '');
         setCnic(data.cnic || '');
         setCategory(data.category || 'padel');
-        setAddress(data.address || '');
         setLocation(data.location || null);
-        setDescription(data.description || '');
         setProfileImage(data.profileImage || null);
         setBusinessImages(data.businessImages || []);
       }
@@ -57,22 +67,29 @@ export default function VendorProfileScreen() {
 
   const saveProfileData = async () => {
     try {
+      const user = await authService.getCurrentUser();
+      // Sync strictly business data
+      if (user && user.vendor_id) {
+        await apiClient.patch(API_ENDPOINTS.vendors.patch(user.vendor_id), {
+          name: businessName,
+          phone: phone,
+          email: email,
+          address: address,
+          description: description,
+        });
+      }
+
       const data = {
-        businessName,
-        ownerName,
-        email,
-        phone,
         cnic,
         category,
-        address,
         location,
-        description,
         profileImage,
         businessImages,
       };
       await AsyncStorage.setItem('vendorProfile', JSON.stringify(data));
     } catch (error) {
       console.error('Error saving profile:', error);
+      throw error; // Re-throw so alert handles it
     }
   };
 
@@ -115,7 +132,7 @@ export default function VendorProfileScreen() {
         lng: loc.coords.longitude,
       };
       setLocation(newLocation);
-      
+
       // Reverse geocode to get address
       const [addressResult] = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
@@ -134,17 +151,20 @@ export default function VendorProfileScreen() {
   };
 
   const handleSave = async () => {
-    if (!businessName || !ownerName || !email || !phone || !cnic || !address) {
+    if (!businessName || !email || !phone || !address) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
     setLoading(true);
-    await saveProfileData();
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await saveProfileData();
       Alert.alert('Success', 'Profile updated successfully');
-    }, 1000);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save changes to the database');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignOut = async () => {

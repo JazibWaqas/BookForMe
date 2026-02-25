@@ -813,4 +813,302 @@ async def ai_search(request: ChatRequest):
         logger.error(f"Error in AI search endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/vendors/{vendor_id}/grid")
+async def get_vendor_grid(vendor_id: str, date: str):
+    """Get ALL slots (available, locked, pending, confirmed) for a vendor on a date for the grid"""
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        from datetime import datetime, timedelta
+        import pytz
 
+        # Calculate next date for overnight business hours
+        parsed_date = datetime.strptime(date, '%Y-%m-%d')
+        next_date = (parsed_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Fetch vendor document to get operating hours
+        vendor_doc = firestore_db.db.collection('vendors').document(vendor_id).get()
+        operating_hours = {}
+        if vendor_doc.exists:
+            vendor_data = vendor_doc.to_dict()
+            operating_hours = vendor_data.get('operating_hours', {})
+
+        # Query for today and tomorrow to catch 1 AM, 2 AM slots
+        query = firestore_db.db.collection('slots')\
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+            .where(filter=FieldFilter('date', 'in', [date, next_date]))
+        
+        import asyncio
+        slots_docs = await asyncio.to_thread(lambda: list(query.stream()))
+        
+        slots = []
+        for doc in slots_docs:
+            slot_data = doc.to_dict()
+            slot_data['id'] = doc.id
+            
+            # Format raw datetime
+            start_time = slot_data.get('start_time')
+            if start_time:
+                try:
+                    KARACHI_TZ = pytz.timezone('Asia/Karachi')
+                    if hasattr(start_time, 'astimezone'):
+                        start_karachi = start_time.astimezone(KARACHI_TZ)
+                        slot_data['time'] = start_karachi.strftime('%H:%M')
+                    elif hasattr(start_time, 'strftime'):
+                        slot_data['time'] = start_time.strftime('%H:%M')
+                    else:
+                        slot_data['time'] = str(start_time)
+                except Exception:
+                    slot_data['time'] = str(start_time)
+            
+            if not slot_data.get('time') and slot_data.get('start_time'):
+                 slot_data['time'] = str(slot_data['start_time'])
+                 
+            # Business Day Logic
+            # If the slot is on the next_date, only include it if it's before 06:00 AM
+            if slot_data.get('date') == next_date:
+                # Expecting 'HH:MM' string in 'time'
+                time_str = slot_data.get('time', '23:59')
+                if time_str >= '06:00':
+                    continue # Skip next day's regular business hours
+                 
+            # Pop unsupported/datetime objects before returning
+            slot_data.pop('start_time', None)
+            slot_data.pop('end_time', None)
+            slot_data.pop('hold_expires_at', None)
+            slot_data.pop('created_at', None)
+            slot_data.pop('updated_at', None)
+            slot_data.pop('completed_at', None)
+                
+            slots.append(slot_data)
+        
+        return {
+            "success": True,
+            "vendor_id": vendor_id,
+            "date": date,
+            "operating_hours": operating_hours,
+            "slots": sorted(slots, key=lambda x: x.get('time', ''))
+        }
+    except Exception as e:
+        logger.error(f"Error getting vendor grid: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get grid")
+
+@router.get("/vendors/{vendor_id}/analytics/today")
+async def vendor_dashboard_analytics(vendor_id: str):
+    """Get live metrics for vendor dashboard"""
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        from datetime import datetime, timedelta
+        import pytz
+
+        # Use Karachi Timezone for logical day calculation
+        KARACHI_TZ = pytz.timezone('Asia/Karachi')
+        now_khi = datetime.now(KARACHI_TZ)
+        today_date_str = now_khi.strftime('%Y-%m-%d')
+        
+        # Pull today's confirmed/completed slots
+        query = firestore_db.db.collection('slots')\
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+            .where(filter=FieldFilter('date', '==', today_date_str))\
+            .where(filter=FieldFilter('status', 'in', ['confirmed', 'completed', 'pending']))
+            
+        import asyncio
+        slots_docs = await asyncio.to_thread(lambda: list(query.stream()))
+        
+        total_revenue = 0
+        total_bookings = 0
+        upcoming_bookings = []
+
+        now_time_str = now_khi.strftime('%H:%M')
+
+        for doc in slots_docs:
+            data = doc.to_dict()
+            status = data.get('status')
+            price = float(data.get('price', 0))
+            
+            if status in ['confirmed', 'completed']:
+                total_revenue += price
+            
+            total_bookings += 1
+            
+            # Formatting time simply
+            start_time = data.get('start_time')
+            if start_time and hasattr(start_time, 'astimezone'):
+                start_khi = start_time.astimezone(KARACHI_TZ)
+                time_str = start_khi.strftime('%H:%M')
+            else:
+                time_str = '00:00'
+                
+            # If the booking is upcoming
+            if status in ['confirmed', 'pending'] and time_str >= now_time_str:
+                customer_name = "Customer"
+                user_id = data.get('user_id')
+                if user_id:
+                    user_doc = firestore_db.db.collection('users').document(user_id).get()
+                    if user_doc.exists:
+                        u_data = user_doc.to_dict()
+                        customer_name = u_data.get('full_name') or u_data.get('display_name') or u_data.get('phone_number') or "Customer"
+
+                upcoming_bookings.append({
+                    "id": doc.id,
+                    "customer_name": customer_name,
+                    "service": data.get('service_id', 'Service'),
+                    "time": time_str,
+                    "status": status,
+                    "amount": price
+                })
+
+        # Sort upcoming by time and slice to next 5
+        upcoming_bookings = sorted(upcoming_bookings, key=lambda x: x.get('time', ''))[:5]
+
+        return {
+            "success": True,
+            "metrics": {
+                "revenue_today": total_revenue,
+                "bookings_today": total_bookings,
+                "active_courts": 3 # Could be dynamic later
+            },
+            "upcoming": upcoming_bookings
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting vendor analytics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get vendor analytics")
+
+
+@router.post("/vendors/{vendor_id}/slots/{slot_id}/approve")
+async def vendor_approve_slot(vendor_id: str, slot_id: str, user_id: str = Depends(get_current_user_id)):
+    """Manually approve a pending booking"""
+    try:
+        result = slot_service.confirm_booking(slot_id, vendor_id)
+        if result['success']:
+            return result
+        raise HTTPException(status_code=400, detail=result.get('error'))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error approving slot {slot_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/vendors/{vendor_id}/slots/{slot_id}/reject")
+async def vendor_reject_slot(vendor_id: str, slot_id: str, user_id: str = Depends(get_current_user_id)):
+    """Manually reject a pending booking"""
+    try:
+        result = slot_service.reject_booking(slot_id, vendor_id, reason="Manual rejection by vendor")
+        if result['success']:
+            return result
+        raise HTTPException(status_code=400, detail=result.get('error'))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rejecting slot {slot_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/vendors/{vendor_id}/slots/{slot_id}/block")
+async def vendor_block_slot(vendor_id: str, slot_id: str, user_id: str = Depends(get_current_user_id)):
+    """Manually lock/block an empty slot"""
+    try:
+        from database.schema import SlotStatus
+        slot_ref = firestore_db.db.collection('slots').document(slot_id)
+        slot_doc = slot_ref.get()
+        if not slot_doc.exists:
+            raise HTTPException(status_code=404, detail="Slot not found")
+        
+        slot_data = slot_doc.to_dict()
+        if slot_data.get('vendor_id') != vendor_id:
+             raise HTTPException(status_code=403, detail="Unauthorized")
+        if slot_data.get('status') != SlotStatus.AVAILABLE.value:
+             raise HTTPException(status_code=400, detail="Only available slots can be blocked")
+             
+        slot_ref.update({
+            'status': 'blocked',
+            'user_id': user_id, 
+            'updated_at': firestore.SERVER_TIMESTAMP
+        })
+        return {"success": True, "message": "Slot blocked successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error blocking slot {slot_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class VendorUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    operating_hours: Optional[Dict[str, Any]] = None
+
+@router.patch("/vendors/{vendor_id}")
+async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str = Depends(get_current_user_id)):
+    """Update vendor profile details"""
+    try:
+        vendor_ref = firestore_db.db.collection('vendors').document(vendor_id)
+        if not vendor_ref.get().exists:
+            raise HTTPException(status_code=404, detail="Vendor not found")
+            
+        update_data = {k: v for k, v in data.dict().items() if v is not None}
+        update_data['updated_at'] = firestore.SERVER_TIMESTAMP
+        
+        vendor_ref.update(update_data)
+        
+        return {"success": True, "message": "Profile updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating vendor {vendor_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class WalkInRequest(BaseModel):
+    customer_name: str
+    phone: str
+    amount: float
+    paid: bool = True
+
+@router.post("/vendors/{vendor_id}/slots/{slot_id}/walk-in")
+async def vendor_walk_in_booking(vendor_id: str, slot_id: str, data: WalkInRequest, user_id: str = Depends(get_current_user_id)):
+    """Create a manual walk-in booking"""
+    try:
+        from database.schema import SlotStatus, Collections
+        
+        @firestore.transactional
+        def walk_in_transaction(transaction):
+            slot_ref = firestore_db.db.collection(Collections.SLOTS).document(slot_id)
+            slot_doc = slot_ref.get(transaction=transaction)
+            
+            if not slot_doc.exists:
+                return {'success': False, 'error': 'Slot not found'}
+                
+            slot_data = slot_doc.to_dict()
+            if slot_data.get('vendor_id') != vendor_id:
+                return {'success': False, 'error': 'Unauthorized'}
+                
+            if slot_data.get('status') != SlotStatus.AVAILABLE.value:
+                return {'success': False, 'error': 'Slot is not available'}
+            
+            # Use vendor's user ID as the booking user for tracking
+            transaction.update(slot_ref, {
+                'status': SlotStatus.CONFIRMED.value if data.paid else SlotStatus.PENDING.value,
+                'user_id': user_id, 
+                'booking_source': 'walk-in',
+                'customer_name': data.customer_name,
+                'customer_phone': data.phone,
+                'price': data.amount,
+                'updated_at': firestore.SERVER_TIMESTAMP
+            })
+            
+            return {'success': True}
+            
+        transaction = firestore_db.db.transaction()
+        result = walk_in_transaction(transaction)
+        
+        if result['success']:
+            return {"success": True, "message": "Walk-in booking created"}
+        else:
+            raise HTTPException(status_code=400, detail=result['error'])
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating walk-in for {slot_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

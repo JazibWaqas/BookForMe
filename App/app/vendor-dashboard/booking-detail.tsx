@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { authService } from '../../services/auth';
+import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../config/api';
+
+// Screenshot paths are stored as "/uploads/payments/filename.jpg" in Firestore.
+// Prepend the backend base URL to make them loadable in the app.
+const resolveScreenshotUrl = (url?: string): string | null => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;          // already absolute
+    return `${API_BASE_URL}${url}`;                   // e.g. http://192.168.x.x:8000/uploads/payments/abc.jpg
+};
 
 interface BookingDetail {
     id: string;
@@ -33,39 +43,68 @@ export default function BookingDetailScreen() {
     const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
 
     const [showScreenshot, setShowScreenshot] = useState(false);
+    const [booking, setBooking] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
 
-    // Mock booking data - in real app, fetch from API
-    const booking: BookingDetail = {
-        id: bookingId || 'BK003',
-        customer: {
-            name: 'Bilal Shah',
-            phone: '+92 300 1234567',
-            email: 'bilal.shah@email.com',
-        },
-        date: 'Nov 24, 2024',
-        time: '2:00 PM - 3:00 PM',
-        court: 'Court 1 - Padel',
-        status: 'pending',
-        payment: {
-            method: 'wallet',
-            total: 1425,
-            upfront: 1425,
-            remaining: 0,
-            screenshot: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400', // Mock screenshot
-            verified: true,
-            uploadedAt: '10 minutes ago',
-        },
-        bookedAt: '2 hours ago',
+    useEffect(() => {
+        const fetchBookingDetails = async () => {
+            try {
+                const user = await authService.getCurrentUser();
+                if (user && user.vendor_id) {
+                    const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(user.vendor_id));
+                    if (res.data.success) {
+                        const foundBooking = res.data.bookings.find((b: any) => b.id === bookingId);
+                        setBooking(foundBooking);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching booking detail:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (bookingId) {
+            fetchBookingDetails();
+        }
+    }, [bookingId]);
+
+    const handleApprove = async () => {
+        if (!booking) return;
+        setActionLoading(true);
+        try {
+            const user = await authService.getCurrentUser();
+            if (user && user.vendor_id) {
+                const res = await apiClient.post(API_ENDPOINTS.vendors.approveSlot(user.vendor_id, booking.id));
+                if (res.data.success) {
+                    setBooking({ ...booking, status: 'confirmed' });
+                    // router.back(); // Or stay on the page and show updated status
+                }
+            }
+        } catch (error) {
+            console.error('Error approving booking:', error);
+        } finally {
+            setActionLoading(false);
+        }
     };
 
-    const handleApprove = () => {
-        // In real app: API call to approve booking
-        router.back();
-    };
-
-    const handleReject = () => {
-        // In real app: API call to reject booking
-        router.back();
+    const handleReject = async () => {
+        if (!booking) return;
+        setActionLoading(true);
+        try {
+            const user = await authService.getCurrentUser();
+            if (user && user.vendor_id) {
+                const res = await apiClient.post(API_ENDPOINTS.vendors.rejectSlot(user.vendor_id, booking.id));
+                if (res.data.success) {
+                    setBooking({ ...booking, status: 'cancelled' });
+                }
+            }
+        } catch (error) {
+            console.error('Error rejecting booking:', error);
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     const getPaymentMethodText = (method: string) => {
@@ -91,174 +130,201 @@ export default function BookingDetailScreen() {
                 <View style={styles.backButton} />
             </View>
 
-            <ScrollView style={styles.content}>
-                {/* Status Badge */}
-                <View style={styles.statusContainer}>
-                    <View style={[
-                        styles.statusBadge,
-                        booking.status === 'pending' && styles.statusBadgePending,
-                        booking.status === 'confirmed' && styles.statusBadgeConfirmed,
-                        booking.status === 'cancelled' && styles.statusBadgeCancelled,
-                    ]}>
-                        <Text style={[
-                            styles.statusText,
-                            booking.status === 'pending' && styles.statusTextPending,
-                            booking.status === 'confirmed' && styles.statusTextConfirmed,
-                            booking.status === 'cancelled' && styles.statusTextCancelled,
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            ) : !booking ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: COLORS.text }}>Booking not found</Text>
+                </View>
+            ) : (
+                <ScrollView style={styles.content}>
+                    {/* Status Badge */}
+                    <View style={styles.statusContainer}>
+                        <View style={[
+                            styles.statusBadge,
+                            booking.status === 'pending' && styles.statusBadgePending,
+                            booking.status === 'confirmed' && styles.statusBadgeConfirmed,
+                            booking.status === 'cancelled' && styles.statusBadgeCancelled,
                         ]}>
-                            {booking.status.toUpperCase()}
-                        </Text>
-                    </View>
-                    <Text style={styles.bookingId}>#{booking.id}</Text>
-                </View>
-
-                {/* Customer Information */}
-                <Card>
-                    <Text style={styles.cardTitle}>Customer Information</Text>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Name:</Text>
-                        <Text style={styles.infoValue}>{booking.customer.name}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Phone:</Text>
-                        <Text style={styles.infoValue}>{booking.customer.phone}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Email:</Text>
-                        <Text style={styles.infoValue}>{booking.customer.email}</Text>
-                    </View>
-                </Card>
-
-                {/* Booking Details */}
-                <Card>
-                    <Text style={styles.cardTitle}>Booking Details</Text>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Date:</Text>
-                        <Text style={styles.infoValue}>{booking.date}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Time:</Text>
-                        <Text style={styles.infoValue}>{booking.time}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Court:</Text>
-                        <Text style={styles.infoValue}>{booking.court}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Booked:</Text>
-                        <Text style={styles.infoValue}>{booking.bookedAt}</Text>
-                    </View>
-                </Card>
-
-                {/* Payment Information */}
-                <Card>
-                    <Text style={styles.cardTitle}>Payment Information</Text>
-
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Method:</Text>
-                        <Text style={styles.infoValue}>{getPaymentMethodText(booking.payment.method)}</Text>
+                            <Text style={[
+                                styles.statusText,
+                                booking.status === 'pending' && styles.statusTextPending,
+                                booking.status === 'confirmed' && styles.statusTextConfirmed,
+                                booking.status === 'cancelled' && styles.statusTextCancelled,
+                            ]}>
+                                {(booking.status || '').toUpperCase()}
+                            </Text>
+                        </View>
+                        <Text style={styles.bookingId}>#{booking.id}</Text>
                     </View>
 
-                    <View style={styles.divider} />
-
-                    <View style={styles.paymentBreakdown}>
+                    {/* Customer Information */}
+                    <Card>
+                        <Text style={styles.cardTitle}>Customer Information</Text>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Total Amount:</Text>
-                            <Text style={styles.amountValue}>PKR {booking.payment.total}</Text>
+                            <Text style={styles.infoLabel}>Name:</Text>
+                            <Text style={styles.infoValue}>{booking.customer_name || 'Customer'}</Text>
                         </View>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Upfront Payment:</Text>
-                            <Text style={styles.amountPaid}>PKR {booking.payment.upfront}</Text>
+                            <Text style={styles.infoLabel}>Phone:</Text>
+                            <Text style={styles.infoValue}>{booking.customer_phone || booking.user_id || 'N/A'}</Text>
                         </View>
-                        {booking.payment.remaining > 0 && (
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Email:</Text>
+                            <Text style={styles.infoValue}>N/A</Text>
+                        </View>
+                    </Card>
+
+                    {/* Booking Details */}
+                    <Card>
+                        <Text style={styles.cardTitle}>Booking Details</Text>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Date:</Text>
+                            <Text style={styles.infoValue}>{booking.date || 'N/A'}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Time:</Text>
+                            <Text style={styles.infoValue}>{booking.time || 'N/A'}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Court:</Text>
+                            <Text style={styles.infoValue}>
+                                {booking.resource_id
+                                    ? (() => {
+                                        const p = booking.resource_id.split('_');
+                                        return p.length >= 2
+                                            ? `${p[p.length - 2].charAt(0).toUpperCase() + p[p.length - 2].slice(1)} ${p[p.length - 1]}`
+                                            : booking.resource_id;
+                                    })()
+                                    : 'N/A'}
+                            </Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Source:</Text>
+                            <Text style={styles.infoValue}>
+                                {booking.booking_source === 'whatsapp' ? '📱 WhatsApp Agent'
+                                    : booking.booking_source === 'walk-in' ? '🚶 Walk-in'
+                                        : booking.booking_source === 'app' ? '📲 Mobile App'
+                                            : booking.booking_source || 'N/A'}
+                            </Text>
+                        </View>
+                    </Card>
+
+                    {/* Payment Information */}
+                    <Card>
+                        <Text style={styles.cardTitle}>Payment Information</Text>
+
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Method:</Text>
+                            <Text style={styles.infoValue}>{getPaymentMethodText(booking.payment?.method || 'wallet')}</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.paymentBreakdown}>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Remaining:</Text>
-                                <Text style={styles.amountRemaining}>PKR {booking.payment.remaining}</Text>
+                                <Text style={styles.infoLabel}>Total Amount:</Text>
+                                <Text style={styles.amountValue}>PKR {booking.payment?.amount_claimed || booking.amount || booking.price || 0}</Text>
                             </View>
-                        )}
-                    </View>
+                        </View>
 
-                    {/* Payment Screenshot */}
-                    {booking.payment.screenshot && (
-                        <>
-                            <View style={styles.divider} />
-
-                            <View style={styles.screenshotSection}>
-                                <View style={styles.screenshotHeader}>
-                                    <Text style={styles.screenshotTitle}>Payment Screenshot</Text>
-                                    {booking.payment.verified && (
+                        {/* Payment Screenshot */}
+                        {resolveScreenshotUrl(booking.payment?.screenshot_url) ? (
+                            <>
+                                <View style={styles.divider} />
+                                <View style={styles.screenshotSection}>
+                                    <View style={styles.screenshotHeader}>
+                                        <Text style={styles.screenshotTitle}>Payment Screenshot</Text>
                                         <View style={styles.verifiedBadge}>
-                                            <Text style={styles.verifiedText}>✓ AI Verified</Text>
+                                            <Text style={styles.verifiedText}>✓ Uploaded</Text>
                                         </View>
-                                    )}
-                                </View>
-
-                                <Text style={styles.uploadedTime}>Uploaded {booking.payment.uploadedAt}</Text>
-
-                                <TouchableOpacity
-                                    style={styles.screenshotPreview}
-                                    onPress={() => setShowScreenshot(true)}
-                                >
-                                    <Image
-                                        source={{ uri: booking.payment.screenshot }}
-                                        style={styles.screenshotImage}
-                                        resizeMode="cover"
-                                    />
-                                    <View style={styles.screenshotOverlay}>
-                                        <Text style={styles.screenshotOverlayText}>Tap to view full size</Text>
                                     </View>
-                                </TouchableOpacity>
-                            </View>
-                        </>
+                                    <TouchableOpacity
+                                        style={styles.screenshotPreview}
+                                        onPress={() => setShowScreenshot(true)}
+                                    >
+                                        <Image
+                                            source={{ uri: resolveScreenshotUrl(booking.payment.screenshot_url)! }}
+                                            style={styles.screenshotImage}
+                                            resizeMode="cover"
+                                        />
+                                        <View style={styles.screenshotOverlay}>
+                                            <Text style={styles.screenshotOverlayText}>Tap to view full size</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        ) : booking.booking_source === 'whatsapp' ? (
+                            <>
+                                <View style={styles.divider} />
+                                <View style={[styles.verifiedBadge, { padding: 12, borderRadius: 10 }]}>
+                                    <Text style={[styles.verifiedText, { fontSize: 13 }]}>
+                                        ✅ Payment verified by AI Agent via OCR
+                                    </Text>
+                                </View>
+                            </>
+                        ) : null}
+                    </Card>
+
+                    {/* Action Buttons */}
+                    {booking.status === 'pending' && (
+                        <View style={styles.actionButtons}>
+                            <Button
+                                title="Approve Booking"
+                                onPress={handleApprove}
+                                loading={actionLoading}
+                            />
+                            <Button
+                                title="Reject"
+                                variant="outline"
+                                onPress={handleReject}
+                                style={styles.rejectButton}
+                                textStyle={styles.rejectButtonText}
+                                loading={actionLoading}
+                            />
+                        </View>
                     )}
-                </Card>
 
-                {/* Action Buttons */}
-                {booking.status === 'pending' && (
-                    <View style={styles.actionButtons}>
-                        <Button
-                            title="Approve Booking"
-                            onPress={handleApprove}
-                            variant="secondary"
-                        />
-                        <TouchableOpacity style={styles.rejectButton} onPress={handleReject}>
-                            <Text style={styles.rejectButtonText}>Reject Booking</Text>
+                    {(booking.status === 'confirmed' || booking.status === 'completed') && (
+                        <View style={[styles.actionButtons, { marginTop: 20 }]}>
+                            <Button
+                                title="Force Cancel Booking"
+                                onPress={handleReject}
+                                style={{ backgroundColor: COLORS.error, borderColor: COLORS.error }}
+                                textStyle={{ color: COLORS.surface }}
+                                loading={actionLoading}
+                            />
+                        </View>
+                    )}
+
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+            )}
+
+            {/* Screenshot Full Screen Modal */}
+            {booking && resolveScreenshotUrl(booking.payment?.screenshot_url) && (
+                <Modal
+                    visible={showScreenshot}
+                    transparent={true}
+                    animationType="fade"
+                >
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity
+                            style={styles.modalClose}
+                            onPress={() => setShowScreenshot(false)}
+                        >
+                            <Text style={styles.modalCloseText}>Close ✕</Text>
                         </TouchableOpacity>
+                        <Image
+                            source={{ uri: resolveScreenshotUrl(booking.payment.screenshot_url)! }}
+                            style={styles.fullScreenImage}
+                            resizeMode="contain"
+                        />
                     </View>
-                )}
-
-                {booking.status === 'confirmed' && (
-                    <View style={styles.confirmedInfo}>
-                        <Text style={styles.confirmedText}>
-                            ✓ This booking has been confirmed
-                        </Text>
-                    </View>
-                )}
-
-                <View style={{ height: 32 }} />
-            </ScrollView>
-
-            {/* Full Screen Screenshot Modal */}
-            <Modal
-                visible={showScreenshot}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowScreenshot(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <TouchableOpacity
-                        style={styles.modalClose}
-                        onPress={() => setShowScreenshot(false)}
-                    >
-                        <Text style={styles.modalCloseText}>✕ Close</Text>
-                    </TouchableOpacity>
-                    <Image
-                        source={{ uri: booking.payment.screenshot }}
-                        style={styles.fullScreenImage}
-                        resizeMode="contain"
-                    />
-                </View>
-            </Modal>
+                </Modal>
+            )}
         </View>
     );
 }

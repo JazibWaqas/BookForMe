@@ -1,21 +1,71 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { authService } from '../../services/auth';
+import { apiClient, API_ENDPOINTS } from '../../config/api';
 
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const [vendorName, setVendorName] = useState('Vendor Dashboard');
+  const [metrics, setMetrics] = useState({ revenue: 0, bookings: 0 });
+  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user && user.vendor_id) {
+          // Fetch vendor profile
+          const vendorRes = await apiClient.get(API_ENDPOINTS.vendors.get(user.vendor_id));
+          if (vendorRes.data.success) {
+            setVendorName(vendorRes.data.vendor.name || vendorRes.data.vendor.business_name || 'Vendor Dashboard');
+          }
+
+          // Fetch Analytics
+          const analyticsRes = await apiClient.get(API_ENDPOINTS.vendors.analyticsToday(user.vendor_id));
+          if (analyticsRes.data.success) {
+            setMetrics({
+              revenue: analyticsRes.data.metrics.revenue_today || 0,
+              bookings: analyticsRes.data.metrics.bookings_today || 0,
+            });
+            setUpcoming(analyticsRes.data.upcoming || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Backend calculates these now
+  const todaysBookingsCount = metrics.bookings;
+  const todaysRevenue = metrics.revenue;
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>Golden Court Padel Club</Text>
+          <Text style={styles.subtitle}>{vendorName}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/notifications')}>
           <View style={styles.iconButton}>
@@ -28,26 +78,11 @@ export default function VendorDashboardScreen() {
         <View style={styles.statsGrid}>
           <Card style={styles.statCard}>
             <Text style={styles.statLabel}>TODAY'S BOOKINGS</Text>
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statSubtext}>+3 from yesterday</Text>
+            <Text style={styles.statValue}>{todaysBookingsCount}</Text>
           </Card>
           <Card style={styles.statCard}>
             <Text style={styles.statLabel}>TODAY'S REVENUE</Text>
-            <Text style={styles.statValue}>PKR 15K</Text>
-            <Text style={styles.statSubtext}>+12% from avg</Text>
-          </Card>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statLabel}>THIS WEEK</Text>
-            <Text style={styles.statValue}>78</Text>
-            <Text style={styles.statSubtext}>bookings</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={styles.statLabel}>THIS MONTH</Text>
-            <Text style={styles.statValue}>PKR 280K</Text>
-            <Text style={styles.statSubtext}>revenue</Text>
+            <Text style={styles.statValue}>PKR {todaysRevenue.toLocaleString()}</Text>
           </Card>
         </View>
 
@@ -68,26 +103,26 @@ export default function VendorDashboardScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.cardTitle}>Recent Bookings</Text>
-          {[
-            { name: 'Ahmed Khan', time: '10:00 AM', court: 'Court 1', status: 'confirmed' },
-            { name: 'Sara Ali', time: '11:00 AM', court: 'Court 2', status: 'confirmed' },
-            { name: 'Bilal Shah', time: '2:00 PM', court: 'Court 1', status: 'pending' },
-          ].map((booking, index) => (
-            <View key={index} style={styles.bookingRow}>
-              <View style={styles.bookingInfo}>
-                <Text style={styles.bookingName}>{booking.name}</Text>
-                <Text style={styles.bookingDetails}>
-                  {booking.time} • {booking.court}
-                </Text>
-              </View>
-              <View style={[styles.statusBadge, booking.status === 'pending' && styles.statusBadgePending]}>
-                <Text style={[styles.statusText, booking.status === 'pending' && styles.statusTextPending]}>
-                  {booking.status}
-                </Text>
-              </View>
-            </View>
-          ))}
+          <Text style={styles.cardTitle}>Upcoming Bookings (Today)</Text>
+          {upcoming.length === 0 ? (
+            <Text style={styles.bookingDetails}>No upcoming bookings found.</Text>
+          ) : (
+            upcoming.map((booking, index) => (
+              <TouchableOpacity key={index} style={styles.bookingRow} onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${booking.id}`)}>
+                <View style={styles.bookingInfo}>
+                  <Text style={styles.bookingName}>{booking.customer_name || 'Customer'}</Text>
+                  <Text style={styles.bookingDetails}>
+                    {booking.time} • Court {booking.resource_name || booking.service || 'N/A'}
+                  </Text>
+                </View>
+                <View style={[styles.statusBadge, booking.status === 'pending' && styles.statusBadgePending]}>
+                  <Text style={[styles.statusText, booking.status === 'pending' && styles.statusTextPending]}>
+                    {booking.status}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </Card>
 
         <View style={{ height: 32 }} />
