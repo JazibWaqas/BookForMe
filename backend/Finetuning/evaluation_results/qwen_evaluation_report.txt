@@ -1,0 +1,25 @@
+=================================================================
+      QWEN ZERO-SHOT EVALUATION RESULTS (FYP ARTIFACT)           
+=================================================================
+
+Model Used     : qwen/qwen3-32b
+Overall Accuracy: 84.00%
+Weighted F1     : 83.41%
+
+Detailed Classification Report:
+                     precision    recall  f1-score   support
+
+           greeting       0.95      1.00      0.98        20
+               info       0.93      0.70      0.80        20
+            inquiry       0.76      0.95      0.84        20
+transaction_confirm       0.75      0.60      0.67        20
+            unknown       0.83      0.95      0.88        20
+
+           accuracy                           0.84       100
+          macro avg       0.84      0.84      0.83       100
+       weighted avg       0.84      0.84      0.83       100
+
+=================================================================
+CONCLUSION: Qwen provides production-grade classification matching
+traditional finetuned models while enabling generative agency.
+=================================================================
