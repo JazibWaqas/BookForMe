@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
+import { FONTS } from '../../constants/typography';
 import { authService } from '../../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -92,8 +93,10 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
+            <View style={styles.logoGlow} />
+            <Text style={styles.logoMark}>⚡</Text>
             <Text style={styles.logo}>BookForMe</Text>
-            <Text style={styles.tagline}>Book Sports Venues Instantly</Text>
+            <Text style={styles.tagline}>Karachi's Sports Booking Platform</Text>
           </View>
 
           <View style={styles.content}>
@@ -234,21 +237,37 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    paddingTop: 80,
-    paddingBottom: 50,
+    paddingTop: 50,
+    paddingBottom: 24,
     alignItems: 'center',
+    position: 'relative',
+  },
+  logoGlow: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(0, 208, 132, 0.07)',
+    top: 20,
+    alignSelf: 'center',
+  },
+  logoMark: {
+    fontSize: 38,
+    marginBottom: 10,
   },
   logo: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 34,
+    fontFamily: FONTS.extrabold,
     color: COLORS.primary,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   tagline: {
-    fontSize: 15,
+    fontSize: 12,
+    fontFamily: FONTS.medium,
     color: COLORS.textMuted,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   content: {
     flex: 1,
@@ -256,46 +275,49 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 26,
+    fontFamily: FONTS.extrabold,
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: FONTS.regular,
     color: COLORS.textMuted,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   roleToggle: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   roleButton: {
     flex: 1,
-    paddingVertical: 24,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 16,
     alignItems: 'center',
     backgroundColor: COLORS.surface,
   },
   roleButtonActive: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.primaryGlow,
   },
   roleText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: FONTS.semibold,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   roleTextActive: {
     color: COLORS.primary,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
   },
   roleSubtext: {
-    fontSize: 13,
+    fontSize: 12,
+    fontFamily: FONTS.regular,
     color: COLORS.textMuted,
   },
   roleSubtextActive: {
@@ -303,27 +325,27 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   form: {
-    marginBottom: 24,
-    gap: 20,
+    marginBottom: 20,
+    gap: 16,
   },
   inputContainer: {
     gap: 8,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 13,
+    fontFamily: FONTS.semibold,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 14,
     paddingHorizontal: 16,
-    height: 52,
+    height: 54,
   },
   inputIcon: {
     marginRight: 12,
@@ -350,7 +372,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: 16,
   },
   footerText: {
     fontSize: 15,
@@ -364,7 +386,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 16,
   },
   dividerLine: {
     flex: 1,
@@ -378,7 +400,7 @@ const styles = StyleSheet.create({
   },
   socialButtons: {
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   socialButton: {
     paddingVertical: 14,

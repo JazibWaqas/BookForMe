@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Vendor } from '../types';
-import Card from './ui/Card';
 import { getVendorImage } from '../constants/vendorImages';
-import { COLORS } from '../constants/colors';
+import { COLORS, SHADOWS, RADIUS } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -17,38 +19,62 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
   const imageSource = getVendorImage(vendor.id);
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.card}>
-      <Image
-        source={imageSource}
-        style={styles.image}
-        resizeMode="cover"
-      />
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={1}>{vendorName}</Text>
-            <Text style={styles.meta}>{vendorArea}</Text>
-          </View>
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.card}
+      activeOpacity={0.88}
+    >
+      {/* ── Image with full gradient overlay ── */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={imageSource}
+          style={styles.image}
+          resizeMode="cover"
+        />
+        {/* Gradient overlay — text lives on top of image */}
+        <LinearGradient
+          colors={['transparent', 'rgba(8,9,15,0.7)', 'rgba(8,9,15,0.97)']}
+          locations={[0.3, 0.65, 1.0]}
+          style={styles.imageOverlay}
+        >
+          {/* Rating badge — top right corner */}
           {vendor.rating && (
-            <View style={styles.rating}>
-              <Text style={styles.ratingText}>⭐ {vendor.rating}</Text>
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={11} color="#FF9F0A" />
+              <Text style={styles.ratingText}>{vendor.rating}</Text>
             </View>
           )}
+
+          {/* Venue name & location on the image */}
+          <View style={styles.overlayContent}>
+            <Text style={styles.name} numberOfLines={1}>{vendorName}</Text>
+            <View style={styles.metaRow}>
+              <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
+              <Text style={styles.meta}>{vendorArea}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* ── Bottom action strip ── */}
+      <View style={styles.footer}>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>From</Text>
+          <Text style={styles.priceValue}>PKR 2,000</Text>
+          <Text style={styles.priceUnit}>/hr</Text>
         </View>
-        <View style={styles.footer}>
-          <Text style={styles.price}>View Pricing →</Text>
-          {onBookPress && (
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                onBookPress();
-              }}
-              style={styles.bookButton}
-            >
-              <Text style={styles.bookText}>Book Now</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {onBookPress && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onBookPress();
+            }}
+            style={styles.bookButton}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.bookText}>Book Now</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -56,72 +82,111 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     overflow: 'hidden',
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderStrong,
+    ...SHADOWS.card,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 185,
   },
   image: {
     width: '100%',
-    height: 180,
-    backgroundColor: COLORS.surface,
+    height: '100%',
+    backgroundColor: COLORS.surfaceRaised,
   },
-  content: {
-    padding: 16,
-    gap: 12,
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    padding: 14,
+    justifyContent: 'flex-end',
   },
-  header: {
+  ratingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  meta: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-  },
-  rating: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: COLORS.surface,
-    borderRadius: 8,
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(8,9,15,0.65)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,159,10,0.3)',
   },
   ratingText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF9F0A',
   },
+  overlayContent: {
+    gap: 5,
+  },
+  name: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+    letterSpacing: -0.3,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  meta: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.textSecondary,
+  },
+
+  // ── Footer ──
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primary,
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  priceValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  priceUnit: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: '400',
   },
   bookButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     backgroundColor: COLORS.primary,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
+    ...SHADOWS.primaryGlow,
   },
   bookText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.textDark,
+    letterSpacing: 0.2,
   },
 });

@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Vendor, Category } from '../../types';
 import VendorCard from '../../components/VendorCard';
-import { COLORS } from '../../constants/colors';
+import { COLORS, GRADIENTS, SHADOWS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
 import { useCategories, useVendorsBySport } from '../../hooks/useQueries';
 
@@ -15,6 +15,22 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
   futsal: 'football',
   cricket: 'baseball',
   pickleball: 'tennisball-outline',
+};
+
+// Per-sport gradient colors — inject energy into the browse section
+const categoryGradients: { [key: string]: readonly [string, string, ...string[]] } = {
+  padel: ['#0A2218', '#0D2E1E', '#08090F'],
+  futsal: ['#0A1230', '#0D1840', '#08090F'],
+  cricket: ['#2A1800', '#381F00', '#08090F'],
+  pickleball: ['#031A20', '#042530', '#08090F'],
+};
+
+// Per-sport icon accent colors
+const categoryIconColors: { [key: string]: string } = {
+  padel: '#00D084',
+  futsal: '#60A5FA',
+  cricket: '#FF9F0A',
+  pickleball: '#22D3EE',
 };
 
 export default function HomeScreen() {
@@ -109,8 +125,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with green spotlight */}
+      <LinearGradient
+        colors={['#0D2518', COLORS.backgroundAlt]}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.greeting}>Hello</Text>
@@ -124,15 +143,20 @@ export default function HomeScreen() {
             style={styles.profileButton}
             onPress={() => router.push('/(tabs)/profile')}
           >
-            <Ionicons name="person-circle" size={40} color={COLORS.primary} />
+            <LinearGradient
+              colors={[COLORS.primary + '40', COLORS.primary + '15']}
+              style={styles.profileGradientRing}
+            >
+              <Ionicons name="person-circle" size={36} color={COLORS.primary} />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={COLORS.textMuted} />
+          <Ionicons name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search venues..."
+            placeholder="Search venues, areas..."
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -141,11 +165,11 @@ export default function HomeScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
@@ -189,36 +213,53 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Categories - Horizontal Scroll */}
+            {/* Categories - Horizontal Scroll with sport gradients */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Browse by Sport</Text>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <View style={[styles.sectionAccent, { backgroundColor: COLORS.primary }]} />
+                  <Text style={styles.sectionTitle}>Browse by Sport</Text>
+                </View>
+              </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoriesScroll}
               >
-                {categories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={styles.categoryCard}
-                    onPress={() => router.push(`/category/${cat.id}`)}
-                  >
-                    <View style={styles.categoryContent}>
-                      <View style={styles.categoryIconContainer}>
-                        <Ionicons
-                          name={categoryIcons[cat.id] || 'tennisball'}
-                          size={32}
-                          color={COLORS.primary}
-                        />
-                      </View>
-                      <Text style={styles.categoryName}>{cat.name}</Text>
-                      <Text style={styles.categoryCount}>{cat.count} venues</Text>
-                      <View style={styles.categoryArrow}>
-                        <Ionicons name="arrow-forward" size={16} color={COLORS.textMuted} />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                {categories.map((cat) => {
+                  const gradient = categoryGradients[cat.id] || ['#0A2218', '#08090F'];
+                  const iconColor = categoryIconColors[cat.id] || COLORS.primary;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={styles.categoryCard}
+                      onPress={() => router.push(`/category/${cat.id}`)}
+                      activeOpacity={0.85}
+                    >
+                      <LinearGradient
+                        colors={gradient}
+                        style={styles.categoryContent}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        <View style={[styles.categoryIconContainer, { backgroundColor: iconColor + '20', borderColor: iconColor + '30', borderWidth: 1 }]}>
+                          <Ionicons
+                            name={categoryIcons[cat.id] || 'tennisball'}
+                            size={28}
+                            color={iconColor}
+                          />
+                        </View>
+                        <View>
+                          <Text style={styles.categoryName}>{cat.name}</Text>
+                          <Text style={[styles.categoryCount, { color: iconColor + 'CC' }]}>{cat.count} venues</Text>
+                        </View>
+                        <View style={styles.categoryArrow}>
+                          <Ionicons name="arrow-forward" size={14} color={iconColor} />
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
@@ -226,7 +267,10 @@ export default function HomeScreen() {
             {filteredPadelVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Padel Courts</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionAccent, { backgroundColor: COLORS.primary }]} />
+                    <Text style={styles.sectionTitle}>Padel Courts</Text>
+                  </View>
                   <TouchableOpacity onPress={() => router.push('/category/padel')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -253,7 +297,10 @@ export default function HomeScreen() {
             {filteredFutsalVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Futsal Courts</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionAccent, { backgroundColor: '#60A5FA' }]} />
+                    <Text style={styles.sectionTitle}>Futsal Courts</Text>
+                  </View>
                   <TouchableOpacity onPress={() => router.push('/category/futsal')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -280,7 +327,10 @@ export default function HomeScreen() {
             {filteredCricketVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Cricket Nets</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionAccent, { backgroundColor: COLORS.accent }]} />
+                    <Text style={styles.sectionTitle}>Cricket Nets</Text>
+                  </View>
                   <TouchableOpacity onPress={() => router.push('/category/cricket')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -307,7 +357,10 @@ export default function HomeScreen() {
             {filteredPickleballVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Pickleball Courts</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionAccent, { backgroundColor: '#22D3EE' }]} />
+                    <Text style={styles.sectionTitle}>Pickleball Courts</Text>
+                  </View>
                   <TouchableOpacity onPress={() => router.push('/category/pickleball')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -369,10 +422,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 52,
+    paddingBottom: 18,
     paddingHorizontal: 20,
-    backgroundColor: COLORS.backgroundLight,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -383,50 +435,43 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   greeting: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textMuted,
     marginBottom: 4,
+    letterSpacing: 0.3,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   location: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text,
-  },
-  locationArrow: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    letterSpacing: -0.3,
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  profileGradientRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  profileIconCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary,
   },
   searchBar: {
-    height: 48,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    height: 46,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 12,
+    borderColor: COLORS.borderStrong,
+    gap: 10,
   },
   searchInput: {
     fontSize: 15,
@@ -463,39 +508,49 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    paddingVertical: 20,
+    paddingVertical: 18,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    letterSpacing: -0.2,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   viewAll: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.primary,
+    opacity: 0.9,
   },
   categoriesScroll: {
     paddingHorizontal: 20,
     gap: 12,
   },
   categoryCard: {
-    width: 160,
-    height: 120,
-    borderRadius: 12,
+    width: 155,
+    height: 118,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderStrong,
+    ...SHADOWS.card,
   },
   categoryContent: {
     flex: 1,
@@ -503,32 +558,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   categoryIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${COLORS.primary}15`,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.text,
+    letterSpacing: -0.2,
   },
   categoryCount: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
   },
   categoryArrow: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-  },
-  categoryArrowText: {
-    fontSize: 18,
-    color: COLORS.primary,
+    bottom: 12,
+    right: 12,
   },
   vendorsScroll: {
     paddingHorizontal: 20,

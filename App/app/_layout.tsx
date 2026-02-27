@@ -3,11 +3,28 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../providers/QueryProvider';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { setupNotificationListeners, getExpoPushToken } from '../services/notifications';
 import { authService } from '../services/auth';
 import { runIntegrationTest } from '../services/database-integration';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
+
   useEffect(() => {
     // Run integration test on app start
     runIntegrationTest();
@@ -15,30 +32,18 @@ export default function RootLayout() {
     // Initialize notifications
     const initializeNotifications = async () => {
       try {
-        // Request notification permissions and get token
         const token = await getExpoPushToken();
         if (token) {
           console.log('Expo Push Token:', token);
-
-          // Get current user and send token to backend
           const user = await authService.getCurrentUser();
           if (user) {
             const { sendTokenToBackend } = require('../services/notifications');
             await sendTokenToBackend(token, user.id);
           }
         }
-
-        // Setup notification listeners
         setupNotificationListeners(
-          (notification) => {
-            console.log('Notification received:', notification);
-            // Handle notification received while app is open
-          },
-          (response) => {
-            console.log('Notification tapped:', response);
-            // Handle notification tap - navigate to relevant screen
-            // You can add navigation logic here based on notification data
-          }
+          (notification) => { console.log('Notification received:', notification); },
+          (response) => { console.log('Notification tapped:', response); }
         );
       } catch (error) {
         console.error('Error initializing notifications:', error);
@@ -48,6 +53,11 @@ export default function RootLayout() {
     initializeNotifications();
   }, []);
 
+  // Show blank screen while fonts load — takes < 1 second
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: '#0B0F1A' }} />;
+  }
+
   return (
     <SafeAreaProvider>
       <QueryProvider>
@@ -55,7 +65,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#1a1a1a' },
+            contentStyle: { backgroundColor: '#0B0F1A' },
           }}
         >
           <Stack.Screen name="index" />
@@ -74,4 +84,3 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-
