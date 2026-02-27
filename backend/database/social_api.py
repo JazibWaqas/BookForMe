@@ -362,12 +362,11 @@ async def create_comment(
     post_data = post.to_dict()
     if post_data.get('user_id') != user_id:
         # Avoid self-notification
-        notification_service.create_notification(
-            user_id=post_data.get('user_id'),
-            type=NotificationType.FORUM_REPLY,
-            title="New Comment",
-            message=f"Someone commented on your post: {comment.content[:20]}...",
-            data={"post_id": post_id, "comment_id": doc_ref.id, "click_action": "POST_DETAIL"}
+        notification_service.notify_post_comment(
+            author_id=post_data.get('user_id'),
+            commenter_name="Someone",
+            post_id=post_id,
+            comment_text=comment.content
         )
         
     return CommentResponse(
