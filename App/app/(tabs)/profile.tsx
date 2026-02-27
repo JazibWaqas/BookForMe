@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
@@ -173,7 +174,7 @@ export default function ProfileScreen() {
       />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>Your Profile</Text>
         <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => Alert.alert(
@@ -191,19 +192,24 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Card style={styles.profileCard}>
+        <View style={styles.profileCard}>
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              </View>
+              <LinearGradient
+                colors={['rgba(0, 208, 132, 0.3)', 'rgba(0, 208, 132, 0.05)']}
+                style={styles.avatarGradientRing}
+              >
+                <View style={styles.avatarInner}>
+                  <Text style={styles.avatarText}>
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+              </LinearGradient>
               <TouchableOpacity
                 style={styles.editAvatarButton}
                 onPress={() => Alert.alert('Change Photo', 'Profile photo upload feature coming soon!')}
               >
-                <Ionicons name="camera" size={16} color="#FFF" />
+                <Ionicons name="camera" size={14} color="#FFF" />
               </TouchableOpacity>
             </View>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
@@ -232,7 +238,7 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Matches</Text>
             </View>
           </View>
-        </Card>
+        </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -261,7 +267,7 @@ export default function ProfileScreen() {
             </Card>
           ) : (
             recentBookings.map((booking, i) => (
-              <Card key={booking.id || i} style={styles.bookingCard}>
+              <View key={booking.id || i} style={styles.bookingCard}>
                 <View style={styles.bookingHeader}>
                   <View style={styles.bookingInfo}>
                     <Text style={styles.bookingTitle}>
@@ -284,7 +290,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                 </View>
-              </Card>
+              </View>
             ))
           )}
         </View>
@@ -298,7 +304,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <View style={styles.menuIconContainer}>
-                  <Ionicons name="calendar-outline" size={20} color={COLORS.text} />
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.text} />
                 </View>
                 <Text style={styles.menuItemLabel}>My Bookings</Text>
               </View>
@@ -313,7 +319,7 @@ export default function ProfileScreen() {
               >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
-                    <Ionicons name={item.icon as any} size={20} color={COLORS.text} />
+                    <Ionicons name={item.icon as any} size={18} color={COLORS.text} />
                   </View>
                   <Text style={styles.menuItemLabel}>{item.label}</Text>
                 </View>
@@ -353,16 +359,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   settingsButton: {
     padding: 8,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   content: {
     flex: 1,
@@ -371,6 +378,10 @@ const styles = StyleSheet.create({
   profileCard: {
     marginBottom: 24,
     padding: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   avatarSection: {
     alignItems: 'center',
@@ -380,38 +391,41 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    backgroundColor: COLORS.primary,
-    borderRadius: 50,
+  avatarGradientRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: COLORS.surface,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    padding: 2,
+  },
+  avatarInner: {
+    width: 96,
+    height: 96,
+    backgroundColor: 'rgba(0, 208, 132, 0.1)',
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.4)',
   },
   avatarText: {
     fontSize: 40,
-    fontWeight: '700',
-    color: COLORS.textDark,
+    fontWeight: '800',
+    color: '#00D084',
   },
   editAvatarButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.text,
+    bottom: -4,
+    right: 4,
+    backgroundColor: '#0F172A',
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.surface,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   userName: {
     fontSize: 20,
@@ -426,9 +440,9 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 16,
+    paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   statItem: {
     alignItems: 'center',
@@ -463,13 +477,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.3,
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: '700',
+    opacity: 0.9,
   },
   emptyCard: {
     padding: 32,
@@ -489,7 +505,11 @@ const styles = StyleSheet.create({
   },
   bookingCard: {
     marginBottom: 12,
-    padding: 16,
+    padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   bookingHeader: {
     flexDirection: 'row',
@@ -500,10 +520,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bookingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 6,
   },
   bookingDateRow: {
     flexDirection: 'row',
@@ -524,10 +544,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   menuContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
   },
   menuItem: {
@@ -535,26 +555,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   menuIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: COLORS.background,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuItemLabel: {
     fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text,
+    fontWeight: '600',
+    color: '#FFF',
   },
   signOutButton: {
     marginTop: 8,
@@ -576,10 +597,11 @@ const styles = StyleSheet.create({
   },
   userPoints: {
     color: COLORS.primary,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontSize: 13,
   },
   userBio: {
-    color: COLORS.textMuted,
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
