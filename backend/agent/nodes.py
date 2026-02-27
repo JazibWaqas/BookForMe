@@ -41,16 +41,22 @@ BOOKING_KEYWORDS = {
     "pm", "am", "bajay", "baje", "around", "after", "before",
     "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
     "hi", "hello", "hey", "aoa", "salam", "assalamualaikum", "walaikum",
+    "okay", "sure", "proceed", "nahi", "nope", "stop", "ruko", "mat",
+    "want", "need", "mujhe", "pickleball", "bahria",
+    "ideally", "prefer", "preferred", "suitable",
 }
 
 
-def check_guardrails(message: str) -> Optional[str]:
+def check_guardrails(message: str, in_booking_context: bool = False) -> Optional[str]:
     msg = message.strip()
     if not msg:
         return None
 
     if profanity.contains_profanity(msg):
         return "vulgar"
+
+    if in_booking_context:
+        return None
 
     msg_lower = msg.lower()
     words = set(re.findall(r"[a-z0-9]+", msg_lower))
@@ -78,7 +84,14 @@ async def guardrails_node(state: AgentState) -> AgentState:
             return state
 
         last_message = messages[-1].get("content", "")
-        block_reason = check_guardrails(last_message)
+        in_booking_ctx = any([
+            state.get("awaiting_slot_selection"),
+            state.get("awaiting_confirmation"),
+            state.get("awaiting_payment"),
+            state.get("booking_in_progress"),
+            state.get("locked_slot_id"),
+        ])
+        block_reason = check_guardrails(last_message, in_booking_context=in_booking_ctx)
 
         if block_reason:
             state["guardrail_block"] = block_reason
@@ -176,66 +189,89 @@ def normalize_date(date_text: str) -> str:
 
 def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
     """
-    Normalize time text to time range dict
-    Handles: "evening", "shaam", "6-9", "after 6", "7pm", "5 bajay", etc.
+    Normalize time text to time range dict.
+    Prioritizes explicit clock times over vague buckets so that
+    "evening 4 pm" resolves to 16:00, not 18:00-23:00.
     """
     time_lower = time_text.lower().strip()
-    
-    if "evening" in time_lower or "shaam" in time_lower:
-        return {"start": "18:00", "end": "23:00"}
-    elif "morning" in time_lower or "subah" in time_lower:
-        return {"start": "09:00", "end": "12:00"}
-    elif "afternoon" in time_lower:
-        return {"start": "12:00", "end": "18:00"}
-    elif "night" in time_lower or "raat" in time_lower:
-        return {"start": "21:00", "end": "23:00"}
-    
-    if "after" in time_lower:
-        match = re.search(r"after\s+(\d+)", time_lower)
-        if match:
-            hour = int(match.group(1))
-            return {"start": f"{hour:02d}:00"}
-    
+
+    hhmm_match = re.match(r'^(\d{1,2}):(\d{2})$', time_lower)
+    if hhmm_match:
+        hour = int(hhmm_match.group(1))
+        minute = int(hhmm_match.group(2))
+        return {"start": f"{hour:02d}:{minute:02d}", "end": f"{(hour+1) % 24:02d}:{minute:02d}"}
+
+    pm_match = re.search(r"(\d{1,2})\s*pm", time_lower)
+    am_match = re.search(r"(\d{1,2})\s*am", time_lower)
+    if pm_match:
+        hour = int(pm_match.group(1))
+        if hour < 12:
+            hour += 12
+        return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
+    if am_match:
+        hour = int(am_match.group(1))
+        if hour == 12:
+            hour = 0
+        return {"start": f"{hour:02d}:00", "end": f"{(hour+1):02d}:00"}
+
+    bajay_match = re.search(r"(\d+)\s*baj(?:ay|e|ey)(?:\s+kei?\s+around)?", time_lower)
+    if bajay_match:
+        hour = int(bajay_match.group(1))
+        if hour <= 11 and "subah" not in time_lower and "morning" not in time_lower:
+            hour += 12
+        return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
+
     if "-" in time_lower:
         match = re.search(r"(\d+)[:\s]?(\d+)?\s*-\s*(\d+)[:\s]?(\d+)?", time_lower)
         if match:
             start_hour = int(match.group(1))
             end_hour = int(match.group(3))
             return {"start": f"{start_hour:02d}:00", "end": f"{end_hour:02d}:00"}
-    
-    pm_match = re.search(r"(\d+)\s*pm", time_lower)
-    am_match = re.search(r"(\d+)\s*am", time_lower)
-    if pm_match:
-        hour = int(pm_match.group(1))
-        if hour < 12:
-            hour += 12
-        return {"start": f"{hour:02d}:00", "end": f"{(hour+1):02d}:00"}
-    elif am_match:
-        hour = int(am_match.group(1))
-        return {"start": f"{hour:02d}:00", "end": f"{(hour+1):02d}:00"}
-    
-    bajay_match = re.search(r"(\d+)\s*baj(?:ay|e|ey)(?:\s+kei?\s+around)?", time_lower)
-    if bajay_match:
-        hour = int(bajay_match.group(1))
-        if hour <= 11 and "subah" not in time_lower and "morning" not in time_lower:
-            hour += 12
-        return {"start": f"{hour:02d}:00", "end": f"{(hour+1):02d}:00"}
-    
+
+    if "after" in time_lower:
+        match = re.search(r"after\s+(\d+)", time_lower)
+        if match:
+            hour = int(match.group(1))
+            return {"start": f"{hour:02d}:00"}
+
     around_match = re.search(r"around\s+(\d+)", time_lower)
     if around_match:
         hour = int(around_match.group(1))
         if hour <= 11:
             hour += 12
-        return {"start": f"{hour:02d}:00", "end": f"{(hour+1):02d}:00"}
-    
+        return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
+
+    if "evening" in time_lower or "shaam" in time_lower:
+        return {"start": "18:00", "end": "23:00"}
+    elif "morning" in time_lower or "subah" in time_lower:
+        return {"start": "09:00", "end": "12:00"}
+    elif "afternoon" in time_lower or "dopahar" in time_lower:
+        return {"start": "12:00", "end": "18:00"}
+    elif "night" in time_lower or "raat" in time_lower:
+        return {"start": "21:00", "end": "23:00"}
+
     return None
 
 
+BOOKING_SIGNALS = {
+    "padel", "futsal", "cricket", "salon", "book", "booking", "slot", "available",
+    "availability", "price", "time", "date", "tomorrow", "today", "morning",
+    "evening", "afternoon", "night", "kal", "aaj", "shaam", "subah", "raat",
+    "pm", "am", "bajay", "baje", "court", "pitch", "reserve", "want",
+    "chahiye", "karna", "ace", "golden", "smash",
+}
+
+
 def is_greeting(message: str) -> bool:
-    """Check if message is a greeting"""
+    """Check if message is a PURE greeting with no booking content"""
     greetings = ["hi", "hello", "hey", "aoa", "salam", "salaam", "assalam", "assalamu", "assalamu alaikum"]
     msg_lower = message.lower().strip()
-    return msg_lower in greetings or any(msg_lower.startswith(g + " ") for g in greetings)
+    if msg_lower in greetings:
+        return True
+    words = set(re.findall(r"[a-z]+", msg_lower))
+    if words.intersection(BOOKING_SIGNALS):
+        return False
+    return any(msg_lower.startswith(g + " ") for g in greetings) and not words.intersection(BOOKING_SIGNALS)
 
 
 def extract_slot_from_time_data(time_data: Any) -> Optional[Dict[str, str]]:
@@ -491,18 +527,23 @@ async def validate_state_node(state: AgentState) -> AgentState:
         intent = state.get("current_intent", "")
         entities = state.get("entities", {})
         
-        required_fields = {
-            "inquiry": ["date"],
-            "info_request": [],
-            "transaction": [],
-            "greeting": [],
-            "unknown": []
-        }
-        required = required_fields.get(intent, [])
-        missing = [f for f in required if not entities.get(f)]
-        if intent == "inquiry" and entities.get("date") and not (entities.get("time") or entities.get("time_range")):
-            if "time" not in missing:
+        has_date = bool(entities.get("date") or state.get("selected_date"))
+        has_time = bool(entities.get("time") or entities.get("time_range"))
+
+        if intent == "inquiry" and not has_date and has_time:
+            entities["date"] = datetime.now().strftime("%Y-%m-%d")
+            state["entities"] = entities
+            state["selected_date"] = entities["date"]
+            has_date = True
+            logger.info(f"Inferred today's date for inquiry with time but no date")
+
+        missing = []
+        if intent == "inquiry":
+            if not has_date:
+                missing.append("date")
+            if has_date and not has_time:
                 missing.append("time")
+
         state["missing_fields"] = missing if missing else None
         state["requires_clarification"] = bool(missing)
         
@@ -675,8 +716,11 @@ async def query_availability_node(state: AgentState) -> AgentState:
                 logger.info(f"Slot found directly by ID: {explicit_slot_id}, price={price}")
                 return state
 
-        logger.info(f"Checking availability: {service_type} in {area} on {date}")
-        query_result = await check_availability(service_type, area, date, time_range)
+        ent_vendor_name = entities.get("vendor_name") or entities.get("vendor") or state.get("vendor_name")
+        ent_vendor_id = entities.get("vendor_id") or state.get("vendor_id")
+
+        logger.info(f"Checking availability: {service_type} in {area} on {date}, vendor_name={ent_vendor_name}, vendor_id={ent_vendor_id}")
+        query_result = await check_availability(service_type, area, date, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
         
         has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
         
@@ -700,7 +744,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
             for days_ahead in range(1, 8):
                 check_date = (base_date + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
                 logger.info(f"Checking alternative date: {check_date}")
-                alt_result = await check_availability(service_type, area, check_date, time_range)
+                alt_result = await check_availability(service_type, area, check_date, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
                 
                 if alt_result and alt_result.get("success") and alt_result.get("vendors") and len(alt_result.get("vendors", [])) > 0:
                     query_result = alt_result
@@ -816,19 +860,17 @@ async def query_info_node(state: AgentState) -> AgentState:
 # =============================================================================
 
 async def check_confirmation_node(state: AgentState) -> AgentState:
-    """Check user's confirmation response"""
+    """Check user's confirmation response using boundary-safe token matching"""
     try:
         logger.info("🔵 Node: check_confirmation")
         
         intent = state.get("current_intent", "")
         messages = state.get("messages", [])
-        last_message = messages[-1].get("content", "").lower() if messages else ""
-        
-        positive = ["yes", "ok", "confirm", "book it", "book", "han", "haan", "ji", "theek hai", "done", "okay", "sure", "proceed", "ji han", "theek", "bilkul"]
-        negative = ["no", "nahi", "cancel", "nope", "mat karo", "ruko", "stop", "nope"]
-        modify = ["change", "modify", "actually", "instead", "different", "wait"]
-        
-        if any(word in last_message for word in negative):
+        last_message = messages[-1].get("content", "").strip() if messages else ""
+
+        tx = _detect_tx_input(last_message)
+
+        if tx == "cancel" or _CANCEL_WORDS.search(last_message):
             state["user_confirmed"] = False
             state["confirmation_action"] = "cancel"
             state["awaiting_confirmation"] = False
@@ -837,7 +879,7 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
             state["slot_options"] = []
             state["awaiting_slot_selection"] = False
             logger.info("User cancelled booking")
-        elif any(word in last_message for word in modify):
+        elif tx == "modify" or _MODIFY_WORDS.search(last_message):
             state["user_confirmed"] = False
             state["confirmation_action"] = "modify"
             state["awaiting_confirmation"] = False
@@ -845,7 +887,7 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
             state["slot_options"] = []
             state["awaiting_slot_selection"] = False
             logger.info("User wants to modify")
-        elif any(word in last_message for word in positive) or intent == "transaction":
+        elif tx in ("confirm", "slot_select") or _CONFIRM_WORDS.search(last_message) or intent == "transaction":
             state["user_confirmed"] = True
             state["confirmation_action"] = "proceed"
             logger.info("User confirmed booking")
@@ -1222,6 +1264,36 @@ def generate_fallback_response(state: AgentState) -> str:
 # ROUTING FUNCTIONS
 # =============================================================================
 
+_CONFIRM_WORDS = re.compile(
+    r'\b(yes|ok|okay|confirm|book|done|sure|proceed|han|haan|ji|theek|bilkul)\b', re.IGNORECASE
+)
+_CANCEL_WORDS = re.compile(
+    r'\b(no|nahi|nope|cancel|stop|ruko|mat)\b', re.IGNORECASE
+)
+_MODIFY_WORDS = re.compile(
+    r'\b(change|modify|actually|instead|different|wait)\b', re.IGNORECASE
+)
+_SLOT_NUMBER = re.compile(r'^\s*(\d{1,2})\s*$')
+_SLOT_NUMBER_PLUS = re.compile(r'^\s*(\d{1,2})\s*[,.]?\s*(yes|ok|confirm|book|han|haan|ji|done|sure)?\s*$', re.IGNORECASE)
+
+
+def _detect_tx_input(msg: str) -> Optional[str]:
+    """Detect transactional input type from raw message text.
+    Returns: 'slot_select', 'confirm', 'cancel', 'modify', or None."""
+    msg = msg.strip()
+    if _SLOT_NUMBER.match(msg):
+        return "slot_select"
+    if _SLOT_NUMBER_PLUS.match(msg):
+        return "slot_select"
+    if _CANCEL_WORDS.search(msg):
+        return "cancel"
+    if _MODIFY_WORDS.search(msg):
+        return "modify"
+    if _CONFIRM_WORDS.search(msg) and len(msg.split()) <= 4:
+        return "confirm"
+    return None
+
+
 def route_by_intent(state: AgentState) -> str:
     intent = state.get("current_intent", "")
     awaiting = state.get("awaiting_confirmation", False)
@@ -1235,23 +1307,57 @@ def route_by_intent(state: AgentState) -> str:
     messages = state.get("messages", [])
     last_msg = (messages[-1].get("content", "") if messages else "").strip()
 
-    if awaiting_slot_sel and last_msg.isdigit():
+    tx_type = _detect_tx_input(last_msg)
+
+    if awaiting_slot_sel and tx_type == "slot_select":
+        num_match = _SLOT_NUMBER_PLUS.match(last_msg.strip())
+        if num_match:
+            state["messages"][-1]["content"] = num_match.group(1)
         return "query_availability"
 
-    if awaiting_slot_sel and not last_msg.isdigit():
+    if awaiting_slot_sel and tx_type in ("confirm", "cancel", "modify"):
+        logger.info(f"Transactional input '{tx_type}' during slot selection - routing to confirmation")
         state["awaiting_slot_selection"] = False
-        state["slot_options"] = []
-        state["selected_slot"] = None
-        logger.info("Non-numeric input during slot selection - clearing slot state")
+        return "check_confirmation"
+
+    if awaiting_slot_sel and tx_type is None:
+        has_new_booking_entities = any([
+            entities.get("service_type"),
+            entities.get("date"),
+            entities.get("time"),
+            entities.get("vendor_name"),
+        ])
+        if has_new_booking_entities:
+            state["awaiting_slot_selection"] = False
+            state["slot_options"] = []
+            state["selected_slot"] = None
+            logger.info("New booking entities during slot selection - starting fresh query")
+        else:
+            state["awaiting_slot_selection"] = False
+            state["slot_options"] = []
+            state["selected_slot"] = None
+            logger.info("Unrecognized input during slot selection - clearing slot state")
+
+    if awaiting and tx_type in ("confirm", "cancel", "modify", "slot_select"):
+        return "check_confirmation"
 
     if awaiting and intent in ["transaction", "unknown"]:
         return "check_confirmation"
 
     if awaiting and intent == "inquiry":
-        state["awaiting_confirmation"] = False
-        state["pending_booking"] = None
-        state["selected_slot"] = None
-        logger.info("New inquiry while awaiting confirmation - clearing old state")
+        has_new_booking_entities = any([
+            entities.get("service_type"),
+            entities.get("date"),
+            entities.get("time"),
+            entities.get("vendor_name"),
+        ])
+        if has_new_booking_entities:
+            state["awaiting_confirmation"] = False
+            state["pending_booking"] = None
+            state["selected_slot"] = None
+            logger.info("New inquiry with booking entities while awaiting confirmation - starting fresh")
+        else:
+            return "check_confirmation"
 
     if has_slot_id:
         return "query_availability"

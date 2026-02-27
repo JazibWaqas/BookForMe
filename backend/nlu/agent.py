@@ -89,15 +89,13 @@ class NLUAgent:
             logger.info("🔍 [extract_intent] Parsing Groq response...")
             result = self._parse_intent_response(response)
             
-            # Post-process: Validate customer_name is only from current message
-            if result.get('entities', {}).get('customer_name'):
-                customer_name = result['entities']['customer_name']
+            entities = result.get('entities', {})
+
+            if entities.get('customer_name'):
+                customer_name = entities['customer_name']
                 message_lower = message.lower()
-                # Check if name appears in current message
                 name_parts = customer_name.lower().split()
                 name_in_message = any(part in message_lower for part in name_parts if len(part) > 2)
-                
-                # Check for explicit name patterns
                 explicit_patterns = [
                     f"my name is {customer_name.lower()}",
                     f"i am {customer_name.lower()}",
@@ -105,15 +103,23 @@ class NLUAgent:
                     f"name is {customer_name.lower()}",
                 ]
                 has_explicit_pattern = any(pattern in message_lower for pattern in explicit_patterns)
-                
                 if not name_in_message and not has_explicit_pattern:
-                    logger.warning(f"⚠️  customer_name '{customer_name}' not found in current message, removing it")
-                    result['entities']['customer_name'] = None
-            
-            logger.info(f"✅ [extract_intent] RESULT:")
-            logger.info(f"   Intent: {result.get('intent')} (confidence: {result.get('confidence', 0.0)})")
-            logger.info(f"   Entities: {result.get('entities')}")
-            logger.info("=" * 70)
+                    logger.warning(f"customer_name '{customer_name}' not found in current message, removing")
+                    entities['customer_name'] = None
+
+            if result.get('intent') == 'greeting':
+                has_booking_entities = any([
+                    entities.get('service_type'),
+                    entities.get('date'),
+                    entities.get('time'),
+                    entities.get('vendor_name'),
+                ])
+                if has_booking_entities:
+                    result['intent'] = 'booking_request'
+                    logger.info("Upgraded greeting to booking_request (booking entities found in message)")
+
+            result['entities'] = entities
+            logger.info(f"[extract_intent] RESULT: intent={result.get('intent')}, entities={entities}")
             
             return result
             
@@ -171,91 +177,78 @@ class NLUAgent:
     
     def _create_intent_prompt(self, message: str, context: str) -> str:
         """Create prompt for intent extraction - Enhanced with real conversation patterns"""
-        return f"""
-            You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
+        return f"""You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
 
-            Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
+Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
 
-            Message: "{message}"
+Message: "{message}"
 
-            Conversation History:
-            {context}
+Conversation History:
+{context}
 
-            Possible Intents:
-            1. **greeting** - Simple greeting: "Hi", "Aoa", "Salam", "Hello" (NO booking info)
-            2. **booking_request** - Want to book a slot: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai"
-            3. **availability_inquiry** - Check availability (often INCOMPLETE): 
-            - Complete: "slot available tomorrow 6-9"
-            - Incomplete: "koi slot hei?", "slot hai?", "any slot?" (MISSING date/time/service)
-            - Partial: "kal slot" (has date, missing time/service), "evening slot" (has time, missing date/service)
-            4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
-            5. **date_selection** - Provide/ask about date: "tomorrow", "Friday", "kal", "next week"
-            6. **time_selection** - Provide/ask about time: "6-9", "evening", "shaam", "7pm"
-            7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "discount", "kitna"
-            8. **confirmation** - Confirm booking: "yes", "ok", "confirm", "book it", "Han g"
-            9. **cancellation** - Cancel booking: "cancel", "nahi", "don't want"
-            10. **modification** - Change booking: "actually", "change to", "instead"
-            11. **information** - General questions: "what services", "what are prices"
-            12. **payment_related** - Payment questions: "payment", "transfer", "account number"
-            13. **name_provided** - Sharing name: "Jazib Waqas", "My name is..."
-            14. **unknown** - Unclear or irrelevant message
+CRITICAL RULE - GREETING vs BOOKING:
+A message that starts with a greeting BUT also contains booking details (sport, time, date, venue) is NOT a greeting.
+It is a booking_request or availability_inquiry. Only classify as "greeting" when the message is PURELY a greeting with ZERO booking info.
+Examples:
+- "Hi" → greeting (no booking info)
+- "Aoa, padel slot chahiye kal" → booking_request (has sport + date)
+- "Salam, 4 pm at ace padel" → availability_inquiry (has time + venue)
+- "Hello I want to book futsal tomorrow evening" → booking_request (has sport + date + time)
 
-            IMPORTANT: Most customers send INCOMPLETE messages:
-            - "Salam" / "Hi" / "Aoa" → greeting only, ask what they want
-            - "koi slot hei?" → availability_inquiry (MISSING: date, time, service)
-            - "kal slot" → availability_inquiry (HAS: date, MISSING: time, service)
-            - "evening slot" → availability_inquiry (HAS: time, MISSING: date, service)
+CRITICAL RULE - CONFIRMATION AND SELECTION:
+When conversation history shows the bot listed slots or asked for confirmation:
+- "2" or "3" or any single digit → confirmation (slot selection)
+- "yes", "ok", "han", "ji", "haan", "done" → confirmation
+- "2 yes", "yes 2", "book 3", "slot 2" → confirmation (slot selection + confirm)
+- "no", "nahi", "cancel" → cancellation
+- "change", "different", "actually" → modification
 
-            Roman Urdu Patterns (Common Incomplete Queries):
-            - "Aoa" / "AoA" / "Salam" / "Hi" = greeting only (NO booking info yet)
-            - "koi slot hei?" / "slot hai?" = incomplete availability query (MISSING: date, time, service)
-            - "kal slot" / "kal ka slot" = has date (tomorrow), MISSING: time, service
-            - "evening slot" / "shaam ka slot" = has time, MISSING: date, service
-            - "padel slot" / "futsal available?" = has service, MISSING: date, time
-            - "mujhe" = "I want"
-            - "chahiye" = "need"
-            - "karna hai" = "want to do"
-            - "mil jayega" = "will be available"
-            - "kal" = "tomorrow"
-            - "aaj" = "today"
-            - "shaam" = "evening" (6-9 PM)
+Possible Intents:
+1. **greeting** - ONLY pure greetings with NO booking info: "Hi", "Aoa", "Salam", "Hello"
+2. **booking_request** - Want to book: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai", or any message with sport+time/date/venue
+3. **availability_inquiry** - Check availability: "slot available?", "koi slot hei?", any query about slots
+4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
+5. **date_selection** - Provide date: "tomorrow", "Friday", "kal", "next week"
+6. **time_selection** - Provide time: "6-9", "evening", "shaam", "7pm"
+7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "kitna"
+8. **confirmation** - Confirm/select: "yes", "ok", "confirm", "book it", "han", "ji", "done", digit selection like "2", "3"
+9. **cancellation** - Cancel: "cancel", "nahi", "don't want"
+10. **modification** - Change: "actually", "change to", "instead", "different"
+11. **information** - General questions: "what services", "where is the venue"
+12. **payment_related** - Payment: "payment", "transfer", "account number"
+13. **name_provided** - Sharing name: "My name is X"
+14. **unknown** - Unclear or irrelevant message
 
-            Common Incomplete Patterns:
-            1. Just greeting: "Salam", "Hi", "Aoa" → greeting intent, no entities
-            2. Vague availability: "koi slot hei?" → availability_inquiry, missing ALL entities
-            3. Date only: "kal slot", "tomorrow slot" → availability_inquiry, has date, missing time/service
-            4. Time only: "evening slot", "shaam ka time" → availability_inquiry, has time, missing date/service
-            5. Service only: "padel slot hai?" → availability_inquiry, has service, missing date/time
+Roman Urdu Reference:
+- "mujhe" = I want, "chahiye" = need, "karna hai" = want to do
+- "kal" = tomorrow, "aaj" = today, "parson" = day after tomorrow
+- "subah" = morning (9:00-12:00), "dopahar" = afternoon (12:00-18:00)
+- "shaam" = evening (18:00-23:00), "raat" = night (21:00-23:00)
+- "bajay/baje" = o'clock, "ghanta" = hour
 
-            Context Clues:
-            - If previous message was about availability, "yes" likely means confirmation
-            - If asking about time slot, likely availability_inquiry or booking_request
-            - If customer provided date/time, likely confirming or asking for price
-            - INCOMPLETE queries are VERY COMMON (80% of initial messages) - handle gracefully by asking for missing info
+Extract entities (return null for any not found in the message):
+- service_type: padel, futsal, cricket, salon (handle typos: "paddle"="padel", "padle"="padel")
+- date: tomorrow, today, specific date, "kal", "aaj", day names
+- time: specific time like "4 pm", "6-9", or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
+  Time buckets: morning=09:00-12:00, afternoon=12:00-18:00, evening=18:00-23:00, night=21:00-23:00
+- area: DHA, Clifton, Gulshan, Gulberg, Bahria, etc.
+- vendor_name: venue/facility name if mentioned (e.g. "Ace Padel", "Ace Padel Club", "Golden Court", "Smash Padel"). Extract the name as the user said it. Common aliases: "ace"="Ace Padel Club", "golden"="Golden Court", "smash"="Smash Padel".
+- customer_name: ONLY if explicitly stated in THIS message ("My name is X", "I am X"). null otherwise.
 
-            Extract entities:
-            - service_type: padel, futsal, cricket, salon (handle typos: "paddle" = "padel")
-            - date: tomorrow, today, specific date, "kal", "aaj"
-            - time: 6-9, evening, morning, "shaam", "raat", "subah", specific time (evening=4-11pm, morning=6-12am, afternoon=12-4pm)
-            - area: DHA, Clifton, Gulshan, Gulberg, Karachi, etc. - location/area if user specifies
-            - customer_name: Full name or first name - ONLY if explicitly mentioned in the CURRENT message (e.g., "My name is X", "I am X", or just "X" where X is clearly a name). DO NOT extract names from conversation history. If no name is mentioned in the current message, set customer_name to null.
-
-            CRITICAL: Only extract customer_name if the user explicitly provides it in the CURRENT message. Do NOT infer names from conversation history or previous messages. If the current message does not contain a name, customer_name must be null.
-
-            
-            Respond in JSON format:
-            {{
-                "intent": "booking_request",
-                "confidence": 0.95,
-                "reasoning": "User wants to book a slot (Roman Urdu: 'mujhe slot chahiye')",
-                "entities": {{
-                    "service_type": "padel",
-                    "date": "tomorrow",
-                    "time": "18:00-21:00",
-                    "customer_name": null
-                }}
-            }}
-            """
+Respond in JSON format:
+{{
+    "intent": "booking_request",
+    "confidence": 0.95,
+    "reasoning": "brief reason",
+    "entities": {{
+        "service_type": "padel",
+        "date": "tomorrow",
+        "time": "16:00",
+        "area": null,
+        "vendor_name": "Ace Padel Club",
+        "customer_name": null
+    }}
+}}"""
     
     def _create_entity_prompt(self, message: str, intent: str) -> str:
         """Create prompt for entity extraction"""
@@ -265,11 +258,12 @@ class NLUAgent:
             Message: "{message}"
 
             Extract:
-            - service_type: futsal, salon, gym
+            - service_type: futsal, salon, gym, padel, cricket
             - date: tomorrow, today, specific date (convert to YYYY-MM-DD if possible)
             - time: 5pm, evening, morning, specific time (convert to HH:MM if possible)
             - customer_name: extract name if mentioned
             - phone_number: extract phone if mentioned
+            - vendor_name: venue/facility name if mentioned (e.g. "Ace Padel Club", "Golden Court")
             DATE FORMATS TO EXTRACT:
             - If user provides YYYY-MM-DD format (e.g., "2025-12-17"), PRESERVE IT EXACTLY
             - If user says "tomorrow" or "kal", extract as: "tomorrow"

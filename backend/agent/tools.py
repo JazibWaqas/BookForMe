@@ -21,32 +21,60 @@ logger = logging.getLogger(__name__)
 from agent.booking_rules import check_slot_conflict, filter_conflicting_slots, validate_booking_duration
 
 
+def _resolve_vendor_by_name(vendor_name: str, vendors: List[Dict[str, Any]]) -> Optional[str]:
+    """Fuzzy-match a user-provided vendor name against known vendors."""
+    if not vendor_name:
+        return None
+    name_lower = vendor_name.lower().strip()
+    aliases = name_lower.split()
+    for v in vendors:
+        vid = v.get('id', '').lower()
+        vname = v.get('name', '').lower()
+        if name_lower == vname or name_lower == vid:
+            return v['id']
+        if any(alias in vname or alias in vid for alias in aliases if len(alias) > 2):
+            return v['id']
+    return None
+
+
 async def check_availability(
     sport_type: str,
     area: Optional[str],
     date: str,
-    time_range: Optional[Dict[str, str]] = None
+    time_range: Optional[Dict[str, str]] = None,
+    vendor_name: Optional[str] = None,
+    vendor_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Check availability of slots for sport type and area on specific date and optional time range
+    Check availability of slots for sport type on specific date.
 
     Args:
         sport_type: Type of sport (e.g., "padel", "tennis")
-        area: Area/location to search in (e.g., "DHA", "Clifton"). If None/empty, returns ALL vendors for the sport.
+        area: Area/location to search in. If None/empty, returns ALL vendors for the sport.
         date: Date in YYYY-MM-DD format
         time_range: Optional dict with "start" and "end" times (HH:MM format)
+        vendor_name: Optional vendor name from user (e.g. "Ace Padel Club")
+        vendor_id: Optional exact vendor_id if already known
 
     Returns:
         Dict with available slots from multiple vendors
     """
     try:
-        logger.info(f"Checking availability for sport: {sport_type}, area: {area or 'all'}, date: {date}, time_range: {time_range}")
+        logger.info(f"Checking availability: sport={sport_type}, area={area or 'all'}, date={date}, time_range={time_range}, vendor_name={vendor_name}, vendor_id={vendor_id}")
 
         fs_client = FirestoreV2(firestore_db.db)
 
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
 
-        if area and area.lower().strip() not in ("all", "karachi", ""):
+        resolved_vendor_id = vendor_id
+        if not resolved_vendor_id and vendor_name:
+            resolved_vendor_id = _resolve_vendor_by_name(vendor_name, vendors_by_sport)
+            if resolved_vendor_id:
+                logger.info(f"Resolved vendor_name '{vendor_name}' to vendor_id '{resolved_vendor_id}'")
+
+        if resolved_vendor_id:
+            matching_vendor_ids = {resolved_vendor_id}
+        elif area and area.lower().strip() not in ("all", "karachi", ""):
             area_lower = area.lower().strip()
             matching = [v for v in vendors_by_sport if area_lower in v.get('area', '').lower()]
             matching_vendor_ids = {v['id'] for v in matching}
