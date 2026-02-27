@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Vendor } from '../../types';
 import { getVendorsByCategory } from '../../services/vendors';
 import VendorCard from '../../components/VendorCard';
@@ -33,29 +34,30 @@ export default function CategoryListingScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Text style={styles.backText}>←</Text>
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.title}>
-              {category === 'padel' ? 'Padel Courts' : 
-               category === 'futsal' ? 'Futsal Courts' : 
-               category === 'cricket' ? 'Cricket Nets' :
-               category === 'pickleball' ? 'Pickleball Courts' :
-               'Sports Courts'}
+              {category === 'padel' ? 'Padel Courts' :
+                category === 'futsal' ? 'Futsal Courts' :
+                  category === 'cricket' ? 'Cricket Nets' :
+                    category === 'pickleball' ? 'Pickleball Courts' :
+                      'Sports Courts'}
             </Text>
             <Text style={styles.subtitle}>{vendors.length} venues available</Text>
           </View>
         </View>
-        
+
         <View style={styles.searchRow}>
           <TouchableOpacity style={styles.searchBar}>
+            <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
             <Text style={styles.searchText}>Search venues...</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFilters(true)}
           >
@@ -96,16 +98,16 @@ export default function CategoryListingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={24} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.filtersList}>
               <View style={styles.filterGroup}>
                 <Text style={styles.filterTitle}>Price Range</Text>
                 <Text style={styles.filterSubtext}>PKR 1000 - PKR 5000/hr</Text>
               </View>
-              
+
               <View style={styles.filterGroup}>
                 <Text style={styles.filterTitle}>Amenities</Text>
                 {['Parking', 'WiFi', 'AC Courts', 'Coaching', 'Showers', 'Cafeteria'].map((amenity) => (
@@ -116,8 +118,8 @@ export default function CategoryListingScreen() {
                 ))}
               </View>
             </ScrollView>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.applyButton}
               onPress={() => setShowFilters(false)}
             >
@@ -133,15 +135,15 @@ export default function CategoryListingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#0F172A',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: '#0F172A',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerTop: {
     flexDirection: 'row',
@@ -150,31 +152,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  backText: {
-    fontSize: 20,
-    color: COLORS.text,
   },
   headerInfo: {
     flex: 1,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: '#9CA3AF',
     marginTop: 2,
+    fontWeight: '500',
   },
   searchRow: {
     flexDirection: 'row',
@@ -183,54 +181,54 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     height: 48,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   searchText: {
     fontSize: 15,
-    color: COLORS.textMuted,
+    color: 'rgba(255, 255, 255, 0.4)',
     flex: 1,
   },
   filterButton: {
     paddingHorizontal: 16,
     height: 48,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   filterText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
+    fontWeight: '700',
+    color: '#00EA77',
   },
   content: {
     flex: 1,
   },
   vendorGrid: {
-    padding: 20,
+    padding: 16,
     gap: 16,
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.textMuted,
+    color: '#9CA3AF',
     textAlign: 'center',
     marginTop: 60,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: COLORS.overlay,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: '#1E293B',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
@@ -241,16 +239,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  modalClose: {
-    fontSize: 24,
-    color: COLORS.textMuted,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   filtersList: {
     padding: 20,
@@ -260,13 +255,13 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontWeight: '700',
+    color: '#FFF',
     marginBottom: 12,
   },
   filterSubtext: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: '#9CA3AF',
   },
   filterOption: {
     flexDirection: 'row',
@@ -278,24 +273,25 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)'
   },
   filterOptionText: {
     fontSize: 15,
-    color: COLORS.textSecondary,
+    color: '#FFF',
   },
   applyButton: {
     margin: 20,
     height: 56,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#00EA77',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   applyButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textDark,
+    fontWeight: '800',
+    color: '#111827',
   },
 });

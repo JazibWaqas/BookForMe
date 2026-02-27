@@ -8,6 +8,7 @@ import VendorCard from '../../components/VendorCard';
 import { COLORS, GRADIENTS, SHADOWS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
 import { useCategories, useVendorsBySport } from '../../hooks/useQueries';
+import { authService } from '../../services/auth';
 
 // Icon mapping for categories
 const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
@@ -36,6 +37,17 @@ const categoryIconColors: { [key: string]: string } = {
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await authService.getCurrentUser();
+      if (user && user.name) {
+        setUserName(user.name.split(' ')[0]);
+      }
+    };
+    loadUser();
+  }, []);
 
   // Use React Query hooks - data is cached and shared across app
   const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useCategories();
@@ -129,7 +141,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Hello</Text>
+            <Text style={styles.greeting}>Hello{userName ? `, ${userName}` : ''}</Text>
             <TouchableOpacity style={styles.locationRow}>
               <Ionicons name="location" size={16} color={COLORS.primary} />
               <Text style={styles.location}>Karachi, DHA</Text>
