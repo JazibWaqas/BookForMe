@@ -95,6 +95,8 @@ async def check_availability(
 
         # Step 2: For each matching vendor, get their services and available slots
         vendors_data = []
+        time_exact_unavailable = False
+
         for vendor_id in list(matching_vendor_ids)[:7]:
             try:
                 # Get vendor details
@@ -116,24 +118,48 @@ async def check_availability(
                     start_time = time_range.get("start")
                     end_time = time_range.get("end")
 
+                    def _parse_slot_start(slot, tz=PKT):
+                        raw = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
+                        if isinstance(raw, datetime):
+                            raw = raw.astimezone(tz) if raw.tzinfo else raw
+                            return raw.strftime("%H:%M")
+                        return str(raw)[:5]
+
                     filtered_slots = []
                     for slot in available_slots:
-                        raw_start = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
-                        if isinstance(raw_start, datetime):
-                            pkt = raw_start.astimezone(PKT) if raw_start.tzinfo else raw_start
-                            slot_start = pkt.strftime("%H:%M")
-                        else:
-                            slot_start = str(raw_start)[:5]
-
-                        if not slot_start:
+                        ss = _parse_slot_start(slot)
+                        if not ss:
                             continue
                         if start_time and end_time:
-                            if start_time <= slot_start < end_time:
+                            if start_time <= ss < end_time:
                                 filtered_slots.append(slot)
                         elif start_time:
-                            if slot_start >= start_time:
+                            if ss >= start_time:
                                 filtered_slots.append(slot)
-                    available_slots = filtered_slots
+
+                    if filtered_slots:
+                        available_slots = filtered_slots
+                    elif available_slots:
+                        # Exact time not available but this vendor has other slots today
+                        # Fall back to all slots sorted by proximity to requested time
+                        time_exact_unavailable = True
+                        req_time = start_time or end_time
+                        if req_time:
+                            def _time_dist(slot, rt=req_time):
+                                ss = _parse_slot_start(slot)
+                                try:
+                                    rh, rm = map(int, rt.split(":"))
+                                    sh, sm = map(int, ss.split(":"))
+                                    return abs((sh * 60 + sm) - (rh * 60 + rm))
+                                except Exception:
+                                    return 9999
+                            available_slots = sorted(available_slots, key=_time_dist)
+                        logger.info(
+                            f"Exact time {start_time} unavailable for vendor {vendor_id}; "
+                            f"offering {len(available_slots)} nearby slots"
+                        )
+                    else:
+                        available_slots = []
 
                 formatted_slots = []
                 PKT = pytz.timezone('Asia/Karachi')
@@ -195,7 +221,9 @@ async def check_availability(
             "sport_type": sport_type,
             "area": area or "Karachi",
             "vendors": vendors_data,
-            "total_vendors": len(vendors_data)
+            "total_vendors": len(vendors_data),
+            "time_exact_unavailable": time_exact_unavailable and bool(vendors_data),
+            "requested_time": time_range.get("start") if time_range else None,
         }
 
     except Exception as e:

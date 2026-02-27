@@ -1213,7 +1213,15 @@ def _format_availability_response(
     slot_options = []
     idx = 1
     max_total = 12
-    parts = [f"{date} — {area} — **{sport}** slots:\n"]
+
+    time_exact_unavailable = query_result.get("time_exact_unavailable", False)
+    requested_time = query_result.get("requested_time")
+    if time_exact_unavailable and requested_time:
+        header = f"Woh exact slot ({requested_time}) available nahi hai, lekin {date} ko yeh nearby slots hain:\n"
+    else:
+        header = f"{date} — {area} — **{sport}** slots:\n"
+
+    parts = [header]
     for v in vendors[:3]:
         name = v.get("vendor_name", "Vendor")
         address = v.get("vendor_address", "")
