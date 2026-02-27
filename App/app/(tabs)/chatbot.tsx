@@ -173,8 +173,8 @@ export default function ChatbotScreen() {
       keyboardVerticalOffset={RN.Platform.OS === 'ios' ? 90 : 0}
     >
       <RN.View style={styles.header}>
-        <RN.Text style={styles.title}>AI Search Assistant</RN.Text>
-        <RN.Text style={styles.subtitle}>Check availability in English or Roman Urdu</RN.Text>
+        <RN.Text style={styles.title}>Smart Filter</RN.Text>
+        <RN.Text style={styles.subtitle}>Ask anything to instantly filter venues</RN.Text>
       </RN.View>
 
       <RN.ScrollView
@@ -186,13 +186,13 @@ export default function ChatbotScreen() {
           <RN.View style={styles.emptyState}>
             <RN.View style={styles.logoContainer}>
               <RN.View style={styles.logo}>
-                <Ionicons name="sparkles" size={32} color={COLORS.textDark} />
+                <Ionicons name="search" size={32} color={COLORS.primary} />
               </RN.View>
             </RN.View>
 
             <RN.Text style={styles.welcomeTitle}>Advanced Search</RN.Text>
             <RN.Text style={styles.welcomeSubtitle}>
-              Check slots across all venues. Try asking naturally, even in Roman Urdu!
+              Skip the manual browsing. Type exactly what you need in natural language.
             </RN.Text>
 
             <RN.View style={styles.examplesContainer}>
@@ -231,7 +231,7 @@ export default function ChatbotScreen() {
                       message.sender === 'user' ? styles.userText : styles.botText
                     ]}
                   >
-                    {message.text}
+                    {message.sender === 'user' ? `🔍  ${message.text}` : message.text}
                   </RN.Text>
                 </RN.View>
 
@@ -300,7 +300,7 @@ export default function ChatbotScreen() {
             {loading ? (
               <RN.ActivityIndicator size="small" color={COLORS.background} />
             ) : (
-              <Ionicons name="arrow-up" size={20} color={COLORS.background} />
+              <Ionicons name="arrow-forward" size={20} color={COLORS.background} />
             )}
           </RN.TouchableOpacity>
         </RN.View>
@@ -323,14 +323,16 @@ const styles = RN.StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: 'rgba(255,255,255,0.5)',
     marginTop: 4,
+    fontWeight: '500',
   },
   messages: {
     flex: 1,
@@ -347,22 +349,30 @@ const styles = RN.StyleSheet.create({
     marginBottom: 24,
   },
   logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0, 208, 132, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
   welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFF',
     marginBottom: 12,
+    letterSpacing: -0.5,
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: COLORS.textMuted,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22,
@@ -373,25 +383,26 @@ const styles = RN.StyleSheet.create({
   examplesTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.textMuted,
-    marginBottom: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 16,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   exampleCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   exampleText: {
     fontSize: 14,
-    color: COLORS.text,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
     flex: 1,
   },
   messageRow: {
@@ -399,38 +410,47 @@ const styles = RN.StyleSheet.create({
     marginBottom: 16,
   },
   userRow: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   botRow: {
     alignItems: 'flex-start',
+    marginBottom: 24,
   },
   messageContent: {
     maxWidth: '100%',
   },
   bubble: {
-    padding: 12,
     borderRadius: 16,
-    maxWidth: width * 0.85,
   },
   userBubble: {
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   botBubble: {
-    backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 20,
   },
   userText: {
-    color: COLORS.textDark,
+    color: '#FFF',
+    fontWeight: '500',
   },
   botText: {
-    color: COLORS.text,
+    color: COLORS.primary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontSize: 13,
   },
   resultsContainer: {
     marginTop: 12,
@@ -442,56 +462,54 @@ const styles = RN.StyleSheet.create({
   },
   inputContainer: {
     padding: 20,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingBottom: 30,
+    backgroundColor: 'transparent',
   },
   inputWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: COLORS.surface,
-    borderRadius: 25,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 15,
-    paddingVertical: 5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   input: {
     flex: 1,
-    maxHeight: 100,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 16,
-    color: COLORS.text,
+    maxHeight: 120,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 15,
+    color: '#FFF',
   },
   sendButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 5,
     marginLeft: 10,
   },
   sendButtonDisabled: {
-    backgroundColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   slotsInfo: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   slotsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   slotsList: {
     flexDirection: 'row',
@@ -499,12 +517,12 @@ const styles = RN.StyleSheet.create({
     gap: 8,
   },
   slotChip: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.1)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -512,16 +530,16 @@ const styles = RN.StyleSheet.create({
   slotTime: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#FFF',
   },
   slotPrice: {
     fontSize: 12,
     color: COLORS.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   moreSlots: {
     fontSize: 12,
-    color: COLORS.textMuted,
+    color: 'rgba(255,255,255,0.5)',
     fontStyle: 'italic',
     paddingVertical: 6,
   },

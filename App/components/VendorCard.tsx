@@ -13,6 +13,12 @@ interface VendorCardProps {
   onBookPress?: () => void;
 }
 
+// Helper to retrieve vendor price dynamically
+const getDisplayPrice = (vendor: Vendor) => {
+  if (vendor.price_range) return vendor.price_range;
+  return '2,000'; // Global fallback if a vendor has no price set in db
+};
+
 export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardProps) {
   const vendorName = vendor.name || vendor.business_name || 'Unknown';
   const vendorArea = vendor.area || vendor.location || '';
@@ -60,7 +66,7 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
       <View style={styles.footer}>
         <View style={styles.priceRow}>
           <Text style={styles.priceLabel}>From</Text>
-          <Text style={styles.priceValue}>PKR 2,000</Text>
+          <Text style={styles.priceValue}>PKR {getDisplayPrice(vendor)}</Text>
           <Text style={styles.priceUnit}>/hr</Text>
         </View>
         {onBookPress && (

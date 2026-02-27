@@ -71,31 +71,32 @@ class AISearchService:
         
         selected_model = model or settings.GROQ_MODEL
         
-        # 1. Try Smart Pattern Match First (INSTANT)
+        # 1. Try Smart Pattern Match for Date Resolution
         from database.smart_search import SmartSearchCache
         temp_smart = SmartSearchCache()
-        filters = temp_smart.match_common_query(query)
+        smart_filters = temp_smart.match_common_query(query) or {}
         
-        if filters:
-            logger.info(f"⚡ Smart Match Found: {filters}")
-            # If smart match found, we still want to check if it's a complete search.
-            # If it's missing sport or other key info, we can optionally let LLM refine
-            # BUT we keep the date from smart match.
-            if not filters.get("sport_type") and not filters.get("is_availability_check"):
-                logger.info("🔄 Smart match partial - letting LLM refine non-date fields")
-                llm_filters = await self._parse_query(query, selected_model, resolved_date=filters.get("date"))
-                # Merge LLM results but PROTECT THE DATE
-                if llm_filters:
-                    for k, v in llm_filters.items():
-                        if k != "date":
-                            filters[k] = v
-        else:
-            # 2. Fall back to LLM Parsing (slower but handles complex queries)
-            filters = await self._parse_query(query, selected_model, resolved_date=get_today_karachi())
-            logger.info(f"🎯 LLM Parsed Filters (Model: {selected_model}): {filters}")
-            # Ensure date is set even in fallback
-            if not filters.get("date"):
-                filters["date"] = get_today_karachi()
+        resolved_date = smart_filters.get("date") or get_today_karachi()
+        
+        # 2. ALWAYS let LLM parse the query (needed for messy Roman Urdu limits like "5 bajay")
+        # Pass the pre-resolved date so the LLM doesn't guess
+        logger.info("🔄 Running LLM Filter Extraction")
+        llm_filters = await self._parse_query(query, selected_model, resolved_date=resolved_date)
+        
+        # 3. Merge filters (LLM has priority for everything except Date)
+        filters = {"date": resolved_date}
+        
+        if llm_filters:
+            for k, v in llm_filters.items():
+                if k != "date" and v is not None:
+                    filters[k] = v
+                    
+        # Apply any basic regex fallback matches if LLM missed them
+        for k, v in smart_filters.items():
+            if k not in filters or filters[k] is None:
+                filters[k] = v
+
+        logger.info(f"🎯 Final Unified Filters: {filters}")
             
         # Check if this is a non-search query (greeting, conversation, etc.)
         if not filters.get("is_availability_check") and not any([
