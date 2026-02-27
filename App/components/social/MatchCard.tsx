@@ -126,7 +126,7 @@ export default function MatchCard({ match, onSwipeRight, onSwipeLeft, isFirst }:
             style={[styles.card, isFirst ? rotateAndTranslate : { transform: [{ scale: 0.95 }] }]}
         >
             <LinearGradient
-                colors={['#1a1a2e', '#16213e', '#0f3460']}
+                colors={['#1E293B', '#0F172A']}
                 style={styles.cardGradient}
             >
                 {/* Join Indicator */}
@@ -163,15 +163,15 @@ export default function MatchCard({ match, onSwipeRight, onSwipeLeft, isFirst }:
                 {/* Details */}
                 <View style={styles.detailsContainer}>
                     <View style={styles.detailRow}>
-                        <Ionicons name="calendar-outline" size={18} color={COLORS.textSecondary} />
+                        <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.5)" />
                         <Text style={styles.detailText}>{match.date}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                        <Ionicons name="time-outline" size={18} color={COLORS.textSecondary} />
+                        <Ionicons name="time-outline" size={18} color="rgba(255,255,255,0.5)" />
                         <Text style={styles.detailText}>{match.time}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                        <Ionicons name="location-outline" size={18} color={COLORS.textSecondary} />
+                        <Ionicons name="location-outline" size={18} color="rgba(255,255,255,0.5)" />
                         <Text style={styles.detailText} numberOfLines={1}>{match.location || 'TBD'}</Text>
                     </View>
                 </View>
@@ -204,7 +204,7 @@ export default function MatchCard({ match, onSwipeRight, onSwipeLeft, isFirst }:
 
                 {/* Swipe Hint */}
                 <View style={styles.swipeHint}>
-                    <Text style={styles.swipeHintText}>← Skip | Join →</Text>
+                    <Text style={styles.swipeHintText}>← Swipe left to Skip  •  Swipe right to Join →</Text>
                 </View>
             </LinearGradient>
         </Animated.View>
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     card: {
         position: 'absolute',
         width: SCREEN_WIDTH - 40,
-        height: 450,
+        height: 520,
         borderRadius: 24,
         overflow: 'hidden',
         shadowColor: '#000',
@@ -223,6 +223,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 16,
         elevation: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     cardGradient: {
         flex: 1,
@@ -274,86 +276,95 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     sportIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         backgroundColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
-        marginBottom: 12,
+        marginBottom: 6,
     },
     sportIcon: {
-        fontSize: 40,
+        fontSize: 32,
     },
     sportName: {
         fontSize: 28,
-        fontWeight: 'bold',
-        color: COLORS.text,
+        fontWeight: '800',
+        color: '#FFF',
         textAlign: 'center',
         marginBottom: 8,
+        letterSpacing: -0.5,
     },
     typeBadge: {
         alignSelf: 'center',
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
-        backgroundColor: COLORS.secondary + '40',
-        marginBottom: 16,
+        backgroundColor: 'rgba(0, 208, 132, 0.15)',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 208, 132, 0.3)',
     },
     typeBadgeRanked: {
-        backgroundColor: '#FFD700' + '40',
+        backgroundColor: 'rgba(255, 159, 10, 0.15)',
+        borderColor: 'rgba(255, 159, 10, 0.3)',
     },
     typeText: {
         fontSize: 12,
-        fontWeight: 'bold',
-        color: COLORS.text,
+        fontWeight: '800',
+        color: '#00D084',
+        letterSpacing: 0.5,
     },
     detailsContainer: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     detailRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     detailText: {
-        color: COLORS.textSecondary,
+        color: 'rgba(255,255,255,0.9)',
         fontSize: 14,
         marginLeft: 10,
         flex: 1,
+        fontWeight: '600',
     },
     playersSection: {
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     playersLabel: {
         fontSize: 10,
-        fontWeight: 'bold',
-        color: COLORS.textMuted,
-        marginBottom: 8,
-        letterSpacing: 1,
+        fontWeight: '800',
+        color: 'rgba(255,255,255,0.5)',
+        marginBottom: 6,
+        letterSpacing: 1.5,
     },
     playersRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     playerAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         borderWidth: 2,
-        borderColor: COLORS.background,
+        borderColor: '#1E293B',
     },
     playerCountBadge: {
         backgroundColor: COLORS.primary,
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
-        marginLeft: 10,
+        marginLeft: 8,
     },
     playerCountText: {
         color: '#fff',
@@ -367,11 +378,9 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     swipeHint: {
-        position: 'absolute',
-        bottom: 16,
-        left: 0,
-        right: 0,
         alignItems: 'center',
+        marginTop: 'auto',
+        marginBottom: 8,
     },
     swipeHintText: {
         color: COLORS.textMuted,

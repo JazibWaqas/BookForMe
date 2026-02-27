@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import CommentsModal from '../../components/social/CommentsModal';
@@ -260,42 +261,54 @@ export default function SocialScreen() {
   };
 
   const tabs = [
-    { id: 'forum', label: 'Forum', icon: 'newspaper-outline' },
-    { id: 'matches', label: 'Matches', icon: 'tennisball-outline' },
-    { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
-    { id: 'friends', label: 'Friends', icon: 'people-outline' },
-    { id: 'leaderboard', label: 'Ranking', icon: 'trophy-outline' },
+    { id: 'forum', label: 'Forum', icon: 'newspaper', color: '#3B82F6' },
+    { id: 'matches', label: 'Matches', icon: 'tennisball', color: '#00D084' },
+    { id: 'chats', label: 'Chats', icon: 'chatbubbles', color: '#A855F7' },
+    { id: 'friends', label: 'Friends', icon: 'people', color: '#EC4899' },
+    { id: 'leaderboard', label: 'Ranking', icon: 'trophy', color: '#F59E0B' },
   ];
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerGradient}>
+      <View style={styles.headerWrapper}>
+        <LinearGradient
+          colors={['rgba(0, 208, 132, 0.15)', 'transparent']}
+          style={styles.headerGradient}
+        >
           <Text style={styles.title}>Social Hub</Text>
           <Text style={styles.subtitle}>Connect • Compete • Conquer</Text>
-        </View>
+        </LinearGradient>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id as any)}
-            style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-          >
-            <Ionicons
-              name={tab.icon as any}
-              size={20}
-              color={activeTab === tab.id ? COLORS.textDark : COLORS.textMuted}
-              style={{ marginBottom: 4 }}
-            />
-            <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id as any)}
+              style={[
+                styles.tab,
+                isActive && { backgroundColor: `${tab.color}15` }
+              ]}
+            >
+              <Ionicons
+                name={isActive ? tab.icon as any : `${tab.icon}-outline` as any}
+                size={22}
+                color={isActive ? tab.color : 'rgba(255,255,255,0.4)'}
+                style={{ marginBottom: 4 }}
+              />
+              <Text style={[
+                styles.tabText,
+                isActive && { color: tab.color, fontWeight: '800' }
+              ]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {loading && <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />}
@@ -338,15 +351,20 @@ export default function SocialScreen() {
 
               {/* Posts */}
               {posts.map((item) => (
-                <Card key={item.id} style={styles.postCard}>
+                <View key={item.id} style={styles.postCard}>
                   <View style={styles.postHeader}>
                     <View style={styles.authorInfo}>
-                      <Image source={{ uri: item.author?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.postAvatar} />
+                      <View style={styles.avatarGlow}>
+                        <Image source={{ uri: item.author?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.postAvatar} />
+                      </View>
                       <View>
                         <Text style={styles.authorName}>{item.author?.name || 'Unknown User'}</Text>
                         <Text style={styles.postTime}>{new Date(item.created_at).toLocaleDateString()}</Text>
                       </View>
                     </View>
+                    <TouchableOpacity>
+                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.4)" />
+                    </TouchableOpacity>
                   </View>
 
                   <Text style={styles.postContent}>{item.content}</Text>
@@ -361,17 +379,17 @@ export default function SocialScreen() {
                     <TouchableOpacity style={styles.actionButton} onPress={() => handleLikePost(item)}>
                       <Ionicons
                         name={(item.likes || []).includes(currentUser?.id || '') ? "heart" : "heart-outline"}
-                        size={20}
-                        color={(item.likes || []).includes(currentUser?.id || '') ? "red" : COLORS.textMuted}
+                        size={22}
+                        color={(item.likes || []).includes(currentUser?.id || '') ? "#EC4899" : "rgba(255,255,255,0.4)"}
                       />
-                      <Text style={styles.actionText}>{item.likes_count || 0}</Text>
+                      <Text style={[styles.actionText, (item.likes || []).includes(currentUser?.id || '') && { color: '#EC4899' }]}>{item.likes_count || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={() => handleOpenComments(item)}>
-                      <Ionicons name="chatbubble-outline" size={20} color={COLORS.textMuted} />
+                      <Ionicons name="chatbubble-ellipses-outline" size={22} color="rgba(255,255,255,0.4)" />
                       <Text style={styles.actionText}>{item.comments_count || 0}</Text>
                     </TouchableOpacity>
                   </View>
-                </Card>
+                </View>
               ))}
             </View>
           )}
@@ -432,7 +450,7 @@ export default function SocialScreen() {
 
               {/* Swipe View */}
               {matchViewMode === 'swipe' && (
-                <View style={{ flex: 1, minHeight: 550 }}>
+                <View style={{ flex: 1, minHeight: 680 }}>
                   <MatchSwiper
                     matches={matches}
                     onJoinMatch={handleJoinMatch}
@@ -444,7 +462,7 @@ export default function SocialScreen() {
               {/* List View */}
               {matchViewMode === 'list' && matches.map((match) => (
                 <TouchableOpacity key={match.id} activeOpacity={0.9}>
-                  <Card style={styles.matchCard}>
+                  <View style={styles.matchCard}>
                     <View style={styles.matchCardHeader}>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Ionicons name="trophy" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
@@ -478,7 +496,7 @@ export default function SocialScreen() {
                         <Text style={styles.joinButtonText}>Join Match</Text>
                       </TouchableOpacity>
                     </View>
-                  </Card>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -693,95 +711,96 @@ export default function SocialScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { paddingBottom: 16, backgroundColor: COLORS.primary, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerGradient: { padding: 20, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: -20, borderRadius: 16, padding: 4, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12 },
-  tabActive: { backgroundColor: COLORS.secondary },
-  tabText: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
-  tabTextActive: { color: COLORS.textDark },
-  content: { flex: 1, padding: 16 },
+  headerWrapper: { overflow: 'hidden', paddingBottom: 24 },
+  headerGradient: { padding: 24, paddingTop: 60, paddingBottom: 40 },
+  title: { fontSize: 32, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 6, letterSpacing: 0.2 },
+  tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', marginHorizontal: 20, marginTop: -40, borderRadius: 20, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 14 },
+  tabActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  tabText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 4 },
+  tabTextActive: { color: '#FFF', fontWeight: '700' },
+  content: { flex: 1, paddingHorizontal: 20 },
 
   // Post Styles
-  createPostCard: { marginBottom: 16, padding: 12 },
+  createPostCard: { marginBottom: 20, padding: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   createPostContainer: { flexDirection: 'row', alignItems: 'flex-start' },
-  userAvatarSmall: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  createPostInput: { flex: 1, color: COLORS.text, fontSize: 16, minHeight: 40, textAlignVertical: 'top' },
-  postButton: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-end', marginLeft: 8 },
-  postButtonText: { color: '#fff', fontWeight: 'bold' },
+  userAvatarSmall: { width: 44, height: 44, borderRadius: 22, marginRight: 14, borderWidth: 2, borderColor: '#3B82F6' },
+  createPostInput: { flex: 1, color: '#FFF', fontSize: 16, minHeight: 44, textAlignVertical: 'top' },
+  postButton: { backgroundColor: '#3B82F6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, alignSelf: 'flex-end', marginLeft: 12 },
+  postButtonText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
 
-  postCard: { marginBottom: 16 },
-  postHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  postCard: { marginBottom: 20, padding: 20, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  postHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   authorInfo: { flexDirection: 'row', alignItems: 'center' },
-  postAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  authorName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-  postTime: { fontSize: 12, color: COLORS.textMuted },
-  postContent: { fontSize: 16, color: COLORS.text, lineHeight: 24, marginBottom: 12 },
-  postFooter: { flexDirection: 'row', paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
-  actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
-  actionText: { marginLeft: 6, color: COLORS.textMuted },
+  avatarGlow: { padding: 2, borderRadius: 26, backgroundColor: 'rgba(59, 130, 246, 0.2)', marginRight: 12 },
+  postAvatar: { width: 44, height: 44, borderRadius: 22 },
+  authorName: { fontSize: 16, fontWeight: '800', color: '#FFF' },
+  postTime: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: '600' },
+  postContent: { fontSize: 15, color: 'rgba(255,255,255,0.95)', lineHeight: 24, marginBottom: 16 },
+  postFooter: { flexDirection: 'row', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', rowGap: 16 },
+  actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  actionText: { marginLeft: 8, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
 
   // Picker Styles
   pickerContainer: { marginBottom: 12 },
   pickerLabel: { color: COLORS.textMuted, marginBottom: 8, fontSize: 12, marginLeft: 4 },
 
   // Match Styles
-  matchHeader: { flexDirection: 'row', marginBottom: 16, gap: 10 },
-  searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.border },
-  searchInput: { flex: 1, paddingVertical: 10, color: COLORS.text },
-  createMatchButton: { width: 48, height: 48, backgroundColor: COLORS.primary, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  matchHeader: { flexDirection: 'row', marginBottom: 20, gap: 12, marginTop: 4 },
+  searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  searchInput: { flex: 1, paddingVertical: 12, color: '#FFF', fontSize: 15 },
+  createMatchButton: { width: 52, height: 52, backgroundColor: COLORS.primary, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   viewModeToggle: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
-    gap: 8
+    marginBottom: 20,
+    gap: 12
   },
   viewModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: COLORS.card,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: COLORS.border
+    borderColor: 'rgba(255,255,255,0.08)'
   },
   viewModeButtonActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary
   },
   viewModeText: {
-    marginLeft: 6,
-    color: COLORS.textMuted,
-    fontWeight: '500'
+    marginLeft: 8,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600'
   },
   viewModeTextActive: {
-    color: '#fff',
-    fontWeight: 'bold'
+    color: COLORS.textDark,
+    fontWeight: '700'
   },
-  filtersScroll: { marginBottom: 16 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.card, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
-  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  filterText: { color: COLORS.textMuted },
-  filterTextActive: { color: '#fff', fontWeight: 'bold' },
-  matchCard: { marginBottom: 16 },
-  matchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  matchSport: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginRight: 8 },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: COLORS.secondary },
-  typeBadgeRanked: { backgroundColor: '#ffd70033' },
-  typeText: { fontSize: 10, fontWeight: 'bold', color: COLORS.primary },
-  playersIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12 },
-  playersText: { fontSize: 12, fontWeight: '600', color: COLORS.textDark },
+  filtersScroll: { marginBottom: 20 },
+  filterChip: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  filterChipActive: { backgroundColor: 'rgba(0, 208, 132, 0.15)', borderColor: '#00D084' },
+  filterText: { color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  filterTextActive: { color: '#00D084', fontWeight: '700' },
+  matchCard: { marginBottom: 16, padding: 20, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  matchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  matchSport: { fontSize: 18, fontWeight: '800', color: '#FFF', marginRight: 10 },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(0, 208, 132, 0.15)' },
+  typeBadgeRanked: { backgroundColor: 'rgba(255, 159, 10, 0.15)' },
+  typeText: { fontSize: 10, fontWeight: '800', color: '#00D084' },
+  playersIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14 },
+  playersText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   matchDetails: { marginBottom: 16 },
-  matchDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  matchDetailText: { marginLeft: 8, color: COLORS.text, opacity: 0.8 },
-  matchFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  matchDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  matchDetailText: { marginLeft: 10, color: 'rgba(255,255,255,0.7)', fontSize: 14 },
+  matchFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   hostInfo: {},
-  hostText: { fontSize: 12, color: COLORS.textMuted },
-  joinButton: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-  joinButtonText: { color: '#fff', fontWeight: 'bold' },
+  hostText: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
+  joinButton: { backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 },
+  joinButtonText: { color: COLORS.textDark, fontWeight: '800', fontSize: 14 },
 
   // Chat Styles
   chatCard: { flexDirection: 'row', padding: 16, backgroundColor: COLORS.card, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },

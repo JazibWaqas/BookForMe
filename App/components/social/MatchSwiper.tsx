@@ -123,7 +123,7 @@ export default function MatchSwiper({ matches, onJoinMatch, onSkipMatch, onRefre
                     onPress={handleUndo}
                     disabled={currentIndex === 0}
                 >
-                    <Ionicons name="arrow-undo" size={24} color={currentIndex === 0 ? COLORS.textMuted : COLORS.warning} />
+                    <Ionicons name="arrow-undo" size={24} color="#FFF" />
                 </TouchableOpacity>
 
                 {/* Skip Button */}
@@ -131,7 +131,7 @@ export default function MatchSwiper({ matches, onJoinMatch, onSkipMatch, onRefre
                     style={[styles.actionButton, styles.skipButton]}
                     onPress={handleSwipeLeft}
                 >
-                    <Ionicons name="close" size={32} color="#EF4444" />
+                    <Ionicons name="close" size={36} color="#FFF" />
                 </TouchableOpacity>
 
                 {/* Join Button */}
@@ -139,14 +139,14 @@ export default function MatchSwiper({ matches, onJoinMatch, onSkipMatch, onRefre
                     style={[styles.actionButton, styles.joinButton]}
                     onPress={handleSwipeRight}
                 >
-                    <Ionicons name="checkmark" size={32} color="#4ADE80" />
+                    <Ionicons name="checkmark" size={36} color="#FFF" />
                 </TouchableOpacity>
 
                 {/* Info Button */}
                 <TouchableOpacity
                     style={[styles.actionButton, styles.infoButton]}
                 >
-                    <Ionicons name="information" size={24} color={COLORS.secondary} />
+                    <Ionicons name="information-circle" size={28} color="#FFF" />
                 </TouchableOpacity>
             </View>
 
@@ -174,11 +174,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cardsContainer: {
-        flex: 1,
+        height: 500, // Explicit height to prevent overflowing into action buttons
         width: SCREEN_WIDTH,
         alignItems: 'center',
         justifyContent: 'center',
         paddingTop: 10,
+        zIndex: 10,
     },
     emptyContainer: {
         flex: 1,
@@ -220,42 +221,43 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     actionButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: COLORS.card,
-        borderWidth: 2,
+        elevation: 6,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
     },
     actionButtonDisabled: {
-        opacity: 0.5,
+        opacity: 0.3,
     },
     undoButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderColor: COLORS.warning + '50',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#F59E0B',
+        shadowColor: '#F59E0B',
     },
     skipButton: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        borderColor: '#EF4444' + '50',
-        backgroundColor: '#EF4444' + '10',
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: '#EF4444',
+        shadowColor: '#EF4444',
     },
     joinButton: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        borderColor: '#4ADE80' + '50',
-        backgroundColor: '#4ADE80' + '10',
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: '#00D084',
+        shadowColor: '#00D084',
     },
     infoButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderColor: COLORS.secondary + '50',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#3B82F6',
+        shadowColor: '#3B82F6',
     },
     progressContainer: {
         alignItems: 'center',
