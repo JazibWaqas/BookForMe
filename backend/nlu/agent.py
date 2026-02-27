@@ -557,7 +557,7 @@ Respond in JSON format:
 
     async def _get_vendor_id_by_name(self, vendor_name: str) -> Optional[str]:
         """
-        Map vendor name to vendor_id by querying Firestore
+        Map vendor name to vendor_id by querying Firestore, with fuzzy matching for typos
         
         Args:
             vendor_name: Vendor name (e.g., "Golden Court", "Ace Padel Club")
@@ -570,6 +570,7 @@ Respond in JSON format:
             
         try:
             from app.firestore import firestore_db
+            from difflib import SequenceMatcher
             
             vendor_name_lower = vendor_name.lower().strip()
             
@@ -577,17 +578,35 @@ Respond in JSON format:
             vendors_ref = firestore_db.db.collection('vendors')
             vendors = vendors_ref.stream()
             
+            best_id: Optional[str] = None
+            best_score: float = 0.0
+            
             for vendor_doc in vendors:
                 vendor_data = vendor_doc.to_dict()
                 vendor_doc_name = vendor_data.get('name', '').lower().strip()
                 
-                # Check if names match (exact or contains)
-                if vendor_name_lower == vendor_doc_name or vendor_name_lower in vendor_doc_name or vendor_doc_name in vendor_name_lower:
+                # Fast path: exact/contains match
+                if (
+                    vendor_name_lower == vendor_doc_name
+                    or vendor_name_lower in vendor_doc_name
+                    or vendor_doc_name in vendor_name_lower
+                ):
                     vendor_id = vendor_doc.id
-                    logger.info(f"✅ Found vendor_id '{vendor_id}' for name '{vendor_name}'")
+                    logger.info(f"✅ Found vendor_id '{vendor_id}' for name '{vendor_name}' (direct match)")
                     return vendor_id
+                
+                # Fuzzy match for typos (e.g. 'smsh padel' -> 'Smash Padel')
+                score = SequenceMatcher(None, vendor_name_lower, vendor_doc_name).ratio()
+                if score > best_score:
+                    best_score = score
+                    best_id = vendor_doc.id
             
-            logger.warning(f"⚠️  No vendor found for name: '{vendor_name}'")
+            # Accept best fuzzy match above threshold
+            if best_id and best_score >= 0.7:
+                logger.info(f"✅ Fuzzy matched vendor '{vendor_name}' -> id '{best_id}' (score={best_score:.2f})")
+                return best_id
+            
+            logger.warning(f"⚠️  No vendor found for name: '{vendor_name}' (best_score={best_score:.2f})")
             return None
             
         except Exception as e:

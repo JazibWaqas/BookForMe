@@ -1242,7 +1242,7 @@ def _format_availability_response(
         parts.append("")
         if idx > max_total:
             break
-    parts.append("Reply with the number to select, phir 'yes' se reserve karein.")
+    parts.append("Reply with the number to select!")
     return "\n".join(parts).strip(), slot_options
 
 
