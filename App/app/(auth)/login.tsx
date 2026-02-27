@@ -105,6 +105,7 @@ export default function LoginScreen() {
 
             <View style={styles.roleToggle}>
               <TouchableOpacity
+                activeOpacity={0.6}
                 style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
                 onPress={() => setRole('customer')}
               >
@@ -121,6 +122,7 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                activeOpacity={0.6}
                 style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
                 onPress={() => setRole('vendor')}
               >
@@ -275,11 +277,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: 26,
+    fontSize: 32,
     fontFamily: FONTS.extrabold,
-    color: COLORS.text,
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 14,
@@ -290,20 +292,26 @@ const styles = StyleSheet.create({
   roleToggle: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 32,
   },
   roleButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderStrong,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   roleButtonActive: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryGlow,
+    backgroundColor: 'rgba(0, 208, 132, 0.05)',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   roleText: {
     fontSize: 15,
@@ -340,12 +348,12 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderStrong,
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    height: 54,
+    height: 58,
   },
   inputIcon: {
     marginRight: 12,
@@ -366,6 +374,7 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 14,
     color: COLORS.primary,
+    opacity: 0.8,
     textAlign: 'right',
     fontWeight: '600',
   },
@@ -409,8 +418,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   googleButton: {
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    height: 58,
+    justifyContent: 'center',
   },
   facebookButton: {
     backgroundColor: '#1877F2',

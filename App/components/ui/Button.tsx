@@ -44,7 +44,7 @@ export default function Button({
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled || loading}
-        style={[styles.base, disabled && styles.disabled, style]}
+        style={[styles.base, styles.glow, disabled && styles.disabled, style]}
       >
         <LinearGradient
           colors={[COLORS.primary, COLORS.primaryDark]}
@@ -89,7 +89,13 @@ const styles = StyleSheet.create({
   base: {
     height: 56,
     borderRadius: 12,
-    overflow: 'hidden',
+  },
+  glow: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   gradient: {
     flex: 1,
@@ -97,6 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    borderRadius: 12,
   },
   primary: {
     backgroundColor: COLORS.surface,
