@@ -43,7 +43,6 @@ All three interface with a **single, structurally rigorous Firestore database** 
 # 1. Backend Setup
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
 python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 
 # 2. Mobile App Setup  
