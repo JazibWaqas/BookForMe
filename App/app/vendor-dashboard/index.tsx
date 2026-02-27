@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, FlatList, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
@@ -63,8 +62,25 @@ export default function VendorDashboardScreen() {
     initialize();
   }, [fetchDashboardData]);
 
-  // Auto-reload dashboard data every 5 seconds
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // Auto-reload and entry animation
   useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      })
+    ]).start();
+
     if (!vendorId) return;
 
     const intervalId = setInterval(() => {
@@ -88,60 +104,84 @@ export default function VendorDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>{vendorName}</Text>
-        </View>
-        <TouchableOpacity onPress={() => setNotificationsVisible(true)} style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={22} color={COLORS.text} />
-          {notifications.length > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>{notifications.length > 99 ? '99+' : notifications.length}</Text>
+      {/* Header with Cinematic Gradient */}
+      <View style={{ overflow: 'hidden', paddingBottom: 10 }}>
+        <LinearGradient
+          colors={['rgba(0, 208, 132, 0.15)', 'transparent']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Dashboard</Text>
+              <Text style={styles.subtitle}>{vendorName}</Text>
             </View>
-          )}
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => setNotificationsVisible(true)} style={styles.notificationButton}>
+              <Ionicons name="notifications" size={24} color="#FFF" />
+              {notifications.length > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>{notifications.length > 99 ? '99+' : notifications.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       </View>
 
-      <ScrollView style={styles.content}>
+      <Animated.ScrollView
+        style={[styles.content, {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statLabel}>TODAY'S BOOKINGS</Text>
+          <View style={[styles.glassCard, { flex: 1, marginRight: 6 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="calendar" size={16} color="#3B82F6" style={{ marginRight: 6 }} />
+              <Text style={styles.statLabel}>BOOKINGS</Text>
+            </View>
             <Text style={styles.statValue}>{todaysBookingsCount}</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={styles.statLabel}>TODAY'S REVENUE</Text>
-            <Text style={styles.statValue}>PKR {todaysRevenue.toLocaleString()}</Text>
-          </Card>
+          </View>
+          <View style={[styles.glassCard, { flex: 1, marginLeft: 6 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="cash" size={16} color="#00D084" style={{ marginRight: 6 }} />
+              <Text style={styles.statLabel}>REVENUE</Text>
+            </View>
+            <Text style={[styles.statValue, { color: '#00D084' }]}>PKR {todaysRevenue.toLocaleString()}</Text>
+          </View>
         </View>
 
-        <Card>
+        {/* Quick Actions */}
+        <View style={styles.glassCard}>
           <Text style={styles.cardTitle}>Quick Actions</Text>
-          <View style={styles.actions}>
-            <Button
-              title="View Calendar"
-              onPress={() => router.push('/vendor-dashboard/calendar')}
-              variant="outline"
-            />
-            <Button
-              title="Manage Bookings"
-              onPress={() => router.push('/vendor-dashboard/bookings')}
-              variant="outline"
-            />
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={styles.actionPillPrimary} onPress={() => router.push('/vendor-dashboard/calendar')}>
+              <Ionicons name="calendar-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={styles.actionPillTextPrimary}>View Calendar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionPillSecondary} onPress={() => router.push('/vendor-dashboard/bookings')}>
+              <Ionicons name="layers-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={styles.actionPillTextSecondary}>Manage</Text>
+            </TouchableOpacity>
           </View>
-        </Card>
+        </View>
 
-        <Card>
+        {/* Recent Bookings */}
+        <View style={[styles.glassCard, { marginBottom: 32 }]}>
           <Text style={styles.cardTitle}>Upcoming Bookings (Today)</Text>
           {upcoming.length === 0 ? (
-            <Text style={styles.bookingDetails}>No upcoming bookings found.</Text>
+            <Text style={styles.bookingDetailsEmpty}>No upcoming bookings found.</Text>
           ) : (
             upcoming.map((booking, index) => (
               <TouchableOpacity key={index} style={styles.bookingRow} onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${booking.id}`)}>
+                <View style={styles.bookingAvatarBox}>
+                  <Ionicons name="person" size={20} color="rgba(255,255,255,0.4)" />
+                </View>
                 <View style={styles.bookingInfo}>
                   <Text style={styles.bookingName}>{booking.customer_name || 'Customer'}</Text>
                   <Text style={styles.bookingDetails}>
-                    {booking.time} • Court {booking.resource_name || booking.service || 'N/A'}
+                    {booking.time} • {booking.resource_name || booking.service || 'N/A'}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, booking.status === 'pending' && styles.statusBadgePending]}>
@@ -152,17 +192,12 @@ export default function VendorDashboardScreen() {
               </TouchableOpacity>
             ))
           )}
-        </Card>
+        </View>
+      </Animated.ScrollView>
 
-        <View style={{ height: 32 }} />
-      </ScrollView>
-
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
         <TouchableOpacity style={styles.navItem} activeOpacity={0.7}>
-          <View style={styles.navIconContainer}>
-            <View style={[styles.dashIcon, styles.navIconActive]} />
-            <View style={[styles.dashIconSmall, styles.navIconActive]} />
-          </View>
+          <Ionicons name="grid" size={24} color={COLORS.primary} />
           <Text style={[styles.navText, styles.navTextActive]}>Dashboard</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -170,9 +205,7 @@ export default function VendorDashboardScreen() {
           onPress={() => router.push('/vendor-dashboard/calendar')}
           activeOpacity={0.7}
         >
-          <View style={styles.navIconContainer}>
-            <View style={styles.calIcon} />
-          </View>
+          <Ionicons name="calendar-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Calendar</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -180,10 +213,7 @@ export default function VendorDashboardScreen() {
           onPress={() => router.push('/vendor-dashboard/bookings')}
           activeOpacity={0.7}
         >
-          <View style={styles.navIconContainer}>
-            <View style={styles.bookIcon} />
-            <View style={styles.bookIconLine} />
-          </View>
+          <Ionicons name="list-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Bookings</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -191,10 +221,7 @@ export default function VendorDashboardScreen() {
           onPress={() => router.push('/vendor-dashboard/profile')}
           activeOpacity={0.7}
         >
-          <View style={styles.navIconContainer}>
-            <View style={styles.profIcon} />
-            <View style={styles.profIconBody} />
-          </View>
+          <Ionicons name="person-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -256,227 +283,208 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
+    alignItems: 'flex-start',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
+    fontWeight: '500',
   },
   notificationButton: {
-    width: 40,
-    height: 40,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   notificationBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: COLORS.error,
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
     borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#FFF',
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 12,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  statCard: {
-    flex: 1,
+  glassCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statLabel: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-    letterSpacing: 1,
-    marginBottom: 8,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '800',
+    letterSpacing: 1.2,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  statSubtext: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontWeight: '800',
+    color: '#FFF',
+    marginTop: 4,
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 16,
+    letterSpacing: -0.2,
   },
-  actions: {
-    gap: 8,
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionPillPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 208, 132, 0.15)',
+    borderColor: 'rgba(0, 208, 132, 0.3)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  actionPillTextPrimary: {
+    color: '#00D084',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  actionPillSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  actionPillTextSecondary: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  bookingAvatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  bookingDetailsEmpty: {
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 12,
   },
   bookingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   bookingInfo: {
     flex: 1,
   },
   bookingName: {
-    fontSize: 14,
-    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
     marginBottom: 4,
   },
   bookingDetails: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
   },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 8,
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: 'rgba(0, 208, 132, 0.4)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 208, 132, 0.1)',
   },
   statusBadgePending: {
-    borderColor: COLORS.warning,
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   statusText: {
     fontSize: 10,
-    color: COLORS.primary,
+    color: '#00D084',
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   statusTextPending: {
-    color: COLORS.warning,
+    color: '#F59E0B',
   },
   bottomNav: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    paddingBottom: 28, // Increased for S22 Ultra and gesture navigation
-    paddingTop: 8,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#0F172A',
+    paddingTop: 12,
   },
   navItem: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 4,
     alignItems: 'center',
     gap: 4,
   },
-  navIconContainer: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  // Dashboard icon (grid)
-  dashIcon: {
-    width: 10,
-    height: 10,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    position: 'absolute',
-    left: 0,
-    top: 0,
-  },
-  dashIconSmall: {
-    width: 10,
-    height: 10,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-  },
-  // Calendar icon
-  calIcon: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    borderRadius: 4,
-    borderTopWidth: 4,
-  },
-  // Bookings icon (list)
-  bookIcon: {
-    width: 18,
-    height: 3,
-    backgroundColor: COLORS.textMuted,
-    position: 'absolute',
-    top: 4,
-  },
-  bookIconLine: {
-    width: 18,
-    height: 3,
-    backgroundColor: COLORS.textMuted,
-    position: 'absolute',
-    bottom: 4,
-  },
-  // Profile icon
-  profIcon: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    position: 'absolute',
-    top: 0,
-  },
-  profIconBody: {
-    width: 14,
-    height: 8,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    borderTopWidth: 0,
-    position: 'absolute',
-    bottom: 0,
-  },
-  navIconActive: {
-    borderColor: COLORS.primary,
-  },
   navText: {
     fontSize: 10,
-    color: COLORS.textMuted,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '600',
   },
   navTextActive: {
-    color: COLORS.primary,
-    fontWeight: '600',
+    color: '#00D084',
+    fontWeight: '700',
   },
   // Notifications Modal
   modalOverlay: {

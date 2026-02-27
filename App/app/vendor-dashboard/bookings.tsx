@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, RefreshControl
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
@@ -133,22 +134,22 @@ export default function VendorBookingsScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Bookings</Text>
         <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Text style={styles.refreshIcon}>↻</Text>
+          <Ionicons name="reload" size={18} color="#9CA3AF" />
         </TouchableOpacity>
       </View>
 
       {/* ── Search ── */}
       <View style={styles.searchRow}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Ionicons name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search by name or phone…"
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor="rgba(255, 255, 255, 0.4)"
           style={styles.searchInput}
         />
       </View>
@@ -219,8 +220,8 @@ export default function VendorBookingsScreen() {
                       <Text style={styles.tagText}>🏟 {formatCourtName(b.resource_id)}</Text>
                     </View>
                     <View style={[styles.tag, styles.tagGreen]}>
-                      <Text style={[styles.tagText, { color: COLORS.primary }]}>
-                        PKR {b.price || 0}
+                      <Text style={[styles.tagText, { color: '#00EA77' }]}>
+                        PKR {b.price || b.amount || 0}
                       </Text>
                     </View>
                     {src ? (
@@ -243,54 +244,52 @@ export default function VendorBookingsScreen() {
 // ─── Styles (dark theme to match app) ────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#0F172A' },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 52, paddingBottom: 14,
-    backgroundColor: COLORS.backgroundLight,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    backgroundColor: '#0F172A',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    borderWidth: 1, borderColor: COLORS.border,
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backArrow: { fontSize: 18, color: COLORS.textSecondary },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
   refreshBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    borderWidth: 1, borderColor: COLORS.border,
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center', justifyContent: 'center',
   },
-  refreshIcon: { fontSize: 18, color: COLORS.textSecondary },
 
   // Search
   searchRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
-    borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    marginHorizontal: 16, marginTop: 16, marginBottom: 8,
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
   },
-  searchIcon: { fontSize: 15, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: COLORS.text, paddingVertical: 11 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 15, color: '#FFF', paddingVertical: 14, fontWeight: '500' },
 
   // Tabs
   tabRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16, paddingVertical: 10,
+    paddingHorizontal: 16, paddingVertical: 12,
     gap: 8,
   },
   tab: {
-    flex: 1, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: COLORS.surface,
+    flex: 1, paddingVertical: 10, borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'transparent',
   },
-  tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabText: { fontSize: 11, fontWeight: '600', color: COLORS.textMuted },
-  tabTextActive: { color: COLORS.textDark },
+  tabActive: { backgroundColor: '#00EA77', borderColor: '#00EA77' },
+  tabText: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
+  tabTextActive: { color: '#111827', fontWeight: '800' },
 
   // List
   list: { flex: 1, paddingHorizontal: 16 },
@@ -304,35 +303,39 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: '#1E293B', borderRadius: 16,
+    padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.03)',
+    elevation: 2,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1, shadowRadius: 8,
   },
   cardTop: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 10,
+    alignItems: 'flex-start', marginBottom: 12,
   },
-  cardDate: { fontSize: 12, color: COLORS.textMuted, fontWeight: '500' },
-  cardTime: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 1 },
+  cardDate: { fontSize: 13, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 },
+  cardTime: { fontSize: 24, fontWeight: '900', color: '#FFF', marginTop: 2, letterSpacing: -0.5 },
 
   statusPill: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.backgroundLight, borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4, gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6, gap: 6,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  statusLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  statusLabel: { fontSize: 12, fontWeight: '700', color: '#FFF', letterSpacing: 0.5 },
 
-  customerName: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 2 },
-  customerPhone: { fontSize: 12, color: COLORS.textMuted, marginBottom: 10 },
+  customerName: { fontSize: 16, fontWeight: '800', color: '#FFF', marginBottom: 2 },
+  customerPhone: { fontSize: 13, color: '#9CA3AF', marginBottom: 12, fontWeight: '500' },
 
-  tagRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 10 },
+  tagRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 8 },
   tag: {
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  tagGreen: { borderColor: COLORS.primary + '40' },
-  tagPurple: { borderColor: '#7C3AED40' },
-  tagText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
+  tagGreen: { borderColor: 'rgba(0, 234, 119, 0.2)', backgroundColor: 'rgba(0, 234, 119, 0.05)' },
+  tagPurple: { borderColor: 'rgba(167, 139, 250, 0.2)', backgroundColor: 'rgba(167, 139, 250, 0.05)' },
+  tagText: { fontSize: 11, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.5 },
 });

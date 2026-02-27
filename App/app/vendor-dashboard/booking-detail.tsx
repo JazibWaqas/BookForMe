@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal, Act
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../config/api';
@@ -130,7 +131,7 @@ export default function BookingDetailScreen() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backText}>←</Text>
+                    <Ionicons name="chevron-back" size={24} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Booking Details</Text>
                 <View style={styles.headerPlaceholder} />
@@ -167,7 +168,7 @@ export default function BookingDetailScreen() {
                     </View>
 
                     {/* Customer Information */}
-                    <Card>
+                    <View style={styles.premiumCard}>
                         <Text style={styles.cardTitle}>Customer Information</Text>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Name:</Text>
@@ -181,10 +182,10 @@ export default function BookingDetailScreen() {
                             <Text style={styles.infoLabel}>Email:</Text>
                             <Text style={styles.infoValue}>N/A</Text>
                         </View>
-                    </Card>
+                    </View>
 
                     {/* Booking Details */}
-                    <Card>
+                    <View style={styles.premiumCard}>
                         <Text style={styles.cardTitle}>Booking Details</Text>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Date:</Text>
@@ -216,10 +217,10 @@ export default function BookingDetailScreen() {
                                             : booking.booking_source || 'N/A'}
                             </Text>
                         </View>
-                    </Card>
+                    </View>
 
                     {/* Payment Information */}
-                    <Card>
+                    <View style={styles.premiumCard}>
                         <Text style={styles.cardTitle}>Payment Information</Text>
 
                         <View style={styles.infoRow}>
@@ -244,7 +245,8 @@ export default function BookingDetailScreen() {
                                     <View style={styles.screenshotHeader}>
                                         <Text style={styles.screenshotTitle}>Payment Screenshot</Text>
                                         <View style={styles.verifiedBadge}>
-                                            <Text style={styles.verifiedText}>✓ Uploaded</Text>
+                                            <Ionicons name="checkmark-circle" size={12} color="#00EA77" style={{ marginRight: 2 }} />
+                                            <Text style={styles.verifiedText}>Uploaded</Text>
                                         </View>
                                     </View>
                                     <TouchableOpacity
@@ -272,7 +274,7 @@ export default function BookingDetailScreen() {
                                 </View>
                             </>
                         ) : null}
-                    </Card>
+                    </View>
 
                     {/* Action Buttons */}
                     {booking.status === 'pending' && (
@@ -298,8 +300,8 @@ export default function BookingDetailScreen() {
                             <Button
                                 title="Force Cancel Booking"
                                 onPress={handleReject}
-                                style={{ backgroundColor: COLORS.error, borderColor: COLORS.error }}
-                                textStyle={{ color: COLORS.surface }}
+                                style={styles.rejectButton}
+                                textStyle={styles.rejectButtonText}
                                 loading={actionLoading}
                             />
                         </View>
@@ -321,7 +323,7 @@ export default function BookingDetailScreen() {
                             style={styles.modalClose}
                             onPress={() => setShowScreenshot(false)}
                         >
-                            <Text style={styles.modalCloseText}>Close ✕</Text>
+                            <Ionicons name="close" size={24} color="#FFF" />
                         </TouchableOpacity>
                         <Image
                             source={{ uri: screenshotUrl }}
@@ -338,44 +340,40 @@ export default function BookingDetailScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: '#0F172A', // Extremely dark blue/gray
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 12,
+        paddingTop: 60,
+        paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-        backgroundColor: COLORS.backgroundLight,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: '#0F172A',
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderWidth: 2,
-        borderColor: COLORS.border,
+        width: 44,
+        height: 44,
         borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     headerPlaceholder: {
-        width: 40,
-        height: 40,
-    },
-    backText: {
-        color: COLORS.textSecondary,
-        fontSize: 18,
+        width: 44,
+        height: 44,
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '600',
-        color: COLORS.text,
+        fontWeight: '800',
+        color: '#FFF',
+        letterSpacing: -0.5,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingVertical: 20,
     },
     statusContainer: {
@@ -387,75 +385,92 @@ const styles = StyleSheet.create({
     statusBadge: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 2,
+        borderRadius: 20,
+        borderWidth: 1,
     },
     statusBadgePending: {
-        borderColor: COLORS.warning,
-        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+        borderColor: 'rgba(245, 158, 11, 0.4)',
+        backgroundColor: 'rgba(245, 158, 11, 0.05)',
     },
     statusBadgeConfirmed: {
-        borderColor: COLORS.success,
-        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+        borderColor: 'rgba(0, 234, 119, 0.4)',
+        backgroundColor: 'rgba(0, 234, 119, 0.05)',
     },
     statusBadgeCancelled: {
-        borderColor: COLORS.error,
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: 'rgba(239, 68, 68, 0.4)',
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
     },
     statusText: {
         fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 0.5,
+        fontWeight: '800',
+        letterSpacing: 1,
     },
     statusTextPending: {
-        color: COLORS.warning,
+        color: '#F59E0B',
     },
     statusTextConfirmed: {
-        color: COLORS.success,
+        color: '#00EA77',
     },
     statusTextCancelled: {
-        color: COLORS.error,
+        color: '#EF4444',
     },
     bookingId: {
         fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.textMuted,
+        fontWeight: '700',
+        color: '#9CA3AF', // slate gray
+        letterSpacing: 1,
+    },
+    premiumCard: {
+        backgroundColor: '#1E293B',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.03)',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     cardTitle: {
         fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.text,
+        fontWeight: '800',
+        color: '#FFF',
         marginBottom: 16,
+        letterSpacing: -0.2,
     },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 12,
     },
     infoLabel: {
-        fontSize: 14,
-        color: COLORS.textMuted,
+        fontSize: 13,
+        color: '#9CA3AF',
+        fontWeight: '600',
     },
     infoValue: {
         fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.text,
+        fontWeight: '700',
+        color: '#FFF',
         textAlign: 'right',
         flex: 1,
         marginLeft: 16,
     },
     divider: {
         height: 1,
-        backgroundColor: COLORS.border,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         marginVertical: 16,
     },
     paymentBreakdown: {
         gap: 8,
     },
     amountValue: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: COLORS.text,
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#00EA77',
     },
     amountPaid: {
         fontSize: 14,
@@ -474,23 +489,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     screenshotTitle: {
         fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.text,
+        fontWeight: '700',
+        color: '#FFF',
     },
     verifiedBadge: {
-        paddingHorizontal: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        backgroundColor: 'rgba(74, 222,  128, 0.2)',
-        borderRadius: 6,
+        backgroundColor: 'rgba(0, 234, 119, 0.1)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 234, 119, 0.3)',
     },
     verifiedText: {
         fontSize: 11,
-        fontWeight: '700',
-        color: COLORS.success,
+        fontWeight: '800',
+        color: '#00EA77',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     uploadedTime: {
         fontSize: 12,
@@ -498,10 +519,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     screenshotPreview: {
-        height: 300,
-        borderRadius: 12,
+        height: 240,
+        borderRadius: 16,
         overflow: 'hidden',
         position: 'relative',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
     },
     screenshotImage: {
         width: '100%',
@@ -512,30 +535,34 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        paddingVertical: 12,
+        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+        paddingVertical: 16,
         alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.05)',
     },
     screenshotOverlayText: {
-        fontSize: 12,
-        color: COLORS.text,
-        fontWeight: '600',
+        fontSize: 13,
+        color: '#FFF',
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     actionButtons: {
         gap: 12,
         marginTop: 8,
     },
     rejectButton: {
-        paddingVertical: 14,
-        borderWidth: 2,
-        borderColor: COLORS.error,
-        borderRadius: 12,
+        paddingVertical: 16,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+        borderRadius: 16,
         alignItems: 'center',
     },
     rejectButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.error,
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#EF4444',
     },
     confirmedInfo: {
         marginTop: 8,
@@ -553,7 +580,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        backgroundColor: 'rgba(15, 23, 42, 0.98)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -561,10 +588,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 50,
         right: 20,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        backgroundColor: COLORS.surface,
-        borderRadius: 8,
+        width: 44,
+        height: 44,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
         zIndex: 10,
     },
     modalCloseText: {

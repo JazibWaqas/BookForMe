@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Card from '../../components/ui/Card';
+import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { COLORS } from '../../constants/colors';
@@ -190,20 +190,21 @@ export default function VendorProfileScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Vendor Profile</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Image Section */}
-        <Card style={styles.profileImageCard}>
+        <View style={[styles.premiumCard, styles.profileImageCard]}>
           <View style={styles.profileImageContainer}>
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <View style={styles.profileImagePlaceholder}>
+                <Ionicons name="image-outline" size={32} color="#9CA3AF" />
                 <Text style={styles.profileImageText}>Business Logo</Text>
               </View>
             )}
@@ -211,10 +212,10 @@ export default function VendorProfileScreen() {
               style={styles.imagePickerButton}
               onPress={() => pickImage('profile')}
             >
-              <Text style={styles.imagePickerText}>Change</Text>
+              <Text style={styles.imagePickerText}>Change Identity</Text>
             </TouchableOpacity>
           </View>
-        </Card>
+        </View>
 
         {/* Business Information */}
         <View style={styles.section}>
@@ -352,7 +353,7 @@ export default function VendorProfileScreen() {
         </View>
 
         {/* Stats */}
-        <Card style={styles.statsCard}>
+        <View style={styles.premiumCard}>
           <Text style={styles.statsTitle}>Account Statistics</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -364,11 +365,11 @@ export default function VendorProfileScreen() {
               <Text style={styles.statLabel}>Rating</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>PKR 450K</Text>
+              <Text style={[styles.statValue, { color: '#00EA77' }]}>PKR 450K</Text>
               <Text style={styles.statLabel}>Revenue</Text>
             </View>
           </View>
-        </Card>
+        </View>
 
         {/* Action Buttons */}
         <Button
@@ -394,38 +395,48 @@ export default function VendorProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#0F172A',
   },
   backButton: {
-    padding: 8,
-  },
-  backText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: '600',
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center', justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 20,
   },
+  premiumCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.03)',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
   profileImageCard: {
-    marginBottom: 20,
     alignItems: 'center',
   },
   profileImageContainer: {
@@ -441,37 +452,44 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: COLORS.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   profileImageText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   imagePickerButton: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0, 234, 119, 0.05)',
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 8,
+    borderColor: 'rgba(0, 234, 119, 0.2)',
+    borderRadius: 12,
   },
   imagePickerText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#00EA77',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#FFF',
     marginBottom: 16,
+    letterSpacing: -0.2,
   },
   input: {
     marginBottom: 16,
@@ -480,67 +498,74 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#9CA3AF',
+    marginBottom: 12,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
   },
   categoryButton: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    backgroundColor: COLORS.surface,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   categoryButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: '#00EA77',
+    backgroundColor: 'rgba(0, 234, 119, 0.05)',
   },
   categoryText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: '#FFF',
+    fontWeight: '500',
   },
   categoryTextActive: {
-    color: COLORS.primary,
-    fontWeight: '600',
+    color: '#00EA77',
+    fontWeight: '800',
   },
   locationButton: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   locationText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontFamily: 'monospace',
   },
   imagesContainer: {
     flexDirection: 'row',
     marginTop: 8,
   },
   imageItem: {
-    marginRight: 12,
+    marginRight: 16,
     position: 'relative',
   },
   businessImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
+    width: 140,
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   removeImageButton: {
     position: 'absolute',
     top: -8,
     right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.error,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#0F172A',
   },
   removeImageText: {
     color: '#fff',
@@ -548,44 +573,50 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   addImageButton: {
-    width: 120,
-    height: 120,
-    borderWidth: 2,
-    borderColor: COLORS.border,
+    width: 140,
+    height: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderStyle: 'dashed',
-    borderRadius: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   addImageText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  statsCard: {
-    marginBottom: 20,
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 8,
   },
   statsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 16,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 20,
+    letterSpacing: -0.2,
   },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
   statItem: {
     alignItems: 'center',
   },
   statValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
+    fontWeight: '900',
+    color: '#FFF',
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.textMuted,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   saveButton: {
     marginBottom: 12,

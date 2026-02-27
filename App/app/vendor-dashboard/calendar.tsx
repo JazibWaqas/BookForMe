@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch, Dimensions, Animated } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
@@ -126,17 +128,42 @@ export default function VendorCalendarScreen() {
     }, [vendorId, currentDate, fetchGridData])
   );
 
+  // Animation value for date change
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   // Handle Date Navigation
   const changeDate = (days: number) => {
+    // Fade out
+    Animated.timing(fadeAnim, {
+      toValue: 0.3,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
     setCurrentDate(newDate);
     if (vendorId) {
-      // Show loading only when manually shifting date so we don't flash on auto-poll
       setLoading(true);
-      fetchGridData(vendorId, formatDate(newDate)).finally(() => setLoading(false));
+      fetchGridData(vendorId, formatDate(newDate)).finally(() => {
+        setLoading(false);
+        // Fade in
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     }
   };
+
+  // Calculate dynamic column width
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const TIME_COLUMN_WIDTH = 70;
+  const dynamicColWidth = Math.max((SCREEN_WIDTH - TIME_COLUMN_WIDTH) / Math.max(resources.length, 1), 110);
+
 
   // Helper to find specific slot status
   const getSlotDetails = (time: string, resourceId: string) => {
@@ -220,18 +247,18 @@ export default function VendorCalendarScreen() {
 
       <View style={styles.monthHeader}>
         <TouchableOpacity onPress={() => changeDate(-1)} style={styles.dateNavButton}>
-          <Text style={styles.monthNav}>←</Text>
+          <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.monthText}>
           {currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
         </Text>
         <TouchableOpacity onPress={() => changeDate(1)} style={styles.dateNavButton}>
-          <Text style={styles.monthNav}>→</Text>
+          <Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView horizontal bounces={false} style={styles.horizontalScroll}>
-        <View>
+        <View style={{ minWidth: SCREEN_WIDTH }}>
           {/* Grid Header (Columns) */}
           <View style={styles.gridHeaderRow}>
             <View style={styles.timeHeaderCell} />
@@ -239,7 +266,7 @@ export default function VendorCalendarScreen() {
               // Create a cleaner display name for "ace_court_1" -> "1"
               const cleanName = res.split('_').pop() || String(index + 1);
               return (
-                <View key={res} style={styles.courtHeaderCell}>
+                <View key={res} style={[styles.courtHeaderCell, { width: dynamicColWidth }]}>
                   <Text style={styles.courtHeaderText}>Court {cleanName}</Text>
                 </View>
               );
@@ -247,7 +274,11 @@ export default function VendorCalendarScreen() {
           </View>
 
           {/* Grid Body */}
-          <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+          <Animated.ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            style={{ opacity: fadeAnim }}
+          >
             {timeSlots.map((time) => (
               <View key={time} style={styles.gridRow}>
                 {/* Time Label */}
@@ -259,58 +290,76 @@ export default function VendorCalendarScreen() {
                 {resources.map((res) => {
                   const slot = getSlotDetails(time, res);
                   let cellStyle: any = styles.slotAvailable;
-                  let cellText = 'AVAILABLE';
+                  let cellText = '';
                   let statusLabel = '';
+                  let statusIcon = '';
+                  let iconColor = '';
+                  let textStyle: any = styles.slotCellTextEmpty;
 
                   if (slot) {
                     if (slot.status === 'available' || slot.status === 'cancelled') {
-                      // Green — tap to walk-in (cancelled slots become available again)
                       cellStyle = styles.slotAvailable;
-                      cellText = 'AVAILABLE';
+                      cellText = '+ Available';
+                      textStyle = styles.slotCellTextEmpty;
                     } else if (slot.status === 'locked' || slot.status === 'pending') {
                       cellStyle = styles.slotPending;
-                      cellText = 'AWAITING PAYMENT';
+                      cellText = 'Awaiting Pay';
+                      textStyle = styles.slotCellTextPending;
                     } else if (slot.status === 'confirmed' || slot.status === 'completed') {
                       cellStyle = styles.slotConfirmed;
-                      cellText = slot.customer_name || 'BOOKED';
+                      cellText = slot.customer_name
+                        ? slot.customer_name.charAt(0).toUpperCase() + slot.customer_name.slice(1)
+                        : 'Booked';
+                      textStyle = styles.slotCellTextBooked;
                       const source = slot.booking_source;
                       if (source === 'whatsapp' || source === 'whatsapp_ai') {
-                        statusLabel = '📱 WhatsApp';
+                        statusLabel = 'WhatsApp';
+                        statusIcon = 'logo-whatsapp';
+                        iconColor = '#4ADE80';
                       } else if (source === 'walk-in') {
-                        statusLabel = '🚶 Walk-in';
+                        statusLabel = 'Walk-in';
+                        statusIcon = 'walk';
+                        iconColor = '#60A5FA';
                       } else {
-                        statusLabel = '📲 App';
+                        statusLabel = 'App Booking';
+                        statusIcon = 'phone-portrait-outline';
+                        iconColor = '#A78BFA';
                       }
                     } else if (slot.status === 'blocked') {
                       cellStyle = styles.slotBlocked;
-                      cellText = 'BLOCKED';
+                      cellText = 'Blocked';
+                      textStyle = styles.slotCellTextBlocked;
                     }
                   } else {
-                    // No document at all — outside seeded date range
-                    cellText = 'NO SLOT';
-                    cellStyle = [styles.slotAvailable, { backgroundColor: '#E5E7EB' }];
+                    cellText = '—';
+                    cellStyle = styles.slotAvailable; // Match available design for outer slots
                   }
 
                   return (
                     <TouchableOpacity
                       key={`${time}-${res}`}
-                      style={[styles.slotCell, cellStyle]}
+                      style={[styles.slotCellBase, { width: dynamicColWidth }, cellStyle]}
                       activeOpacity={0.7}
                       onPress={() => handleSlotPress(time, res, slot)}
                     >
-                      <Text style={styles.slotCellText}>
-                        {cellText}
-                      </Text>
-                      {statusLabel ? (
-                        <Text style={styles.slotSourceText}>{statusLabel}</Text>
-                      ) : null}
+                      <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <Text style={textStyle} numberOfLines={1}>
+                          {cellText}
+                        </Text>
+                        {statusLabel ? (
+                          <View style={styles.slotSourceRow}>
+                            {statusIcon ? <Ionicons name={statusIcon as any} size={10} color={iconColor} style={{ marginRight: 4 }} /> : null}
+                            <Text style={styles.slotSourceText}>{statusLabel}</Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             ))}
             <View style={{ height: 100 }} />
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </ScrollView>
 
@@ -342,6 +391,7 @@ export default function VendorCalendarScreen() {
                 value={walkInName}
                 onChangeText={setWalkInName}
                 placeholder="e.g. John Doe"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
               />
             </View>
 
@@ -353,6 +403,7 @@ export default function VendorCalendarScreen() {
                 onChangeText={setWalkInPhone}
                 keyboardType="phone-pad"
                 placeholder="0300 1234567"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
               />
             </View>
 
@@ -363,6 +414,8 @@ export default function VendorCalendarScreen() {
                 value={walkInAmount}
                 onChangeText={setWalkInAmount}
                 keyboardType="numeric"
+                placeholder="e.g. 2500"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
               />
             </View>
 
@@ -371,7 +424,8 @@ export default function VendorCalendarScreen() {
               <Switch
                 value={walkInPaid}
                 onValueChange={setWalkInPaid}
-                trackColor={{ false: '#767577', true: COLORS.primary }}
+                trackColor={{ false: 'rgba(255, 255, 255, 0.1)', true: '#00EA77' }}
+                thumbColor="#FFF"
               />
             </View>
 
@@ -379,7 +433,8 @@ export default function VendorCalendarScreen() {
               title="Confirm Walk-In"
               onPress={submitWalkIn}
               loading={submitting}
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 24, backgroundColor: '#00EA77' }}
+              textStyle={{ color: '#111827', fontWeight: '800', fontSize: 16 }}
             />
           </View>
         </View>
@@ -417,24 +472,29 @@ const styles = StyleSheet.create({
   headerRightToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    backgroundColor: 'rgba(74, 222, 128, 0.05)', // Reduced brightness
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.3)'
+    borderColor: 'rgba(74, 222, 128, 0.15)'
   },
   pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#00EA77', // Glowing green
     marginRight: 6,
+    shadowColor: '#00EA77',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
   },
   liveText: {
-    color: Object.is(COLORS.primary, '#000000') ? '#4ADE80' : COLORS.primary, // Make sure it pops
+    color: '#00EA77',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
     letterSpacing: 1
   },
   backText: {
@@ -442,32 +502,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '900', // Increased weight
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: COLORS.backgroundLight,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.02)',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   dateNavButton: {
     padding: 10,
-  },
-  monthNav: {
-    fontSize: 20,
-    color: COLORS.primary,
-    fontWeight: 'bold'
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
   },
   monthText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.5,
   },
   horizontalScroll: {
     flex: 1,
@@ -475,74 +534,132 @@ const styles = StyleSheet.create({
   gridHeaderRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.backgroundLight,
-    paddingVertical: 10,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    paddingVertical: 12,
   },
   timeHeaderCell: {
     width: 70,
   },
   courtHeaderCell: {
-    width: 140,
     alignItems: 'center',
     justifyContent: 'center',
   },
   courtHeaderText: {
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   gridRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(255,255,255,0.03)',
   },
   timeAxisCell: {
     width: 70,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    paddingVertical: 20,
-    backgroundColor: COLORS.backgroundLight,
+    borderRightColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 24,
+    backgroundColor: 'transparent',
   },
   timeText: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  slotCell: {
-    width: 140,
-    height: 60,
+  slotCellBase: {
+    height: 88, // slightly taller for breathing room
     borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    padding: 8,
+    borderRightColor: 'rgba(255,255,255,0.03)', // Faint scratched glass look
     justifyContent: 'center',
     alignItems: 'center',
   },
+  slotCellInner: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    justifyContent: 'center',
+  },
   slotAvailable: {
-    backgroundColor: '#A7F3D0', // Solid light green
+    backgroundColor: 'rgba(0, 208, 132, 0.02)', // Subtle green empty state
+    marginVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.15)', // Muted green dashed border
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   slotPending: {
-    backgroundColor: '#FDE047', // Solid yellow
+    backgroundColor: '#1E293B', // Rich slate
+    marginVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B', // Bright amber indicator
+    paddingHorizontal: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   slotConfirmed: {
-    backgroundColor: '#FCA5A5', // Solid light red
+    backgroundColor: '#1E293B', // Rich slate
+    marginVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#00EA77', // Electric green indicator
+    paddingHorizontal: 12, // More breathing room 
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   slotBlocked: {
-    backgroundColor: '#E5E7EB', // Solid light gray
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    margin: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
   },
-  slotCellText: {
+  slotCellTextBooked: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  slotCellTextEmpty: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(0, 208, 132, 0.6)', // Subdued green
+  },
+  slotCellTextPending: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  slotCellTextBlocked: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1F2937', // Dark gray for high contrast on all solid backgrounds
-    textAlign: 'center',
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  slotSourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
   slotSourceText: {
     fontSize: 10,
-    color: '#4B5563', // Slightly lighter dark gray
-    marginTop: 4,
-    fontWeight: '700'
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -550,11 +667,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: '#111827', // Deep modal background
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 24,
+    paddingBottom: 48,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -563,42 +682,48 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 20,
-    fontWeight: '600',
+    color: 'rgba(0, 208, 132, 0.8)', // Subtle green for selected court/time
+    marginBottom: 24,
+    fontWeight: '700',
   },
   closeModalText: {
     fontSize: 24,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.4)',
     padding: 10,
   },
   formGroup: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 5,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#9CA3AF',
+    marginBottom: 8,
   },
   input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)', // Subtle inset feel
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: 12,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
-    color: COLORS.text,
+    color: '#FFF',
+    fontWeight: '500',
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    marginTop: 8,
   }
 });

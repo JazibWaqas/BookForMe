@@ -49,21 +49,23 @@ export default function Input({
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#9CA3AF',
     marginBottom: 8,
-    letterSpacing: 0.5,
   },
   input: {
-    height: 56,
-    borderWidth: 2,
-    borderColor: COLORS.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: COLORS.text,
-    backgroundColor: COLORS.surface,
+    color: '#FFF',
+    fontWeight: '500',
+    height: 56,
   },
   inputMultiline: {
     height: 'auto',
