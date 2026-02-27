@@ -128,7 +128,7 @@ export default function MyBookingsScreen() {
                     <Text style={styles.backText}>←</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Bookings</Text>
-                <View style={styles.backButton} />
+                <View style={styles.headerPlaceholder} />
             </View>
 
             {/* Tabs */}
@@ -185,11 +185,11 @@ export default function MyBookingsScreen() {
                     </View>
                 ) : (
                     displayBookings.map((booking) => (
-                        <Card key={booking.id} style={styles.bookingCard}>
+                        <View key={booking.id} style={styles.glassCard}>
                             {/* Status Badge */}
                             <View style={styles.bookingHeader}>
                                 <Text style={styles.bookingId}>Booking #{booking.id.slice(-8).toUpperCase()}</Text>
-                                <View style={[styles.statusBadge, { borderColor: getStatusColor(booking.status) }]}>
+                                <View style={[styles.statusBadge, { borderColor: getStatusColor(booking.status), backgroundColor: getStatusColor(booking.status) + '15' }]}>
                                     <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
                                         {getStatusText(booking.status)}
                                     </Text>
@@ -274,7 +274,7 @@ export default function MyBookingsScreen() {
                                     </TouchableOpacity>
                                 )}
                             </View>
-                        </Card>
+                        </View>
                     ))
                 )}
 
@@ -303,14 +303,19 @@ const styles = StyleSheet.create({
     backButton: {
         width: 40,
         height: 40,
-        borderWidth: 2,
-        borderColor: COLORS.border,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    headerPlaceholder: {
+        width: 40,
+        height: 40,
     },
     backText: {
-        color: COLORS.textSecondary,
+        color: '#FFF',
         fontSize: 18,
     },
     headerTitle: {
@@ -367,42 +372,47 @@ const styles = StyleSheet.create({
         color: COLORS.textMuted,
         textAlign: 'center',
     },
-    bookingCard: {
+    glassCard: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        padding: 20,
         marginBottom: 16,
     },
     bookingHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
         flexWrap: 'wrap',
         gap: 8,
     },
     bookingId: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '600',
-        color: COLORS.textMuted,
+        color: 'rgba(255,255,255,0.4)',
         flex: 1,
+        letterSpacing: 0.5,
     },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderWidth: 1.5,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderWidth: 1,
         borderRadius: 8,
-        backgroundColor: 'rgba(0,0,0,0.05)',
     },
     statusText: {
         fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.8,
+        fontWeight: '800',
+        letterSpacing: 1,
     },
     countdownContainer: {
-        marginBottom: 12,
+        marginBottom: 16,
         padding: 12,
-        backgroundColor: 'rgba(251, 191, 36, 0.1)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(245, 158, 11, 0.05)',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: COLORS.warning,
+        borderColor: 'rgba(245, 158, 11, 0.2)',
     },
     countdownTimer: {
         alignItems: 'center',
@@ -410,55 +420,65 @@ const styles = StyleSheet.create({
     },
     countdownText: {
         fontSize: 24,
-        fontWeight: '700',
-        color: COLORS.warning,
+        fontWeight: '800',
+        color: '#F59E0B',
+        fontVariant: ['tabular-nums'],
     },
     countdownLabel: {
         fontSize: 12,
-        color: COLORS.textMuted,
+        color: 'rgba(245, 158, 11, 0.8)',
         textAlign: 'center',
+        fontWeight: '500',
     },
     vendorName: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.text,
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#FFF',
         marginBottom: 4,
+        letterSpacing: -0.5,
     },
     category: {
         fontSize: 14,
-        color: COLORS.textMuted,
-        marginBottom: 12,
+        color: 'rgba(255,255,255,0.5)',
+        marginBottom: 16,
+        fontWeight: '500',
     },
     detailsRow: {
         flexDirection: 'row',
         gap: 16,
         marginBottom: 16,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     detailItem: {
         flex: 1,
     },
     detailLabel: {
         fontSize: 11,
-        color: COLORS.textMuted,
+        color: 'rgba(255,255,255,0.4)',
         marginBottom: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1,
+        fontWeight: '600',
     },
     detailValue: {
         fontSize: 14,
         fontWeight: '600',
-        color: COLORS.text,
+        color: '#FFF',
     },
     amountValue: {
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
         color: COLORS.primary,
     },
     actions: {
-        gap: 8,
-        paddingTop: 12,
+        gap: 10,
+        paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: COLORS.border,
+        borderTopColor: 'rgba(255,255,255,0.08)',
     },
     pendingInfo: {
         padding: 12,

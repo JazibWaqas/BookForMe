@@ -101,7 +101,7 @@ export default function PaymentUploadScreen() {
                     <Text style={styles.backText}>←</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Upload Payment</Text>
-                <View style={styles.backButton} />
+                <View style={styles.headerPlaceholder} />
             </View>
 
             <ScrollView style={styles.content}>
@@ -222,6 +222,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    headerPlaceholder: {
+        width: 40,
+        height: 40,
     },
     backText: {
         color: COLORS.textSecondary,

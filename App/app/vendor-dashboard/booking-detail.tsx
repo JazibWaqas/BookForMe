@@ -133,7 +133,7 @@ export default function BookingDetailScreen() {
                     <Text style={styles.backText}>←</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Booking Details</Text>
-                <View style={styles.backButton} />
+                <View style={styles.headerPlaceholder} />
             </View>
 
             {loading ? (
@@ -359,6 +359,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    headerPlaceholder: {
+        width: 40,
+        height: 40,
     },
     backText: {
         color: COLORS.textSecondary,

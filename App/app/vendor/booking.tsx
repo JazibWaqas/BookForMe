@@ -203,59 +203,68 @@ export default function BookingScreen() {
         <Text style={styles.headerTitle}>
           {bookingConfirmed ? 'Booking Confirmed' : 'Upload Payment'}
         </Text>
-        <View style={styles.backButton} />
+        <View style={styles.headerPlaceholder} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         {/* Booking Summary */}
-        <Card>
+        <View style={styles.glassCard}>
           <Text style={styles.cardTitle}>Booking Summary</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Venue:</Text>
+            <Text style={styles.summaryLabel}>Venue</Text>
             <Text style={styles.summaryValue}>{vendorName}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Court:</Text>
+            <Text style={styles.summaryLabel}>Court</Text>
             <Text style={styles.summaryValue}>{courtName}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Date:</Text>
+            <Text style={styles.summaryLabel}>Date</Text>
             <Text style={styles.summaryValue}>{date}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Time:</Text>
+            <Text style={styles.summaryLabel}>Time</Text>
             <Text style={styles.summaryValue}>{formatSlotTime(startTime, endTime)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total Amount:</Text>
+            <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>{formatPrice(total)}</Text>
           </View>
-        </Card>
+        </View>
 
         {/* Countdown Timer */}
         {!bookingConfirmed && (
-          <Card style={styles.countdownCard}>
+          <View style={[styles.glassCard, styles.countdownCard]}>
             <View style={styles.countdownContainer}>
-              <Text style={styles.countdownLabel}>Slot Reserved For:</Text>
+              <Text style={styles.countdownLabel}>Slot Reserved For</Text>
               <Text style={styles.countdownText}>{formatCountdown(countdown)}</Text>
               <Text style={styles.countdownSubtext}>Complete payment before time expires</Text>
             </View>
-          </Card>
+          </View>
         )}
 
         {/* Payment Upload */}
         {!bookingConfirmed && (
           <>
-            <Card>
+            <View style={styles.glassCard}>
               <Text style={styles.cardTitle}>Payment Instructions</Text>
               <Text style={styles.instructionText}>
-                1. Transfer <Text style={{ fontWeight: '700', color: COLORS.primary }}>{formatPrice(total)}</Text> to the vendor's account:
+                1. Transfer <Text style={styles.highlightText}>{formatPrice(total)}</Text> to the vendor's account:
               </Text>
-              <View style={{ backgroundColor: COLORS.backgroundLight, padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text, marginBottom: 4 }}>Bank: Meezan Bank</Text>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text, marginBottom: 4 }}>Title: {vendorName}</Text>
-                <Text style={{ fontFamily: 'monospace', fontSize: 13, color: COLORS.text }}>Account: 0101-0101234567</Text>
+              <View style={styles.bankRect}>
+                <View style={styles.bankRow}>
+                  <Text style={styles.bankLabel}>Bank</Text>
+                  <Text style={styles.bankValue}>Meezan Bank</Text>
+                </View>
+                <View style={styles.bankRow}>
+                  <Text style={styles.bankLabel}>Title</Text>
+                  <Text style={styles.bankValue}>{vendorName}</Text>
+                </View>
+                <View style={styles.bankRow}>
+                  <Text style={styles.bankLabel}>Account</Text>
+                  <Text style={styles.bankValue}>0101-0101234567</Text>
+                </View>
               </View>
               <Text style={styles.instructionText}>
                 2. Take a screenshot of the transaction receipt.
@@ -263,9 +272,9 @@ export default function BookingScreen() {
               <Text style={styles.instructionText}>
                 3. Upload the payment proof below to confirm your booking.
               </Text>
-            </Card>
+            </View>
 
-            <Card>
+            <View style={styles.glassCard}>
               <Text style={styles.cardTitle}>Upload Screenshot</Text>
 
               {screenshot ? (
@@ -300,7 +309,7 @@ export default function BookingScreen() {
                   </Text>
                 </View>
               )}
-            </Card>
+            </View>
 
             <Button
               title={verificationStatus === 'verified' ? 'Payment Verified ✓' : 'Verify Payment'}
@@ -331,18 +340,21 @@ export default function BookingScreen() {
               </Text>
             </View>
 
-            <Card>
+            <View style={styles.glassCard}>
               <Text style={styles.cardTitle}>What's Next?</Text>
-              <Text style={styles.nextStepText}>
-                • Check "My Bookings" for details
-              </Text>
-              <Text style={styles.nextStepText}>
-                • Arrive at the venue on time
-              </Text>
-              <Text style={styles.nextStepText}>
-                • Have a great game!
-              </Text>
-            </Card>
+              <View style={styles.nextStepRow}>
+                <View style={styles.nextStepDot} />
+                <Text style={styles.nextStepText}>Check "My Bookings" for details</Text>
+              </View>
+              <View style={styles.nextStepRow}>
+                <View style={styles.nextStepDot} />
+                <Text style={styles.nextStepText}>Arrive at the venue on time</Text>
+              </View>
+              <View style={styles.nextStepRow}>
+                <View style={styles.nextStepDot} />
+                <Text style={styles.nextStepText}>Have a great game!</Text>
+              </View>
+            </View>
 
             <Button
               title="View My Bookings"
@@ -387,6 +399,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerPlaceholder: {
+    width: 40,
+    height: 40,
+  },
   backText: {
     fontSize: 18,
     color: COLORS.textSecondary,
@@ -401,88 +417,130 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
+  glassCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 20,
+    marginBottom: 16,
+  },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 16,
+    letterSpacing: -0.2,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   summaryLabel: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFF',
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginVertical: 16,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#FFF',
   },
   totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.primary,
   },
   countdownCard: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    borderColor: 'rgba(245, 158, 11, 0.2)',
   },
   countdownContainer: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   countdownLabel: {
-    fontSize: 12,
-    color: '#92400E',
+    fontSize: 13,
+    color: 'rgba(245, 158, 11, 0.8)',
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   countdownText: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 42,
+    fontWeight: '800',
     color: '#F59E0B',
-    marginVertical: 4,
+    marginVertical: 8,
+    fontVariant: ['tabular-nums'],
   },
   countdownSubtext: {
-    fontSize: 11,
-    color: '#92400E',
+    fontSize: 13,
+    color: 'rgba(245, 158, 11, 0.6)',
   },
   instructionText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  highlightText: {
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  bankRect: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    gap: 10,
+  },
+  bankRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bankLabel: {
     fontSize: 14,
-    color: COLORS.text,
-    marginBottom: 12,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  bankValue: {
+    fontSize: 14,
+    color: '#FFF',
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   uploadBox: {
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.15)',
     borderStyle: 'dashed',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: 'rgba(255,255,255,0.01)',
   },
   uploadText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFF',
+    marginBottom: 6,
   },
   uploadSubtext: {
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
   },
   imagePreview: {
     alignItems: 'center',
@@ -547,45 +605,72 @@ const styles = StyleSheet.create({
   successContainer: {
     alignItems: 'center',
     paddingVertical: 32,
+    marginTop: 20,
   },
   successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.success + '20',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(0, 208, 132, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.3)',
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
   successIconText: {
-    fontSize: 40,
-    color: COLORS.success,
+    fontSize: 44,
+    color: '#00D084',
+    fontWeight: '800',
   },
   successTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFF',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   successMessage: {
-    fontSize: 14,
-    color: COLORS.textMuted,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  nextStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
+  },
+  nextStepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
+    marginTop: 6,
   },
   nextStepText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    marginBottom: 8,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.8)',
+    flex: 1,
+    lineHeight: 22,
   },
   secondaryButton: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 80,
   },
   secondaryButtonText: {
     fontSize: 15,
-    color: COLORS.primary,
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
   },
 });

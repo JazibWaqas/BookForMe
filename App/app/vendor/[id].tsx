@@ -544,6 +544,9 @@ const styles = StyleSheet.create({
   venueImage: {
     width: SCREEN_WIDTH,
     height: 240,
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 20,
   },
   paginationDots: {
     position: 'absolute',
@@ -590,7 +593,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
@@ -819,7 +822,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,
   },
   amenityText: {
