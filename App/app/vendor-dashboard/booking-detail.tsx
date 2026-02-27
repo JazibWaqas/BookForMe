@@ -7,36 +7,17 @@ import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../config/api';
 
+// Simple in-memory cache for vendor bookings
+const bookingsCache: { [vendorId: string]: { bookings: any[]; timestamp: number } } = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Screenshot paths are stored as "/uploads/payments/filename.jpg" in Firestore.
 // Prepend the backend base URL to make them loadable in the app.
 const resolveScreenshotUrl = (url?: string): string | null => {
     if (!url) return null;
-    if (url.startsWith('http')) return url;          // already absolute
-    return `${API_BASE_URL}${url}`;                   // e.g. http://192.168.x.x:8000/uploads/payments/abc.jpg
+    if (url.startsWith('http')) return url;
+    return `${API_BASE_URL}${url}`;
 };
-
-interface BookingDetail {
-    id: string;
-    customer: {
-        name: string;
-        phone: string;
-        email: string;
-    };
-    date: string;
-    time: string;
-    court: string;
-    status: 'pending' | 'confirmed' | 'cancelled';
-    payment: {
-        method: 'wallet' | 'card' | 'venue';
-        total: number;
-        upfront: number;
-        remaining: number;
-        screenshot?: string;
-        verified: boolean;
-        uploadedAt?: string;
-    };
-    bookedAt: string;
-}
 
 export default function BookingDetailScreen() {
     const router = useRouter();
@@ -52,9 +33,30 @@ export default function BookingDetailScreen() {
             try {
                 const user = await authService.getCurrentUser();
                 if (user && user.vendor_id) {
-                    const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(user.vendor_id));
+                    const vendorId = user.vendor_id;
+                    let bookings: any[] = [];
+
+                    // Check cache first
+                    const cached = bookingsCache[vendorId];
+                    const now = Date.now();
+                    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+                        // Use cached bookings
+                        bookings = cached.bookings;
+                        // Show cached data immediately
+                        const foundBooking = bookings.find((b: any) => b.id === bookingId);
+                        if (foundBooking) {
+                            setBooking(foundBooking);
+                        }
+                    }
+
+                    // Always fetch fresh data in background
+                    const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(vendorId));
                     if (res.data.success) {
-                        const foundBooking = res.data.bookings.find((b: any) => b.id === bookingId);
+                        bookings = res.data.bookings || [];
+                        // Update cache
+                        bookingsCache[vendorId] = { bookings, timestamp: Date.now() };
+                        // Update UI with fresh data
+                        const foundBooking = bookings.find((b: any) => b.id === bookingId);
                         setBooking(foundBooking);
                     }
                 }
@@ -79,7 +81,6 @@ export default function BookingDetailScreen() {
                 const res = await apiClient.post(API_ENDPOINTS.vendors.approveSlot(user.vendor_id, booking.id));
                 if (res.data.success) {
                     setBooking({ ...booking, status: 'confirmed' });
-                    // router.back(); // Or stay on the page and show updated status
                 }
             }
         } catch (error) {
@@ -120,6 +121,11 @@ export default function BookingDetailScreen() {
         }
     };
 
+    // Simple screenshot URL resolution - only works for app bookings with Firestore payment doc
+    const screenshotUrl = booking?.payment?.screenshot_url
+        ? resolveScreenshotUrl(booking.payment.screenshot_url)
+        : null;
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -157,7 +163,7 @@ export default function BookingDetailScreen() {
                                 {(booking.status || '').toUpperCase()}
                             </Text>
                         </View>
-                        <Text style={styles.bookingId}>#{booking.id}</Text>
+                        <Text style={styles.bookingId}>#{booking.id?.slice(-8)}</Text>
                     </View>
 
                     {/* Customer Information */}
@@ -204,7 +210,7 @@ export default function BookingDetailScreen() {
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Source:</Text>
                             <Text style={styles.infoValue}>
-                                {booking.booking_source === 'whatsapp' ? '📱 WhatsApp Agent'
+                                {booking.booking_source === 'whatsapp' || booking.booking_source === 'whatsapp_ai' ? '📱 WhatsApp Agent'
                                     : booking.booking_source === 'walk-in' ? '🚶 Walk-in'
                                         : booking.booking_source === 'app' ? '📲 Mobile App'
                                             : booking.booking_source || 'N/A'}
@@ -230,8 +236,8 @@ export default function BookingDetailScreen() {
                             </View>
                         </View>
 
-                        {/* Payment Screenshot */}
-                        {resolveScreenshotUrl(booking.payment?.screenshot_url) ? (
+                        {/* Payment Screenshot - only for app bookings with Firestore payment doc */}
+                        {screenshotUrl ? (
                             <>
                                 <View style={styles.divider} />
                                 <View style={styles.screenshotSection}>
@@ -246,7 +252,7 @@ export default function BookingDetailScreen() {
                                         onPress={() => setShowScreenshot(true)}
                                     >
                                         <Image
-                                            source={{ uri: resolveScreenshotUrl(booking.payment.screenshot_url)! }}
+                                            source={{ uri: screenshotUrl }}
                                             style={styles.screenshotImage}
                                             resizeMode="cover"
                                         />
@@ -256,7 +262,7 @@ export default function BookingDetailScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </>
-                        ) : booking.booking_source === 'whatsapp' ? (
+                        ) : booking.booking_source === 'whatsapp' || booking.booking_source === 'whatsapp_ai' ? (
                             <>
                                 <View style={styles.divider} />
                                 <View style={[styles.verifiedBadge, { padding: 12, borderRadius: 10 }]}>
@@ -304,7 +310,7 @@ export default function BookingDetailScreen() {
             )}
 
             {/* Screenshot Full Screen Modal */}
-            {booking && resolveScreenshotUrl(booking.payment?.screenshot_url) && (
+            {screenshotUrl && (
                 <Modal
                     visible={showScreenshot}
                     transparent={true}
@@ -318,7 +324,7 @@ export default function BookingDetailScreen() {
                             <Text style={styles.modalCloseText}>Close ✕</Text>
                         </TouchableOpacity>
                         <Image
-                            source={{ uri: resolveScreenshotUrl(booking.payment.screenshot_url)! }}
+                            source={{ uri: screenshotUrl }}
                             style={styles.fullScreenImage}
                             resizeMode="contain"
                         />
@@ -474,7 +480,7 @@ const styles = StyleSheet.create({
     verifiedBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
-        backgroundColor: 'rgba(74, 222, 128, 0.2)',
+        backgroundColor: 'rgba(74, 222,  128, 0.2)',
         borderRadius: 6,
     },
     verifiedText: {

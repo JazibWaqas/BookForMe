@@ -8,6 +8,10 @@ import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
 
+// Simple in-memory cache for vendor bookings (shared with booking-detail)
+const bookingsCache: { [vendorId: string]: { bookings: any[]; timestamp: number } } = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatReadableDate = (dateStr?: string) => {
@@ -32,6 +36,7 @@ const formatCourtName = (resourceId?: string) => {
 
 const SOURCE_LABEL: Record<string, string> = {
   whatsapp: '📱 WhatsApp',
+  whatsapp_ai: '📱 WhatsApp',
   'walk-in': '🚶 Walk-in',
   app: '📲 App',
   manual: '🖊️ Manual',
@@ -59,13 +64,31 @@ export default function VendorBookingsScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
 
-  const fetchBookings = useCallback(async (silent = false) => {
+  const fetchBookings = useCallback(async (silent = false, forceRefresh = false) => {
     if (!silent) setLoading(true);
     try {
       const user = await authService.getCurrentUser();
       if (user?.vendor_id) {
-        const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(user.vendor_id));
-        if (res.data.success) setBookings(res.data.bookings || []);
+        const vendorId = user.vendor_id;
+
+        // Check cache first (unless forcing refresh)
+        const cached = bookingsCache[vendorId];
+        const now = Date.now();
+        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_TTL) {
+          // Use cached data
+          setBookings(cached.bookings);
+          setLoading(false);
+        }
+
+        // Always fetch fresh data in background
+        const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(vendorId));
+        if (res.data.success) {
+          const bookings = res.data.bookings || [];
+          // Update cache
+          bookingsCache[vendorId] = { bookings, timestamp: Date.now() };
+          // Update UI
+          setBookings(bookings);
+        }
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -77,7 +100,7 @@ export default function VendorBookingsScreen() {
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  const onRefresh = () => { setRefreshing(true); fetchBookings(true); };
+  const onRefresh = () => { setRefreshing(true); fetchBookings(true, true); };
 
   const filtered = bookings.filter((b) => {
     // Filter logic

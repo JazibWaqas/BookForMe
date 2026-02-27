@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -16,37 +17,62 @@ export default function VendorDashboardScreen() {
   const [metrics, setMetrics] = useState({ revenue: 0, bookings: 0 });
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vendorId, setVendorId] = useState<string | null>(null);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const fetchDashboardData = useCallback(async (vId: string) => {
+    try {
+      // Fetch vendor profile and analytics in parallel
+      const [vendorRes, analyticsRes] = await Promise.all([
+        apiClient.get(API_ENDPOINTS.vendors.get(vId)),
+        apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId))
+      ]);
+
+      if (vendorRes.data.success) {
+        setVendorName(vendorRes.data.vendor.name || vendorRes.data.vendor.business_name || 'Vendor Dashboard');
+      }
+
+      if (analyticsRes.data.success) {
+        setMetrics({
+          revenue: analyticsRes.data.metrics.revenue_today || 0,
+          bookings: analyticsRes.data.metrics.bookings_today || 0,
+        });
+        setUpcoming(analyticsRes.data.upcoming || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const initialize = async () => {
       try {
         const user = await authService.getCurrentUser();
         if (user && user.vendor_id) {
-          // Fetch vendor profile
-          const vendorRes = await apiClient.get(API_ENDPOINTS.vendors.get(user.vendor_id));
-          if (vendorRes.data.success) {
-            setVendorName(vendorRes.data.vendor.name || vendorRes.data.vendor.business_name || 'Vendor Dashboard');
-          }
-
-          // Fetch Analytics
-          const analyticsRes = await apiClient.get(API_ENDPOINTS.vendors.analyticsToday(user.vendor_id));
-          if (analyticsRes.data.success) {
-            setMetrics({
-              revenue: analyticsRes.data.metrics.revenue_today || 0,
-              bookings: analyticsRes.data.metrics.bookings_today || 0,
-            });
-            setUpcoming(analyticsRes.data.upcoming || []);
-          }
+          setVendorId(user.vendor_id);
+          await fetchDashboardData(user.vendor_id);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Error initializing dashboard:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    initialize();
+  }, [fetchDashboardData]);
+
+  // Auto-reload dashboard data every 5 seconds
+  useEffect(() => {
+    if (!vendorId) return;
+
+    const intervalId = setInterval(() => {
+      fetchDashboardData(vendorId);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [vendorId, fetchDashboardData]);
 
   // Backend calculates these now
   const todaysBookingsCount = metrics.bookings;
@@ -67,10 +93,13 @@ export default function VendorDashboardScreen() {
           <Text style={styles.title}>Dashboard</Text>
           <Text style={styles.subtitle}>{vendorName}</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/notifications')}>
-          <View style={styles.iconButton}>
-            <Text style={styles.iconText}>Notifications</Text>
-          </View>
+        <TouchableOpacity onPress={() => setNotificationsVisible(true)} style={styles.notificationButton}>
+          <Ionicons name="notifications-outline" size={22} color={COLORS.text} />
+          {notifications.length > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>{notifications.length > 99 ? '99+' : notifications.length}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -169,6 +198,55 @@ export default function VendorDashboardScreen() {
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={notificationsVisible}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setNotificationsVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {notifications.length === 0 ? (
+              <View style={styles.emptyNotifications}>
+                <Ionicons name="notifications-off-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>No notifications yet</Text>
+                <Text style={styles.emptySubtext}>
+                  You will see notifications for payments, cancellations, and upcoming slots here.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={notifications}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.notificationItem}>
+                    <View style={styles.notificationIcon}>
+                      <Ionicons
+                        name={item.type === 'payment' ? 'cash-outline' : item.type === 'cancellation' ? 'close-circle-outline' : 'time-outline'}
+                        size={20}
+                        color={COLORS.primary}
+                      />
+                    </View>
+                    <View style={styles.notificationContent}>
+                      <Text style={styles.notificationTitle}>{item.title}</Text>
+                      <Text style={styles.notificationMessage}>{item.message}</Text>
+                      <Text style={styles.notificationTime}>{item.time}</Text>
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -198,7 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
   },
-  iconButton: {
+  notificationButton: {
     width: 40,
     height: 40,
     borderWidth: 2,
@@ -206,10 +284,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  iconText: {
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
     fontSize: 10,
-    color: COLORS.textMuted,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   content: {
     flex: 1,
@@ -385,6 +477,88 @@ const styles = StyleSheet.create({
   navTextActive: {
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  // Notifications Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  emptyNotifications: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.text,
+    marginTop: 12,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: COLORS.backgroundLight,
+    borderRadius: 12,
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  notificationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  notificationMessage: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  notificationTime: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    opacity: 0.7,
   },
 });
 

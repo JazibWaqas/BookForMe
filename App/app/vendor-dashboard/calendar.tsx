@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
@@ -117,6 +117,15 @@ export default function VendorCalendarScreen() {
     return () => clearInterval(intervalId);
   }, [vendorId, currentDate, fetchGridData]);
 
+  // Refresh when screen comes into focus (e.g., returning from booking detail)
+  useFocusEffect(
+    useCallback(() => {
+      if (vendorId) {
+        fetchGridData(vendorId, formatDate(currentDate));
+      }
+    }, [vendorId, currentDate, fetchGridData])
+  );
+
   // Handle Date Navigation
   const changeDate = (days: number) => {
     const newDate = new Date(currentDate);
@@ -135,8 +144,8 @@ export default function VendorCalendarScreen() {
   };
 
   const handleSlotPress = (time: string, resource: string, slot?: any) => {
-    if (slot && slot.status === 'available') {
-      // Pre-seeded slot that is open — open walk-in modal
+    if (slot && (slot.status === 'available' || slot.status === 'cancelled')) {
+      // Pre-seeded slot that is open or was cancelled — open walk-in modal
       setSelectedSlot({ time, resource });
       setWalkInName('');
       setWalkInPhone('');
@@ -254,8 +263,8 @@ export default function VendorCalendarScreen() {
                   let statusLabel = '';
 
                   if (slot) {
-                    if (slot.status === 'available') {
-                      // Green — tap to walk-in
+                    if (slot.status === 'available' || slot.status === 'cancelled') {
+                      // Green — tap to walk-in (cancelled slots become available again)
                       cellStyle = styles.slotAvailable;
                       cellText = 'AVAILABLE';
                     } else if (slot.status === 'locked' || slot.status === 'pending') {
@@ -264,7 +273,14 @@ export default function VendorCalendarScreen() {
                     } else if (slot.status === 'confirmed' || slot.status === 'completed') {
                       cellStyle = styles.slotConfirmed;
                       cellText = slot.customer_name || 'BOOKED';
-                      statusLabel = slot.booking_source === 'whatsapp' ? '📱 WA' : slot.booking_source === 'walk-in' ? '🚶 WI' : '📲 APP';
+                      const source = slot.booking_source;
+                      if (source === 'whatsapp' || source === 'whatsapp_ai') {
+                        statusLabel = '📱 WhatsApp';
+                      } else if (source === 'walk-in') {
+                        statusLabel = '🚶 Walk-in';
+                      } else {
+                        statusLabel = '📲 App';
+                      }
                     } else if (slot.status === 'blocked') {
                       cellStyle = styles.slotBlocked;
                       cellText = 'BLOCKED';
