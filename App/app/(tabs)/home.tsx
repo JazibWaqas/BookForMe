@@ -125,11 +125,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with green spotlight */}
-      <LinearGradient
-        colors={['#0D2518', COLORS.backgroundAlt]}
-        style={styles.header}
-      >
+      {/* Seamless Header */}
+      <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.greeting}>Hello</Text>
@@ -153,7 +150,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+          <Ionicons name="search" size={20} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search venues, areas..."
@@ -169,7 +166,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -213,50 +210,28 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Categories - Horizontal Scroll with sport gradients */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={[styles.sectionAccent, { backgroundColor: COLORS.primary }]} />
-                  <Text style={styles.sectionTitle}>Browse by Sport</Text>
-                </View>
-              </View>
+            {/* Categories - Sleek Pills */}
+            <View style={styles.categoriesSection}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesScroll}
+                contentContainerStyle={styles.categoryPillsScroll}
               >
                 {categories.map((cat) => {
-                  const gradient = categoryGradients[cat.id] || ['#0A2218', '#08090F'];
                   const iconColor = categoryIconColors[cat.id] || COLORS.primary;
                   return (
                     <TouchableOpacity
                       key={cat.id}
-                      style={styles.categoryCard}
+                      style={[styles.categoryPill, { borderColor: iconColor + '30', backgroundColor: iconColor + '08' }]}
                       onPress={() => router.push(`/category/${cat.id}`)}
-                      activeOpacity={0.85}
+                      activeOpacity={0.7}
                     >
-                      <LinearGradient
-                        colors={gradient}
-                        style={styles.categoryContent}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <View style={[styles.categoryIconContainer, { backgroundColor: iconColor + '20', borderColor: iconColor + '30', borderWidth: 1 }]}>
-                          <Ionicons
-                            name={categoryIcons[cat.id] || 'tennisball'}
-                            size={28}
-                            color={iconColor}
-                          />
-                        </View>
-                        <View>
-                          <Text style={styles.categoryName}>{cat.name}</Text>
-                          <Text style={[styles.categoryCount, { color: iconColor + 'CC' }]}>{cat.count} venues</Text>
-                        </View>
-                        <View style={styles.categoryArrow}>
-                          <Ionicons name="arrow-forward" size={14} color={iconColor} />
-                        </View>
-                      </LinearGradient>
+                      <Ionicons
+                        name={categoryIcons[cat.id] || 'tennisball'}
+                        size={16}
+                        color={iconColor}
+                      />
+                      <Text style={styles.categoryPillText}>{cat.name}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -267,10 +242,7 @@ export default function HomeScreen() {
             {filteredPadelVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionAccent, { backgroundColor: COLORS.primary }]} />
-                    <Text style={styles.sectionTitle}>Padel Courts</Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Padel Courts</Text>
                   <TouchableOpacity onPress={() => router.push('/category/padel')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -297,10 +269,7 @@ export default function HomeScreen() {
             {filteredFutsalVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionAccent, { backgroundColor: '#60A5FA' }]} />
-                    <Text style={styles.sectionTitle}>Futsal Courts</Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Futsal Courts</Text>
                   <TouchableOpacity onPress={() => router.push('/category/futsal')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -327,10 +296,7 @@ export default function HomeScreen() {
             {filteredCricketVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionAccent, { backgroundColor: COLORS.accent }]} />
-                    <Text style={styles.sectionTitle}>Cricket Nets</Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Cricket Nets</Text>
                   <TouchableOpacity onPress={() => router.push('/category/cricket')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -357,10 +323,7 @@ export default function HomeScreen() {
             {filteredPickleballVendors.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionAccent, { backgroundColor: '#22D3EE' }]} />
-                    <Text style={styles.sectionTitle}>Pickleball Courts</Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>Pickleball Courts</Text>
                   <TouchableOpacity onPress={() => router.push('/category/pickleball')}>
                     <Text style={styles.viewAll}>View All →</Text>
                   </TouchableOpacity>
@@ -383,30 +346,7 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* Quick Actions */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Quick Access</Text>
-              <View style={styles.quickActions}>
-                <TouchableOpacity
-                  style={styles.actionCard}
-                  onPress={() => router.push('/(tabs)/chatbot')}
-                >
-                  <Text style={styles.actionLabel}>AI Assistant</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionCard}
-                  onPress={() => router.push('/(tabs)/social')}
-                >
-                  <Text style={styles.actionLabel}>Find Players</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionCard}
-                  onPress={() => router.push('/notifications')}
-                >
-                  <Text style={styles.actionLabel}>Notifications</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+
           </>
         )}
 
@@ -510,76 +450,45 @@ const styles = StyleSheet.create({
   section: {
     paddingVertical: 18,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  sectionAccent: {
-    width: 4,
-    height: 20,
-    borderRadius: 2,
-  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: -0.2,
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   viewAll: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,
     opacity: 0.9,
   },
-  categoriesScroll: {
+  categoriesSection: {
+    paddingVertical: 16,
+  },
+  categoryPillsScroll: {
     paddingHorizontal: 20,
     gap: 12,
   },
-  categoryCard: {
-    width: 155,
-    height: 118,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    ...SHADOWS.card,
-  },
-  categoryContent: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  categoryIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  categoryPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 8,
   },
-  categoryName: {
-    fontSize: 15,
-    fontWeight: '700',
+  categoryPillText: {
     color: COLORS.text,
-    letterSpacing: -0.2,
-  },
-  categoryCount: {
-    fontSize: 12,
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  categoryArrow: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
+    fontSize: 15,
+    fontWeight: '600',
   },
   vendorsScroll: {
     paddingHorizontal: 20,
@@ -587,27 +496,6 @@ const styles = StyleSheet.create({
   },
   vendorCardWrapper: {
     width: 280,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    height: 80,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    textAlign: 'center',
   },
   // AI Chatbot FAB
   chatFab: {
