@@ -25,15 +25,33 @@ def _resolve_vendor_by_name(vendor_name: str, vendors: List[Dict[str, Any]]) -> 
     """Fuzzy-match a user-provided vendor name against known vendors."""
     if not vendor_name:
         return None
+    from difflib import SequenceMatcher
     name_lower = vendor_name.lower().strip()
-    aliases = name_lower.split()
+    aliases = [a for a in name_lower.split() if len(a) > 2]
+
+    best_id: Optional[str] = None
+    best_score: float = 0.0
+
     for v in vendors:
         vid = v.get('id', '').lower()
         vname = v.get('name', '').lower()
+
         if name_lower == vname or name_lower == vid:
             return v['id']
-        if any(alias in vname or alias in vid for alias in aliases if len(alias) > 2):
-            return v['id']
+
+        matched = sum(1 for a in aliases if a in vname or a in vid)
+        if matched == 0:
+            continue
+
+        ratio = SequenceMatcher(None, name_lower, vname).ratio()
+        score = matched + ratio
+
+        if score > best_score:
+            best_score = score
+            best_id = v['id']
+
+    if best_id and best_score >= 1.3:
+        return best_id
     return None
 
 
