@@ -14,8 +14,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.config import settings
-# TEMPORARILY DISABLED: WhatsApp requires GROQ_API_KEY
-# from whatsapp.webhook import WhatsAppWebhookHandler
+# Import Firestore at module level so the gRPC client is alive BEFORE uvicorn starts
+# accepting requests. Previously this was a lazy import inside startup_event(), which
+# created a race window where the first user request could arrive before firestore_db.db
+# was constructed (visible in Render logs: Firestore init printed AFTER 'service is live').
+from app.firestore import firestore_db  # noqa: E402  (must be early)
 from database.rest_api import router as rest_api_router
 from database.auth_api import router as auth_router
 from database.social_api import router as social_router
@@ -136,16 +139,34 @@ async def dev_chat_upload(
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
+    import time
     logger.info("Starting BookForMe Backend Server...")
-    logger.info("Firestore initialized")
+
+    # firestore_db is already constructed at module level.
+    # Log its readiness and do an eager warm-up query to force the gRPC channel
+    # fully open before the first real user request arrives (prevents cold-start
+    # 'silent 0 results' on the very first DB call).
+    if firestore_db.db:
+        logger.info("Firestore client ready (module-level init). Warming up gRPC channel...")
+        try:
+            t0 = time.time()
+            # A cheap collection-existence probe — reads 0 documents but opens the channel.
+            list(firestore_db.db.collection('vendors').limit(1).stream())
+            logger.info(f"Firestore gRPC channel warmed up in {time.time()-t0:.3f}s")
+        except Exception as e:
+            logger.warning(f"Firestore warm-up probe failed (non-fatal): {e}")
+    else:
+        logger.error("Firestore client is None — check GOOGLE_APPLICATION_CREDENTIALS env var")
+
+    # Clean up any expired slot locks left over from previous container lifetime
     try:
-        from app.firestore import firestore_db
         from database.slot_service import SlotService
         result = SlotService(firestore_db.db).cleanup_expired_locks()
         if result.get('released_count', 0) > 0:
             logger.info("Startup: released %d expired slot locks", result['released_count'])
     except Exception as e:
         logger.warning("Startup slot cleanup failed: %s", e)
+
     try:
         from whatsapp.agent import WhatsAppAgent
         global dev_chat_agent
@@ -153,10 +174,8 @@ async def startup_event():
         logger.info("Dev-chat agent initialized (for /dev-api/chat)")
     except Exception as e:
         logger.warning("Dev-chat agent not initialized: %s", e)
+
     logger.info("Server ready to accept requests")
-    # from app.firestore import firestore_db
-    # await firestore_db.test_connection()
-    
     logger.info("Server started successfully!")
 
 
