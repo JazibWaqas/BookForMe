@@ -62,6 +62,29 @@ export const API_ENDPOINTS = {
     submit: '/api/payments',
   },
 
+  // Social
+  social: {
+    feed: '/api/social/posts/feed',
+    matches: '/api/social/matches/list',
+    leaderboard: '/api/social/leaderboard',
+    createPost: '/api/social/posts/create',
+    likePost: (postId: string) => `/api/social/posts/${postId}/like`,
+    comments: (postId: string) => `/api/social/posts/${postId}/comments`,
+    createComment: (postId: string) => `/api/social/posts/${postId}/comments`,
+    conversations: '/api/social/chat/conversations',
+    chatHistory: (convId: string) => `/api/social/chat/history/${convId}`,
+    sendMessage: '/api/social/chat/message',
+    upload: '/api/social/upload',
+    // Friends
+    users: '/api/social/users',
+    friends: '/api/social/friends',
+    friendRequests: '/api/social/friends/requests',
+    sendFriendRequest: '/api/social/friends/request',
+    acceptFriendRequest: '/api/social/friends/accept',
+    rejectFriendRequest: '/api/social/friends/reject',
+    removeFriend: '/api/social/friends/remove',
+  },
+
   // Health check
   health: '/health',
 };

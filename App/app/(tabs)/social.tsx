@@ -90,15 +90,16 @@ export default function SocialScreen() {
     loadUser();
   }, []);
 
-  // Removed old manual fetchData useEffect
-  // useEffect(() => { fetchData(); }, [activeTab, selectedFilter]);
+  // Load chats when switching to chats tab
+  useEffect(() => {
+    if (activeTab === 'chats' && currentUser) {
+      loadChats(currentUser.id);
+    }
+  }, [activeTab]);
 
   const loadUser = async () => {
     const user = await authService.getCurrentUser();
     setCurrentUser(user);
-    if (user && activeTab === 'chats') {
-      loadChats(user.id);
-    }
   };
 
   const loadChats = async (userId: string) => {
@@ -519,11 +520,14 @@ export default function SocialScreen() {
               {(chats || []).map((chat: any) => (
                 <TouchableOpacity key={chat.id} style={styles.chatCard} activeOpacity={0.7} onPress={() => router.push(`/chat/${chat.id}`)}>
                   <View style={styles.chatAvatarContainer}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150' }} style={styles.chatAvatar} />
+                    <Image 
+                      source={{ uri: chat.other_user?.avatar_url || 'https://i.pravatar.cc/150' }} 
+                      style={styles.chatAvatar} 
+                    />
                   </View>
                   <View style={styles.chatInfo}>
                     <View style={styles.chatHeader}>
-                      <Text style={styles.chatName}>Chat {chat.id.substring(0, 6)}</Text>
+                      <Text style={styles.chatName}>{chat.other_user?.name || 'Unknown User'}</Text>
                       <Text style={styles.chatTime}>{new Date(chat.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                     </View>
                     <View style={styles.chatMessageRow}>
@@ -545,7 +549,15 @@ export default function SocialScreen() {
           {activeTab === 'friends' && currentUser && (
             <FriendsTab
               currentUserId={currentUser.id}
-              onChatWithFriend={(userId) => router.push(`/chat/${userId}`)}
+              onChatWithFriend={async (friendId) => {
+                try {
+                  // Create/get conversation first
+                  const conv = await SocialService.startConversation(currentUser.id!, friendId);
+                  router.push(`/chat/${conv.id}`);
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to start chat');
+                }
+              }}
             />
           )}
 

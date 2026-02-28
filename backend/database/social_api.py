@@ -39,7 +39,7 @@ router = APIRouter(
 db = firestore_db.db
 
 import asyncio
-from app.cache import cache
+from app.cache import cache, cached
 
 # --- Helpers ---
 
@@ -251,17 +251,15 @@ async def get_notifications(user_id: str = Query(...), limit: int = 50):
     return notifications[:limit]
 
 @router.get("/posts/feed", response_model=List[PostResponse])
+@cached(ttl_seconds=60, key_prefix="social_feed")
 async def get_posts_feed(
     limit: int = 20, 
     type: Optional[str] = None,
     media_only: bool = False
 ):
-    """Get recent posts with filters - Optimized with Parallel Fetching"""
-    # Optimized ref: get all docs first (limit 50 to allow for extensive client filtering if needed, or just fetch all for now and limit in memory)
-    # Ideally use .order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
-    # But that might require index. Let's try raw stream and efficient parallel fetch
-    
-    docs = await asyncio.to_thread(lambda: list(db.collection('posts').stream()))
+    """Get recent posts with filters - Optimized with Parallel Fetching and Caching"""
+    # OPTIMIZED: Limit at Firestore level instead of fetching all
+    docs = await asyncio.to_thread(lambda: list(db.collection('posts').limit(50).stream()))
     
     posts_data = []
     
@@ -606,6 +604,7 @@ async def link_match_slot(match_id: str, slot_id: str, user_id: str = Query(...)
     return {"status": "success", "message": "Match linked to booking"}
 
 @router.get("/matches/list", response_model=List[MatchResponse])
+@cached(ttl_seconds=120, key_prefix="social_matches")
 async def list_matches(
     sport: Optional[str] = None,
     search: Optional[str] = None
@@ -701,6 +700,7 @@ async def join_match(match_id: str, user_id: str = Query(...)):
 # --- 3. Ranking ---
 
 @router.get("/leaderboard", response_model=List[UserProfileSocial])
+@cached(ttl_seconds=300, key_prefix="social_leaderboard")
 async def get_leaderboard(limit: int = 50):
     """Get top players by points"""
     # Requires index on 'points' descending
@@ -735,7 +735,7 @@ async def start_chat(conversation: ConversationCreate, current_user_id: str = Qu
         chat_id = f"direct_{participants[0]}_{participants[1]}"
         
         doc_ref = db.collection('conversations').document(chat_id)
-        doc = doc_ref.get()
+        doc = await asyncio.to_thread(doc_ref.get)
         
         if doc.exists:
             data = doc.to_dict()
@@ -751,7 +751,7 @@ async def start_chat(conversation: ConversationCreate, current_user_id: str = Qu
             "updated_at": firestore.SERVER_TIMESTAMP,
             "unread_count": {p: 0 for p in participants}
         }
-        doc_ref.set(new_chat)
+        await asyncio.to_thread(doc_ref.set, new_chat)
         # return with ID and now (approx)
         new_chat['id'] = chat_id
         new_chat['created_at'] = datetime.now() # approximation for response
@@ -765,7 +765,7 @@ async def start_chat(conversation: ConversationCreate, current_user_id: str = Qu
     new_chat['updated_at'] = firestore.SERVER_TIMESTAMP
     new_chat['unread_count'] = {p: 0 for p in conversation.participants}
     
-    doc_ref.set(new_chat)
+    await asyncio.to_thread(doc_ref.set, new_chat)
     
     return ConversationResponse(
         id=doc_ref.id,
@@ -775,10 +775,10 @@ async def start_chat(conversation: ConversationCreate, current_user_id: str = Qu
     )
 
 @router.get("/chat/conversations", response_model=List[ConversationResponse])
+@cached(ttl_seconds=30, key_prefix="social_conversations")
 async def get_conversations(user_id: str = Query(...)):
     """Get list of conversations for a user"""
-    # Simple query without composite index requirement
-    docs = db.collection('conversations').stream()
+    docs = await asyncio.to_thread(lambda: list(db.collection('conversations').limit(50).stream()))
     
     conversations = []
     for doc in docs:
@@ -792,6 +792,18 @@ async def get_conversations(user_id: str = Query(...)):
         # Prepare response data
         response_data = data.copy()
         response_data['id'] = doc.id
+        
+        # Get other participant's info for display
+        other_participant_id = [p for p in participants if p != user_id][0]
+        if other_participant_id:
+            other_user_doc = await asyncio.to_thread(db.collection('users').document(other_participant_id).get)
+            if other_user_doc.exists:
+                other_user_data = other_user_doc.to_dict()
+                response_data['other_user'] = {
+                    'id': other_participant_id,
+                    'name': other_user_data.get('name', 'Unknown'),
+                    'avatar_url': other_user_data.get('avatar_url')
+                }
         
         # Handle timestamp conversion
         if 'created_at' not in response_data or response_data['created_at'] is None:
@@ -808,11 +820,12 @@ async def get_conversations(user_id: str = Query(...)):
 @router.get("/chat/history/{conversation_id}", response_model=List[MessageResponse])
 async def get_chat_history(conversation_id: str, limit: int = 50):
     """Get messages for a conversation"""
-    # Simple query without composite index requirement
-    docs = db.collection('messages')\
-             .where('conversation_id', '==', conversation_id)\
-             .limit(limit)\
-             .stream()
+    docs = await asyncio.to_thread(
+        lambda: list(db.collection('messages')
+                 .where('conversation_id', '==', conversation_id)
+                 .limit(limit)
+                 .stream())
+    )
     
     messages = []
     for doc in docs:
@@ -835,23 +848,225 @@ async def send_message(message: MessageCreate):
     msg_data['created_at'] = firestore.SERVER_TIMESTAMP
     msg_data['read_by'] = [message.sender_id]
     
-    msg_ref.set(msg_data)
+    await asyncio.to_thread(msg_ref.set, msg_data)
     
     # 2. Update conversation (last_message, unread_count)
     conv_ref = db.collection('conversations').document(message.conversation_id)
     
-    # Ideally do this in a transaction or atomic update
-    # Increment unread for everyone except sender
-    # We need to fetch participants first to know who to increment
-    # For simplicity here, just updating last_message
-    conv_ref.update({
-        "last_message": message.content,
-        "last_message_time": firestore.SERVER_TIMESTAMP,
-        "updated_at": firestore.SERVER_TIMESTAMP
-    })
+    await asyncio.to_thread(
+        lambda: conv_ref.update({
+            "last_message": message.content,
+            "last_message_time": firestore.SERVER_TIMESTAMP,
+            "updated_at": firestore.SERVER_TIMESTAMP
+        })
+    )
     
     return MessageResponse(
         id=msg_ref.id,
-        created_at=datetime.now(),
-        **msg_data
+        **{k: v for k, v in msg_data.items() if k != 'created_at'},
+        created_at=datetime.now()
     )
+
+# ========================================
+# FRIENDS SYSTEM
+# ========================================
+
+@router.get("/users", response_model=List[UserProfileSocial])
+@cached(ttl_seconds=60, key_prefix="social_users")
+async def list_users_for_friends(
+    search: Optional[str] = None,
+    limit: int = 50
+):
+    """List all users for finding friends (excludes sensitive data)"""
+    docs = await asyncio.to_thread(lambda: list(db.collection('users').limit(limit).stream()))
+    
+    users = []
+    for doc in docs:
+        data = doc.to_dict()
+        
+        # Filter by search query if provided
+        if search and search.lower() not in (data.get('name', '')).lower():
+            continue
+        
+        users.append(UserProfileSocial(
+            id=doc.id,
+            name=data.get('name', 'Unknown'),
+            avatar_url=data.get('avatar_url'),
+            rank=data.get('rank', 0),
+            points=data.get('points', 0)
+        ))
+    
+    return users
+
+
+@router.get("/friends")
+async def get_friends(user_id: str = Query(...)):
+    """Get current user's friends list"""
+    # Get user document to access friends array
+    user_doc = await asyncio.to_thread(db.collection('users').document(user_id).get)
+    
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_data = user_doc.to_dict()
+    friend_ids = user_data.get('friends', [])
+    
+    if not friend_ids:
+        return {"friends": []}
+    
+    # Fetch friend profiles in parallel
+    friends = await asyncio.gather(*[
+        get_user_profile_social(fid) for fid in friend_ids
+    ])
+    
+    return {"friends": [f.dict() for f in friends]}
+
+
+@router.get("/friends/requests")
+async def get_friend_requests(user_id: str = Query(...)):
+    """Get pending friend requests for current user"""
+    # Get incoming requests
+    incoming_docs = await asyncio.to_thread(
+        lambda: list(db.collection('friend_requests')
+                     .where('to_user_id', '==', user_id)
+                     .where('status', '==', 'pending')
+                     .stream())
+    )
+    
+    requests = []
+    for doc in incoming_docs:
+        data = doc.to_dict()
+        from_user = await get_user_profile_social(data.get('from_user_id'))
+        requests.append({
+            "id": doc.id,
+            "from_user": from_user.dict(),
+            "status": data.get('status'),
+            "created_at": data.get('created_at')
+        })
+    
+    return {"requests": requests}
+
+
+@router.post("/friends/request")
+async def send_friend_request(
+    to_user_id: str = Query(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Add a friend directly (no acceptance required for demo)"""
+    if user_id == to_user_id:
+        raise HTTPException(status_code=400, detail="Cannot add yourself as a friend")
+    
+    # Check if already friends
+    user_doc = await asyncio.to_thread(db.collection('users').document(user_id).get)
+    user_data = user_doc.to_dict()
+    
+    if to_user_id in user_data.get('friends', []):
+        raise HTTPException(status_code=400, detail="Already friends with this user")
+    
+    # Add each user to the other's friends array directly
+    from_user_ref = db.collection('users').document(user_id)
+    to_user_ref = db.collection('users').document(to_user_id)
+    
+    await asyncio.to_thread(
+        lambda: from_user_ref.update({'friends': firestore.ArrayUnion([to_user_id])})
+    )
+    await asyncio.to_thread(
+        lambda: to_user_ref.update({'friends': firestore.ArrayUnion([user_id])})
+    )
+    
+    # Clear cache
+    cache.clear()
+    
+    return {"success": True, "message": "Friend added!"}
+
+
+@router.post("/friends/accept")
+async def accept_friend_request(
+    request_id: str = Query(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Accept a friend request"""
+    request_doc = await asyncio.to_thread(db.collection('friend_requests').document(request_id).get)
+    
+    if not request_doc.exists:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    
+    request_data = request_doc.to_dict()
+    
+    if request_data.get('to_user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to accept this request")
+    
+    if request_data.get('status') != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    from_user_id = request_data.get('from_user_id')
+    
+    # Add each user to the other's friends array
+    from_user_ref = db.collection('users').document(from_user_id)
+    to_user_ref = db.collection('users').document(user_id)
+    
+    # Update both users' friends arrays
+    await asyncio.to_thread(
+        lambda: from_user_ref.update({'friends': firestore.ArrayUnion([user_id])})
+    )
+    await asyncio.to_thread(
+        lambda: to_user_ref.update({'friends': firestore.ArrayUnion([from_user_id])})
+    )
+    
+    # Update request status
+    await asyncio.to_thread(
+        lambda: db.collection('friend_requests').document(request_id).update({'status': 'accepted'})
+    )
+    
+    # Clear users cache (invalidate all user list caches by clearing prefix matches)
+    # Note: In production, use cache.invalidate_pattern() or Redis
+    cache.clear()  # Simple solution for demo - clears all cache
+    
+    return {"success": True, "message": "Friend request accepted"}
+
+
+@router.post("/friends/reject")
+async def reject_friend_request(
+    request_id: str = Query(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Reject a friend request"""
+    request_doc = await asyncio.to_thread(db.collection('friend_requests').document(request_id).get)
+    
+    if not request_doc.exists:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    
+    request_data = request_doc.to_dict()
+    
+    if request_data.get('to_user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to reject this request")
+    
+    # Update request status
+    await asyncio.to_thread(
+        lambda: db.collection('friend_requests').document(request_id).update({'status': 'rejected'})
+    )
+    
+    return {"success": True, "message": "Friend request rejected"}
+
+
+@router.post("/friends/remove")
+async def remove_friend(
+    friend_id: str = Query(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Remove a friend"""
+    # Remove from both users' friends arrays
+    user_ref = db.collection('users').document(user_id)
+    friend_ref = db.collection('users').document(friend_id)
+    
+    await asyncio.to_thread(
+        lambda: user_ref.update({'friends': firestore.ArrayRemove([friend_id])})
+    )
+    await asyncio.to_thread(
+        lambda: friend_ref.update({'friends': firestore.ArrayRemove([user_id])})
+    )
+    
+    # Clear cache
+    cache.clear()  # Simple solution for demo
+    
+    return {"success": True, "message": "Friend removed"}

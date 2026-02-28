@@ -204,6 +204,16 @@ export const SocialService = {
         return response.data;
     },
 
+    async startConversation(currentUserId: string, friendId: string) {
+        const response = await apiClient.post('/api/social/chat/start', {
+            type: 'direct',
+            participants: [currentUserId, friendId]
+        }, {
+            params: { current_user_id: currentUserId }
+        });
+        return response.data;
+    },
+
     // --- Leaderboard ---
     async getLeaderboard(limit = 50) {
         const response = await apiClient.get('/api/social/leaderboard', { params: { limit } });

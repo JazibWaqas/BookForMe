@@ -3,21 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator,
 import { Ionicons } from '@expo/vector-icons';
 import FriendCard from './FriendCard';
 import { COLORS } from '../../constants/colors';
+import { apiClient, API_ENDPOINTS } from '../../config/api';
 
 interface User {
     id: string;
     name: string;
     avatar_url?: string;
-    level?: number;
-    mutual_friends?: number;
-}
-
-interface FriendRequest {
-    id: string;
-    from_user: User;
-    to_user: User;
-    status: 'pending' | 'accepted' | 'rejected';
-    created_at: string;
+    rank?: number;
+    points?: number;
 }
 
 interface FriendsTabProps {
@@ -26,9 +19,8 @@ interface FriendsTabProps {
 }
 
 export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsTabProps) {
-    const [activeSection, setActiveSection] = useState<'friends' | 'requests' | 'find'>('friends');
+    const [activeSection, setActiveSection] = useState<'friends' | 'find'>('friends');
     const [friends, setFriends] = useState<User[]>([]);
-    const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [suggestions, setSuggestions] = useState<User[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -42,23 +34,13 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         setLoading(true);
         try {
             if (activeSection === 'friends') {
-                // Mock data for now
-                setFriends([
-                    { id: '1', name: 'Ahmed Khan', level: 5, mutual_friends: 12 },
-                    { id: '2', name: 'Sara Ali', level: 3, mutual_friends: 8 },
-                    { id: '3', name: 'Omar Hassan', level: 7, mutual_friends: 5 },
-                ]);
-            } else if (activeSection === 'requests') {
-                // Mock data
-                setRequests([
-                    { id: 'r1', from_user: { id: '4', name: 'Ali Raza', level: 2 }, to_user: { id: currentUserId, name: 'You' }, status: 'pending', created_at: new Date().toISOString() },
-                ]);
+                const res = await apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } });
+                setFriends(res.data.friends || []);
             } else if (activeSection === 'find') {
-                // Mock suggestions
-                setSuggestions([
-                    { id: '5', name: 'Fatima Zahra', level: 4, mutual_friends: 3 },
-                    { id: '6', name: 'Hassan Ali', level: 6, mutual_friends: 7 },
-                ]);
+                const res = await apiClient.get(API_ENDPOINTS.social.users);
+                const allUsers = res.data || [];
+                // Filter out current user
+                setSuggestions(allUsers.filter((u: User) => u.id !== currentUserId));
             }
         } catch (error) {
             console.error('Error loading friends data:', error);
@@ -70,9 +52,13 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
     const handleSearch = async (query: string) => {
         setSearchQuery(query);
         if (query.length >= 2) {
-            setSearchResults([
-                { id: '7', name: query + ' Player', level: 2 },
-            ]);
+            try {
+                const res = await apiClient.get(API_ENDPOINTS.social.users, { params: { search: query } });
+                const results = (res.data || []).filter((u: User) => u.id !== currentUserId);
+                setSearchResults(results);
+            } catch (error) {
+                console.error('Error searching users:', error);
+            }
         } else {
             setSearchResults([]);
         }
@@ -80,39 +66,40 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
 
     const handleAddFriend = async (userId: string) => {
         try {
-            Alert.alert('Friend Request Sent!', 'They will be notified of your request.');
-            setSuggestions(prev => prev.filter(u => u.id !== userId));
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to send friend request');
-        }
-    };
-
-    const handleAcceptRequest = async (requestId: string) => {
-        try {
+            await apiClient.post(API_ENDPOINTS.social.sendFriendRequest, null, { params: { to_user_id: userId } });
             Alert.alert('Friend Added!', 'You are now friends.');
-            const request = requests.find(r => r.id === requestId);
-            if (request) {
-                setFriends(prev => [...prev, request.from_user]);
-                setRequests(prev => prev.filter(r => r.id !== requestId));
-            }
+            setSuggestions(prev => prev.filter(u => u.id !== userId));
+            setSearchResults(prev => prev.filter(u => u.id !== userId));
+            // Refresh friends list
+            loadData();
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to accept request');
+            const msg = error.response?.data?.detail || 'Failed to add friend';
+            Alert.alert('Error', msg);
         }
     };
 
-    const handleRejectRequest = async (requestId: string) => {
-        try {
-            setRequests(prev => prev.filter(r => r.id !== requestId));
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to reject request');
-        }
+    const handleRemoveFriend = async (friendId: string, friendName: string) => {
+        Alert.alert('Remove Friend?', `Are you sure you want to remove ${friendName}?`, [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+                text: 'Remove', 
+                style: 'destructive', 
+                onPress: async () => {
+                    try {
+                        await apiClient.post(API_ENDPOINTS.social.removeFriend, null, { params: { friend_id: friendId } });
+                        setFriends(prev => prev.filter(f => f.id !== friendId));
+                    } catch (error: any) {
+                        Alert.alert('Error', 'Failed to remove friend');
+                    }
+                }
+            },
+        ]);
     };
 
     const renderSectionTabs = () => (
         <View style={styles.tabsContainer}>
             {[
                 { key: 'friends', label: 'My Friends', icon: 'people' },
-                { key: 'requests', label: 'Requests', icon: 'person-add', badge: requests.length },
                 { key: 'find', label: 'Find Friends', icon: 'search' },
             ].map((tab) => (
                 <TouchableOpacity
@@ -128,11 +115,6 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
                     <Text style={[styles.tabText, activeSection === tab.key && styles.tabTextActive]}>
                         {tab.label}
                     </Text>
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                        <View style={styles.tabBadge}>
-                            <Text style={styles.tabBadgeText}>{tab.badge}</Text>
-                        </View>
-                    )}
                 </TouchableOpacity>
             ))}
         </View>
@@ -177,31 +159,11 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
                                         user={item}
                                         status="friends"
                                         onMessage={() => onChatWithFriend?.(item.id)}
-                                        onRemove={() => Alert.alert('Remove Friend?', `Are you sure you want to remove ${item.name}?`, [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            { text: 'Remove', style: 'destructive', onPress: () => setFriends(prev => prev.filter(f => f.id !== item.id)) },
-                                        ])}
+                                        onRemove={() => handleRemoveFriend(item.id, item.name)}
                                     />
                                 ))}
                             </View>
                         ) : renderEmptyState('No friends yet. Start connecting!', 'people-outline')
-                    )}
-
-                    {/* Friend Requests */}
-                    {activeSection === 'requests' && (
-                        requests.length > 0 ? (
-                            <View>
-                                {requests.map((item) => (
-                                    <FriendCard
-                                        key={item.id}
-                                        user={item.from_user}
-                                        status="incoming"
-                                        onAccept={() => handleAcceptRequest(item.id)}
-                                        onReject={() => handleRejectRequest(item.id)}
-                                    />
-                                ))}
-                            </View>
-                        ) : renderEmptyState('No pending requests', 'mail-outline')
                     )}
 
                     {/* Find Friends / Suggestions */}
@@ -275,19 +237,6 @@ const styles = StyleSheet.create({
     },
     tabTextActive: {
         color: '#fff',
-        fontWeight: 'bold',
-    },
-    tabBadge: {
-        backgroundColor: '#EF4444',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        minWidth: 18,
-        alignItems: 'center',
-    },
-    tabBadgeText: {
-        color: '#fff',
-        fontSize: 10,
         fontWeight: 'bold',
     },
     searchContainer: {

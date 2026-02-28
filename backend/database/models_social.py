@@ -114,6 +114,7 @@ class ConversationResponse(ConversationBase):
     unread_count: Dict[str, int] = {} # user_id -> count
     created_at: datetime
     updated_at: datetime
+    other_user: Optional[Dict[str, Any]] = None  # {id, name, avatar_url}
 
 class MessageBase(BaseModel):
     conversation_id: str
