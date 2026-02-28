@@ -85,7 +85,8 @@ async def check_availability(
         if not matching_vendor_ids:
             logger.warning(f"No vendors found for sport '{sport_type}'" + (f" in area '{area}'" if area else ""))
             return {
-                "success": True,
+                "success": False,
+                "error": "no_vendors",
                 "date": date,
                 "sport_type": sport_type,
                 "area": area or "all",

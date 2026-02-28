@@ -1131,7 +1131,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
             state["response"] = "System is waking up. Please try again in 10 seconds."
             return state
 
-        if intent != "info_request" and not booking_result and query_result and query_result.get("success") and not query_result.get("vendors"):
+        if intent != "info_request" and not booking_result and query_result and (query_result.get("success") or query_result.get("error") == "no_vendors") and not query_result.get("vendors"):
             sport = query_result.get("sport_type", "padel")
             date = query_result.get("date", "")
             area = query_result.get("area")
