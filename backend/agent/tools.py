@@ -213,7 +213,7 @@ async def check_availability(
 
             except Exception as e:
                 logger.error(f"Error processing vendor {vendor_id}: {e}")
-                continue
+                raise
 
         return {
             "success": True,
