@@ -232,7 +232,7 @@ Extract entities (return null for any not found in the message):
 - time: specific time like "4 pm", "6-9", or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
   Time buckets: morning=09:00-12:00, afternoon=12:00-18:00, evening=18:00-23:00, night=21:00-23:00
 - area: DHA, Clifton, Gulshan, Gulberg, Bahria, etc.
-- vendor_name: venue/facility name if mentioned (e.g. "Ace Padel", "Ace Padel Club", "Golden Court", "Smash Padel"). Extract the name as the user said it. Common aliases: "ace"="Ace Padel Club", "golden"="Golden Court", "smash"="Smash Padel".
+- vendor_name: venue/facility name if mentioned. Extract the name as the user said it. Known venues in Karachi: "Ace Padel Club" (DHA), "Smash Padel" (Clifton), "Golden Court" (DHA), "Pickle Pod" (DHA), "Dink Masters" (Clifton), "Pitch Perfect" (DHA), "Rally Point" (Gulshan), "Elite Futsal" (Clifton), "Goal Zone" (Gulshan), "Urban Futsal" (Bahria), "Clifton Cricket Nets" (Clifton). Common short aliases: "ace"="Ace Padel Club", "golden"="Golden Court", "smash"="Smash Padel", "pickle"="Pickle Pod", "dink"="Dink Masters", "rally"="Rally Point", "pitch perfect"="Pitch Perfect", "elite"="Elite Futsal", "goal zone"="Goal Zone", "urban"="Urban Futsal".
 - customer_name: ONLY if explicitly stated in THIS message ("My name is X", "I am X"). null otherwise.
 
 Respond in JSON format:
