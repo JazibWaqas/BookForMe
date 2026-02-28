@@ -1127,6 +1127,10 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 state["selected_area"] = raw_area if raw_area and raw_area.lower() not in ("all", "karachi", "") else None
                 return state
 
+        if not booking_result and query_result and not query_result.get("success") and query_result.get("error") == "database_unavailable":
+            state["response"] = "System is waking up. Please try again in 10 seconds."
+            return state
+
         if intent != "info_request" and not booking_result and query_result and query_result.get("success") and not query_result.get("vendors"):
             sport = query_result.get("sport_type", "padel")
             date = query_result.get("date", "")

@@ -200,6 +200,11 @@ async def health_check():
         "whatsapp": "meta"        # Updated to reflect Meta API
     }
 
+@app.get("/ping")
+def ping():
+    """Keep-alive endpoint for uptime monitors (no DB overhead)."""
+    return {"status": "alive"}
+
 
 @app.get("/internal/cleanup-expired-locks", include_in_schema=False)
 async def cleanup_expired_locks(x_cron_secret: str = Header(None, alias="X-Cron-Secret")):

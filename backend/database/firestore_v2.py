@@ -101,16 +101,20 @@ class FirestoreV2:
     
     
     async def get_vendor(self, vendor_id: str) -> Optional[Dict[str, Any]]:
-        try:
-            doc = self.db.collection(Collections.VENDORS).document(vendor_id).get()
-            if doc.exists:
-                data = doc.to_dict()
-                data['id'] = doc.id
-                return data
-            return None
-        except Exception as e:
-            logger.error(f"Error getting vendor {vendor_id}: {e}")
-            return None
+        import asyncio
+        for attempt in range(3):
+            try:
+                doc = self.db.collection(Collections.VENDORS).document(vendor_id).get()
+                if doc.exists:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    return data
+                return None
+            except Exception as e:
+                logger.error(f"Error getting vendor {vendor_id} (attempt {attempt+1}/3): {e}")
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(1)
     
     async def get_vendors_by_area(self, area: str) -> List[Dict[str, Any]]:
         try:
@@ -126,21 +130,25 @@ class FirestoreV2:
             return []
     
     async def get_vendors_by_sport(self, sport_type: str) -> List[Dict[str, Any]]:
-        try:
-            services = self.db.collection(Collections.SERVICES).where('sport_type', '==', sport_type).stream()
-            vendor_ids = set()
-            for doc in services:
-                vendor_ids.add(doc.to_dict().get('vendor_id'))
-            
-            vendors = []
-            for vid in vendor_ids:
-                vendor = await self.get_vendor(vid)
-                if vendor:
-                    vendors.append(vendor)
-            return vendors
-        except Exception as e:
-            logger.error(f"Error getting vendors by sport: {e}")
-            return []
+        import asyncio
+        for attempt in range(3):
+            try:
+                services = self.db.collection(Collections.SERVICES).where('sport_type', '==', sport_type).stream()
+                vendor_ids = set()
+                for doc in services:
+                    vendor_ids.add(doc.to_dict().get('vendor_id'))
+                
+                vendors = []
+                for vid in vendor_ids:
+                    vendor = await self.get_vendor(vid)
+                    if vendor:
+                        vendors.append(vendor)
+                return vendors
+            except Exception as e:
+                logger.error(f"Error getting vendors by sport (attempt {attempt+1}/3): {e}")
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(1)
     
     async def get_all_vendors(self) -> List[Dict[str, Any]]:
         try:
@@ -214,21 +222,25 @@ class FirestoreV2:
     
     
     async def get_vendor_services(self, vendor_id: str) -> List[Dict[str, Any]]:
-        try:
-            from google.cloud.firestore_v1.base_query import FieldFilter
-            services = []
-            docs = self.db.collection(Collections.SERVICES)\
-                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
-                .where(filter=FieldFilter('active', '==', True))\
-                .stream()
-            for doc in docs:
-                data = doc.to_dict()
-                data['id'] = doc.id
-                services.append(data)
-            return services
-        except Exception as e:
-            logger.error(f"Error getting services for vendor {vendor_id}: {e}")
-            return []
+        import asyncio
+        for attempt in range(3):
+            try:
+                from google.cloud.firestore_v1.base_query import FieldFilter
+                services = []
+                docs = self.db.collection(Collections.SERVICES)\
+                    .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                    .where(filter=FieldFilter('active', '==', True))\
+                    .stream()
+                for doc in docs:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    services.append(data)
+                return services
+            except Exception as e:
+                logger.error(f"Error getting services for vendor {vendor_id} (attempt {attempt+1}/3): {e}")
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(1)
     
     async def get_service(self, service_id: str) -> Optional[Dict[str, Any]]:
         try:
@@ -261,41 +273,45 @@ class FirestoreV2:
     
     
     async def get_available_slots(self, vendor_id: str, date: str) -> List[Dict[str, Any]]:
-        try:
-            from google.cloud.firestore_v1.base_query import FieldFilter
-            slots = []
-            docs = self.db.collection(Collections.SLOTS)\
-                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
-                .where(filter=FieldFilter('date', '==', date))\
-                .where(filter=FieldFilter('status', '==', SlotStatus.AVAILABLE.value))\
-                .stream()
-            
-            for doc in docs:
-                data = doc.to_dict()
-                data['id'] = doc.id
+        import asyncio
+        for attempt in range(3):
+            try:
+                from google.cloud.firestore_v1.base_query import FieldFilter
+                slots = []
+                docs = self.db.collection(Collections.SLOTS)\
+                    .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                    .where(filter=FieldFilter('date', '==', date))\
+                    .where(filter=FieldFilter('status', '==', SlotStatus.AVAILABLE.value))\
+                    .stream()
                 
-                # Normalize: extract time string from start_time timestamp
-                if 'start_time' in data and data['start_time']:
-                    try:
-                        import pytz
-                        KARACHI_TZ = pytz.timezone('Asia/Karachi')
-                        start_ts = data['start_time']
-                        if hasattr(start_ts, 'astimezone'):
-                            start_karachi = start_ts.astimezone(KARACHI_TZ)
-                            data['time'] = start_karachi.strftime('%H:%M')
-                        elif hasattr(start_ts, 'strftime'):
-                            data['time'] = start_ts.strftime('%H:%M')
-                    except:
-                        pass
+                for doc in docs:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    
+                    # Normalize: extract time string from start_time timestamp
+                    if 'start_time' in data and data['start_time']:
+                        try:
+                            import pytz
+                            KARACHI_TZ = pytz.timezone('Asia/Karachi')
+                            start_ts = data['start_time']
+                            if hasattr(start_ts, 'astimezone'):
+                                start_karachi = start_ts.astimezone(KARACHI_TZ)
+                                data['time'] = start_karachi.strftime('%H:%M')
+                            elif hasattr(start_ts, 'strftime'):
+                                data['time'] = start_ts.strftime('%H:%M')
+                        except:
+                            pass
+                    
+                    slots.append(data)
                 
-                slots.append(data)
-            
-            # Sort by start_time, handling timezone-aware datetimes
-            from datetime import timezone
-            return sorted(slots, key=lambda x: x.get('start_time') or datetime.min.replace(tzinfo=timezone.utc))
-        except Exception as e:
-            logger.error(f"Error getting available slots: {e}")
-            return []
+                # Sort by start_time, handling timezone-aware datetimes
+                from datetime import timezone
+                return sorted(slots, key=lambda x: x.get('start_time') or datetime.min.replace(tzinfo=timezone.utc))
+            except Exception as e:
+                logger.error(f"Error getting available slots (attempt {attempt+1}/3): {e}")
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(1)
     
     async def get_slot(self, slot_id: str) -> Optional[Dict[str, Any]]:
         try:

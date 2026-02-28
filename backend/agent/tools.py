@@ -230,7 +230,8 @@ async def check_availability(
         logger.error(f"Error checking availability: {e}")
         return {
             "success": False,
-            "error": str(e),
+            "error": "database_unavailable",
+            "details": str(e),
             "vendors": []
         }
 
