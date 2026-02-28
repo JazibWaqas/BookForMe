@@ -18,6 +18,8 @@ from agent.models import (
 )
 from nlu.agent import NLUAgent
 from better_profanity import profanity
+from datetime import datetime as _dt
+import pytz as _pytz
 
 logger = logging.getLogger(__name__)
 
@@ -1079,8 +1081,42 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 )
             return state
 
-        if booking_result and booking_result.get("success") and booking_result.get("status") == "locked" and booking_result.get("message"):
-            state["response"] = booking_result["message"]
+        # ── Slot-selection reset: user typed something unrecognised during slot pick ──
+        if state.get("slot_selection_reset"):
+            state["slot_selection_reset"] = False  # consume the flag
+            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
+            if is_urdu:
+                state["response"] = (
+                    "Sorry, slot list clear ho gaya. "
+                    "Please dobara sport, date aur time bataein — e.g. 'padel kal shaam'."
+                )
+            else:
+                state["response"] = (
+                    "Sorry, your slot selection was reset. "
+                    "Please tell me the sport, date, and time again — e.g. 'padel tomorrow evening'."
+                )
+            return state
+
+        # ── Slot locked: reinforce the 10-minute payment deadline ──
+        if booking_result and booking_result.get("success") and booking_result.get("status") == "locked":
+            slot_id = booking_result.get("slot_id", "")
+            amount = booking_result.get("amount", 0)
+            mins = booking_result.get("hold_expires_in_minutes", 10)
+            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye", "han", "haan", "ji"])
+            if is_urdu:
+                state["response"] = (
+                    f"✅ Slot {mins} minute ke liye reserve ho gaya hai!\n"
+                    f"💰 Rs {amount} abhi transfer karein — is number pe:\n"
+                    f"📸 Payment screenshot bhejein — {mins} minute baad slot release ho jayega.\n"
+                    f"🔖 Booking ref: {slot_id}"
+                )
+            else:
+                state["response"] = (
+                    f"✅ Slot held for {mins} minutes!\n"
+                    f"💰 Please transfer Rs {amount} now to the payment number.\n"
+                    f"📸 Send the payment screenshot — slot will be released after {mins} mins.\n"
+                    f"🔖 Booking ref: {slot_id}"
+                )
             return state
 
         if state.get("awaiting_confirmation") and state.get("pending_booking"):
@@ -1144,16 +1180,42 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 )
             else:
                 missing = state.get("missing_fields") or []
+                # Time-of-day awareness: if the queried date is today and it's already
+                # late (past 9 PM PKT), today's slots are genuinely over. Give a
+                # specific message pointing to tomorrow rather than the generic fallback.
+                
+                _pkt = _pytz.timezone("Asia/Karachi")
+                _now_pkt = _dt.now(_pkt)
+                _today_str = _now_pkt.strftime("%Y-%m-%d")
+                _is_today = (date == _today_str)
+                _is_late_night = (_now_pkt.hour > 23)
+
                 if "date" in missing or not entities.get("date"):
                     logger.info("Branch hit: NO_SLOTS_NO_DATE_GIVEN")
-                    state["response"] = (
-                        f"Aaj ({date}) {area or 'Karachi'} me **{sport}** ke koi available slot nahi hai. "
-                        "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
-                    )
+                    if _is_today and _is_late_night:
+                        logger.info("Branch hit: NO_SLOTS_LATE_NIGHT_TODAY")
+                        state["response"] = (
+                            f"Aaj ke **{sport}** slots khatam ho gaye hain (raat ho gayi hai). "
+                            "Kal ke slots dekhoon?"
+                        )
+                    else:
+                        state["response"] = (
+                            f"Aaj ({date}) {area or 'Karachi'} me **{sport}** ke koi available slot nahi hai. "
+                            "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
+                        )
                 else:
                     logger.info("Branch hit: NO_SLOTS_DATE_GIVEN")
                     next_date = query_result.get("next_available_date")
-                    if next_date:
+                    if _is_today and _is_late_night and not next_date:
+                        # User explicitly said "today" but it's too late — point to tomorrow
+                        logger.info("Branch hit: NO_SLOTS_DATE_GIVEN_LATE_NIGHT")
+                        from datetime import timedelta as _td
+                        tomorrow = (_now_pkt + _td(days=1)).strftime("%Y-%m-%d")
+                        state["response"] = (
+                            f"Aaj raat ke **{sport}** slots available nahi hain. "
+                            f"Kal ({tomorrow}) ke slots dekhoon?"
+                        )
+                    elif next_date:
                         state["response"] = (
                             f"{date} ko {area or 'Karachi'} me **{sport}** ke slot nahi milay, "
                             f"lekin {next_date} ko available hain. Dekhoon?"
@@ -1348,10 +1410,14 @@ def route_by_intent(state: AgentState) -> str:
             state["selected_slot"] = None
             logger.info("New booking entities during slot selection - starting fresh query")
         else:
+            # Unrecognised free-text during slot selection.
+            # Clear the list AND set a flag so generate_response_node can
+            # give the user a helpful re-prompt instead of a confusing LLM reply.
             state["awaiting_slot_selection"] = False
             state["slot_options"] = []
             state["selected_slot"] = None
-            logger.info("Unrecognized input during slot selection - clearing slot state")
+            state["slot_selection_reset"] = True
+            logger.info("Unrecognized input during slot selection - clearing slot state, will prompt user")
 
     if awaiting and tx_type in ("confirm", "cancel", "modify", "slot_select"):
         return "check_confirmation"
