@@ -410,6 +410,78 @@ class FirestoreDB:
             logger.error(f"Error getting vendor bookings: {e}")
             return []
     
+    async def get_vendor_booking_single(self, vendor_id: str, booking_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single booking by ID for a vendor - optimized single document fetch"""
+        try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            import pytz
+            
+            KARACHI_TZ = pytz.timezone('Asia/Karachi')
+            
+            # Fetch single document by ID
+            doc = self.db.collection('slots').document(booking_id).get()
+            
+            if not doc.exists:
+                return None
+            
+            booking_data = doc.to_dict()
+            booking_data['id'] = doc.id
+            
+            # Verify this booking belongs to the vendor
+            if booking_data.get('vendor_id') != vendor_id:
+                logger.warning(f"Booking {booking_id} does not belong to vendor {vendor_id}")
+                return None
+            
+            # Verify it's a valid booking status
+            valid_statuses = ['locked', 'pending', 'confirmed', 'completed', 'cancelled', 'blocked']
+            if booking_data.get('status') not in valid_statuses:
+                return None
+            
+            # Derive human-readable PKT time string
+            start_time = booking_data.get('start_time')
+            if start_time and hasattr(start_time, 'astimezone'):
+                try:
+                    start_khi = start_time.astimezone(KARACHI_TZ)
+                    booking_data['time'] = start_khi.strftime('%I:%M %p')
+                    if not booking_data.get('date'):
+                        booking_data['date'] = start_khi.strftime('%Y-%m-%d')
+                except Exception:
+                    booking_data['time'] = str(start_time)
+            elif isinstance(start_time, str):
+                booking_data['time'] = start_time
+            
+            # Get customer name if not present
+            if not booking_data.get('customer_name'):
+                user_id = booking_data.get('user_id')
+                if user_id:
+                    try:
+                        user_doc = self.db.collection('users').document(user_id).get()
+                        if user_doc.exists:
+                            u = user_doc.to_dict()
+                            booking_data['customer_name'] = (
+                                u.get('name') or u.get('full_name') or
+                                u.get('display_name') or u.get('phone_number') or
+                                'Customer'
+                            )
+                    except Exception:
+                        pass
+            
+            # Hydrate payment screenshot if linked
+            payment_id = booking_data.get('payment_id')
+            if payment_id:
+                try:
+                    payment_doc = self.db.collection('payments').document(payment_id).get()
+                    if payment_doc.exists:
+                        booking_data['payment'] = payment_doc.to_dict()
+                except Exception:
+                    pass
+            
+            return booking_data
+            
+        except Exception as e:
+            logger.error(f"Error getting single booking {booking_id}: {e}")
+            return None
+    
     # ============================================================================
     # CONVERSATION STATE OPERATIONS
     # ============================================================================

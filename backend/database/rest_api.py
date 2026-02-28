@@ -292,9 +292,10 @@ async def create_booking(booking_data: dict):
 
 
 @router.get("/vendors/{vendor_id}/bookings")
+@cached(ttl_seconds=300, key_prefix="vendor_bookings")
 async def get_vendor_bookings(vendor_id: str, date: str = None):
     """
-    Get bookings for a vendor
+    Get bookings for a vendor (cached for 5 minutes)
     
     Args:
         vendor_id: Vendor ID
@@ -319,6 +320,39 @@ async def get_vendor_bookings(vendor_id: str, date: str = None):
     except Exception as e:
         logger.error(f"Error getting bookings: {e}")
         raise HTTPException(status_code=500, detail="Failed to get bookings")
+
+
+@router.get("/vendors/{vendor_id}/bookings/{booking_id}")
+async def get_vendor_booking(vendor_id: str, booking_id: str):
+    """
+    Get a single booking by ID for a vendor (optimized - fetches one document)
+    
+    Args:
+        vendor_id: Vendor ID
+        booking_id: Booking ID (slot document ID)
+        
+    Returns:
+        Single booking details
+    """
+    try:
+        logger.info(f"Getting single booking {booking_id} for vendor {vendor_id}")
+        
+        # Fetch single booking directly from Firestore (optimized - 1 document read)
+        booking = await firestore_db.get_vendor_booking_single(vendor_id, booking_id)
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        return {
+            "success": True,
+            "booking": booking
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting single booking: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get booking")
 
 
 @router.get("/vendors/{vendor_id}/schedule")

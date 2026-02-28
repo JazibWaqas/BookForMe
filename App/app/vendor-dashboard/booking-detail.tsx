@@ -8,10 +8,6 @@ import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../config/api';
 
-// Simple in-memory cache for vendor bookings
-const bookingsCache: { [vendorId: string]: { bookings: any[]; timestamp: number } } = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 // Screenshot paths are stored as "/uploads/payments/filename.jpg" in Firestore.
 // Prepend the backend base URL to make them loadable in the app.
 const resolveScreenshotUrl = (url?: string): string | null => {
@@ -33,32 +29,13 @@ export default function BookingDetailScreen() {
         const fetchBookingDetails = async () => {
             try {
                 const user = await authService.getCurrentUser();
-                if (user && user.vendor_id) {
+                if (user && user.vendor_id && bookingId) {
                     const vendorId = user.vendor_id;
-                    let bookings: any[] = [];
-
-                    // Check cache first
-                    const cached = bookingsCache[vendorId];
-                    const now = Date.now();
-                    if (cached && (now - cached.timestamp) < CACHE_TTL) {
-                        // Use cached bookings
-                        bookings = cached.bookings;
-                        // Show cached data immediately
-                        const foundBooking = bookings.find((b: any) => b.id === bookingId);
-                        if (foundBooking) {
-                            setBooking(foundBooking);
-                        }
-                    }
-
-                    // Always fetch fresh data in background
-                    const res = await apiClient.get(API_ENDPOINTS.vendors.bookings(vendorId));
-                    if (res.data.success) {
-                        bookings = res.data.bookings || [];
-                        // Update cache
-                        bookingsCache[vendorId] = { bookings, timestamp: Date.now() };
-                        // Update UI with fresh data
-                        const foundBooking = bookings.find((b: any) => b.id === bookingId);
-                        setBooking(foundBooking);
+                    
+                    // OPTIMIZED: Fetch single booking directly instead of all bookings
+                    const res = await apiClient.get(API_ENDPOINTS.vendors.booking(vendorId, bookingId));
+                    if (res.data.success && res.data.booking) {
+                        setBooking(res.data.booking);
                     }
                 }
             } catch (error) {

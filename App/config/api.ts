@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     patch: (id: string) => `/api/vendors/${id}`,
     availability: (id: string) => `/api/vendors/${id}/availability`,
     bookings: (id: string) => `/api/vendors/${id}/bookings`,
+    booking: (vendorId: string, bookingId: string) => `/api/vendors/${vendorId}/bookings/${bookingId}`,
     grid: (id: string, date: string) => `/api/vendors/${id}/grid?date=${date}`,
     approveSlot: (vendorId: string, slotId: string) => `/api/vendors/${vendorId}/slots/${slotId}/approve`,
     rejectSlot: (vendorId: string, slotId: string) => `/api/vendors/${vendorId}/slots/${slotId}/reject`,
