@@ -313,6 +313,20 @@ class FirestoreV2:
                     
                     slots.append(data)
                 
+                # Guard: 0 results for a known vendor on a valid date is suspicious.
+                # Could be a stale gRPC channel silently returning nothing. Reconnect and retry.
+                if not slots and attempt < 2:
+                    logger.warning(
+                        f"get_available_slots: 0 slots for vendor='{vendor_id}' date='{date}' "
+                        f"on attempt {attempt+1}. Suspected stale gRPC channel."
+                    )
+                    from app.firestore import firestore_db
+                    if hasattr(firestore_db, 'reconnect'):
+                        firestore_db.reconnect()
+                        self.db = firestore_db.db
+                    await asyncio.sleep(1)
+                    continue
+
                 # Sort by start_time, handling timezone-aware datetimes
                 from datetime import timezone
                 return sorted(slots, key=lambda x: x.get('start_time') or datetime.min.replace(tzinfo=timezone.utc))
@@ -321,6 +335,10 @@ class FirestoreV2:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(1)
+        # All attempts exhausted with 0 slots and no exception
+        logger.warning(f"get_available_slots: All 3 attempts returned 0 slots for vendor='{vendor_id}' date='{date}'")
+        return []
+
     
     async def get_slot(self, slot_id: str) -> Optional[Dict[str, Any]]:
         try:

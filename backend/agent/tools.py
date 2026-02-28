@@ -71,6 +71,10 @@ async def check_availability(
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
         logger.info(f"TIMING: get_vendors_by_sport took {time.time() - start_time:.4f}s - Found {len(vendors_by_sport)}")
 
+        # Re-bind the client in case get_vendors_by_sport triggered a reconnect.
+        # This ensures get_available_slots uses the same fresh connection.
+        fs_client = FirestoreV2(firestore_db.db)
+
         resolved_vendor_id = vendor_id
         if not resolved_vendor_id and vendor_name:
             resolved_vendor_id = _resolve_vendor_by_name(vendor_name, vendors_by_sport)
@@ -121,8 +125,8 @@ async def check_availability(
 
                 if time_range:
                     PKT = pytz.timezone('Asia/Karachi')
-                    start_time = time_range.get("start")
-                    end_time = time_range.get("end")
+                    req_start = time_range.get("start")
+                    req_end = time_range.get("end")
 
                     def _parse_slot_start(slot, tz=PKT):
                         raw = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
@@ -136,11 +140,11 @@ async def check_availability(
                         ss = _parse_slot_start(slot)
                         if not ss:
                             continue
-                        if start_time and end_time:
-                            if start_time <= ss < end_time:
+                        if req_start and req_end:
+                            if req_start <= ss < req_end:
                                 filtered_slots.append(slot)
-                        elif start_time:
-                            if ss >= start_time:
+                        elif req_start:
+                            if ss >= req_start:
                                 filtered_slots.append(slot)
 
                     if filtered_slots:
@@ -149,7 +153,7 @@ async def check_availability(
                         # Exact time not available but this vendor has other slots today
                         # Fall back to all slots sorted by proximity to requested time
                         time_exact_unavailable = True
-                        req_time = start_time or end_time
+                        req_time = req_start or req_end
                         if req_time:
                             def _time_dist(slot, rt=req_time):
                                 ss = _parse_slot_start(slot)
@@ -161,7 +165,7 @@ async def check_availability(
                                     return 9999
                             available_slots = sorted(available_slots, key=_time_dist)
                         logger.info(
-                            f"Exact time {start_time} unavailable for vendor {vendor_id}; "
+                            f"Exact time {req_start} unavailable for vendor {vendor_id}; "
                             f"offering {len(available_slots)} nearby slots"
                         )
                     else:
