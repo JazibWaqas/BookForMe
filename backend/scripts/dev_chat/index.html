@@ -222,28 +222,97 @@
         }
 
         .confirmation-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--card-radius);
-            padding: 16px;
-            max-width: var(--max-content-width);
+            background: #111b21;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 16px 18px;
+            width: 100%;
+            max-width: 340px;
+            position: relative;
+            overflow: hidden;
         }
-        .confirmation-card.locked { border-color: rgba(0,168,132,0.3); }
-        .confirmation-card.confirmed { background: var(--success-bg); border-color: rgba(0,168,132,0.4); }
+
+        .confirmation-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+        }
+
+        .confirmation-card.locked {
+            background: linear-gradient(180deg, #1c1b10 0%, #111b21 100%);
+            border-color: rgba(255, 210, 121, 0.1);
+        }
+        .confirmation-card.locked::before {
+            background: #ffd279;
+        }
+
+        .confirmation-card.confirmed {
+            background: linear-gradient(180deg, #0c1d19 0%, #111b21 100%);
+            border-color: rgba(0, 168, 132, 0.1);
+        }
+        .confirmation-card.confirmed::before {
+            background: #00a884;
+        }
+
+        .confirmation-header {
+            margin-bottom: 14px;
+        }
+
+        .confirmation-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .confirmation-details {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         .confirmation-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
+            align-items: baseline;
         }
-        .confirmation-row:last-child { margin-bottom: 0; }
-        .confirmation-label { color: var(--text-secondary); }
-        .confirmation-value { font-weight: 600; color: var(--text-primary); }
-        .confirmation-amount { color: var(--accent); font-size: 16px; }
-        .confirmation-cta {
-            margin-top: 14px;
+
+        .confirmation-label {
+            color: #8696a0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .confirmation-value {
+            color: #e9edef;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .confirmation-value.mono {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: rgba(255,255,255,0.04);
+            padding: 3px 7px;
+            border-radius: 4px;
             font-size: 13px;
-            color: var(--text-secondary);
+        }
+
+        .confirmation-amount {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .confirmation-card.locked .confirmation-amount { color: #ffd279; }
+        .confirmation-card.confirmed .confirmation-amount { color: #00a884; }
+
+        .confirmation-cta {
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+            color: #8696a0;
+            line-height: 1.5;
         }
 
         .input-area {
@@ -379,14 +448,17 @@
 
             const trimmed = text.trim();
 
-            const lockedMatch = trimmed.match(/Slot locked! Please transfer Rs (\d+)[^\n]*/);
-            if (lockedMatch) {
-                return { type: 'locked', amount: parseInt(lockedMatch[1], 10), fullText: trimmed };
+            const lockedMatch = trimmed.match(/Slot (?:locked|reserved)!?[^\n]*(?:Rs|transfer)[^\n]*?(\d+)/i);
+            const reservedAmountMatch = trimmed.match(/Amount:\s*Rs\s*(\d+)/);
+            if ((lockedMatch || reservedAmountMatch) && trimmed.toLowerCase().includes('slot')) {
+                const amount = parseInt(lockedMatch ? lockedMatch[1] : reservedAmountMatch[1], 10);
+                const bookingRefMatch = trimmed.match(/Booking Ref:\s*([A-Z]+-\d+[A-Z]*)/i);
+                return { type: 'locked', amount: amount, bookingRef: bookingRefMatch ? bookingRefMatch[1] : '', fullText: trimmed };
             }
 
-            const bookingIdMatch = trimmed.match(/Booking ID:\s*([a-z0-9_]+)/);
+            const bookingIdMatch = trimmed.match(/Booking (?:ID|Ref):\s*([A-Za-z0-9-_]+)/);
             const amountMatch = trimmed.match(/Amount:\s*Rs\s*(\d+)/);
-            if (trimmed.includes('Payment received') && trimmed.includes('confirmed') && bookingIdMatch && amountMatch) {
+            if ((trimmed.toLowerCase().includes('payment received') || trimmed.toLowerCase().includes('booking confirmed')) && bookingIdMatch && amountMatch) {
                 return { type: 'confirmed', bookingId: bookingIdMatch[1], amount: parseInt(amountMatch[1], 10), fullText: trimmed };
             }
 
@@ -487,9 +559,23 @@
             } else if (parsed.type === 'locked') {
                 const card = document.createElement('div');
                 card.classList.add('confirmation-card', 'locked');
-                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">Status</span><span class="confirmation-value">Slot on hold</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
-                    '<div class="confirmation-cta">Transfer Rs ' + parsed.amount + ' and send payment screenshot here within 10 minutes.</div>';
+                let cardHtml = '<div class="confirmation-header">' +
+                    '<div class="confirmation-title">Slot Reserved</div>' +
+                    '</div>' +
+                    '<div class="confirmation-details">';
+                if (parsed.bookingRef) {
+                    cardHtml += '<div class="confirmation-row">' +
+                        '<span class="confirmation-label">Booking Ref</span>' +
+                        '<span class="confirmation-value mono">' + parsed.bookingRef + '</span>' +
+                        '</div>';
+                }
+                cardHtml += '<div class="confirmation-row">' +
+                    '<span class="confirmation-label">Total Amount</span>' +
+                    '<span class="confirmation-amount">Rs ' + parsed.amount + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="confirmation-cta">Please transfer the amount and send a screenshot within 10 minutes to secure your slot.</div>';
+                card.innerHTML = cardHtml;
                 const timeDiv = document.createElement('div');
                 timeDiv.classList.add('message-time');
                 timeDiv.textContent = formatTime();
@@ -498,10 +584,20 @@
             } else if (parsed.type === 'confirmed') {
                 const card = document.createElement('div');
                 card.classList.add('confirmation-card', 'confirmed');
-                card.innerHTML = '<div class="confirmation-row"><span class="confirmation-label">✓ Booking confirmed</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Booking ID</span><span class="confirmation-value">' + parsed.bookingId + '</span></div>' +
-                    '<div class="confirmation-row"><span class="confirmation-label">Amount</span><span class="confirmation-value confirmation-amount">Rs ' + parsed.amount + '</span></div>' +
-                    '<div class="confirmation-cta">Thank you for booking with us! See you soon.</div>';
+                card.innerHTML = '<div class="confirmation-header">' +
+                    '<div class="confirmation-title">Booking Confirmed</div>' +
+                    '</div>' +
+                    '<div class="confirmation-details">' +
+                    '<div class="confirmation-row">' +
+                    '<span class="confirmation-label">Booking ID</span>' +
+                    '<span class="confirmation-value mono">' + parsed.bookingId + '</span>' +
+                    '</div>' +
+                    '<div class="confirmation-row">' +
+                    '<span class="confirmation-label">Amount Paid</span>' +
+                    '<span class="confirmation-amount">Rs ' + parsed.amount + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="confirmation-cta">Thank you for booking with us. See you soon.</div>';
                 const timeDiv = document.createElement('div');
                 timeDiv.classList.add('message-time');
                 timeDiv.textContent = formatTime();

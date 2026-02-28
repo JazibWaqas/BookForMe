@@ -222,15 +222,15 @@ Possible Intents:
 Roman Urdu Reference:
 - "mujhe" = I want, "chahiye" = need, "karna hai" = want to do
 - "kal" = tomorrow, "aaj" = today, "parson" = day after tomorrow
-- "subah" = morning (9:00-12:00), "dopahar" = afternoon (12:00-18:00)
-- "shaam" = evening (18:00-23:00), "raat" = night (21:00-23:00)
+- "subah" = morning (7:00-11:00), "dopahar" = afternoon (12:00-16:00)
+- "shaam" = evening (17:00-19:00), "raat" = night (20:00-23:00)
 - "bajay/baje" = o'clock, "ghanta" = hour
 
 Extract entities (return null for any not found in the message):
 - service_type: padel, futsal, cricket, salon (handle typos: "paddle"="padel", "padle"="padel")
 - date: tomorrow, today, specific date, "kal", "aaj", day names
-- time: specific time like "4 pm", "6-9", or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
-  Time buckets: morning=09:00-12:00, afternoon=12:00-18:00, evening=18:00-23:00, night=21:00-23:00
+- time: specific time like "4 pm", or a RANGE like "5-9", "6 to 9", "from 5 to 9" (extract exactly as said so the system can show all slots in that range). Or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
+  Time buckets: morning=07:00-12:00, afternoon=12:00-17:00, evening=17:00-19:00, night=20:00-23:00
 - area: DHA, Clifton, Gulshan, Gulberg, Bahria, etc.
 - vendor_name: venue/facility name if mentioned. Extract the name as the user said it. Known venues in Karachi: "Ace Padel Club" (DHA), "Smash Padel" (Clifton), "Golden Court" (DHA), "Pickle Pod" (DHA), "Dink Masters" (Clifton), "Pitch Perfect" (DHA), "Rally Point" (Gulshan), "Elite Futsal" (Clifton), "Goal Zone" (Gulshan), "Urban Futsal" (Bahria), "Clifton Cricket Nets" (Clifton). Common short aliases: "ace"="Ace Padel Club", "golden"="Golden Court", "smash"="Smash Padel", "pickle"="Pickle Pod", "dink"="Dink Masters", "rally"="Rally Point", "pitch perfect"="Pitch Perfect", "elite"="Elite Futsal", "goal zone"="Goal Zone", "urban"="Urban Futsal".
 - customer_name: ONLY if explicitly stated in THIS message ("My name is X", "I am X"). null otherwise.
@@ -1222,20 +1222,35 @@ Apologize that you couldn't check availability right now and ask them to try aga
             amount = booking_result.get('amount', 0)
             
             if status == 'locked':
+                slot_parts = booking_id.split('_') if '_' in booking_id else []
+                if len(slot_parts) >= 3:
+                    vendor_parts = slot_parts[2:5] if len(slot_parts) >= 5 else slot_parts[2:]
+                    vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+                    time_part = slot_parts[1] if len(slot_parts) > 1 else "00"
+                    short_id = f"{vendor_code}-{time_part}"
+                else:
+                    short_id = booking_id[:8]
                 booking_info = f"""
-SLOT LOCKED - AWAITING PAYMENT:
-- Booking ID: {booking_id}
+SLOT RESERVED:
 - Amount: Rs {amount}
-- Status: Slot is held for 10 minutes
-- IMPORTANT: Tell user to transfer Rs {amount} and send payment screenshot to confirm booking
-- If they don't pay within 10 minutes, the slot will be released
+- Booking Ref: {short_id}
+- Time limit: 10 minutes
+- Action: Transfer Rs {amount} and send payment screenshot
 """
             else:
+                slot_parts = booking_id.split('_') if '_' in booking_id else []
+                if len(slot_parts) >= 3:
+                    vendor_parts = slot_parts[2:5] if len(slot_parts) >= 5 else slot_parts[2:]
+                    vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+                    time_part = slot_parts[1] if len(slot_parts) > 1 else "00"
+                    short_id = f"{vendor_code}-{time_part}"
+                else:
+                    short_id = booking_id[:8]
                 booking_info = f"""
 BOOKING CONFIRMED:
-- Booking ID: {booking_id}
+- Booking Ref: {short_id}
 - Status: Confirmed
-- Tell user their booking is confirmed and thank them!
+- Thank the customer
 """
         elif booking_result and not booking_result.get('success'):
             error = booking_result.get('error', 'Unknown error')
@@ -1271,7 +1286,7 @@ Generate a helpful, friendly response that:
 Response Guidelines:
 - Tone: Friendly, professional, helpful
 - Length: 2-4 sentences (be concise)
-- Format: Use emojis sparingly (✅ 📅 ⏰ 💰)
+- Format: NO emojis for booking confirmations. Clean, simple text like a receipt.
 - Language: Match user's style exactly
 - NEVER suggest calling or contacting any phone number. Booking is only in this chat.
 - CRITICAL - Urdu Language Requirement: When responding in Roman Urdu, use ONLY Urdu vocabulary and grammar. Strictly avoid Hindi words. Examples:

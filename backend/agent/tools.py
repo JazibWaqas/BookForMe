@@ -93,11 +93,14 @@ async def check_availability(
         # This ensures get_available_slots uses the same fresh connection.
         fs_client = FirestoreV2(firestore_db.db)
 
-        resolved_vendor_id = vendor_id
-        if not resolved_vendor_id and vendor_name:
+        resolved_vendor_id = None
+        if vendor_name:
             resolved_vendor_id = _resolve_vendor_by_name(vendor_name, vendors_by_sport)
             if resolved_vendor_id:
                 logger.info(f"Resolved vendor_name '{vendor_name}' to vendor_id '{resolved_vendor_id}'")
+        if not resolved_vendor_id and vendor_id:
+            resolved_vendor_id = vendor_id
+            logger.info(f"Using provided vendor_id '{resolved_vendor_id}'")
 
         if resolved_vendor_id:
             matching_vendor_ids = {resolved_vendor_id}
@@ -191,7 +194,7 @@ async def check_availability(
 
                 formatted_slots = []
                 PKT = pytz.timezone('Asia/Karachi')
-                for slot in available_slots[:8]:
+                for slot in available_slots:
                     raw_start = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
                     raw_end = slot.get("end_time") or ""
 

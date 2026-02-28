@@ -225,7 +225,7 @@ class ConversationOptimizer:
                 suggestions = [
                     "What time would you prefer?",
                     "I can show you available time slots.",
-                    "Are you looking for morning, afternoon, or evening?"
+                    "Are you looking for morning, afternoon, evening, or night?"
                 ]
             elif state == 'select_time':
                 suggestions = [

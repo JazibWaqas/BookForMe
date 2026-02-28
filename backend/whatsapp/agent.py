@@ -184,23 +184,42 @@ class WhatsAppAgent:
                 await self.state_manager.add_message_to_history(
                     phone_number, 'user', '[Payment Screenshot Received]'
                 )
+                # Create short booking ref from vendor name
+                slot_parts = locked_slot_id.split('_') if '_' in locked_slot_id else []
+                if len(slot_parts) >= 3:
+                    vendor_parts = slot_parts[2:5] if len(slot_parts) >= 5 else slot_parts[2:]
+                    vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+                    time_part = slot_parts[1] if len(slot_parts) > 1 else "00"
+                    short_id = f"{vendor_code}-{time_part}"
+                else:
+                    short_id = locked_slot_id[:8]
+                
                 await self.state_manager.add_message_to_history(
-                    phone_number, 'assistant', f'Payment received and booking confirmed! ID: {locked_slot_id}'
+                    phone_number, 'assistant', f'Payment received and booking confirmed! ID: {short_id}'
                 )
                 
-                return f"""✅ Payment received! Your booking is confirmed.
+                return f"""Payment Received
 
-📋 Booking ID: {locked_slot_id}
-💰 Amount: {amount_str}
+Booking Confirmed
+Booking ID: {short_id}
+Amount: {amount_str}
 
-Thank you for booking with us! See you soon."""
+Thank you for booking with us. See you soon."""
             
             else:
-                return f"""📸 Payment screenshot received!
+                slot_parts = locked_slot_id.split('_') if '_' in locked_slot_id else []
+                if len(slot_parts) >= 3:
+                    vendor_parts = slot_parts[2:5] if len(slot_parts) >= 5 else slot_parts[2:]
+                    vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+                    time_part = slot_parts[1] if len(slot_parts) > 1 else "00"
+                    short_id = f"{vendor_code}-{time_part}"
+                else:
+                    short_id = locked_slot_id[:8]
+                return f"""Payment Screenshot Received
 
-Your payment is being verified. You'll receive a confirmation shortly.
+Your payment is being verified. You will receive a confirmation shortly.
 
-Booking ID: {locked_slot_id}
+Booking ID: {short_id}
 Status: Pending Verification"""
             
         except Exception as e:

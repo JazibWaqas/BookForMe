@@ -25,6 +25,42 @@ logger = logging.getLogger(__name__)
 
 nlu_agent = NLUAgent()
 
+
+def _short_booking_ref(slot_id: str) -> str:
+    """Generate a short booking reference from slot_id.
+    
+    Input: 20260302_18_goal_zone_gulshan_goal_zone_pitch
+    Output: GZG-1803 (vendor initials + time + unique)
+    
+    Format: {VENDOR_CODE}-{TIME}{UNIQUE}
+    """
+    if not slot_id or "_" not in slot_id:
+        return "REF-0000"
+    
+    import hashlib
+    
+    parts = slot_id.split("_")
+    if len(parts) < 3:
+        return "REF-0000"
+    
+    date_part = parts[0]  # 20260302
+    time_part = parts[1]  # 18
+    
+    # Extract vendor name parts (usually parts[2], parts[3], parts[4])
+    # Example: goal_zone_gulshan -> GZG
+    vendor_parts = parts[2:5] if len(parts) >= 5 else parts[2:]
+    vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+    
+    # If vendor code is too short, use first 3 letters of first vendor part
+    if len(vendor_code) < 2:
+        vendor_code = parts[2][:3].upper() if parts[2] else "UNK"
+    
+    # Add some uniqueness from hash
+    hash_obj = hashlib.md5(slot_id.encode())
+    hash_short = hash_obj.hexdigest()[:2].upper()
+    
+    return f"{vendor_code}-{time_part}{hash_short}"
+
 profanity.load_censor_words()
 
 BOOKING_KEYWORDS = {
@@ -193,7 +229,7 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
     """
     Normalize time text to time range dict.
     Prioritizes explicit clock times over vague buckets so that
-    "evening 4 pm" resolves to 16:00, not 18:00-23:00.
+    "evening 4 pm" resolves to 16:00, not the evening bucket (17:00-19:00).
     """
     time_lower = time_text.lower().strip()
 
@@ -223,12 +259,20 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
             hour += 12
         return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
 
-    if "-" in time_lower:
-        match = re.search(r"(\d+)[:\s]?(\d+)?\s*-\s*(\d+)[:\s]?(\d+)?", time_lower)
+    if "-" in time_lower or " to " in time_lower:
+        match = re.search(r"(\d{1,2})[:\s]?(\d{2})?\s*(?:-|to)\s*(\d{1,2})[:\s]?(\d{2})?", time_lower)
         if match:
             start_hour = int(match.group(1))
             end_hour = int(match.group(3))
-            return {"start": f"{start_hour:02d}:00", "end": f"{end_hour:02d}:00"}
+            use_pm = "pm" in time_lower or ("am" not in time_lower and 1 <= start_hour <= 12 and 1 <= end_hour <= 12)
+            if use_pm and start_hour < 12:
+                start_hour += 12
+            if use_pm and end_hour < 12:
+                end_hour += 12
+            end_inclusive = end_hour + 1
+            if end_inclusive > 24:
+                end_inclusive = 24
+            return {"start": f"{start_hour:02d}:00", "end": f"{end_inclusive:02d}:00"}
 
     if "after" in time_lower:
         match = re.search(r"after\s+(\d+)", time_lower)
@@ -244,13 +288,13 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
         return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
 
     if "evening" in time_lower or "shaam" in time_lower:
-        return {"start": "18:00", "end": "23:00"}
+        return {"start": "17:00", "end": "19:00"}
     elif "morning" in time_lower or "subah" in time_lower:
-        return {"start": "09:00", "end": "12:00"}
+        return {"start": "07:00", "end": "12:00"}
     elif "afternoon" in time_lower or "dopahar" in time_lower:
-        return {"start": "12:00", "end": "18:00"}
+        return {"start": "12:00", "end": "17:00"}
     elif "night" in time_lower or "raat" in time_lower:
-        return {"start": "21:00", "end": "23:00"}
+        return {"start": "20:00", "end": "23:00"}
 
     return None
 
@@ -428,7 +472,20 @@ async def normalize_entities_node(state: AgentState) -> AgentState:
             try:
                 time_text = time_value.get("text") if isinstance(time_value, dict) else str(time_value)
                 if time_text:
-                    time_range = normalize_time(time_text)
+                    msg_lower = last_message.lower()
+                    bucket_word = None
+                    if "night" in msg_lower or "raat" in msg_lower:
+                        bucket_word = "night"
+                    elif "evening" in msg_lower or "shaam" in msg_lower:
+                        bucket_word = "evening"
+                    elif "morning" in msg_lower or "subah" in msg_lower:
+                        bucket_word = "morning"
+                    elif "afternoon" in msg_lower or "dopahar" in msg_lower:
+                        bucket_word = "afternoon"
+                    if bucket_word:
+                        time_range = normalize_time(bucket_word)
+                    else:
+                        time_range = normalize_time(time_text)
                     if time_range:
                         entities["time_range"] = time_range
                         logger.info(f"Normalized time: {time_range}")
@@ -1102,20 +1159,25 @@ async def generate_response_node(state: AgentState) -> AgentState:
             slot_id = booking_result.get("slot_id", "")
             amount = booking_result.get("amount", 0)
             mins = booking_result.get("hold_expires_in_minutes", 10)
+            short_ref = _short_booking_ref(slot_id)
             is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye", "han", "haan", "ji"])
             if is_urdu:
                 state["response"] = (
-                    f"✅ Slot {mins} minute ke liye reserve ho gaya hai!\n"
-                    f"💰 Rs {amount} abhi transfer karein — is number pe:\n"
-                    f"📸 Payment screenshot bhejein — {mins} minute baad slot release ho jayega.\n"
-                    f"🔖 Booking ref: {slot_id}"
+                    f"Slot Reserve Ho Gaya\n"
+                    f"Amount: Rs {amount}\n"
+                    f"Booking Ref: {short_ref}\n"
+                    f"\n"
+                    f"Rs {amount} transfer karein aur payment screenshot bhejein. "
+                    f"Slot {mins} minute ke baad release ho jayega."
                 )
             else:
                 state["response"] = (
-                    f"✅ Slot held for {mins} minutes!\n"
-                    f"💰 Please transfer Rs {amount} now to the payment number.\n"
-                    f"📸 Send the payment screenshot — slot will be released after {mins} mins.\n"
-                    f"🔖 Booking ref: {slot_id}"
+                    f"Slot Reserved\n"
+                    f"Amount: Rs {amount}\n"
+                    f"Booking Ref: {short_ref}\n"
+                    f"\n"
+                    f"Please transfer Rs {amount} and send the payment screenshot. "
+                    f"Slot will be released after {mins} minutes if payment is not received."
                 )
             return state
 
@@ -1147,9 +1209,9 @@ async def generate_response_node(state: AgentState) -> AgentState:
         if "time" in missing and intent == "inquiry":
             is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
             if is_urdu:
-                state["response"] = "Kaunsa time chahiye? Morning, evening, ya night?"
+                state["response"] = "Kaunsa time chahiye? Morning, afternoon, evening, ya night?"
             else:
-                state["response"] = "What time are you looking for? Morning, afternoon, or evening?"
+                state["response"] = "What time are you looking for? Morning, afternoon, evening, or night?"
             return state
 
         if not booking_result and query_result and query_result.get("success") and query_result.get("vendors"):
@@ -1195,12 +1257,12 @@ async def generate_response_node(state: AgentState) -> AgentState:
                     if _is_today and _is_late_night:
                         logger.info("Branch hit: NO_SLOTS_LATE_NIGHT_TODAY")
                         state["response"] = (
-                            f"Aaj ke **{sport}** slots khatam ho gaye hain (raat ho gayi hai). "
+                            f"Aaj ke {sport} slots khatam ho gaye hain (raat ho gayi hai). "
                             "Kal ke slots dekhoon?"
                         )
                     else:
                         state["response"] = (
-                            f"Aaj ({date}) {area or 'Karachi'} me **{sport}** ke koi available slot nahi hai. "
+                            f"Aaj ({date}) {area or 'Karachi'} me {sport} ke koi available slot nahi hai. "
                             "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
                         )
                 else: 
@@ -1212,17 +1274,17 @@ async def generate_response_node(state: AgentState) -> AgentState:
                         from datetime import timedelta as _td
                         tomorrow = (_now_pkt + _td(days=1)).strftime("%Y-%m-%d")
                         state["response"] = (
-                            f"Aaj raat ke **{sport}** slots available nahi hain. "
+                            f"Aaj raat ke {sport} slots available nahi hain. "
                             f"Kal ({tomorrow}) ke slots dekhoon?"
                         )
                     elif next_date:
                         state["response"] = (
-                            f"{date} ko {area or 'Karachi'} me **{sport}** ke slot nahi milay, "
+                            f"{date} ko {area or 'Karachi'} me {sport} ke slot nahi milay, "
                             f"lekin {next_date} ko available hain. Dekhoon?"
                         )
                     else:
                         state["response"] = (
-                            f"{date} ko {area or 'Karachi'} me **{sport}** ke koi slot available nahi. "
+                            f"{date} ko {area or 'Karachi'} me {sport} ke koi slot available nahi. "
                             "Koi aur date try karein ya area change karein."
                         )
             return state
@@ -1288,13 +1350,13 @@ def _format_availability_response(
     if time_exact_unavailable and requested_time:
         header = f"Woh exact slot ({requested_time}) available nahi hai, lekin {date} ko yeh nearby slots hain:\n"
     else:
-        header = f"{date} — {area} — **{sport}** slots:\n"
+        header = f"{date} — {area} — {sport} slots:\n"
 
     parts = [header]
     for v in vendors[:3]:
         name = v.get("vendor_name", "Vendor")
         address = v.get("vendor_address", "")
-        parts.append(f"\n**{name}** ({address})")
+        parts.append(f"\n{name} ({address})")
         seen_times = set()
         for slot in v.get("slots", []):
             if idx > max_total:
@@ -1328,7 +1390,14 @@ def generate_fallback_response(state: AgentState) -> str:
     booking_result = state.get("booking_result")
     
     if booking_result and booking_result.get("success"):
-        return f"Your booking is confirmed! Booking ID: {booking_result.get('booking_id')}"
+        booking_id = booking_result.get('booking_id', '')
+        short_ref = _short_booking_ref(booking_id)
+        return (
+            f"Booking Confirmed\n"
+            f"Booking ID: {short_ref}\n"
+            f"\n"
+            f"Thank you for booking with us. See you soon."
+        )
     elif booking_result and not booking_result.get("success"):
         return f"Sorry, booking failed: {booking_result.get('error', 'Unknown error')}. Please try again."
     elif state.get("awaiting_confirmation"):

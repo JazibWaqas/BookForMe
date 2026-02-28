@@ -152,17 +152,24 @@ class WhatsAppService:
             Send result
         """
         try:
-            message = f"""
-🎉 *Booking Confirmed!*
+            booking_id = booking_data.get('booking_id', 'N/A')
+            slot_parts = str(booking_id).split('_') if '_' in str(booking_id) else []
+            if len(slot_parts) >= 3:
+                vendor_parts = slot_parts[2:5] if len(slot_parts) >= 5 else slot_parts[2:]
+                vendor_code = "".join([p[0].upper() for p in vendor_parts if p])[:3]
+                time_part = slot_parts[1] if len(slot_parts) > 1 else "00"
+                short_id = f"{vendor_code}-{time_part}"
+            else:
+                short_id = str(booking_id)[:8]
+            
+            message = f"""Booking Confirmed
 
-Booking ID: {booking_data.get('booking_id', 'N/A')}
+Booking ID: {short_id}
 Service: {booking_data.get('service', 'N/A')}
 Date: {booking_data.get('date', 'N/A')}
 Time: {booking_data.get('time', 'N/A')}
-Customer: {booking_data.get('customer_name', 'N/A')}
 
-Thank you for using BookForMe!
-            """.strip()
+Thank you for using our service."""
             
             return await self.send_message(phone, message)
             
