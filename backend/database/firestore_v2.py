@@ -138,6 +138,15 @@ class FirestoreV2:
                 for doc in services:
                     vendor_ids.add(doc.to_dict().get('vendor_id'))
                 
+                # Check for suspected stale gRPC channel (silently returning 0 results)
+                if not vendor_ids and attempt < 2 and sport_type in ['padel', 'futsal', 'cricket', 'pickleball']:
+                    logger.warning(f"No vendors found for '{sport_type}' on attempt {attempt+1}. Suspected stale connection.")
+                    from app.firestore import firestore_db
+                    if hasattr(firestore_db, 'reconnect'):
+                        firestore_db.reconnect()
+                        self.db = firestore_db.db  # Update local reference
+                    raise RuntimeError(f"Suspected stale gRPC channel: 0 vendors found for {sport_type}")
+                
                 vendors = []
                 for vid in vendor_ids:
                     vendor = await self.get_vendor(vid)

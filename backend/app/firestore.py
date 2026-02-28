@@ -88,6 +88,22 @@ class FirestoreDB:
             # Don't raise - allow app to start without Firestore
             self.db = None
     
+    def reconnect(self):
+        """Force a recreation of the gRPC client to fix stale connections"""
+        try:
+            logger.warning("Reconnecting Firestore Client to clear stale gRPC channels...")
+            if self.db:
+                try:
+                    self.db.close()
+                except Exception:
+                    pass
+            self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
+            logger.info("Firestore client reconnected successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to reconnect Firestore: {e}")
+            return False
+    
     # ============================================================================
     # VENDOR OPERATIONS
     # ============================================================================

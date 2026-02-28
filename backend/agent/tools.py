@@ -60,11 +60,16 @@ async def check_availability(
         Dict with available slots from multiple vendors
     """
     try:
+        import time
+        import os
+        start_time = time.time()
         logger.info(f"Checking availability: sport={sport_type}, area={area or 'all'}, date={date}, time_range={time_range}, vendor_name={vendor_name}, vendor_id={vendor_id}")
+        logger.info(f"INSTANCE PID: {os.getpid()}")
 
         fs_client = FirestoreV2(firestore_db.db)
 
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
+        logger.info(f"TIMING: get_vendors_by_sport took {time.time() - start_time:.4f}s - Found {len(vendors_by_sport)}")
 
         resolved_vendor_id = vendor_id
         if not resolved_vendor_id and vendor_name:
@@ -216,7 +221,7 @@ async def check_availability(
                 logger.error(f"Error processing vendor {vendor_id}: {e}")
                 raise
 
-        return {
+        res = {
             "success": True,
             "date": date,
             "sport_type": sport_type,
@@ -226,6 +231,8 @@ async def check_availability(
             "time_exact_unavailable": time_exact_unavailable and bool(vendors_data),
             "requested_time": time_range.get("start") if time_range else None,
         }
+        logger.info(f"TIMING: check_availability total took {time.time() - start_time:.4f}s - returning {len(vendors_data)} vendors")
+        return res
 
     except Exception as e:
         logger.error(f"Error checking availability: {e}")

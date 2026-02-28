@@ -1137,6 +1137,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
             area = query_result.get("area")
             area_msg = query_result.get("message", "")
             if area and "No vendors found" in (area_msg or ""):
+                logger.info("Branch hit: NO_VENDORS (area filter)")
                 state["response"] = (
                     f"Sorry, {sport} ke liye {area} me koi vendor nahi mila. "
                     "Different area try karein (e.g. DHA, Clifton) ya sport change karein."
@@ -1144,11 +1145,13 @@ async def generate_response_node(state: AgentState) -> AgentState:
             else:
                 missing = state.get("missing_fields") or []
                 if "date" in missing or not entities.get("date"):
+                    logger.info("Branch hit: NO_SLOTS_NO_DATE_GIVEN")
                     state["response"] = (
                         f"Aaj ({date}) {area or 'Karachi'} me **{sport}** ke koi available slot nahi hai. "
                         "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
                     )
                 else:
+                    logger.info("Branch hit: NO_SLOTS_DATE_GIVEN")
                     next_date = query_result.get("next_available_date")
                     if next_date:
                         state["response"] = (
