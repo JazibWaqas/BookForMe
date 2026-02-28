@@ -1203,7 +1203,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
                             f"Aaj ({date}) {area or 'Karachi'} me **{sport}** ke koi available slot nahi hai. "
                             "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
                         )
-                else:
+                else: 
                     logger.info("Branch hit: NO_SLOTS_DATE_GIVEN")
                     next_date = query_result.get("next_available_date")
                     if _is_today and _is_late_night and not next_date:
