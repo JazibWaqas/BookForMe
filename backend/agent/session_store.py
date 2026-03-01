@@ -80,6 +80,19 @@ class SessionStore:
         else:
             logger.info("Not mid-inquiry — skipping selected_date/selected_sport_type persistence")
 
+        # Persist vendor_id, vendor_name and payment_amount ONLY during the
+        # locked-slot / awaiting-payment window. These are required by
+        # confirm_booking() after OCR verifies the payment screenshot.
+        # They must NOT persist during general availability queries — that was
+        # the original "Ace Padel bleeds into cricket" contamination bug.
+        awaiting_payment = bool(state.get("awaiting_payment") or state.get("locked_slot_id"))
+        if awaiting_payment:
+            for k in ("vendor_id", "vendor_name", "payment_amount"):
+                val = state.get(k)
+                if val is not None:
+                    session_data[k] = val
+            logger.info(f"Persisted vendor/payment (awaiting payment): vendor_id={state.get('vendor_id')}, amount={state.get('payment_amount')}")
+
         session_data["_last_active"] = datetime.now()
 
         self._sessions[user_phone] = session_data

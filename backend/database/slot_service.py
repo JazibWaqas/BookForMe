@@ -184,11 +184,11 @@ class SlotService:
             logger.error(f"Error submitting payment for slot {slot_id}: {e}")
             return {'success': False, 'error': f'Payment submission failed: {str(e)}'}
     
-    def confirm_booking(self, slot_id: str, vendor_id: str) -> Dict[str, Any]:
+    def confirm_booking(self, slot_id: str, vendor_id: str = None) -> Dict[str, Any]:
         """
-        Vendor confirms the booking after payment verification
-        
-        State transition: pending -> confirmed
+        Confirm booking after payment verification (state transition: pending -> confirmed).
+        vendor_id is used for authorization when provided.
+        When vendor_id is None (e.g. post-OCR auto-confirm), the slot's own vendor_id is used.
         """
         try:
             @firestore.transactional
@@ -200,8 +200,11 @@ class SlotService:
                     return {'success': False, 'error': 'Slot not found'}
                 
                 slot_data = slot_doc.to_dict()
-                
-                if slot_data.get('vendor_id') != vendor_id:
+                slot_vendor_id = slot_data.get('vendor_id')
+
+                # Authorization check: only enforce if a vendor_id was explicitly provided.
+                # When vendor_id is None (post-OCR auto-confirm), we trust the slot document.
+                if vendor_id is not None and slot_vendor_id != vendor_id:
                     return {'success': False, 'error': 'Unauthorized: slot belongs to different vendor'}
                 
                 if slot_data.get('status') != SlotStatus.PENDING.value:
@@ -215,6 +218,7 @@ class SlotService:
                 return {
                     'success': True,
                     'slot_id': slot_id,
+                    'vendor_id': slot_vendor_id,
                     'user_id': slot_data.get('user_id'),
                     'status': SlotStatus.CONFIRMED.value
                 }
