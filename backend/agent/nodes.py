@@ -402,14 +402,21 @@ async def classify_intent_node(state: AgentState) -> AgentState:
             logger.info("Detected greeting via fallback")
             state["current_intent"] = "greeting"
             state["entities"] = {}
-            state["vendor_id"] = state.get("vendor_id") or "ace_padel_club"
+            # Clear stale booking context so a fresh search doesn't inherit a
+            # previous query's date, sport, or vendor.
+            state["selected_date"] = None
+            state["selected_sport_type"] = None
+            state["selected_area"] = None
+            # Do NOT default vendor_id — that caused Ace to leak into all queries.
             return state
-        
+
+        # Cap history to last 6 messages to prevent old sport/vendor context from
+        # contaminating NLU entity extraction on new turns.
         conversation_history = [
             {"role": m.get("role"), "content": m.get("content")}
             for m in messages[:-1]
-        ]
-        
+        ][-6:]
+
         nlu_result = await nlu_agent.extract_intent(last_message, conversation_history)
         raw_intent = nlu_result.get("intent", "unknown")
         intent_5 = {
@@ -514,6 +521,13 @@ async def normalize_entities_node(state: AgentState) -> AgentState:
             except Exception as e:
                 logger.warning(f"Duration parsing failed: {e}")
         
+        # Persist sport type into state so it survives multi-turn flows
+        # (e.g. "padel" → "kal" → "night": sport must be remembered on turn 2 & 3)
+        sport_type = entities.get("service_type") or entities.get("sport_type")
+        if sport_type:
+            state["selected_sport_type"] = sport_type
+            logger.info(f"Persisted selected_sport_type: {sport_type}")
+
         state["entities"] = entities
         return state
         
@@ -587,14 +601,13 @@ async def validate_state_node(state: AgentState) -> AgentState:
         entities = state.get("entities", {})
         
         has_date = bool(entities.get("date") or state.get("selected_date"))
-        has_time = bool(entities.get("time") or entities.get("time_range"))
+        # has_time: ONLY a successfully-normalized time_range counts.
+        # Raw NLU tokens like 'chahiye', 'morning' (pre-parse) must NOT be treated as valid time.
+        has_time = bool(entities.get("time_range"))
 
-        if intent == "inquiry" and not has_date and has_time:
-            entities["date"] = datetime.now().strftime("%Y-%m-%d")
-            state["entities"] = entities
-            state["selected_date"] = entities["date"]
-            has_date = True
-            logger.info(f"Inferred today's date for inquiry with time but no date")
+        # NOTE: the former 'auto-inject today when has_time but no date' block has been removed.
+        # It caused silent datetime.now() queries for noisy tokens like 'chahiye'.
+        # If date is missing, we always ask the user — no silent defaults.
 
         missing = []
         if intent == "inquiry":
@@ -704,7 +717,14 @@ async def query_availability_node(state: AgentState) -> AgentState:
             or state.get("selected_sport_type")
         )
         area = entities.get("area") or state.get("selected_area")
-        date = entities.get("date") or state.get("selected_date") or datetime.now().strftime("%Y-%m-%d")
+        date = entities.get("date") or state.get("selected_date")
+        if not date:
+            # No date provided and none in session — this should have been caught by
+            # validate_state_node. Log a warning and bail so we don't silently query
+            # for today and confuse the user with spurious "no slots" messages.
+            logger.warning("query_availability_node called with no date in entities or session — skipping query")
+            state["query_result"] = {"success": False, "error": "no_date", "vendors": []}
+            return state
         user_selected_for_date = state.get("selected_slot")
         if user_selected_for_date and (user_selected_for_date.get("slot_id") or user_selected_for_date.get("id")):
             parsed = date_from_slot_id(user_selected_for_date.get("slot_id") or user_selected_for_date.get("id") or "")
@@ -775,10 +795,34 @@ async def query_availability_node(state: AgentState) -> AgentState:
                 logger.info(f"Slot found directly by ID: {explicit_slot_id}, price={price}")
                 return state
 
-        ent_vendor_name = entities.get("vendor_name") or entities.get("vendor") or state.get("vendor_name")
-        ent_vendor_id = entities.get("vendor_id") or state.get("vendor_id")
+        # Vendor gating: stale vendor_id from a prior query must NOT bleed into fresh queries.
+        # A vendor constraint is only valid when:
+        #   a) user explicitly mentioned a vendor in THIS message (entities has vendor info), OR
+        #   b) user is mid-booking for that vendor (awaiting_slot_selection or awaiting_confirmation)
+        # Otherwise treat as an all-vendor search so the user sees every available court.
+        user_mentioned_vendor = bool(
+            entities.get("vendor_id")
+            or entities.get("vendor_name")
+            or entities.get("vendor")
+        )
+        in_active_booking = bool(
+            state.get("awaiting_slot_selection")
+            or state.get("awaiting_confirmation")
+        )
 
-        logger.info(f"Checking availability: {service_type} in {area} on {date}, vendor_name={ent_vendor_name}, vendor_id={ent_vendor_id}")
+        if user_mentioned_vendor:
+            ent_vendor_name = entities.get("vendor_name") or entities.get("vendor")
+            ent_vendor_id = entities.get("vendor_id")
+        elif in_active_booking:
+            # Mid-booking follow-up (e.g. "ace padel" → selecting a slot number)
+            ent_vendor_name = state.get("vendor_name")
+            ent_vendor_id = state.get("vendor_id")
+        else:
+            # Fresh inquiry — search all vendors, ignore any stale vendor from session
+            ent_vendor_name = None
+            ent_vendor_id = None
+
+        logger.info(f"Checking availability: {service_type} in {area} on {date}, vendor_name={ent_vendor_name}, vendor_id={ent_vendor_id} (user_mentioned={user_mentioned_vendor}, in_active_booking={in_active_booking})")
         query_result = await check_availability(service_type, area, date, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
         
         has_slots = query_result and query_result.get("success") and query_result.get("vendors") and len(query_result.get("vendors", [])) > 0
@@ -1206,12 +1250,34 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 return state
 
         missing = state.get("missing_fields") or []
+
+        # ── Missing date: ask the user which date ──────────────────────────────
+        if "date" in missing and intent == "inquiry":
+            sport = entities.get("service_type") or state.get("selected_sport_type") or "sport"
+            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
+            if is_urdu:
+                state["response"] = f"{sport.capitalize()} ke liye kaunsi date chahiye? (e.g. 'aaj', 'kal', '3 march')"
+            else:
+                state["response"] = f"What date would you like to book {sport} for? (e.g. 'today', 'tomorrow', '3 march')"
+            return state
+
+        # ── Missing time: ask the user what time ──────────────────────────────
         if "time" in missing and intent == "inquiry":
             is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
             if is_urdu:
                 state["response"] = "Kaunsa time chahiye? Morning, afternoon, evening, ya night?"
             else:
                 state["response"] = "What time are you looking for? Morning, afternoon, evening, or night?"
+            return state
+
+        # ── no_date query_result: should not produce 'no slots' message ────────
+        if query_result and query_result.get("error") == "no_date":
+            sport = entities.get("service_type") or state.get("selected_sport_type") or "sport"
+            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
+            if is_urdu:
+                state["response"] = f"{sport.capitalize()} ke liye kaunsi date chahiye? (e.g. 'aaj', 'kal', '3 march')"
+            else:
+                state["response"] = f"What date would you like to book {sport} for? (e.g. 'today', 'tomorrow', '3 march')"
             return state
 
         if not booking_result and query_result and query_result.get("success") and query_result.get("vendors"):
@@ -1447,7 +1513,7 @@ def route_by_intent(state: AgentState) -> str:
     entities = state.get("entities", {})
     selected_slot = state.get("selected_slot") or {}
     has_slot_id = bool(selected_slot.get("slot_id"))
-    has_time = bool(entities.get("time") or entities.get("time_range"))
+    has_time = bool(entities.get("time_range"))  # only a clean normalized range counts
     has_vendor = bool(entities.get("vendor_id") or entities.get("vendor_name") or state.get("vendor_id"))
     has_date = bool(entities.get("date") or state.get("selected_date"))
     messages = state.get("messages", [])
@@ -1477,7 +1543,11 @@ def route_by_intent(state: AgentState) -> str:
             state["awaiting_slot_selection"] = False
             state["slot_options"] = []
             state["selected_slot"] = None
-            logger.info("New booking entities during slot selection - starting fresh query")
+            # Clear stale date/sport so the new inquiry starts clean.
+            # The old date was valid for the previous slot list, not this new query.
+            state["selected_date"] = None
+            state["selected_sport_type"] = None
+            logger.info("New booking entities during slot selection - cleared stale date/sport, starting fresh query")
         else:
             # Unrecognised free-text during slot selection.
             # Clear the list AND set a flag so generate_response_node can
@@ -1512,11 +1582,21 @@ def route_by_intent(state: AgentState) -> str:
     if has_slot_id:
         return "query_availability"
 
+    # Respect the missing_fields verdict from validate_state_node.
+    # If date is missing → ask the user for a date (generate_response).
+    # If date is present but time is missing → ask for time (generate_response).
+    # Only fire query_availability when both are present (or time is optional
+    # because the user wants to see all slots for a given date).
+    missing = state.get("missing_fields") or []
+
+    if intent == "inquiry" and "date" in missing:
+        return "generate_response"   # will ask user for a date
+
     if intent == "inquiry" and has_date and not has_time:
-        return "generate_response"
+        return "generate_response"   # will ask user for a time
 
     if intent == "inquiry":
-        return "query_availability"
+        return "query_availability"  # date (and optionally time) are known — safe to query
     if intent == "transaction" and (has_time or has_vendor):
         return "query_availability"
     if intent == "transaction":

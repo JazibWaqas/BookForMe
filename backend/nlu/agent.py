@@ -954,7 +954,16 @@ Respond in JSON format:
             date = entities.get("date")
             time_range = entities.get("time") or entities.get("time_range")
             service_type = entities.get("service_type", "padel")
-            
+
+            # Guard: do not query without a date — avoids silent "today" fallbacks
+            if not date:
+                logger.warning("[_check_database_availability] No date in entities — skipping query")
+                return {
+                    "success": False,
+                    "error": "no_date",
+                    "available_slots": []
+                }
+
             logger.info(f"📋 [_check_database_availability] Extracted:")
             logger.info(f"   Date: {date}")
             logger.info(f"   Time range: {time_range}")
@@ -980,9 +989,13 @@ Respond in JSON format:
                         date = parsed_date.strftime("%Y-%m-%d")
                         logger.info(f"   ✅ Parsed date to: {date}")
                     except:
-                        # Default to today if can't parse
-                        date = today.strftime("%Y-%m-%d")
-                        logger.warning(f"   ⚠️  Could not parse date, defaulting to today: {date}")
+                        # Cannot parse date — bail rather than silently defaulting to today
+                        logger.warning(f"   ⚠️  Could not parse date '{date}' — skipping query")
+                        return {
+                            "success": False,
+                            "error": "unparseable_date",
+                            "available_slots": []
+                        }
             else:
                 logger.info(f"📅 [_check_database_availability] Date already in format: {date}")
             
