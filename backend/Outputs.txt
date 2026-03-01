@@ -1,0 +1,212 @@
+====================================================================================================
+  FINETUNED DISTILBERT INTENT CLASSIFIER — COMPREHENSIVE TEST RESULTS
+  Model API: https://bookforme-be94.onrender.com
+  Test Run:  2026-03-01 13:55:41
+====================================================================================================
+
+  SUMMARY
+  ─────────────────────────────────
+  Total Test Cases:   106
+  Correct:            90
+  Incorrect:          16
+  Errors (API):       0
+  Accuracy:           84.9%
+  ─────────────────────────────────
+
+  [GREETING] — 10/10 correct (100%)
+  [INQUIRY] — 36/37 correct (97%)
+  [INFO_REQUEST] — 18/18 correct (100%)
+  [TRANSACTION_CONFIRM] — 26/31 correct (84%)
+  [UNKNOWN] — 0/10 correct (0%)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  CATEGORY: GREETING
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  #    Status   Message                                                 Predicted              Confidence
+  ──── ──────── ─────────────────────────────────────────────────────── ────────────────────── ──────────
+  1    ✅        Hi                                                      greeting               0.8021
+  2    ✅        Hello                                                   greeting               0.6934
+  3    ✅        Hey                                                     greeting               0.6176
+  4    ✅        AOA                                                     greeting               0.7835
+  5    ✅        Salam                                                   greeting               0.7569
+  6    ✅        Assalamualaikum                                         greeting               0.7722
+  7    ✅        Good morning                                            greeting               0.6571
+  8    ✅        Hey there!                                              greeting               0.5829
+  9    ✅        Hi, how are you?                                        greeting               0.3238
+  10   ✅        Walaikum Assalam                                        greeting               0.7290
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  CATEGORY: INQUIRY
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  #    Status   Message                                                 Predicted              Confidence
+  ──── ──────── ─────────────────────────────────────────────────────── ────────────────────── ──────────
+  1    ✅        Book a futsal slot tomorrow at 8pm                      inquiry                0.5301
+  2    ✅        I want to book a padel court                            inquiry                0.4416
+  3    ✅        Mujhe kal slot chahiye                                  inquiry                0.5293
+  4    ✅        Book a cricket slot for Friday                          inquiry                0.5249
+  5    ✅        I need a padel court tomorrow evening                   inquiry                0.4705
+  6    ✅        Can I book a futsal slot?                               inquiry                0.5201
+  7    ✅        Slot karna hai padel ka                                 inquiry                0.5636
+  8    ✅        Reserve a court for Saturday morning                    inquiry                0.4900
+  9    ✅        Any slots available tomorrow?                           inquiry                0.4602
+  10   ✅        Is there availability for padel today?                  inquiry                0.4857
+  11   ✅        Show me available slots for futsal                      inquiry                0.5321
+  12   ✅        Koi slot hai kal ke liye?                               inquiry                0.4939
+  13   ✅        What times are available on Friday?                     inquiry                0.4411
+  14   ✅        Check availability for cricket on Sunday                inquiry                0.3823
+  15   ✅        Padel slots for tomorrow evening?                       inquiry                0.5558
+  16   ✅        Any open slots at Ace Padel Club?                       inquiry                0.4532
+  17   ✅        Padel                                                   inquiry                0.5383
+  18   ✅        Futsal                                                  inquiry                0.3973
+  19   ✅        Cricket                                                 inquiry                0.4149
+  20   ✅        Tomorrow                                                inquiry                0.3139
+  21   ✅        Kal                                                     inquiry                0.4000
+  22   ✅        Friday                                                  inquiry                0.4471
+  23   ✅        Next Saturday                                           inquiry                0.4546
+  24   ✅        15 March                                                inquiry                0.3066
+  25   ✅        8 pm                                                    inquiry                0.4394
+  26   ✅        Evening                                                 inquiry                0.3883
+  27   ❌        Shaam ko                                                transaction_confirm    0.3888
+  28   ✅        Morning slot                                            inquiry                0.4878
+  29   ✅        4 bajay                                                 inquiry                0.4286
+  30   ✅        Around 6 pm                                             inquiry                0.4349
+  31   ✅        Aoa, padel slot chahiye kal shaam ko                    inquiry                0.5372
+  32   ✅        Salam, futsal ka slot book karna hai Friday ko 8 baje   inquiry                0.5903
+  33   ✅        Bhai kal subah cricket ka slot hai?                     inquiry                0.5247
+  34   ✅        Golden court mein koi slot available hai kal?           inquiry                0.5500
+  35   ✅        Ace padel mein kal 4 pm ka slot book karna hai          inquiry                0.5686
+  36   ✅        DHA mein padel court chahiye                            inquiry                0.4736
+  37   ✅        Bahria town mein futsal slot?                           inquiry                0.5603
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  CATEGORY: INFO_REQUEST
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  #    Status   Message                                                 Predicted              Confidence
+  ──── ──────── ─────────────────────────────────────────────────────── ────────────────────── ──────────
+  1    ✅        What is the price?                                      info                   0.5964
+  2    ✅        How much does it cost?                                  info                   0.6163
+  3    ✅        Kitna lagay ga?                                         info                   0.5563
+  4    ✅        Price for padel court?                                  info                   0.5499
+  5    ✅        What are the charges?                                   info                   0.5734
+  6    ✅        Rate kya hai?                                           info                   0.6911
+  7    ✅        How much for one hour?                                  info                   0.4715
+  8    ✅        1 ghanta ka kitna hai?                                  info                   0.5510
+  9    ✅        What services do you offer?                             info                   0.6036
+  10   ✅        Where is Ace Padel Club located?                        info                   0.4429
+  11   ✅        What are your timings?                                  info                   0.5422
+  12   ✅        Kya kya services hain?                                  info                   0.6345
+  13   ✅        Address batao                                           info                   0.4770
+  14   ✅        Payment kaise hoga?                                     info                   0.7086
+  15   ✅        Account number do                                       info                   0.4534
+  16   ✅        How can I pay?                                          info                   0.4673
+  17   ✅        Bank transfer details?                                  info                   0.6849
+  18   ✅        JazzCash ya EasyPaisa?                                  info                   0.6120
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  CATEGORY: TRANSACTION_CONFIRM
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  #    Status   Message                                                 Predicted              Confidence
+  ──── ──────── ─────────────────────────────────────────────────────── ────────────────────── ──────────
+  1    ✅        Yes                                                     transaction_confirm    0.5108
+  2    ✅        Ok                                                      transaction_confirm    0.5645
+  3    ✅        Confirm                                                 transaction_confirm    0.6219
+  4    ✅        Book it                                                 transaction_confirm    0.6177
+  5    ✅        Han                                                     transaction_confirm    0.3736
+  6    ❌        Ji                                                      greeting               0.5160
+  7    ✅        Haan                                                    transaction_confirm    0.5102
+  8    ✅        Done                                                    transaction_confirm    0.6010
+  9    ✅        Theek hai                                               transaction_confirm    0.4960
+  10   ❌        Bilkul                                                  inquiry                0.2848
+  11   ✅        Sure                                                    transaction_confirm    0.6009
+  12   ✅        Proceed                                                 transaction_confirm    0.6305
+  13   ✅        Yes, confirm the booking                                transaction_confirm    0.4861
+  14   ✅        Book kar do                                             transaction_confirm    0.5827
+  15   ✅        Han book karo                                           transaction_confirm    0.6249
+  16   ❌        1                                                       unknown                0.3484
+  17   ❌        2                                                       unknown                0.3380
+  18   ❌        3                                                       unknown                0.3592
+  19   ✅        Cancel                                                  transaction_confirm    0.6543
+  20   ✅        Nahi                                                    transaction_confirm    0.5282
+  21   ✅        No                                                      transaction_confirm    0.5545
+  22   ✅        Cancel karo                                             transaction_confirm    0.6695
+  23   ✅        Don't want                                              transaction_confirm    0.5604
+  24   ✅        Nope                                                    transaction_confirm    0.5848
+  25   ✅        Mat karo                                                transaction_confirm    0.6074
+  26   ✅        Ruko                                                    transaction_confirm    0.6252
+  27   ✅        Change the time                                         transaction_confirm    0.5675
+  28   ✅        Different slot                                          transaction_confirm    0.3442
+  29   ✅        Actually, change to 6 pm                                transaction_confirm    0.4199
+  30   ✅        I want a different date                                 transaction_confirm    0.3531
+  31   ✅        Modify my booking                                       transaction_confirm    0.4333
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  CATEGORY: UNKNOWN
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  #    Status   Message                                                 Predicted              Confidence
+  ──── ──────── ─────────────────────────────────────────────────────── ────────────────────── ──────────
+  1    ❌        Tell me about the weather                               transaction_confirm    0.3951
+  2    ❌        What is the capital of Pakistan?                        info                   0.3347
+  3    ❌        Who won the world cup?                                  info                   0.4667
+  4    ❌        How to cook biryani?                                    info                   0.4927
+  5    ❌        What time is it?                                        info                   0.4170
+  6    ❌        Can you help with my homework?                          inquiry                0.3549
+  7    ❌        Tell me a joke                                          transaction_confirm    0.4054
+  8    ❌        What is AI?                                             info                   0.5557
+  9    ❌        Translate this to Urdu                                  transaction_confirm    0.3705
+  10   ❌        Explain quantum physics                                 transaction_confirm    0.3727
+
+====================================================================================================
+  MISCLASSIFICATIONS (messages the model got wrong)
+====================================================================================================
+  "Shaam ko"
+    Expected: inquiry               Got: transaction_confirm   Confidence: 0.3888
+
+  "Ji"
+    Expected: transaction_confirm   Got: greeting              Confidence: 0.5160
+
+  "Bilkul"
+    Expected: transaction_confirm   Got: inquiry               Confidence: 0.2848
+
+  "1"
+    Expected: transaction_confirm   Got: unknown               Confidence: 0.3484
+
+  "2"
+    Expected: transaction_confirm   Got: unknown               Confidence: 0.3380
+
+  "3"
+    Expected: transaction_confirm   Got: unknown               Confidence: 0.3592
+
+  "Tell me about the weather"
+    Expected: unknown               Got: transaction_confirm   Confidence: 0.3951
+
+  "What is the capital of Pakistan?"
+    Expected: unknown               Got: info                  Confidence: 0.3347
+
+  "Who won the world cup?"
+    Expected: unknown               Got: info                  Confidence: 0.4667
+
+  "How to cook biryani?"
+    Expected: unknown               Got: info                  Confidence: 0.4927
+
+  "What time is it?"
+    Expected: unknown               Got: info                  Confidence: 0.4170
+
+  "Can you help with my homework?"
+    Expected: unknown               Got: inquiry               Confidence: 0.3549
+
+  "Tell me a joke"
+    Expected: unknown               Got: transaction_confirm   Confidence: 0.4054
+
+  "What is AI?"
+    Expected: unknown               Got: info                  Confidence: 0.5557
+
+  "Translate this to Urdu"
+    Expected: unknown               Got: transaction_confirm   Confidence: 0.3705
+
+  "Explain quantum physics"
+    Expected: unknown               Got: transaction_confirm   Confidence: 0.3727
+
+
+====================================================================================================
+  END OF REPORT
+====================================================================================================

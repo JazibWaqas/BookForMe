@@ -21,6 +21,9 @@ import uuid
 from pathlib import Path
 from datetime import timedelta
 from database.ai_search_service import AISearchService
+from nlu.ocr import PaymentOCR
+
+payment_ocr = PaymentOCR()
 
 logger = logging.getLogger(__name__)
 
@@ -512,9 +515,13 @@ async def upload_payment_screenshot(
         Payment confirmation
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"[PAYMENT UPLOAD] HIT /payments/upload endpoint")
+        print(f"[PAYMENT UPLOAD] slot_id={slot_id}, user_id={user_id}, amount_claimed={amount_claimed}")
+        print(f"[PAYMENT UPLOAD] file={file.filename}, content_type={file.content_type}")
+        print(f"{'='*60}")
         logger.info(f"Uploading payment screenshot for slot {slot_id} by user {user_id}")
         
-        # Validate slot
         slot = await firestore_v2.get_slot(slot_id)
         if not slot:
             raise HTTPException(status_code=404, detail="Slot not found")
@@ -529,19 +536,35 @@ async def upload_payment_screenshot(
         if not vendor_id:
             raise HTTPException(status_code=400, detail="Slot has no vendor_id")
         
-        # Save file
         file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
         unique_filename = f"{slot_id}_{uuid.uuid4()}{file_extension}"
         file_path = UPLOAD_DIR / unique_filename
         
-        # Write file to disk
         with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
         
-        # Create relative URL for the file
+        print(f"[PAYMENT UPLOAD] File saved: {file_path}, size={len(content)} bytes")
         screenshot_url = f"/uploads/payments/{unique_filename}"
-        
+
+        print(f"[PAYMENT UPLOAD] Starting OCR verification...")
+        ocr_result = await payment_ocr.verify_payment(content, amount_claimed)
+        print(f"[PAYMENT UPLOAD] OCR result: {ocr_result}")
+
+        if not ocr_result["verified"]:
+            print(f"[PAYMENT UPLOAD] OCR REJECTED - cleaning up file")
+            if file_path.exists():
+                file_path.unlink()
+            extracted = ocr_result.get("extracted_amount")
+            if extracted is not None:
+                detail = f"Payment amount doesn't match. Expected PKR {int(amount_claimed)}, found PKR {int(extracted)} in screenshot."
+                print(f"[PAYMENT UPLOAD] Returning 400: {detail}")
+                raise HTTPException(status_code=400, detail=detail)
+            detail = "Couldn't read a payment amount from the screenshot. Please upload a clear payment confirmation image."
+            print(f"[PAYMENT UPLOAD] Returning 400: {detail}")
+            raise HTTPException(status_code=400, detail=detail)
+
+        print(f"[PAYMENT UPLOAD] OCR PASSED - proceeding to create payment record")
         # Create payment record
         payment_doc = {
             'slot_id': slot_id,
@@ -590,80 +613,6 @@ async def upload_payment_screenshot(
         raise HTTPException(status_code=500, detail=f"Failed to upload payment: {str(e)}")
 
 
-@router.post("/payments")
-async def submit_payment(payment_data: PaymentRequest, user_id: str = Depends(get_current_user_id)):
-    """
-    Submit payment screenshot and confirm booking
-    
-    Args:
-        payment_data: Payment information (slot_id, screenshot_url, amount_claimed)
-        user_id: User ID (from JWT token)
-        
-    Returns:
-        Payment confirmation
-    """
-    try:
-        print(f"\n[💳 X-RAY BACKEND: Submitting Payment]")
-        print(f"- Slot ID: {payment_data.slot_id} | Amount Claimed: {payment_data.amount_claimed}")
-        logger.info(f"Submitting payment for slot {payment_data.slot_id} by user {user_id}")
-        
-        slot = await firestore_v2.get_slot(payment_data.slot_id)
-        if not slot:
-            raise HTTPException(status_code=404, detail="Slot not found")
-        
-        if slot.get('user_id') != user_id:
-            raise HTTPException(status_code=403, detail="This slot is not locked by you")
-        
-        if slot.get('status') != 'locked':
-            raise HTTPException(status_code=400, detail=f"Slot is not locked (current: {slot.get('status')})")
-        
-        vendor_id = slot.get('vendor_id')
-        if not vendor_id:
-            raise HTTPException(status_code=400, detail="Slot has no vendor_id")
-        
-        payment_doc = {
-            'slot_id': payment_data.slot_id,
-            'user_id': user_id,
-            'vendor_id': vendor_id,
-            'screenshot_url': payment_data.screenshot_url,
-            'amount_claimed': payment_data.amount_claimed,
-            'status': 'pending',
-            'created_at': firestore.SERVER_TIMESTAMP
-        }
-        
-        payment_ref = firestore_db.db.collection('payments').add(payment_doc)
-        payment_id = payment_ref[1].id
-        
-        # Submit payment - this changes slot from 'locked' to 'pending'
-        payment_result = slot_service.submit_payment(payment_data.slot_id, user_id, payment_id)
-        
-        if not payment_result['success']:
-            raise HTTPException(status_code=400, detail=payment_result.get('error', 'Failed to submit payment'))
-        
-        # Auto-confirm booking immediately after payment submission
-        # In MVP, we auto-confirm. In production, vendor would manually confirm.
-        confirm_result = slot_service.confirm_booking(payment_data.slot_id, vendor_id)
-        
-        final_status = 'pending'  # Default to pending if confirm fails
-        if confirm_result['success']:
-            final_status = 'confirmed'
-            logger.info(f"Payment submitted and booking auto-confirmed for slot {payment_data.slot_id}")
-        else:
-            logger.warning(f"Payment submitted but auto-confirmation failed: {confirm_result.get('error')}. Status remains 'pending'")
-        
-        return {
-            "success": True,
-            "payment_id": payment_id,
-            "slot_id": payment_data.slot_id,
-            "status": final_status,
-            "message": f"Payment submitted and booking {final_status}"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error submitting payment: {e}")
-        raise HTTPException(status_code=500, detail="Failed to submit payment")
 
 
 @router.get("/bookings")
