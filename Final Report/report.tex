@@ -1,0 +1,237 @@
+% BookForMe -- Kaavish Final Year Project Report
+% Habib University, Dhanani School of Science and Engineering
+% Adapted from the departmental Kaavish template
+
+\documentclass[12pt,oneside]{report}
+
+\usepackage[titletoc]{appendix} % for adding appendix to TOC
+\usepackage[T1]{fontenc}        % proper font encoding for code/text symbols
+\usepackage[utf8]{inputenc}     % support for non-ASCII characters
+\usepackage{biblatex}           % reference management
+\usepackage{geometry}           % better margins and margin control
+\usepackage{graphicx}           % to include figures
+\usepackage{hyperref}           % internal and external links
+\usepackage{listings}           % typeset code
+\usepackage{outlines}           % easy nesting of lists
+\usepackage{tabularx}           % more control over table column width
+\usepackage{titlesec}           % customize chapter title
+\usepackage{upquote}            % prevent mishandling of single quotes in listings
+
+% Additional packages
+\usepackage{booktabs}           % professional-quality tables
+\usepackage{multirow}           % multirow cells in tables
+\usepackage{amsmath}            % maths environments
+\usepackage{amssymb}            % maths symbols
+\usepackage{xcolor}             % colour support
+\usepackage{float}              % force figure/table placement with [H]
+\usepackage{caption}            % caption customisation
+\usepackage{subcaption}         % subfigures
+\usepackage{longtable}          % tables spanning multiple pages
+\usepackage{pifont}             % tick / cross symbols  (\cmark, \xmark)
+\usepackage{enumitem}           % fine-grained list control
+\usepackage{microtype}          % microtypography (better justification)
+\usepackage{silence}            % filter known non-actionable package warnings
+\usepackage{fancyhdr}           % running headers
+\usepackage{setspace}           % line-spacing control
+\usepackage{array}              % extended column types
+\usepackage{needspace}          % keep headings with following content
+
+\WarningFilter{tabularx}{X Columns too narrow}
+\WarningFilter{microtype}{Unable to apply patch `footnote'}
+\WarningFilter{latex}{Overfull \\hbox}
+\WarningFilter{latex}{Underfull \\hbox}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% Hyperref customisation
+\hypersetup{
+  colorlinks = true,
+  linkcolor  = {blue!60!black},
+  citecolor  = {green!50!black},
+  urlcolor   = {blue!70!black},
+  pdftitle   = {BookForMe: An Agentic AI-Powered Centralized Booking Platform},
+  pdfauthor  = {Ahmad Hanif, Jazib Waqas, Taha Hunaid Ali, Muhammad Taqi}
+}
+
+% Chapter title format (matches template exactly)
+\titleformat{\chapter}[hang]{\bf\huge}{\thechapter.}{2pc}{}
+
+% Image path
+\graphicspath{ {images/} }
+
+% Bibliography
+\addbibresource{references.bib}
+
+% Listings style
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!70!black}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{orange!80!black},
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=8pt,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  tabsize=4,
+  captionpos=b
+}
+\lstdefinestyle{jsonstyle}{
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  captionpos=b
+}
+
+% Convenience macros
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+% Line spacing
+\onehalfspacing
+
+% Keep page bottoms consistent without stretched vertical whitespace
+\raggedbottom
+\sloppy
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+
+% Reduce avoidable line-box warnings from long technical tokens
+\emergencystretch=3em
+\hbadness=10000
+\vbadness=10000
+\hfuzz=5000pt
+\vfuzz=5000pt
+
+% Project title
+\title{BookForMe: An Agentic AI-Powered Centralized Booking Platform}
+
+% Allow recalling document title
+% from https://tex.stackexchange.com/a/15806/44301
+\makeatletter\let\Title\@title\makeatother
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Front matter ─────────────────────────────────────────────────────────────
+
+\input{titlepage}   % title page
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+We want to thank the CS faculty at Habib University for their guidance throughout
+the Kaavish programme, particularly during milestone reviews where their feedback
+sharpened our system design and evaluation methodology.
+
+We are grateful to the futsal and padel court operators in Karachi who generously
+shared their WhatsApp booking conversations and allowed us to observe real scheduling
+workflows.  Without their cooperation, our bilingual dataset would not exist.
+
+Special thanks to the HU IT department for GPU cluster access, to the Google
+Developer Student Club for Google Cloud credits, and to our Kaavish peers for
+constructive peer-review.  Finally, we acknowledge the open-source communities
+behind HuggingFace Transformers, LangGraph, FastAPI, and React Native, whose work
+made this project technically feasible within one academic year.
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+Booking recreational and informal services in Pakistan---futsal courts, salons,
+gaming zones, and beach houses---remains fragmented and inefficient.  Customers must
+individually contact vendors over WhatsApp, wait for manual availability checks, and
+confirm reservations through unstructured conversation.  This process is slow, prone
+to double-bookings, and poorly suited to users who communicate in Roman Urdu.
+
+\textbf{BookForMe} is a centralized, agentic AI booking platform that addresses
+these problems.  It provides a React Native mobile application for browsing and
+booking services, and an AI Receptionist that autonomously manages booking requests
+on the vendor's WhatsApp channel.  Core contributions are: (1) a custom bilingual
+dataset of 657+ annotated utterances in English and Roman Urdu constructed through
+real vendor conversations and LLM-driven augmentation; (2) a comparative evaluation
+of six transformer architectures for intent classification, with DistilBERT achieving
+the best performance of 90.5\% accuracy and 91.7\% macro-F1; (3) a LangGraph-based
+cyclic state machine implementing the full booking pipeline with Optimistic
+Concurrency Control (OCC) in Firestore and OCR-based payment verification; and (4) a
+social layer with Elo-based matchmaking, community forums, and leaderboards.
+
+A user survey ($n>50$) found that 72\% of respondents rely on WhatsApp or phone
+calls for bookings and 81\% reported frustration with multi-vendor coordination,
+validating the social relevance of this work.  The platform is live at
+\url{https://jhat-to9p.onrender.com} and open-sourced at
+\url{https://github.com/JazibWaqas/JHAT}.
+
+\vspace{4pt}
+\noindent\textbf{Keywords:} Agentic AI, Task-Oriented Dialogue, Bilingual NLU,
+Roman Urdu, LangGraph, Optimistic Concurrency Control, WhatsApp Business API,
+DistilBERT.
+
+% ── Tables ───────────────────────────────────────────────────────────────────
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ── Chapters ─────────────────────────────────────────────────────────────────
+\chapter{Introduction}
+\label{chap:intro}
+\input{chapters/introduction}
+
+\chapter{Literature Review}
+\label{chap:lit}
+\input{chapters/review}
+
+\chapter{Software Requirement Specification (SRS)}
+\label{chap:srs}
+\input{chapters/srs}
+
+\chapter{Software Design Specification (SDS)}
+\label{chap:sds}
+\input{chapters/sds}
+
+\chapter{Methodology, Experiments and Results}
+\label{chap:results}
+\input{chapters/results}
+
+\chapter{Conclusion and Future Work}
+\label{chap:outro}
+\input{chapters/conclusion}
+
+\chapter{Reflection}
+\label{chap:Reflection}
+\input{chapters/reflection}
+
+% ── Appendices ────────────────────────────────────────────────────────────────
+\begin{appendices}
+\titleformat{\chapter}[hang]{\bf\huge}{Appendix \thechapter.}{2pc}{}
+
+\chapter{Mathematical Foundations}
+\label{app:math}
+\input{chapters/appendix-math}
+
+\chapter{Dataset and Annotation Schema}
+\label{app:data}
+\input{chapters/appendix-data}
+
+\chapter{Code}
+\label{app:code}
+\input{chapters/appendix-code}
+\end{appendices}
+
+% ── References ────────────────────────────────────────────────────────────────
+\printbibliography[heading=bibintoc,title={References}]
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
