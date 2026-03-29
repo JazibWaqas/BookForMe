@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Card from '../../components/ui/Card';
@@ -46,8 +46,9 @@ export default function BookingDetailScreen() {
         if (bookingId) fetchBookingDetails();
     }, [bookingId, fetchBookingDetails]);
 
-    // Refresh if the vendor navigates away and back (e.g. after approving from another screen)
+    const initialLoadDone = useRef(false);
     useFocusEffect(useCallback(() => {
+        if (!initialLoadDone.current) { initialLoadDone.current = true; return; }
         if (bookingId) fetchBookingDetails();
     }, [bookingId, fetchBookingDetails]));
 

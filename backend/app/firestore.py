@@ -3,6 +3,7 @@ Firestore Database Connection
 Simplified database layer using Firestore instead of PostgreSQL
 """
 
+import asyncio
 import logging
 from typing import Dict, List, Any, Optional
 from google.cloud import firestore
@@ -371,7 +372,7 @@ class FirestoreDB:
                 query = query.where(filter=FieldFilter('date', '>=', cutoff))
 
             raw: List[Dict[str, Any]] = []
-            for doc in query.stream():
+            for doc in await asyncio.to_thread(lambda: list(query.stream())):
                 booking_data = doc.to_dict()
                 booking_data['id'] = doc.id
 
@@ -410,8 +411,8 @@ class FirestoreDB:
                             out[snap.id] = snap.to_dict() or {}
                 return out
 
-            users_map = batch_get_map('users', user_ids)
-            pays_map = batch_get_map('payments', payment_ids)
+            users_map = await asyncio.to_thread(batch_get_map, 'users', user_ids)
+            pays_map = await asyncio.to_thread(batch_get_map, 'payments', payment_ids)
 
             bookings = []
             for booking_data in raw:

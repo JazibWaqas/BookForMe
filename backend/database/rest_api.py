@@ -1356,8 +1356,10 @@ async def vendor_get_resources(vendor_id: str, uid: str = Depends(get_current_us
     require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
-        docs = firestore_db.db.collection('resources') \
-            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        docs = await asyncio.to_thread(
+            lambda: list(firestore_db.db.collection('resources')
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream())
+        )
         return {"success": True, "resources": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
     except Exception as e:
         logger.error(f"Error getting resources: {e}")
@@ -1396,8 +1398,10 @@ async def vendor_get_services(vendor_id: str, uid: str = Depends(get_current_use
     require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
-        docs = firestore_db.db.collection('services') \
-            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        docs = await asyncio.to_thread(
+            lambda: list(firestore_db.db.collection('services')
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream())
+        )
         return {"success": True, "services": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
     except Exception as e:
         logger.error(f"Error getting services: {e}")
@@ -1443,8 +1447,10 @@ async def vendor_get_payment_accounts(vendor_id: str, uid: str = Depends(get_cur
     require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
-        docs = firestore_db.db.collection('vendor_payment_accounts') \
-            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        docs = await asyncio.to_thread(
+            lambda: list(firestore_db.db.collection('vendor_payment_accounts')
+                .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream())
+        )
         return {"success": True, "accounts": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
     except Exception as e:
         logger.error(f"Error getting payment accounts: {e}")

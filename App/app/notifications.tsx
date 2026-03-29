@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +24,11 @@ export default function NotificationsScreen() {
 
   useEffect(() => { loadNotifications(); }, []);
 
-  // Always reload when navigating to this screen
-  useFocusEffect(useCallback(() => { loadNotifications(); }, []));
+  const initialLoadDone = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (!initialLoadDone.current) { initialLoadDone.current = true; return; }
+    loadNotifications();
+  }, []));
 
   const loadNotifications = async () => {
     try {
