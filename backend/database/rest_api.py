@@ -63,8 +63,10 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 
-def require_vendor_owner(user_id: str, vendor_id: str) -> None:
-    doc = firestore_db.db.collection("users").document(user_id).get()
+async def require_vendor_owner(user_id: str, vendor_id: str) -> None:
+    doc = await asyncio.to_thread(
+        lambda: firestore_db.db.collection("users").document(user_id).get()
+    )
     if not doc.exists:
         raise HTTPException(status_code=403, detail="User not found")
     data = doc.to_dict() or {}
@@ -823,7 +825,9 @@ async def get_vendor_grid(vendor_id: str, date: str):
         next_date = (parsed_date + timedelta(days=1)).strftime('%Y-%m-%d')
         
         # Fetch vendor document to get operating hours
-        vendor_doc = firestore_db.db.collection('vendors').document(vendor_id).get()
+        vendor_doc = await asyncio.to_thread(
+            lambda: firestore_db.db.collection('vendors').document(vendor_id).get()
+        )
         operating_hours = {}
         if vendor_doc.exists:
             vendor_data = vendor_doc.to_dict()
@@ -989,18 +993,30 @@ async def vendor_dashboard_analytics(vendor_id: str):
                 if t is None or t >= now_time_str:
                     available_today_count += 1
 
-        resource_name_cache: Dict[str, str] = {}
-        user_name_cache: Dict[str, str] = {}
+        # Collect all resource and user IDs we'll need, then batch fetch them all at once
+        all_slots = list(slots_today) + list(slots_attention)
+        resource_ids = set()
+        user_ids = set()
+        for doc in all_slots:
+            data = doc.to_dict() or {}
+            if data.get('resource_id'):
+                resource_ids.add(data['resource_id'])
+            if not data.get('customer_name') and data.get('user_id'):
+                user_ids.add(data['user_id'])
+
+        def batch_fetch(collection: str, ids: set) -> Dict[str, Dict]:
+            if not ids:
+                return {}
+            refs = [db.collection(collection).document(i) for i in ids]
+            return {s.id: s.to_dict() or {} for s in db.get_all(refs) if s.exists}
+
+        resource_map, user_map = await asyncio.gather(
+            asyncio.to_thread(batch_fetch, 'resources', resource_ids),
+            asyncio.to_thread(batch_fetch, 'users', user_ids),
+        )
 
         def get_resource_name(rid: str) -> str:
-            if rid in resource_name_cache:
-                return resource_name_cache[rid]
-            rdoc = db.collection('resources').document(rid).get()
-            name = rid
-            if rdoc.exists:
-                name = (rdoc.to_dict() or {}).get('name') or rid
-            resource_name_cache[rid] = name
-            return name
+            return (resource_map.get(rid) or {}).get('name') or rid
 
         def get_customer_name(data: dict) -> str:
             if data.get('customer_name'):
@@ -1008,15 +1024,8 @@ async def vendor_dashboard_analytics(vendor_id: str):
             uid = data.get('user_id')
             if not uid:
                 return 'Customer'
-            if uid in user_name_cache:
-                return user_name_cache[uid]
-            user_doc = db.collection('users').document(uid).get()
-            name = 'Customer'
-            if user_doc.exists:
-                u = user_doc.to_dict() or {}
-                name = u.get('name') or u.get('phone') or u.get('email') or 'Customer'
-            user_name_cache[uid] = name
-            return name
+            u = user_map.get(uid) or {}
+            return u.get('name') or u.get('phone') or u.get('email') or 'Customer'
 
         pending_actions_count = 0
         pending_items = []
@@ -1114,7 +1123,7 @@ async def vendor_dashboard_pending_actions(
         from datetime import datetime
         import asyncio
 
-        require_vendor_owner(user_id, vendor_id)
+        await require_vendor_owner(user_id, vendor_id)
         KARACHI_TZ = pytz.timezone('Asia/Karachi')
         today_date_str = datetime.now(KARACHI_TZ).strftime('%Y-%m-%d')
         db = firestore_db.db
@@ -1179,7 +1188,7 @@ async def vendor_run_smart_reseed(vendor_id: str, uid: str = Depends(get_current
     Runs the same additive logic as database/seed/smart_reseed.py (creates missing slot docs only).
     """
     try:
-        require_vendor_owner(uid, vendor_id)
+        await require_vendor_owner(uid, vendor_id)
         from database.seed.smart_reseed import smart_reseed
         import asyncio
 
@@ -1203,7 +1212,7 @@ async def vendor_get_notifications(
 ):
     """Notifications for the logged-in vendor user (Firestore notifications collection)."""
     try:
-        require_vendor_owner(uid, vendor_id)
+        await require_vendor_owner(uid, vendor_id)
         import asyncio
 
         def load():
@@ -1331,7 +1340,7 @@ class VendorUpdate(BaseModel):
 async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str = Depends(get_current_user_id)):
     """Update vendor profile details"""
     try:
-        require_vendor_owner(user_id, vendor_id)
+        await require_vendor_owner(user_id, vendor_id)
         vendor_ref = firestore_db.db.collection('vendors').document(vendor_id)
         if not vendor_ref.get().exists:
             raise HTTPException(status_code=404, detail="Vendor not found")
@@ -1353,7 +1362,7 @@ async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str
 
 @router.get("/vendors/{vendor_id}/resources")
 async def vendor_get_resources(vendor_id: str, uid: str = Depends(get_current_user_id)):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
         docs = await asyncio.to_thread(
@@ -1376,7 +1385,7 @@ class ResourceUpdate(BaseModel):
 async def vendor_update_resource(
     vendor_id: str, resource_id: str, data: ResourceUpdate, uid: str = Depends(get_current_user_id)
 ):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         ref = firestore_db.db.collection('resources').document(resource_id)
         doc = ref.get()
@@ -1395,7 +1404,7 @@ async def vendor_update_resource(
 
 @router.get("/vendors/{vendor_id}/services")
 async def vendor_get_services(vendor_id: str, uid: str = Depends(get_current_user_id)):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
         docs = await asyncio.to_thread(
@@ -1418,7 +1427,7 @@ class ServicePriceUpdate(BaseModel):
 async def vendor_update_service(
     vendor_id: str, service_id: str, data: ServicePriceUpdate, uid: str = Depends(get_current_user_id)
 ):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         ref = firestore_db.db.collection('services').document(service_id)
         doc = ref.get()
@@ -1444,7 +1453,7 @@ async def vendor_update_service(
 
 @router.get("/vendors/{vendor_id}/payment-accounts")
 async def vendor_get_payment_accounts(vendor_id: str, uid: str = Depends(get_current_user_id)):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
         docs = await asyncio.to_thread(
@@ -1469,7 +1478,7 @@ class PaymentAccountUpsert(BaseModel):
 async def vendor_update_payment_account(
     vendor_id: str, account_id: str, data: PaymentAccountUpsert, uid: str = Depends(get_current_user_id)
 ):
-    require_vendor_owner(uid, vendor_id)
+    await require_vendor_owner(uid, vendor_id)
     try:
         ref = firestore_db.db.collection('vendor_payment_accounts').document(account_id)
         doc = ref.get()
@@ -1598,7 +1607,7 @@ async def vendor_stream(vendor_id: str, user_id: str = Depends(get_current_user_
     SSE endpoint — streams real-time slot change events for a vendor.
     Connect once; the server pushes an event whenever any slot changes.
     """
-    require_vendor_owner(user_id, vendor_id)
+    await require_vendor_owner(user_id, vendor_id)
     return StreamingResponse(
         _vendor_event_stream(vendor_id),
         media_type="text/event-stream",
