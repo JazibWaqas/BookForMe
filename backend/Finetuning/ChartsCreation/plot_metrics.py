@@ -73,7 +73,7 @@ for m in models:
     ax = fig.add_subplot(111)
     ax.bar(keys, values)
     ax.set_ylim(0,1.05)
-    ax.set_title(f"{m['name']} - Global metrics")
+    ax.set_title(f"{m['id']} - Global metrics")
     ax.set_ylabel("Score")
     for i,v in enumerate(values):
         ax.text(i, v + 0.02, f"{v:.3f}", ha="center", va="bottom")
@@ -85,7 +85,7 @@ for m in models:
         fig = plt.figure(figsize=(4,4))
         ax = fig.add_subplot(111)
         ax.bar(["log_loss"], [logloss])
-        ax.set_title(f"{m['name']} - Log loss (lower better)")
+        ax.set_title(f"{m['id']} - Log loss (lower better)")
         ax.text(0, logloss + 0.02*max(1, logloss), f"{logloss:.4f}", ha="center", va="bottom")
         save_fig(fig, os.path.join(model_out, f"{mid}_log_loss.png"))
     
@@ -104,34 +104,57 @@ for m in models:
     ax.bar(x + width, f1s, width, label="f1")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.set_title(f"{m['name']} - Per-class P/R/F1")
+    ax.set_title(f"{m['id']} - Per-class P/R/F1")
     ax.set_ylim(0,1.05)
     ax.legend()
     save_fig(fig, os.path.join(model_out, f"{mid}_per_class_prf.png"))
     
-    # 4) Confusion matrix heatmap (normalized if present else raw)
+    # 4) Confusion matrix heatmap (improved styling)
     cm = md.get("confusion_matrix", {})
     cm_norm = cm.get("normalized", None)
     cm_raw = cm.get("raw", None)
     cm_labels = cm.get("labels", labels)
+
     if cm_norm is not None or cm_raw is not None:
         arr = np.array(cm_norm if cm_norm is not None else cm_raw)
-        fig = plt.figure(figsize=(max(4, arr.shape[1]*0.8), max(3, arr.shape[0]*0.8)))
+
+        fig = plt.figure(figsize=(max(5, arr.shape[1]*0.9), max(4, arr.shape[0]*0.9)))
         ax = fig.add_subplot(111)
-        im = ax.imshow(arr, aspect="auto", vmin=0.0, vmax=1.0)
-        fig.colorbar(im, ax=ax)
+
+        # ----- CHOOSE YOUR COLORMAP HERE -----
+        cmap_choice = "Blues"  
+        # Other excellent options:
+        # "viridis"
+        # "plasma"
+        # "cividis"
+        # "magma"
+        # "Greens"
+        # "coolwarm"
+        # "inferno"
+
+        im = ax.imshow(arr, cmap=cmap_choice)
+
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
         ax.set_xticks(np.arange(len(cm_labels)))
         ax.set_yticks(np.arange(len(cm_labels)))
         ax.set_xticklabels(cm_labels, rotation=45, ha="right")
         ax.set_yticklabels(cm_labels)
-        ax.set_title(f"{m['name']} - Confusion matrix (normalized)" if cm_norm is not None else f"{m['name']} - Confusion matrix (raw)")
-        # Annotate values
+
+        title_type = "Normalized" if cm_norm is not None else "Raw"
+        ax.set_title(f"{m['id']} - Confusion Matrix")
+
+        # Dynamic text color for readability
+        threshold = arr.max() / 2.
         for i in range(arr.shape[0]):
             for j in range(arr.shape[1]):
-                val = arr[i,j]
-                ax.text(j, i, f"{val:.2f}" if cm_norm is not None else f"{int(val)}", ha="center", va="center", fontsize=8)
+                val = arr[i, j]
+                color = "white" if val > threshold else "black"
+                text = f"{val:.2f}" if cm_norm is not None else f"{int(val)}"
+                ax.text(j, i, text, ha="center", va="center", color=color, fontsize=8)
+
         save_fig(fig, os.path.join(model_out, f"{mid}_confusion_matrix.png"))
-    
+        
     # 5) PR curves - combined plot with one line per class
     pr = md.get("pr_curves", {})
     if pr:
@@ -145,7 +168,7 @@ for m in models:
             ax.plot(recall, precision, label=f"{cls} (AUC={auc:.3f})" if auc else cls)
         ax.set_xlabel("Recall")
         ax.set_ylabel("Precision")
-        ax.set_title(f"{m['name']} - Precision-Recall curves (one line per class)")
+        ax.set_title(f"{m['id']} - Precision-Recall curves (one line per class)")
         ax.set_xlim(0,1.0)
         ax.set_ylim(0,1.05)
         ax.legend(loc="lower left", fontsize="small")
@@ -153,6 +176,8 @@ for m in models:
 
 # --- Comparative charts ---
 # 1) Global metrics comparison (accuracy, macro_f1, weighted_f1) for all models
+# --- Comparative Global Metrics (Max 3 models per image) ---
+
 grows = []
 for m in models:
     gm = m["metrics"].get("global_metrics", {})
@@ -161,30 +186,45 @@ for m in models:
         "accuracy": gm.get("accuracy", np.nan),
         "macro_f1": gm.get("macro_f1", np.nan),
         "weighted_f1": gm.get("weighted_f1", np.nan),
-        "log_loss": gm.get("log_loss", np.nan) or m["metrics"].get("ranking_metrics", {}).get("log_loss", np.nan)
     })
-gdf = pd.DataFrame(grows).set_index("model_id")
-# Save table view
-gdf.to_csv(os.path.join(OUTPUT_DIR, "comparative_global_metrics.csv"))
 
-fig = plt.figure(figsize=(8,5))
-ax = fig.add_subplot(111)
-indices = np.arange(len(gdf))
-width = 0.2
-ax.bar(indices - width, gdf["accuracy"], width, label="accuracy")
-ax.bar(indices, gdf["macro_f1"], width, label="macro_f1")
-ax.bar(indices + width, gdf["weighted_f1"], width, label="weighted_f1")
-ax.set_xticks(indices)
-ax.set_xticklabels(gdf.index, rotation=45, ha="right")
-ax.set_ylim(0,1.05)
-ax.set_title("Comparative global metrics (accuracy / macro_f1 / weighted_f1)")
-ax.legend()
-for i, mid in enumerate(gdf.index):
-    ax.text(i - width, gdf.loc[mid, "accuracy"] + 0.02, f"{gdf.loc[mid, 'accuracy']:.3f}", ha="center", va="bottom", fontsize=8)
-    ax.text(i, gdf.loc[mid, "macro_f1"] + 0.02, f"{gdf.loc[mid, 'macro_f1']:.3f}", ha="center", va="bottom", fontsize=8)
-    ax.text(i + width, gdf.loc[mid, "weighted_f1"] + 0.02, f"{gdf.loc[mid, 'weighted_f1']:.3f}", ha="center", va="bottom", fontsize=8)
-save_fig(fig, os.path.join(OUTPUT_DIR, "comparative_global_metrics.png"))
+gdf = pd.DataFrame(grows)
 
+max_models_per_chart = 3
+num_models = len(gdf)
+num_chunks = math.ceil(num_models / max_models_per_chart)
+
+for chunk_idx in range(num_chunks):
+    start = chunk_idx * max_models_per_chart
+    end = start + max_models_per_chart
+    chunk = gdf.iloc[start:end].set_index("model_id")
+
+    fig = plt.figure(figsize=(8,5))
+    ax = fig.add_subplot(111)
+
+    indices = np.arange(len(chunk))
+    width = 0.25
+
+    ax.bar(indices - width, chunk["accuracy"], width, label="accuracy")
+    ax.bar(indices, chunk["macro_f1"], width, label="macro_f1")
+    ax.bar(indices + width, chunk["weighted_f1"], width, label="weighted_f1")
+
+    ax.set_xticks(indices)
+    ax.set_xticklabels(chunk.index, rotation=30, ha="right")
+    ax.set_ylim(0,1.05)
+    ax.set_title("Comparative Global Metrics")
+    ax.legend()
+
+    for i, mid in enumerate(chunk.index):
+        acc = float(chunk.loc[mid, "accuracy"])
+        mf1 = float(chunk.loc[mid, "macro_f1"])
+        wf1 = float(chunk.loc[mid, "weighted_f1"])
+
+        ax.text(i - width, acc + 0.02, f"{acc:.3f}", ha="center", va="bottom", fontsize=8)
+        ax.text(i, mf1 + 0.02, f"{mf1:.3f}", ha="center", va="bottom", fontsize=8)
+        ax.text(i + width, wf1 + 0.02, f"{wf1:.3f}", ha="center", va="bottom", fontsize=8)
+
+    save_fig(fig, os.path.join(OUTPUT_DIR, f"comparative_global_metrics_part_{chunk_idx+1}.png"))
 # 2) Comparative per-class F1: for each class across models, create bar charts arranged 3 per row
 # Determine union of all class labels across models
 all_classes = []

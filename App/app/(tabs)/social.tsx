@@ -1,55 +1,32 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Image, ActivityIndicator, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
 import CommentsModal from '../../components/social/CommentsModal';
-import LeaderboardPodium from '../../components/social/LeaderboardPodium';
-import LeaderboardRow from '../../components/social/LeaderboardRow';
-import MatchSwiper from '../../components/social/MatchSwiper';
 import FriendsTab from '../../components/social/FriendsTab';
 import Avatar from '../../components/ui/Avatar';
 import { COLORS } from '../../constants/colors';
-import { API_BASE_URL, getMediaUrl } from '../../config/api';
-import { SocialService, Post, Match, UserProfileSocial } from '../../services/social';
-import { normalizeMatchDateForApi, normalizeMatchTimeForApi } from '../../services/socialDates';
+import { getMediaUrl } from '../../config/api';
+import { SocialService, Post } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
-import { useSocialFeed, useSocialMatches, useSocialLeaderboard } from '../../hooks/useQueries';
+import { useSocialFeed } from '../../hooks/useQueries';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function SocialScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'forum' | 'matches' | 'chats' | 'friends' | 'leaderboard'>('forum');
+  const [activeTab, setActiveTab] = useState<'forum' | 'chats' | 'friends'>('forum');
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
-  // React Query Hooks (Cached Data)
-  // MOVED: defined below after state
-
   const [posts, setPosts] = useState<Post[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
   const [chats, setChats] = useState<any[]>([]);
-  const [leaderboard, setLeaderboard] = useState<UserProfileSocial[]>([]);
   const [chatsLoading, setChatsLoading] = useState(false);
 
-  // Effects moved below hooks to avoid ReferenceErrors
-
-  // Data States
-  // ... deleted old state declarations that are now above ...
-
-  // Input States
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
 
-  // React Query Hooks (Moved here to access selectedFilter)
   const { data: feedData, isLoading: feedLoading, isError: feedIsError, error: feedError, refetch: refetchFeed } = useSocialFeed('all');
-  const { data: matchesData, isLoading: matchesLoading, isError: matchesIsError, error: matchesError, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
-  const { data: leaderboardData, isLoading: leaderboardLoading, isError: leaderboardIsError, error: leaderboardError, refetch: refetchLeaderboard } = useSocialLeaderboard();
 
-  // --- Sync Effects (Moved here) ---
   useEffect(() => {
     if (feedData) {
       if (!searchQuery) {
@@ -60,30 +37,9 @@ export default function SocialScreen() {
     }
   }, [feedData, searchQuery]);
 
-  useEffect(() => {
-    if (matchesData) {
-      setMatches(matchesData);
-    }
-  }, [matchesData]);
-
-  useEffect(() => {
-    if (leaderboardData) setLeaderboard(leaderboardData);
-  }, [leaderboardData]);
-
-
   // Post Creation States
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [sendingPost, setSendingPost] = useState(false);
-
-  // Match Creation States
-  const [isMatchModalVisible, setIsMatchModalVisible] = useState(false);
-  const [newMatchData, setNewMatchData] = useState<{
-    sport: string; date: string; time: string; location: string; maxPlayers: string; type: string; slot_id?: string;
-  }>({ sport: 'Padel', date: '', time: '', location: '', maxPlayers: '4', type: 'casual' });
-
-  // Match View Mode
-  const [matchViewMode, setMatchViewMode] = useState<'swipe' | 'list'>('swipe');
 
   // Comments State
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -139,12 +95,8 @@ export default function SocialScreen() {
     return currentUser;
   };
 
-  // Refresh handler
-  // Refresh handler (renamed to fetchData for compatibility)
   const fetchData = async () => {
     if (activeTab === 'forum') await refetchFeed();
-    if (activeTab === 'matches') await refetchMatches();
-    if (activeTab === 'leaderboard') await refetchLeaderboard();
     if (activeTab === 'chats' && currentUser) loadChats(currentUser.id);
   };
 
@@ -152,28 +104,13 @@ export default function SocialScreen() {
   // --- Handlers ---
 
   const handleCreatePost = async () => {
-    if (!newPostContent.trim() && !newPostImage) return;
+    if (!newPostContent.trim()) return;
     if (!requireUser()) return;
 
     setSendingPost(true);
     try {
-      let imageUrl = null as string | null;
-      if (newPostImage) {
-        const uploadRes = await SocialService.uploadFile(newPostImage, 'post');
-        imageUrl = uploadRes.url;
-      }
-
-      const text = newPostContent.trim();
-      const postData = {
-        content: text || (newPostImage ? ' ' : ''),
-        type: 'general',
-        image_url: imageUrl || undefined
-      };
-
-      await SocialService.createPost(postData);
-
+      await SocialService.createPost({ content: newPostContent.trim(), type: 'general' });
       setNewPostContent('');
-      setNewPostImage(null);
       fetchData();
     } catch (error: unknown) {
       Alert.alert('Error', `Failed to create post: ${apiErrMessage(error)}`);
@@ -182,16 +119,22 @@ export default function SocialScreen() {
     }
   };
 
-  const pickImageForPost = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'] as any,
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      setNewPostImage(result.assets[0].uri);
-    }
+  const handleDeletePost = (postId: string) => {
+    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await SocialService.deletePost(postId);
+            setPosts(prev => prev.filter(p => p.id !== postId));
+          } catch (error: unknown) {
+            Alert.alert('Error', apiErrMessage(error));
+          }
+        },
+      },
+    ]);
   };
 
   const handleLikePost = async (post: Post) => {
@@ -238,48 +181,10 @@ export default function SocialScreen() {
     refetchFeed();
   };
 
-  const handleCreateMatch = async () => {
-    const u = requireUser();
-    if (!u) return;
-    try {
-      const dateStr = normalizeMatchDateForApi(newMatchData.date || 'Tomorrow');
-      const timeStr = normalizeMatchTimeForApi(newMatchData.time || '20:00');
-      await SocialService.createMatch({
-        host_user_id: u.id!,
-        sport_type: newMatchData.sport,
-        match_type: newMatchData.type as 'casual' | 'ranked',
-        date: dateStr,
-        time: timeStr,
-        location: newMatchData.location || 'DHA Courts',
-        max_players: parseInt(newMatchData.maxPlayers, 10) || 4,
-        slot_id: newMatchData.slot_id
-      });
-      setIsMatchModalVisible(false);
-      fetchData();
-      Alert.alert('Success', 'Match created!');
-    } catch (error: unknown) {
-      Alert.alert('Error', apiErrMessage(error));
-    }
-  };
-
-  const handleJoinMatch = async (matchId: string) => {
-    const u = requireUser();
-    if (!u) return;
-    try {
-      await SocialService.joinMatch(matchId, u.id!);
-      fetchData();
-      Alert.alert('Success', 'You joined the match!');
-    } catch (error: unknown) {
-      Alert.alert('Error', apiErrMessage(error));
-    }
-  };
-
   const tabs = [
     { id: 'forum', label: 'Forum', icon: 'newspaper', color: '#3B82F6' },
-    { id: 'matches', label: 'Matches', icon: 'tennisball', color: '#00D084' },
     { id: 'chats', label: 'Chats', icon: 'chatbubbles', color: '#A855F7' },
     { id: 'friends', label: 'Friends', icon: 'people', color: '#EC4899' },
-    { id: 'leaderboard', label: 'Ranking', icon: 'trophy', color: '#F59E0B' },
   ];
 
   return (
@@ -350,27 +255,15 @@ export default function SocialScreen() {
                     size={44}
                     style={styles.userAvatarSmall}
                   />
-                  <View style={{ flex: 1 }}>
-                    <TextInput
-                      style={styles.createPostInput}
-                      placeholder="Share something..."
-                      placeholderTextColor={COLORS.textMuted}
-                      value={newPostContent}
-                      onChangeText={setNewPostContent}
-                    />
-                    {newPostImage && (
-                      <View style={{ marginTop: 8 }}>
-                        <Image source={{ uri: newPostImage }} style={{ width: 100, height: 100, borderRadius: 8 }} />
-                        <TouchableOpacity onPress={() => setNewPostImage(null)} style={{ position: 'absolute', right: -5, top: -5, backgroundColor: 'red', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>X</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                  <TouchableOpacity onPress={pickImageForPost} style={{ padding: 8 }}>
-                    <Ionicons name="image-outline" size={24} color={COLORS.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.postButton} onPress={handleCreatePost} disabled={sendingPost}>
+                  <TextInput
+                    style={[styles.createPostInput, { flex: 1 }]}
+                    placeholder="Share something..."
+                    placeholderTextColor={COLORS.textMuted}
+                    value={newPostContent}
+                    onChangeText={setNewPostContent}
+                    multiline
+                  />
+                  <TouchableOpacity style={styles.postButton} onPress={handleCreatePost} disabled={sendingPost || !newPostContent.trim()}>
                     {sendingPost ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postButtonText}>Post</Text>}
                   </TouchableOpacity>
                 </View>
@@ -394,18 +287,14 @@ export default function SocialScreen() {
                         <Text style={styles.postTime}>{new Date(item.created_at).toLocaleDateString()}</Text>
                       </View>
                     </View>
-                    <TouchableOpacity>
-                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.4)" />
-                    </TouchableOpacity>
+                    {item.user_id === currentUser?.id && (
+                      <TouchableOpacity onPress={() => handleDeletePost(item.id)} style={styles.deleteButton}>
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   <Text style={styles.postContent}>{item.content}</Text>
-                  {item.image_url && (
-                    <Image
-                      source={{ uri: getMediaUrl(item.image_url) }}
-                      style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 10 }}
-                    />
-                  )}
 
                   <View style={styles.postFooter}>
                     <TouchableOpacity style={styles.actionButton} onPress={() => handleLikePost(item)}>
@@ -422,131 +311,6 @@ export default function SocialScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
-
-          {/* MATCHES TAB */}
-          {activeTab === 'matches' && (
-            <View style={{ flex: 1 }}>
-              {matchesIsError && (
-                <Text style={styles.tabErrorText}>
-                  Could not load matches. {apiErrMessage(matchesError)}
-                </Text>
-              )}
-              {matchesLoading && matches.length === 0 && !matchesIsError && (
-                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
-              )}
-              {!matchesLoading && !matchesIsError && matches.length === 0 && (
-                <Text style={styles.emptyTabText}>No open matches. Create one with the + button.</Text>
-              )}
-              {/* Header with search and toggle */}
-              <View style={styles.matchHeader}>
-                <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search matches..."
-                    placeholderTextColor={COLORS.textMuted}
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                      setSearchQuery(text);
-                    }}
-                    onEndEditing={fetchData}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.createMatchButton}
-                  onPress={() => {
-                    if (!requireUser()) return;
-                    setIsMatchModalVisible(true);
-                  }}
-                >
-                  <Ionicons name="add" size={24} color="#fff" />
-                </TouchableOpacity>
-              </View>
-
-              {/* View Mode Toggle */}
-              <View style={styles.viewModeToggle}>
-                <TouchableOpacity
-                  style={[styles.viewModeButton, matchViewMode === 'swipe' && styles.viewModeButtonActive]}
-                  onPress={() => setMatchViewMode('swipe')}
-                >
-                  <Ionicons name="layers" size={18} color={matchViewMode === 'swipe' ? '#fff' : COLORS.textMuted} />
-                  <Text style={[styles.viewModeText, matchViewMode === 'swipe' && styles.viewModeTextActive]}>Swipe</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.viewModeButton, matchViewMode === 'list' && styles.viewModeButtonActive]}
-                  onPress={() => setMatchViewMode('list')}
-                >
-                  <Ionicons name="list" size={18} color={matchViewMode === 'list' ? '#fff' : COLORS.textMuted} />
-                  <Text style={[styles.viewModeText, matchViewMode === 'list' && styles.viewModeTextActive]}>List</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Sport Filter Chips */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-                {['All', 'Padel', 'Tennis', 'Badminton', 'Futsal', 'Cricket'].map((sport) => (
-                  <TouchableOpacity
-                    key={sport}
-                    onPress={() => setSelectedFilter(sport)}
-                    style={[styles.filterChip, selectedFilter === sport && styles.filterChipActive]}
-                  >
-                    <Text style={[styles.filterText, selectedFilter === sport && styles.filterTextActive]}>{sport}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {/* Swipe View */}
-              {matchViewMode === 'swipe' && (
-                <View style={{ flex: 1, minHeight: 680 }}>
-                  <MatchSwiper
-                    matches={matches}
-                    onJoinMatch={handleJoinMatch}
-                    onRefresh={fetchData}
-                  />
-                </View>
-              )}
-
-              {/* List View */}
-              {matchViewMode === 'list' && matches.map((match) => (
-                <TouchableOpacity key={match.id} activeOpacity={0.9}>
-                  <View style={styles.matchCard}>
-                    <View style={styles.matchCardHeader}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Ionicons name="trophy" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                        <Text style={styles.matchSport}>{match.sport_type}</Text>
-                        <View style={[styles.typeBadge, match.match_type === 'ranked' && styles.typeBadgeRanked]}>
-                          <Text style={styles.typeText}>{match.match_type.toUpperCase()}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.playersIndicator}>
-                        <Ionicons name="people" size={14} color={COLORS.textDark} style={{ marginRight: 4 }} />
-                        <Text style={styles.playersText}>{match.current_players}/{match.max_players}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.matchDetails}>
-                      <View style={styles.matchDetailRow}>
-                        <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
-                        <Text style={styles.matchDetailText}>{match.date} • {match.time}</Text>
-                      </View>
-                      <View style={styles.matchDetailRow}>
-                        <Ionicons name="location-outline" size={16} color={COLORS.primary} />
-                        <Text style={styles.matchDetailText}>{match.location}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.matchFooter}>
-                      <View style={styles.hostInfo}>
-                        <Text style={styles.hostText}>Host: {match.participants?.[0]?.name || 'Unknown'}</Text>
-                      </View>
-                      <TouchableOpacity style={styles.joinButton} onPress={() => handleJoinMatch(match.id)}>
-                        <Text style={styles.joinButtonText}>Join Match</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -621,156 +385,8 @@ export default function SocialScreen() {
             <Text style={styles.emptyTabText}>Sign in to find friends and manage requests.</Text>
           )}
 
-          {/* LEADERBOARD TAB */}
-          {activeTab === 'leaderboard' && (
-            <View>
-              {leaderboardIsError && (
-                <Text style={styles.tabErrorText}>
-                  Could not load leaderboard. {apiErrMessage(leaderboardError)}
-                </Text>
-              )}
-              {leaderboardLoading && leaderboard.length === 0 && !leaderboardIsError && (
-                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
-              )}
-              {/* Top 3 Podium */}
-              {leaderboard.length >= 3 && (
-                <LeaderboardPodium topThree={leaderboard.slice(0, 3)} />
-              )}
-
-              {/* Your Rank Highlight */}
-              {currentUser && (
-                <View style={styles.yourRankCard}>
-                  <Text style={styles.yourRankLabel}>📊 YOUR RANK</Text>
-                  <View style={styles.yourRankContent}>
-                    <Text style={styles.yourRankNumber}>
-                      #{leaderboard.findIndex(u => u.id === currentUser.id) + 1 || 'N/A'}
-                    </Text>
-                    <View style={styles.yourRankProgress}>
-                      <View style={styles.yourRankProgressBar}>
-                        <View style={[styles.yourRankProgressFill, { width: '65%' }]} />
-                      </View>
-                      <Text style={styles.yourRankProgressText}>
-                        {leaderboard.find(u => u.id === currentUser.id)?.points || 0} pts
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-
-              {/* Rest of Leaderboard */}
-              <View style={{ marginTop: 8 }}>
-                {leaderboard.slice(3).map((user, index) => (
-                  <LeaderboardRow
-                    key={user.id}
-                    user={user}
-                    rank={index + 4}
-                    isCurrentUser={currentUser?.id === user.id}
-                  />
-                ))}
-              </View>
-
-              {!leaderboardLoading && !leaderboardIsError && leaderboard.length === 0 && (
-                <Text style={[styles.emptyTabText, { marginTop: 40 }]}>
-                  No rankings available yet. Start playing to earn points!
-                </Text>
-              )}
-            </View>
-          )}
-
           <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* Create Match Modal */}
-      <Modal visible={isMatchModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create Match</Text>
-
-            {/* Booking Selection (Handshake) */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ color: COLORS.textMuted, marginBottom: 8 }}>Link to Booking (Optional)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <TouchableOpacity
-                  style={[
-                    styles.bookingChip,
-                    !newMatchData.slot_id && styles.bookingChipActive
-                  ]}
-                  onPress={() => setNewMatchData({ ...newMatchData, slot_id: undefined, location: '', date: '', time: '' })}
-                >
-                  <Text style={!newMatchData.slot_id ? styles.bookingChipTextActive : styles.bookingChipText}>None (Custom)</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Sport (e.g. Padel, Futsal, Tennis)"
-              value={newMatchData.sport}
-              onChangeText={t => setNewMatchData({ ...newMatchData, sport: t })}
-            />
-            <TextInput
-              style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
-              placeholder="Location"
-              value={newMatchData.location}
-              editable={!newMatchData.slot_id}
-              onChangeText={t => setNewMatchData({ ...newMatchData, location: t })}
-            />
-
-            {/* Date Selection */}
-            <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>Date</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                {['Today', 'Tomorrow', 'Saturday', 'Sunday'].map(d => (
-                  <TouchableOpacity
-                    key={d}
-                    style={[styles.bookingChip, newMatchData.date === d && styles.bookingChipActive]}
-                    onPress={() => !newMatchData.slot_id && setNewMatchData({ ...newMatchData, date: d })}
-                    disabled={!!newMatchData.slot_id}
-                  >
-                    <Text style={newMatchData.date === d ? styles.bookingChipTextActive : styles.bookingChipText}>{d}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <TextInput
-                style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
-                placeholder="Or enter date (YYYY-MM-DD)"
-                value={newMatchData.date}
-                editable={!newMatchData.slot_id}
-                onChangeText={t => setNewMatchData({ ...newMatchData, date: t })}
-              />
-            </View>
-
-            {/* Time Selection */}
-            <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>Time</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                {['7:00 AM', '9:00 AM', '5:00 PM', '7:00 PM', '9:00 PM'].map(t => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.bookingChip, newMatchData.time === t && styles.bookingChipActive]}
-                    onPress={() => !newMatchData.slot_id && setNewMatchData({ ...newMatchData, time: t })}
-                    disabled={!!newMatchData.slot_id}
-                  >
-                    <Text style={newMatchData.time === t ? styles.bookingChipTextActive : styles.bookingChipText}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <TextInput
-                style={[styles.input, newMatchData.slot_id && styles.inputDisabled]}
-                placeholder="Or enter time (HH:MM)"
-                value={newMatchData.time}
-                editable={!newMatchData.slot_id}
-                onChangeText={t => setNewMatchData({ ...newMatchData, time: t })}
-              />
-            </View>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-              <Button title="Cancel" variant="outline" onPress={() => setIsMatchModalVisible(false)} />
-              <Button title="Create" onPress={handleCreateMatch} />
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Comments Modal */}
       {
@@ -784,7 +400,7 @@ export default function SocialScreen() {
         )
       }
 
-    </View >
+    </View>
   );
 }
 
@@ -834,66 +450,10 @@ const styles = StyleSheet.create({
   postFooter: { flexDirection: 'row', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', rowGap: 16 },
   actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   actionText: { marginLeft: 8, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
+  deleteButton: { padding: 6 },
 
-  // Picker Styles
-  pickerContainer: { marginBottom: 12 },
-  pickerLabel: { color: COLORS.textMuted, marginBottom: 8, fontSize: 12, marginLeft: 4 },
-
-  // Match Styles
-  matchHeader: { flexDirection: 'row', marginBottom: 20, gap: 12, marginTop: 4 },
   searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   searchInput: { flex: 1, paddingVertical: 12, color: '#FFF', fontSize: 15 },
-  createMatchButton: { width: 52, height: 52, backgroundColor: COLORS.primary, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  viewModeToggle: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-    gap: 12
-  },
-  viewModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)'
-  },
-  viewModeButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary
-  },
-  viewModeText: {
-    marginLeft: 8,
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '600'
-  },
-  viewModeTextActive: {
-    color: COLORS.textDark,
-    fontWeight: '700'
-  },
-  filtersScroll: { marginBottom: 20 },
-  filterChip: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  filterChipActive: { backgroundColor: 'rgba(0, 208, 132, 0.15)', borderColor: '#00D084' },
-  filterText: { color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-  filterTextActive: { color: '#00D084', fontWeight: '700' },
-  matchCard: { marginBottom: 16, padding: 20, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  matchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  matchSport: { fontSize: 18, fontWeight: '800', color: '#FFF', marginRight: 10 },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(0, 208, 132, 0.15)' },
-  typeBadgeRanked: { backgroundColor: 'rgba(255, 159, 10, 0.15)' },
-  typeText: { fontSize: 10, fontWeight: '800', color: '#00D084' },
-  playersIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14 },
-  playersText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
-  matchDetails: { marginBottom: 16 },
-  matchDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  matchDetailText: { marginLeft: 10, color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  matchFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  hostInfo: {},
-  hostText: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
-  joinButton: { backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 },
-  joinButtonText: { color: COLORS.textDark, fontWeight: '800', fontSize: 14 },
 
   // Chat Styles
   chatCard: { flexDirection: 'row', padding: 16, backgroundColor: COLORS.card, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
@@ -905,62 +465,4 @@ const styles = StyleSheet.create({
   chatTime: { fontSize: 12, color: COLORS.textMuted },
   chatMessageRow: { flexDirection: 'row', alignItems: 'center' },
   chatMessage: { flex: 1, color: COLORS.textMuted, fontSize: 14 },
-
-  // Leaderboard Styles
-  leaderboardItem: { flexDirection: 'row', alignItems: 'center', padding: 16, marginBottom: 12 },
-  yourRankCard: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 16,
-    backgroundColor: COLORS.primary + '15',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.primary
-  },
-  yourRankLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 8
-  },
-  yourRankContent: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  yourRankNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginRight: 16
-  },
-  yourRankProgress: {
-    flex: 1
-  },
-  yourRankProgressBar: {
-    height: 8,
-    backgroundColor: COLORS.border,
-    borderRadius: 4,
-    marginBottom: 4,
-    overflow: 'hidden'
-  },
-  yourRankProgressFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 4
-  },
-  yourRankProgressText: {
-    fontSize: 12,
-    color: COLORS.textMuted
-  },
-
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: COLORS.card, padding: 20, borderRadius: 16 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginBottom: 20, textAlign: 'center' },
-  input: { backgroundColor: COLORS.background, padding: 12, borderRadius: 12, marginBottom: 12, color: COLORS.text },
-  inputDisabled: { opacity: 0.5 },
-  bookingChip: { padding: 8, borderRadius: 8, backgroundColor: COLORS.background, marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
-  bookingChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  bookingChipText: { color: COLORS.textMuted },
-  bookingChipTextActive: { color: '#fff', fontWeight: 'bold' }
 });

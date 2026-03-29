@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Image, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { API_BASE_URL, getMediaUrl } from '../../config/api';
 import { COLORS } from '../../constants/colors';
 import { SocialService } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
@@ -28,7 +26,11 @@ export default function ChatDetailScreen() {
     const loadUser = async () => {
         const user = await authService.getCurrentUser();
         setCurrentUser(user);
-        if (user) fetchMessages();
+        if (user) {
+            await fetchMessages();
+        } else {
+            setLoading(false);
+        }
     };
 
     const fetchMessages = useCallback(async () => {
@@ -48,65 +50,36 @@ export default function ChatDetailScreen() {
         return () => clearInterval(intervalId);
     }, [currentUser, fetchMessages]);
 
-    const handleSend = async (type: 'text' | 'image' | 'audio' = 'text', content: string | null = null, mediaUrl: string | null = null) => {
-        if ((!content && !mediaUrl) || !currentUser) return;
+    const handleSend = async () => {
+        if (!inputText.trim() || !currentUser) return;
 
+        const text = inputText.trim();
+        setInputText('');
         setSending(true);
         try {
             const msg = await SocialService.sendMessage({
                 conversation_id: chatId!,
                 sender_id: currentUser.id!,
-                content: content || (type === 'image' ? 'Sent an image' : 'Sent audio'),
-                media_url: mediaUrl || undefined,
-                media_type: type
+                content: text,
+                media_type: 'text',
             });
-
-            setMessages([...messages, msg]);
-            setInputText('');
-        } catch (error) {
-            Alert.alert('Error', 'Failed to send message');
+            setMessages(prev => [...prev, msg]);
+        } catch {
+            setInputText(text);
         } finally {
             setSending(false);
         }
     };
 
-    const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.7,
-        });
-
-        if (!result.canceled) {
-            setSending(true);
-            try {
-                const uploadRes = await SocialService.uploadFile(result.assets[0].uri, 'chat_image');
-                await handleSend('image', null, uploadRes.url);
-            } catch (error) {
-                Alert.alert('Error', 'Failed to upload image');
-                setSending(false);
-            }
-        }
-    };
-
-    const recordAudio = () => {
-        Alert.alert('Coming Soon', 'Audio recording is not implemented yet.');
-    };
-
     const renderMessage = ({ item }: { item: any }) => {
         const isMe = item.sender_id === currentUser?.id;
-
         return (
             <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
-                {item.media_type === 'image' && item.media_url ? (
-                    <Image source={{ uri: getMediaUrl(item.media_url) }} style={styles.messageImage} />
-                ) : null}
-
-                {item.content && (
+                {item.content ? (
                     <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
                         {item.content}
                     </Text>
-                )}
+                ) : null}
                 <Text style={styles.timestamp}>
                     {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
@@ -141,25 +114,19 @@ export default function ChatDetailScreen() {
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={10}>
                 <View style={styles.inputContainer}>
-                    <TouchableOpacity onPress={pickImage} style={styles.iconButton}>
-                        <Ionicons name="image-outline" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={recordAudio} style={styles.iconButton}>
-                        <Ionicons name="mic-outline" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message..."
                         placeholderTextColor={COLORS.textMuted}
                         value={inputText}
                         onChangeText={setInputText}
+                        multiline
+                        maxLength={1000}
                     />
-
                     <TouchableOpacity
-                        onPress={() => handleSend('text', inputText)}
-                        disabled={!inputText.trim() && !sending}
-                        style={styles.sendButton}
+                        onPress={handleSend}
+                        disabled={!inputText.trim() || sending}
+                        style={[styles.sendButton, (!inputText.trim() || sending) && { opacity: 0.5 }]}
                     >
                         {sending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={20} color="#fff" />}
                     </TouchableOpacity>
@@ -201,17 +168,15 @@ const styles = StyleSheet.create({
     messageText: { fontSize: 16 },
     myMessageText: { color: '#fff' },
     theirMessageText: { color: COLORS.text },
-    messageImage: { width: 200, height: 150, borderRadius: 8, marginBottom: 8 },
     timestamp: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end', opacity: 0.7, color: 'gray' },
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         padding: 10,
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
         backgroundColor: COLORS.card,
     },
-    iconButton: { padding: 8 },
     input: {
         flex: 1,
         backgroundColor: COLORS.background,
