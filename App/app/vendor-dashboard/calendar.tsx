@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch, Dimensions, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch, Dimensions, Animated, AppState } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,15 +37,16 @@ const generateTimeSlots = (open: string, close: string) => {
   return slots;
 };
 
-// Format date as YYYY-MM-DD
-const formatDate = (date: Date) => {
-  return date.toISOString().split('T')[0];
+const localYmd = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
-// Format date as YYYYMMDD (for slot ID construction matching the seeder format)
-const formatDateCompact = (date: Date) => {
-  return date.toISOString().split('T')[0].replace(/-/g, '');
-};
+const formatDate = (date: Date) => localYmd(date);
+
+const formatDateCompact = (date: Date) => localYmd(date).replace(/-/g, '');
 
 export default function VendorCalendarScreen() {
   const router = useRouter();
@@ -112,6 +113,16 @@ export default function VendorCalendarScreen() {
     if (!vendorId) return;
     const id = setInterval(() => fetchGridData(vendorId, formatDate(currentDate)), 5000);
     return () => clearInterval(id);
+  }, [vendorId, currentDate, fetchGridData]);
+
+  useEffect(() => {
+    if (!vendorId) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        fetchGridData(vendorId, formatDate(currentDate));
+      }
+    });
+    return () => sub.remove();
   }, [vendorId, currentDate, fetchGridData]);
 
   const initialLoadDone = useRef(false);
