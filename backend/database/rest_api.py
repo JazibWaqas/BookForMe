@@ -4,8 +4,11 @@ Handles REST API endpoints for frontend integration
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+import asyncio
+import json
+from typing import Dict, List, Any, Optional, AsyncGenerator
 from fastapi import APIRouter, HTTPException, Depends, Header, File, UploadFile, Form
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from google.cloud import firestore
 from database.availability_service import AvailabilityService
@@ -884,7 +887,8 @@ async def get_vendor_grid(vendor_id: str, date: str):
             "slots": sorted(slots, key=lambda x: x.get('time', ''))
         }
     except Exception as e:
-        logger.error(f"Error getting vendor grid: {e}")
+        import traceback
+        logger.error(f"Error getting vendor grid: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to get grid")
 
 def _slot_time_str_khi(data: dict, KARACHI_TZ) -> str:
@@ -986,6 +990,35 @@ async def vendor_dashboard_analytics(vendor_id: str):
                 if t is None or t >= now_time_str:
                     available_today_count += 1
 
+        resource_name_cache: Dict[str, str] = {}
+        user_name_cache: Dict[str, str] = {}
+
+        def get_resource_name(rid: str) -> str:
+            if rid in resource_name_cache:
+                return resource_name_cache[rid]
+            rdoc = db.collection('resources').document(rid).get()
+            name = rid
+            if rdoc.exists:
+                name = (rdoc.to_dict() or {}).get('name') or rid
+            resource_name_cache[rid] = name
+            return name
+
+        def get_customer_name(data: dict) -> str:
+            if data.get('customer_name'):
+                return str(data['customer_name'])
+            uid = data.get('user_id')
+            if not uid:
+                return 'Customer'
+            if uid in user_name_cache:
+                return user_name_cache[uid]
+            user_doc = db.collection('users').document(uid).get()
+            name = 'Customer'
+            if user_doc.exists:
+                u = user_doc.to_dict() or {}
+                name = u.get('name') or u.get('phone') or u.get('email') or 'Customer'
+            user_name_cache[uid] = name
+            return name
+
         pending_actions_count = 0
         pending_items = []
         for doc in slots_attention:
@@ -998,13 +1031,9 @@ async def vendor_dashboard_analytics(vendor_id: str):
             hold_iso = None
             if hold_exp and hasattr(hold_exp, 'isoformat'):
                 hold_iso = hold_exp.isoformat()
-            customer_name = _customer_label_from_slot(data, db)
+            customer_name = get_customer_name(data)
             resource_id = data.get('resource_id') or ''
-            resource_name = resource_id
-            if resource_id:
-                rdoc = db.collection('resources').document(resource_id).get()
-                if rdoc.exists:
-                    resource_name = (rdoc.to_dict() or {}).get('name') or resource_id
+            resource_name = get_resource_name(resource_id) if resource_id else resource_id
             pending_items.append({
                 "id": doc.id,
                 "status": data.get('status'),
@@ -1036,13 +1065,9 @@ async def vendor_dashboard_analytics(vendor_id: str):
             if time_str < now_time_str:
                 continue
             price = float(data.get('price') or 0)
-            customer_name = _customer_label_from_slot(data, db)
+            customer_name = get_customer_name(data)
             resource_id = data.get('resource_id') or ''
-            resource_name = resource_id
-            if resource_id:
-                rdoc = db.collection('resources').document(resource_id).get()
-                if rdoc.exists:
-                    resource_name = (rdoc.to_dict() or {}).get('name') or resource_id
+            resource_name = get_resource_name(resource_id) if resource_id else resource_id
 
             upcoming_bookings.append({
                 "id": doc.id,
@@ -1072,7 +1097,8 @@ async def vendor_dashboard_analytics(vendor_id: str):
         }
 
     except Exception as e:
-        logger.error(f"Error getting vendor analytics: {e}")
+        import traceback
+        logger.error(f"Error getting vendor analytics: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to get vendor analytics")
 
 
@@ -1294,11 +1320,19 @@ class VendorUpdate(BaseModel):
     address: Optional[str] = None
     description: Optional[str] = None
     operating_hours: Optional[Dict[str, Any]] = None
+    owner_name: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    area: Optional[str] = None
+    owner_cnic: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    primary_sport_type: Optional[str] = None
 
 @router.patch("/vendors/{vendor_id}")
 async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str = Depends(get_current_user_id)):
     """Update vendor profile details"""
     try:
+        require_vendor_owner(user_id, vendor_id)
         vendor_ref = firestore_db.db.collection('vendors').document(vendor_id)
         if not vendor_ref.get().exists:
             raise HTTPException(status_code=404, detail="Vendor not found")
@@ -1314,6 +1348,139 @@ async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str
     except Exception as e:
         logger.error(f"Error updating vendor {vendor_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Vendor profile sub-resources ─────────────────────────────────────────────
+
+@router.get("/vendors/{vendor_id}/resources")
+async def vendor_get_resources(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('resources') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "resources": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting resources: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ResourceUpdate(BaseModel):
+    name: Optional[str] = None
+    capacity: Optional[int] = None
+    active: Optional[bool] = None
+
+
+@router.patch("/vendors/{vendor_id}/resources/{resource_id}")
+async def vendor_update_resource(
+    vendor_id: str, resource_id: str, data: ResourceUpdate, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('resources').document(resource_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Resource not found for this vendor")
+        update = {k: v for k, v in data.dict().items() if v is not None}
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating resource: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors/{vendor_id}/services")
+async def vendor_get_services(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('services') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "services": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting services: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ServicePriceUpdate(BaseModel):
+    base_price: Optional[int] = None
+    duration_min: Optional[int] = None
+    name: Optional[str] = None
+
+
+@router.patch("/vendors/{vendor_id}/services/{service_id}")
+async def vendor_update_service(
+    vendor_id: str, service_id: str, data: ServicePriceUpdate, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('services').document(service_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Service not found for this vendor")
+        update: dict = {}
+        if data.name is not None:
+            update['name'] = data.name
+        if data.duration_min is not None:
+            update['duration_min'] = data.duration_min
+        if data.base_price is not None:
+            update['pricing'] = {**(doc.to_dict() or {}).get('pricing', {}), 'base': data.base_price}
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        if update:
+            ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating service: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors/{vendor_id}/payment-accounts")
+async def vendor_get_payment_accounts(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('vendor_payment_accounts') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "accounts": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting payment accounts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PaymentAccountUpsert(BaseModel):
+    type: str
+    account_number: str
+    account_title: str
+    bank_name: Optional[str] = None
+    is_default: bool = False
+
+
+@router.patch("/vendors/{vendor_id}/payment-accounts/{account_id}")
+async def vendor_update_payment_account(
+    vendor_id: str, account_id: str, data: PaymentAccountUpsert, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('vendor_payment_accounts').document(account_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Account not found for this vendor")
+        update = {k: v for k, v in data.dict().items()}
+        update['vendor_id'] = vendor_id
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating payment account: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 class WalkInRequest(BaseModel):
     customer_name: str
@@ -1368,3 +1535,70 @@ async def vendor_walk_in_booking(vendor_id: str, slot_id: str, data: WalkInReque
     except Exception as e:
         logger.error(f"Error creating walk-in for {slot_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── SSE Real-time Stream ─────────────────────────────────────────────────────
+
+async def _vendor_event_stream(vendor_id: str) -> AsyncGenerator[str, None]:
+    """
+    Stream Firestore slot changes for a vendor as SSE events.
+    Uses on_snapshot to receive pushes the moment a slot doc changes —
+    no polling. Each change is forwarded to the client immediately.
+    """
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+
+    def on_snapshot(doc_snapshots, changes, read_time):
+        for change in changes:
+            doc = change.document
+            data = doc.to_dict() or {}
+            # Strip non-serialisable Firestore timestamps
+            for field in ('start_time', 'end_time', 'hold_expires_at', 'created_at', 'updated_at', 'completed_at'):
+                if field in data and hasattr(data[field], 'isoformat'):
+                    data[field] = data[field].isoformat()
+                elif field in data:
+                    data.pop(field, None)
+
+            event_type = (
+                'slot_added' if change.type.name == 'ADDED'
+                else 'slot_updated' if change.type.name == 'MODIFIED'
+                else 'slot_removed'
+            )
+            payload = {'type': event_type, 'slot_id': doc.id, 'slot': data}
+            loop.call_soon_threadsafe(queue.put_nowait, payload)
+
+    db = firestore_db.db
+    query = db.collection('slots').where('vendor_id', '==', vendor_id)
+    unsubscribe = query.on_snapshot(on_snapshot)
+
+    try:
+        # Send initial heartbeat so the client knows the connection is live
+        yield "event: connected\ndata: {\"vendor_id\": \"" + vendor_id + "\"}\n\n"
+
+        while True:
+            try:
+                # Heartbeat every 25s to keep the connection alive through proxies
+                payload = await asyncio.wait_for(queue.get(), timeout=25.0)
+                yield f"event: slot_change\ndata: {json.dumps(payload)}\n\n"
+            except asyncio.TimeoutError:
+                yield "event: heartbeat\ndata: {}\n\n"
+    finally:
+        unsubscribe()
+        logger.info(f"SSE stream closed for vendor {vendor_id}")
+
+
+@router.get("/vendors/{vendor_id}/stream")
+async def vendor_stream(vendor_id: str, user_id: str = Depends(get_current_user_id)):
+    """
+    SSE endpoint — streams real-time slot change events for a vendor.
+    Connect once; the server pushes an event whenever any slot changes.
+    """
+    require_vendor_owner(user_id, vendor_id)
+    return StreamingResponse(
+        _vendor_event_stream(vendor_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering on Render
+        },
+    )

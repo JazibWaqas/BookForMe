@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { useVendorStream } from '../../hooks/useVendorStream';
 
 type DashboardMetrics = {
   revenue_today: number;
@@ -191,15 +192,14 @@ export default function VendorDashboardScreen() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
+  }, [fadeAnim, slideAnim]);
 
-    if (!vendorId) return;
-
-    const intervalId = setInterval(() => {
-      fetchDashboardData(vendorId, userId);
-    }, 8000);
-
-    return () => clearInterval(intervalId);
-  }, [vendorId, userId, fetchDashboardData, fadeAnim, slideAnim]);
+  // SSE — refetch dashboard metrics whenever a slot changes in Firestore
+  useVendorStream(vendorId, {
+    onSlotChange: useCallback(() => {
+      if (vendorId) fetchDashboardData(vendorId, userId);
+    }, [vendorId, userId, fetchDashboardData]),
+  });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

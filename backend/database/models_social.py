@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -141,7 +141,7 @@ class MessageResponse(MessageBase):
 
 class NotificationBase(BaseModel):
     user_id: str
-    type: NotificationType
+    type: Union[NotificationType, str] = "system"
     title: str
     message: str
     data: Optional[Dict[str, Any]] = None
@@ -149,7 +149,7 @@ class NotificationBase(BaseModel):
 class NotificationResponse(NotificationBase):
     id: str
     read: bool = False
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 # --- Review Models (Social aspect) ---
 

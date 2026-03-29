@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,30 +25,31 @@ export default function BookingDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchBookingDetails = async () => {
-            try {
-                const user = await authService.getCurrentUser();
-                if (user && user.vendor_id && bookingId) {
-                    const vendorId = user.vendor_id;
-                    
-                    // OPTIMIZED: Fetch single booking directly instead of all bookings
-                    const res = await apiClient.get(API_ENDPOINTS.vendors.booking(vendorId, bookingId));
-                    if (res.data.success && res.data.booking) {
-                        setBooking(res.data.booking);
-                    }
+    const fetchBookingDetails = useCallback(async () => {
+        try {
+            const user = await authService.getCurrentUser();
+            if (user && user.vendor_id && bookingId) {
+                const vendorId = user.vendor_id;
+                const res = await apiClient.get(API_ENDPOINTS.vendors.booking(vendorId, bookingId));
+                if (res.data.success && res.data.booking) {
+                    setBooking(res.data.booking);
                 }
-            } catch (error) {
-                console.error('Error fetching booking detail:', error);
-            } finally {
-                setLoading(false);
             }
-        };
-
-        if (bookingId) {
-            fetchBookingDetails();
+        } catch (error) {
+            console.error('Error fetching booking detail:', error);
+        } finally {
+            setLoading(false);
         }
     }, [bookingId]);
+
+    useEffect(() => {
+        if (bookingId) fetchBookingDetails();
+    }, [bookingId, fetchBookingDetails]);
+
+    // Refresh if the vendor navigates away and back (e.g. after approving from another screen)
+    useFocusEffect(useCallback(() => {
+        if (bookingId) fetchBookingDetails();
+    }, [bookingId, fetchBookingDetails]));
 
     const handleApprove = async () => {
         if (!booking) return;
@@ -76,7 +77,7 @@ export default function BookingDetailScreen() {
             if (user && user.vendor_id) {
                 const res = await apiClient.post(API_ENDPOINTS.vendors.rejectSlot(user.vendor_id, booking.id));
                 if (res.data.success) {
-                    setBooking({ ...booking, status: 'cancelled' });
+                    router.back();
                 }
             }
         } catch (error) {

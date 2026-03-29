@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, ActivityIndicator, RefreshControl
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
@@ -100,6 +100,9 @@ export default function VendorBookingsScreen() {
   }, []);
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+  // Refresh whenever the screen comes back into focus
+  useFocusEffect(useCallback(() => { fetchBookings(true); }, [fetchBookings]));
 
   const onRefresh = () => { setRefreshing(true); fetchBookings(true, true); };
 
