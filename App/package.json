@@ -56,6 +56,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-share": "^12.2.1",
     "react-native-skeleton-placeholder": "^5.2.4",
+    "react-native-sse": "^1.2.1",
     "react-native-svg": "15.12.1",
     "react-native-toast-message": "^2.3.3",
     "react-native-url-polyfill": "^3.0.0",

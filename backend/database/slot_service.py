@@ -16,6 +16,24 @@ from database.schema import (
 logger = logging.getLogger(__name__)
 
 
+def _write_notification(db, user_id: str, notif_type: str, title: str, message: str, data: dict = None):
+    """Write a notification doc to Firestore. Fire-and-forget — never raises."""
+    if not user_id:
+        return
+    try:
+        db.collection('notifications').add({
+            'user_id': user_id,
+            'type': notif_type,
+            'title': title,
+            'message': message,
+            'data': data or {},
+            'read': False,
+            'created_at': firestore.SERVER_TIMESTAMP,
+        })
+    except Exception as e:
+        logger.warning(f"Failed to write notification for {user_id}: {e}")
+
+
 class SlotService:
     def __init__(self, db_client: firestore.Client):
         self.db = db_client
@@ -177,6 +195,12 @@ class SlotService:
             
             if result['success']:
                 logger.info(f"Payment submitted for slot {slot_id}")
+                _write_notification(
+                    self.db, user_id,
+                    'payment_received', 'Payment Received',
+                    f'Payment screenshot received for slot {slot_id[:8]}. Awaiting vendor confirmation.',
+                    {'slot_id': slot_id, 'payment_id': payment_id},
+                )
             
             return result
             
@@ -228,6 +252,12 @@ class SlotService:
             
             if result['success']:
                 logger.info(f"Booking confirmed for slot {slot_id}")
+                _write_notification(
+                    self.db, result.get('user_id'),
+                    'booking_confirmed', 'Booking Confirmed',
+                    f'Your booking has been confirmed. Slot ID: {slot_id[:8]}',
+                    {'slot_id': slot_id, 'vendor_id': result.get('vendor_id')},
+                )
             
             return result
             
@@ -280,6 +310,12 @@ class SlotService:
             
             if result['success']:
                 logger.info(f"Booking rejected for slot {slot_id}; slot set back to available")
+                _write_notification(
+                    self.db, result.get('user_id'),
+                    'booking_cancelled', 'Booking Rejected',
+                    f'Your booking was rejected by the vendor. Slot: {slot_id[:8]}',
+                    {'slot_id': slot_id},
+                )
             
             return result
             
@@ -335,6 +371,15 @@ class SlotService:
             
             if result['success']:
                 logger.info(f"Booking cancelled for slot {slot_id}")
+                cancelled_by = result.get('cancelled_by', 'vendor')
+                notif_uid = result.get('user_id') if cancelled_by == 'vendor' else None
+                if notif_uid:
+                    _write_notification(
+                        self.db, notif_uid,
+                        'booking_cancelled', 'Booking Cancelled',
+                        f'Your booking (slot {slot_id[:8]}) has been cancelled.',
+                        {'slot_id': slot_id},
+                    )
             
             return result
             
