@@ -14,6 +14,20 @@ import os
 logger = logging.getLogger(__name__)
 
 
+def _slot_date_to_str(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val[:10] if len(val) >= 10 else val
+    if hasattr(val, 'strftime'):
+        try:
+            return val.strftime('%Y-%m-%d')
+        except Exception:
+            return None
+    s = str(val)
+    return s[:10] if len(s) >= 10 else s
+
+
 class FirestoreDB:
     """Firestore database connection and operations"""
     
@@ -358,37 +372,59 @@ class FirestoreDB:
             from datetime import datetime, timedelta
 
             KARACHI_TZ = pytz.timezone('Asia/Karachi')
+            booking_statuses = (
+                'locked', 'pending', 'confirmed', 'completed', 'cancelled', 'blocked',
+            )
+            history_cutoff = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
-            query = self.db.collection('slots')\
-                .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
-                .where(filter=FieldFilter('status', 'in', [
-                    'locked', 'pending', 'confirmed', 'completed', 'cancelled', 'blocked'
-                ]))
+            def fetch_all_booking_slot_docs():
+                acc = []
+                for st in booking_statuses:
+                    q = self.db.collection('slots')\
+                        .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
+                        .where(filter=FieldFilter('status', '==', st))
+                    acc.extend(list(q.stream()))
+                return acc
 
-            if date:
-                query = query.where(filter=FieldFilter('date', '==', date))
-            else:
-                cutoff = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-                query = query.where(filter=FieldFilter('date', '>=', cutoff))
-
+            all_docs = await asyncio.to_thread(fetch_all_booking_slot_docs)
+            seen_ids = set()
             raw: List[Dict[str, Any]] = []
-            for doc in await asyncio.to_thread(lambda: list(query.stream())):
+            for doc in all_docs:
+                if doc.id in seen_ids:
+                    continue
+                seen_ids.add(doc.id)
                 booking_data = doc.to_dict()
                 booking_data['id'] = doc.id
 
-                start_time = booking_data.get('start_time')
-                if start_time and hasattr(start_time, 'astimezone'):
+                start = booking_data.get('start_time')
+                if start and hasattr(start, 'astimezone'):
                     try:
-                        start_khi = start_time.astimezone(KARACHI_TZ)
-                        booking_data['time'] = start_khi.strftime('%I:%M %p')
-                        if not booking_data.get('date'):
+                        start_khi = start.astimezone(KARACHI_TZ)
+                        if not _slot_date_to_str(booking_data.get('date')):
                             booking_data['date'] = start_khi.strftime('%Y-%m-%d')
+                        booking_data['time'] = start_khi.strftime('%I:%M %p')
                     except Exception:
-                        booking_data['time'] = str(start_time)
-                elif isinstance(start_time, str):
-                    booking_data['time'] = start_time
+                        booking_data['time'] = str(start)
+                elif isinstance(start, str):
+                    booking_data['time'] = start
+
+                slot_date = _slot_date_to_str(booking_data.get('date'))
+                if slot_date:
+                    booking_data['date'] = slot_date
+
+                if date:
+                    want = date[:10] if len(date) >= 10 else date
+                    if slot_date != want:
+                        continue
+                elif slot_date and slot_date < history_cutoff:
+                    continue
 
                 raw.append(booking_data)
+
+            logger.info(
+                "get_vendor_bookings vendor_id=%s date=%s raw_count=%d",
+                vendor_id, date, len(raw),
+            )
 
             user_ids = set()
             payment_ids = set()
@@ -438,7 +474,8 @@ class FirestoreDB:
             return sorted(bookings, key=_sort_key, reverse=True)
 
         except Exception as e:
-            logger.error(f"Error getting vendor bookings: {e}")
+            import traceback
+            logger.error(f"Error getting vendor bookings: {e}\n{traceback.format_exc()}")
             return []
     
     async def get_vendor_booking_single(self, vendor_id: str, booking_id: str) -> Optional[Dict[str, Any]]:
