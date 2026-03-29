@@ -1,4 +1,16 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  Dimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,8 +23,10 @@ import { getMediaUrl } from '../../config/api';
 import { SocialService, Post } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
 import { useSocialFeed } from '../../hooks/useQueries';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+
+const POST_MENU_WIDTH = 184;
 
 export default function SocialScreen() {
   const router = useRouter();
@@ -44,6 +58,10 @@ export default function SocialScreen() {
   // Comments State
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
+  const [postIdPendingDelete, setPostIdPendingDelete] = useState<string | null>(null);
+  const [postMenuForId, setPostMenuForId] = useState<string | null>(null);
+  const [postMenuAnchor, setPostMenuAnchor] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const postMenuTriggerRefs = useRef<Record<string, View | null>>({});
 
   useEffect(() => {
     loadUser();
@@ -119,22 +137,36 @@ export default function SocialScreen() {
     }
   };
 
-  const handleDeletePost = (postId: string) => {
-    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await SocialService.deletePost(postId);
-            setPosts(prev => prev.filter(p => p.id !== postId));
-          } catch (error: unknown) {
-            Alert.alert('Error', apiErrMessage(error));
-          }
-        },
-      },
-    ]);
+  const closePostMenu = () => {
+    setPostMenuForId(null);
+    setPostMenuAnchor(null);
+  };
+
+  const openPostOptionsMenu = (postId: string) => {
+    const node = postMenuTriggerRefs.current[postId];
+    if (!node) return;
+    node.measureInWindow((x, y, w, h) => {
+      setPostMenuAnchor({ x, y, w, h });
+      setPostMenuForId(postId);
+    });
+  };
+
+  const pickDeleteFromPostMenu = () => {
+    const id = postMenuForId;
+    closePostMenu();
+    if (id) setPostIdPendingDelete(id);
+  };
+
+  const runConfirmedDeletePost = async () => {
+    if (!postIdPendingDelete) return;
+    const id = postIdPendingDelete;
+    setPostIdPendingDelete(null);
+    try {
+      await SocialService.deletePost(id);
+      setPosts(prev => prev.filter(p => p.id !== id));
+    } catch (error: unknown) {
+      Alert.alert('Error', apiErrMessage(error));
+    }
   };
 
   const handleLikePost = async (post: Post) => {
@@ -288,9 +320,16 @@ export default function SocialScreen() {
                       </View>
                     </View>
                     {item.user_id === currentUser?.id && (
-                      <TouchableOpacity onPress={() => handleDeletePost(item.id)} style={styles.deleteButton}>
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
+                      <View
+                        collapsable={false}
+                        ref={(el) => {
+                          postMenuTriggerRefs.current[item.id] = el;
+                        }}
+                      >
+                        <TouchableOpacity onPress={() => openPostOptionsMenu(item.id)} style={styles.postMenuButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                          <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.4)" />
+                        </TouchableOpacity>
+                      </View>
                     )}
                   </View>
 
@@ -400,6 +439,55 @@ export default function SocialScreen() {
         )
       }
 
+      <Modal visible={postMenuForId !== null && postMenuAnchor !== null} transparent animationType="fade" statusBarTranslucent onRequestClose={closePostMenu}>
+        <View style={styles.postMenuModalRoot} pointerEvents="box-none">
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePostMenu} accessibilityRole="button" accessibilityLabel="Close menu" />
+          {postMenuAnchor ? (
+            <View
+              style={[
+                styles.postMenuDropdown,
+                {
+                  top: postMenuAnchor.y + postMenuAnchor.h + 6,
+                  left: Math.max(
+                    12,
+                    Math.min(
+                      postMenuAnchor.x + postMenuAnchor.w - POST_MENU_WIDTH,
+                      Dimensions.get('window').width - POST_MENU_WIDTH - 12
+                    )
+                  ),
+                  width: POST_MENU_WIDTH,
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <View style={styles.postMenuDropdownCard}>
+                <TouchableOpacity style={styles.postMenuRow} onPress={pickDeleteFromPostMenu} activeOpacity={0.7}>
+                  <Ionicons name="trash-outline" size={18} color="#F87171" style={{ marginRight: 10 }} />
+                  <Text style={styles.postMenuRowText}>Delete post</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
+
+      <Modal visible={postIdPendingDelete !== null} transparent animationType="fade" onRequestClose={() => setPostIdPendingDelete(null)}>
+        <View style={styles.deleteModalBackdrop}>
+          <View style={styles.deleteModalCard}>
+            <Text style={styles.deleteModalTitle}>Delete this post?</Text>
+            <Text style={styles.deleteModalBody}>This will remove the post and its comments. This cannot be undone.</Text>
+            <View style={styles.deleteModalActions}>
+              <TouchableOpacity style={[styles.deleteModalBtn, styles.deleteModalBtnCancel]} onPress={() => setPostIdPendingDelete(null)}>
+                <Text style={styles.deleteModalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.deleteModalBtn, styles.deleteModalBtnDanger]} onPress={runConfirmedDeletePost}>
+                <Text style={styles.deleteModalBtnDangerText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -450,7 +538,84 @@ const styles = StyleSheet.create({
   postFooter: { flexDirection: 'row', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', rowGap: 16 },
   actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   actionText: { marginLeft: 8, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
-  deleteButton: { padding: 6 },
+  postMenuButton: { padding: 4 },
+  postMenuModalRoot: { flex: 1 },
+  postMenuDropdown: { position: 'absolute' },
+  postMenuDropdownCard: {
+    backgroundColor: 'rgba(28,28,32,0.98)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  postMenuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  postMenuRowText: { fontSize: 15, fontWeight: '600', color: '#F87171' },
+
+  deleteModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  deleteModalCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  deleteModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  deleteModalBody: {
+    fontSize: 15,
+    color: COLORS.textMuted,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  deleteModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  deleteModalBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  deleteModalBtnCancel: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  deleteModalBtnCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  deleteModalBtnDanger: {
+    backgroundColor: '#DC2626',
+  },
+  deleteModalBtnDangerText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
 
   searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   searchInput: { flex: 1, paddingVertical: 12, color: '#FFF', fontSize: 15 },
