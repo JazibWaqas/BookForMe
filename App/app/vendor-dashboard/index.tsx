@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, FlatList, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  FlatList,
+  Animated,
+  Alert,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,49 +18,163 @@ import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
 
+type DashboardMetrics = {
+  revenue_today: number;
+  bookings_today: number;
+  pending_actions: number;
+  available_today: number;
+  active_courts: number;
+};
+
+type UpcomingRow = {
+  id: string;
+  customer_name: string;
+  service: string;
+  resource_id?: string;
+  resource_name?: string;
+  time: string;
+  status: string;
+  amount: number;
+  booking_source?: string;
+};
+
+type PendingRow = {
+  id: string;
+  status: string;
+  date?: string;
+  time: string;
+  customer_name: string;
+  resource_name?: string;
+  amount: number;
+  hold_expires_at?: string | null;
+  booking_source?: string;
+};
+
+type NotifRow = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at?: string | null;
+};
+
+function sourceIcon(source?: string): keyof typeof Ionicons.glyphMap {
+  const s = (source || 'app').toLowerCase();
+  if (s.includes('whatsapp')) return 'logo-whatsapp';
+  if (s === 'walk-in' || s === 'manual') return 'walk-outline';
+  return 'phone-portrait-outline';
+}
+
+function holdCountdownLabel(iso?: string | null): string | null {
+  if (!iso) return null;
+  const end = new Date(iso);
+  if (Number.isNaN(end.getTime())) return null;
+  const sec = Math.floor((end.getTime() - Date.now()) / 1000);
+  if (sec <= 0) return 'Hold expired';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m left`;
+  if (m > 0) return `${m}m ${s}s left`;
+  return `${s}s left`;
+}
+
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [vendorName, setVendorName] = useState('Vendor Dashboard');
-  const [metrics, setMetrics] = useState({ revenue: 0, bookings: 0 });
-  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    revenue_today: 0,
+    bookings_today: 0,
+    pending_actions: 0,
+    available_today: 0,
+    active_courts: 0,
+  });
+  const [upcoming, setUpcoming] = useState<UpcomingRow[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [vendorId, setVendorId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotifRow[]>([]);
+  const [reseedLoading, setReseedLoading] = useState(false);
 
-  const fetchDashboardData = useCallback(async (vId: string) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  const fetchNotifications = useCallback(async (uid: string) => {
     try {
-      // Fetch vendor profile and analytics in parallel
-      const [vendorRes, analyticsRes] = await Promise.all([
-        apiClient.get(API_ENDPOINTS.vendors.get(vId)),
-        apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId))
-      ]);
-
-      if (vendorRes.data.success) {
-        setVendorName(vendorRes.data.vendor.name || vendorRes.data.vendor.business_name || 'Vendor Dashboard');
-      }
-
-      if (analyticsRes.data.success) {
-        setMetrics({
-          revenue: analyticsRes.data.metrics.revenue_today || 0,
-          bookings: analyticsRes.data.metrics.bookings_today || 0,
-        });
-        setUpcoming(analyticsRes.data.upcoming || []);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      const res = await apiClient.get(API_ENDPOINTS.social.notifications, {
+        params: { user_id: uid, limit: 40 },
+      });
+      const raw = Array.isArray(res.data) ? res.data : [];
+      setNotifications(
+        raw.map((n: any) => ({
+          id: n.id,
+          type: String(n.type ?? ''),
+          title: n.title ?? '',
+          message: n.message ?? '',
+          read: Boolean(n.read),
+          created_at:
+            n.created_at == null
+              ? null
+              : typeof n.created_at === 'string'
+                ? n.created_at
+                : new Date(n.created_at).toISOString(),
+        }))
+      );
+    } catch (e) {
+      console.error('notifications fetch', e);
     }
   }, []);
+
+  const fetchDashboardData = useCallback(async (vId: string, uid?: string | null) => {
+    try {
+      const analyticsRes = await apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId));
+      if (analyticsRes.data.success) {
+        const m = analyticsRes.data.metrics || {};
+        setMetrics({
+          revenue_today: Number(m.revenue_today) || 0,
+          bookings_today: Number(m.bookings_today) || 0,
+          pending_actions: Number(m.pending_actions) || 0,
+          available_today: Number(m.available_today) || 0,
+          active_courts: Number(m.active_courts) || 0,
+        });
+        setUpcoming(analyticsRes.data.upcoming || []);
+        setPendingItems(Array.isArray(analyticsRes.data.pending_items) ? analyticsRes.data.pending_items : []);
+      }
+    } catch (error) {
+      console.error('Error fetching vendor analytics:', error);
+    }
+
+    try {
+      const vendorRes = await apiClient.get(API_ENDPOINTS.vendors.get(vId));
+      if (vendorRes.data.success) {
+        const v = vendorRes.data.vendor;
+        setVendorName(v?.name || v?.business_name || 'Vendor Dashboard');
+      }
+    } catch (error) {
+      console.error('Error fetching vendor profile:', error);
+    }
+
+    if (uid) {
+      try {
+        await fetchNotifications(uid);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    }
+  }, [fetchNotifications]);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         const user = await authService.getCurrentUser();
-        if (user && user.vendor_id) {
+        if (user?.vendor_id) {
           setVendorId(user.vendor_id);
-          await fetchDashboardData(user.vendor_id);
+          setUserId(user.id || null);
+          await fetchDashboardData(user.vendor_id, user.id);
         }
       } catch (error) {
         console.error('Error initializing dashboard:', error);
@@ -62,37 +186,64 @@ export default function VendorDashboardScreen() {
     initialize();
   }, [fetchDashboardData]);
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  // Auto-reload and entry animation
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      })
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
 
     if (!vendorId) return;
 
     const intervalId = setInterval(() => {
-      fetchDashboardData(vendorId);
-    }, 5000);
+      fetchDashboardData(vendorId, userId);
+    }, 8000);
 
     return () => clearInterval(intervalId);
-  }, [vendorId, fetchDashboardData]);
+  }, [vendorId, userId, fetchDashboardData, fadeAnim, slideAnim]);
 
-  // Backend calculates these now
-  const todaysBookingsCount = metrics.bookings;
-  const todaysRevenue = metrics.revenue;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const openNotifications = () => {
+    setNotificationsVisible(true);
+    if (userId) fetchNotifications(userId);
+  };
+
+  const markRead = async (nid: string) => {
+    try {
+      await apiClient.patch(API_ENDPOINTS.social.notificationMarkRead(nid), {});
+      setNotifications((prev) => prev.map((n) => (n.id === nid ? { ...n, read: true } : n)));
+    } catch (e) {
+      console.error('mark read', e);
+    }
+  };
+
+  const runSmartReseed = () => {
+    if (!vendorId) return;
+    Alert.alert(
+      'Generate missing slots',
+      'Creates only missing slot documents for your schedule. Nothing is deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Run',
+          onPress: async () => {
+            setReseedLoading(true);
+            try {
+              const res = await apiClient.post(API_ENDPOINTS.vendors.smartReseed(vendorId));
+              const created = res.data?.created ?? 0;
+              Alert.alert('Done', res.data?.message || `Created ${created} new slot documents.`);
+              await fetchDashboardData(vendorId, userId);
+            } catch (e: any) {
+              const msg = e?.response?.data?.detail || e?.message || 'Request failed';
+              Alert.alert('Error', String(msg));
+            } finally {
+              setReseedLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -104,7 +255,6 @@ export default function VendorDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with Cinematic Gradient */}
       <View style={{ overflow: 'hidden', paddingBottom: 10 }}>
         <LinearGradient
           colors={['rgba(0, 208, 132, 0.15)', 'transparent']}
@@ -115,11 +265,11 @@ export default function VendorDashboardScreen() {
               <Text style={styles.title}>Dashboard</Text>
               <Text style={styles.subtitle}>{vendorName}</Text>
             </View>
-            <TouchableOpacity onPress={() => setNotificationsVisible(true)} style={styles.notificationButton}>
+            <TouchableOpacity onPress={openNotifications} style={styles.notificationButton}>
               <Ionicons name="notifications" size={24} color="#FFF" />
-              {notifications.length > 0 && (
+              {unreadCount > 0 && (
                 <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>{notifications.length > 99 ? '99+' : notifications.length}</Text>
+                  <Text style={styles.notificationBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -128,64 +278,126 @@ export default function VendorDashboardScreen() {
       </View>
 
       <Animated.ScrollView
-        style={[styles.content, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}
+        style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={[styles.glassCard, { flex: 1, marginRight: 6 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Ionicons name="calendar" size={16} color="#3B82F6" style={{ marginRight: 6 }} />
-              <Text style={styles.statLabel}>BOOKINGS</Text>
-            </View>
-            <Text style={styles.statValue}>{todaysBookingsCount}</Text>
+          <View style={[styles.statTile, { marginRight: 6, marginBottom: 8 }]}>
+            <Ionicons name="calendar" size={14} color="#3B82F6" style={{ marginBottom: 6 }} />
+            <Text style={styles.statLabel}>BOOKINGS TODAY</Text>
+            <Text style={styles.statValue}>{metrics.bookings_today}</Text>
           </View>
-          <View style={[styles.glassCard, { flex: 1, marginLeft: 6 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Ionicons name="cash" size={16} color="#00D084" style={{ marginRight: 6 }} />
-              <Text style={styles.statLabel}>REVENUE</Text>
-            </View>
-            <Text style={[styles.statValue, { color: '#00D084' }]}>PKR {todaysRevenue.toLocaleString()}</Text>
+          <View style={[styles.statTile, { marginLeft: 6, marginBottom: 8 }]}>
+            <Ionicons name="cash" size={14} color="#00D084" style={{ marginBottom: 6 }} />
+            <Text style={styles.statLabel}>REVENUE TODAY</Text>
+            <Text style={[styles.statValue, { color: '#00D084', fontSize: 18 }]}>
+              PKR {Math.round(metrics.revenue_today).toLocaleString()}
+            </Text>
+          </View>
+          <View style={[styles.statTile, { marginRight: 6 }]}>
+            <Ionicons name="alert-circle" size={14} color="#F59E0B" style={{ marginBottom: 6 }} />
+            <Text style={styles.statLabel}>NEEDS ACTION</Text>
+            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{metrics.pending_actions}</Text>
+          </View>
+          <View style={[styles.statTile, { marginLeft: 6 }]}>
+            <Ionicons name="grid-outline" size={14} color="#A78BFA" style={{ marginBottom: 6 }} />
+            <Text style={styles.statLabel}>UNBOOKED FROM NOW</Text>
+            <Text style={[styles.statValue, { color: '#A78BFA' }]}>{metrics.available_today}</Text>
           </View>
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.glassCard}>
-          <Text style={styles.cardTitle}>Quick Actions</Text>
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionPillPrimary} onPress={() => router.push('/vendor-dashboard/calendar')}>
-              <Ionicons name="calendar-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.actionPillTextPrimary}>View Calendar</Text>
+          <Text style={styles.cardTitle}>Operations</Text>
+          <View style={styles.opsRow}>
+            <TouchableOpacity
+              style={[styles.opButton, reseedLoading && { opacity: 0.6 }]}
+              onPress={runSmartReseed}
+              disabled={reseedLoading}
+            >
+              {reseedLoading ? (
+                <ActivityIndicator color="#00D084" size="small" />
+              ) : (
+                <Ionicons name="add-circle-outline" size={22} color="#00D084" />
+              )}
+              <Text style={styles.opButtonText}>Generate slots</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPillSecondary} onPress={() => router.push('/vendor-dashboard/bookings')}>
-              <Ionicons name="layers-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.actionPillTextSecondary}>Manage</Text>
+            <TouchableOpacity style={styles.opButton} onPress={() => router.push('/vendor-dashboard/calendar')}>
+              <Ionicons name="calendar-outline" size={22} color="#93C5FD" />
+              <Text style={styles.opButtonText}>Manage bookings</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Recent Bookings */}
-        <View style={[styles.glassCard, { marginBottom: 32 }]}>
-          <Text style={styles.cardTitle}>Upcoming Bookings (Today)</Text>
-          {upcoming.length === 0 ? (
-            <Text style={styles.bookingDetailsEmpty}>No upcoming bookings found.</Text>
+        <View style={styles.glassCard}>
+          <Text style={styles.cardTitle}>Needs attention</Text>
+          {pendingItems.length === 0 ? (
+            <Text style={styles.bookingDetailsEmpty}>No pending payments or active holds.</Text>
           ) : (
-            upcoming.map((booking, index) => (
-              <TouchableOpacity key={index} style={styles.bookingRow} onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${booking.id}`)}>
+            pendingItems.map((p) => {
+              const hold = p.status === 'locked' ? holdCountdownLabel(p.hold_expires_at) : null;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.bookingRow}
+                  onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${p.id}`)}
+                >
+                  <View style={styles.bookingAvatarBox}>
+                    <Ionicons name={sourceIcon(p.booking_source)} size={18} color="rgba(255,255,255,0.5)" />
+                  </View>
+                  <View style={styles.bookingInfo}>
+                    <Text style={styles.bookingName}>{p.customer_name}</Text>
+                    <Text style={styles.bookingDetails}>
+                      {p.time} · {p.resource_name || 'Court'} · PKR {Math.round(p.amount)}
+                    </Text>
+                    {p.status === 'pending' && (
+                      <Text style={styles.tagAwaiting}>Awaiting payment</Text>
+                    )}
+                    {hold && <Text style={styles.tagHold}>{hold}</Text>}
+                  </View>
+                  <View style={[styles.statusBadge, p.status === 'locked' ? styles.statusBadgePending : styles.statusBadgePending]}>
+                    <Text style={[styles.statusText, styles.statusTextPending]}>{p.status}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+
+        <View style={[styles.glassCard, { marginBottom: 32 }]}>
+          <Text style={styles.cardTitle}>Upcoming today</Text>
+          {upcoming.length === 0 ? (
+            <Text style={styles.bookingDetailsEmpty}>No upcoming sessions today.</Text>
+          ) : (
+            upcoming.map((booking) => (
+              <TouchableOpacity
+                key={booking.id}
+                style={styles.bookingRow}
+                onPress={() => router.push(`/vendor-dashboard/booking-detail?bookingId=${booking.id}`)}
+              >
                 <View style={styles.bookingAvatarBox}>
-                  <Ionicons name="person" size={20} color="rgba(255,255,255,0.4)" />
+                  <Ionicons name={sourceIcon(booking.booking_source)} size={18} color="rgba(255,255,255,0.5)" />
                 </View>
                 <View style={styles.bookingInfo}>
-                  <Text style={styles.bookingName}>{booking.customer_name || 'Customer'}</Text>
+                  <Text style={styles.bookingName}>{booking.customer_name}</Text>
                   <Text style={styles.bookingDetails}>
-                    {booking.time} • {booking.resource_name || booking.service || 'N/A'}
+                    {booking.time} · {booking.resource_name || booking.resource_id || 'Court'} · PKR{' '}
+                    {Math.round(booking.amount || 0)}
                   </Text>
                 </View>
-                <View style={[styles.statusBadge, booking.status === 'pending' && styles.statusBadgePending]}>
-                  <Text style={[styles.statusText, booking.status === 'pending' && styles.statusTextPending]}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    booking.status === 'pending' && styles.statusBadgePending,
+                    booking.status === 'locked' && styles.statusBadgePending,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      booking.status === 'pending' && styles.statusTextPending,
+                      booking.status === 'locked' && styles.statusTextPending,
+                    ]}
+                  >
                     {booking.status}
                   </Text>
                 </View>
@@ -200,38 +412,21 @@ export default function VendorDashboardScreen() {
           <Ionicons name="grid" size={24} color={COLORS.primary} />
           <Text style={[styles.navText, styles.navTextActive]}>Dashboard</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push('/vendor-dashboard/calendar')}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/vendor-dashboard/calendar')} activeOpacity={0.7}>
           <Ionicons name="calendar-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Calendar</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push('/vendor-dashboard/bookings')}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/vendor-dashboard/bookings')} activeOpacity={0.7}>
           <Ionicons name="list-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Bookings</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push('/vendor-dashboard/profile')}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/vendor-dashboard/profile')} activeOpacity={0.7}>
           <Ionicons name="person-outline" size={24} color="rgba(255,255,255,0.4)" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Notifications Modal */}
-      <Modal
-        visible={notificationsVisible}
-        transparent={true}
-        animationType="slide"
-      >
+      <Modal visible={notificationsVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -244,30 +439,33 @@ export default function VendorDashboardScreen() {
             {notifications.length === 0 ? (
               <View style={styles.emptyNotifications}>
                 <Ionicons name="notifications-off-outline" size={48} color={COLORS.textMuted} />
-                <Text style={styles.emptyText}>No notifications yet</Text>
+                <Text style={styles.emptyText}>No notifications</Text>
                 <Text style={styles.emptySubtext}>
-                  You will see notifications for payments, cancellations, and upcoming slots here.
+                  Booking and payment alerts appear here when written to your account in Firestore.
                 </Text>
               </View>
             ) : (
               <FlatList
                 data={notifications}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                  <View style={styles.notificationItem}>
+                  <TouchableOpacity
+                    style={[styles.notificationItem, !item.read && styles.notificationUnread]}
+                    onPress={() => {
+                      if (!item.read) markRead(item.id);
+                    }}
+                  >
                     <View style={styles.notificationIcon}>
-                      <Ionicons
-                        name={item.type === 'payment' ? 'cash-outline' : item.type === 'cancellation' ? 'close-circle-outline' : 'time-outline'}
-                        size={20}
-                        color={COLORS.primary}
-                      />
+                      <Ionicons name="mail-outline" size={20} color={COLORS.primary} />
                     </View>
                     <View style={styles.notificationContent}>
                       <Text style={styles.notificationTitle}>{item.title}</Text>
                       <Text style={styles.notificationMessage}>{item.message}</Text>
-                      <Text style={styles.notificationTime}>{item.time}</Text>
+                      {item.created_at ? (
+                        <Text style={styles.notificationTime}>{item.created_at.slice(0, 16).replace('T', ' ')}</Text>
+                      ) : null}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 )}
               />
             )}
@@ -340,7 +538,29 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    marginBottom: 16,
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  statTile: {
+    flex: 1,
+    minWidth: '42%',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  statLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.45)',
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    marginTop: 4,
   },
   glassCard: {
     backgroundColor: 'rgba(255,255,255,0.03)',
@@ -350,18 +570,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFF',
-    marginTop: 4,
-  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
@@ -369,41 +577,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     letterSpacing: -0.2,
   },
-  actionsRow: {
+  opsRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  actionPillPrimary: {
+  opButton: {
     flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0, 208, 132, 0.15)',
-    borderColor: 'rgba(0, 208, 132, 0.3)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-  },
-  actionPillTextPrimary: {
-    color: '#00D084',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  actionPillSecondary: {
-    flex: 1,
-    flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
     borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
   },
-  actionPillTextSecondary: {
+  opButtonText: {
     color: '#FFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  opHint: {
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
   },
   bookingAvatarBox: {
     width: 44,
@@ -442,8 +641,20 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     fontWeight: '500',
   },
+  tagAwaiting: {
+    fontSize: 11,
+    color: '#FBBF24',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  tagHold: {
+    fontSize: 11,
+    color: '#F97316',
+    marginTop: 2,
+    fontWeight: '600',
+  },
   statusBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
     borderColor: 'rgba(0, 208, 132, 0.4)',
@@ -455,11 +666,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#00D084',
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.6,
   },
   statusTextPending: {
     color: '#F59E0B',
@@ -486,7 +697,6 @@ const styles = StyleSheet.create({
     color: '#00D084',
     fontWeight: '700',
   },
-  // Notifications Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -540,6 +750,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'flex-start',
   },
+  notificationUnread: {
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+  },
   notificationIcon: {
     width: 40,
     height: 40,
@@ -569,4 +783,3 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
-

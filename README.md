@@ -42,7 +42,7 @@ All three interface with a **single, structurally rigorous Firestore database** 
 ```bash
 # 1. Backend Setup
 cd backend
-pip install -r requirements.txt
+
 python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 
 # 2. Mobile App Setup  
@@ -162,6 +162,9 @@ Send Message → AI Understands → Check Availability
 Dashboard → View Bookings → Verify Payments → Manage Calendar 
 → View Analytics → Respond to Customers
 ```
+
+### Mobile vendor home (Expo)
+The RN vendor dashboard home calls `GET /api/vendors/{vendor_id}/analytics/today` for KPIs, upcoming today, and the needs-attention list (`pending_items`). The `available_today` metric counts unbooked slots (`available` or `cancelled`) for the Karachi calendar day whose start time is at or after the current Karachi clock time. Notifications use `GET /api/social/notifications?user_id=...` and `PATCH /api/social/notifications/{notification_id}/read` (JWT). Missing slot generation uses `POST /api/vendors/{vendor_id}/smart-reseed` (vendor owner JWT).
 
 ---
 

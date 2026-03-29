@@ -60,6 +60,18 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 
+def require_vendor_owner(user_id: str, vendor_id: str) -> None:
+    doc = firestore_db.db.collection("users").document(user_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=403, detail="User not found")
+    data = doc.to_dict() or {}
+    role = (data.get("role") or "").lower()
+    if role == "admin":
+        return
+    if data.get("vendor_id") != vendor_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this vendor")
+
+
 @router.get("/vendors")
 async def get_vendors(service_type: Optional[str] = None, category: Optional[str] = None):
     """
@@ -875,87 +887,348 @@ async def get_vendor_grid(vendor_id: str, date: str):
         logger.error(f"Error getting vendor grid: {e}")
         raise HTTPException(status_code=500, detail="Failed to get grid")
 
+def _slot_time_str_khi(data: dict, KARACHI_TZ) -> str:
+    start_time = data.get('start_time')
+    if start_time and hasattr(start_time, 'astimezone'):
+        return start_time.astimezone(KARACHI_TZ).strftime('%H:%M')
+    return '00:00'
+
+
+def _khi_hhmm_from_slot(data: dict, doc_id: str, KARACHI_TZ) -> Optional[str]:
+    start_time = data.get('start_time')
+    if start_time and hasattr(start_time, 'astimezone'):
+        return start_time.astimezone(KARACHI_TZ).strftime('%H:%M')
+    parts = doc_id.split('_')
+    if len(parts) >= 2 and parts[0].isdigit() and len(parts[0]) == 8 and parts[1].isdigit():
+        try:
+            h = int(parts[1])
+            if 0 <= h <= 23:
+                return f'{h:02d}:00'
+        except ValueError:
+            pass
+    return None
+
+
+def _customer_label_from_slot(data: dict, db) -> str:
+    if data.get('customer_name'):
+        return str(data.get('customer_name'))
+    uid = data.get('user_id')
+    if not uid:
+        return 'Customer'
+    user_doc = db.collection('users').document(uid).get()
+    if user_doc.exists:
+        u = user_doc.to_dict() or {}
+        return u.get('name') or u.get('phone') or u.get('email') or 'Customer'
+    return 'Customer'
+
+
 @router.get("/vendors/{vendor_id}/analytics/today")
 async def vendor_dashboard_analytics(vendor_id: str):
-    """Get live metrics for vendor dashboard"""
+    """Get live metrics, KPIs, and upcoming rows for vendor dashboard (Karachi day)."""
     try:
         from google.cloud.firestore_v1.base_query import FieldFilter
-        from datetime import datetime, timedelta
+        from datetime import datetime
         import pytz
+        import asyncio
 
-        # Use Karachi Timezone for logical day calculation
         KARACHI_TZ = pytz.timezone('Asia/Karachi')
         now_khi = datetime.now(KARACHI_TZ)
         today_date_str = now_khi.strftime('%Y-%m-%d')
-        
-        # Pull today's confirmed/completed slots
-        query = firestore_db.db.collection('slots')\
-            .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
-            .where(filter=FieldFilter('date', '==', today_date_str))\
-            .where(filter=FieldFilter('status', 'in', ['confirmed', 'completed', 'pending']))
-            
-        import asyncio
-        slots_docs = await asyncio.to_thread(lambda: list(query.stream()))
-        
-        total_revenue = 0
-        total_bookings = 0
-        upcoming_bookings = []
-
         now_time_str = now_khi.strftime('%H:%M')
+        db = firestore_db.db
 
-        for doc in slots_docs:
-            data = doc.to_dict()
-            status = data.get('status')
-            price = float(data.get('price', 0))
-            
-            if status in ['confirmed', 'completed']:
-                total_revenue += price
-            
-            total_bookings += 1
-            
-            # Formatting time simply
-            start_time = data.get('start_time')
-            if start_time and hasattr(start_time, 'astimezone'):
-                start_khi = start_time.astimezone(KARACHI_TZ)
-                time_str = start_khi.strftime('%H:%M')
-            else:
-                time_str = '00:00'
-                
-            # If the booking is upcoming
-            if status in ['confirmed', 'pending'] and time_str >= now_time_str:
-                customer_name = "Customer"
-                user_id = data.get('user_id')
-                if user_id:
-                    user_doc = firestore_db.db.collection('users').document(user_id).get()
-                    if user_doc.exists:
-                        u_data = user_doc.to_dict()
-                        customer_name = u_data.get('full_name') or u_data.get('display_name') or u_data.get('phone_number') or "Customer"
+        def load_today_slots():
+            q = db.collection('slots').where(
+                filter=FieldFilter('vendor_id', '==', vendor_id)
+            ).where(
+                filter=FieldFilter('date', '==', today_date_str)
+            )
+            return list(q.stream())
 
-                upcoming_bookings.append({
-                    "id": doc.id,
-                    "customer_name": customer_name,
-                    "service": data.get('service_id', 'Service'),
-                    "time": time_str,
-                    "status": status,
-                    "amount": price
-                })
+        def load_attention_slots():
+            q = db.collection('slots').where(
+                filter=FieldFilter('vendor_id', '==', vendor_id)
+            ).where(
+                filter=FieldFilter('status', 'in', ['pending', 'locked'])
+            )
+            return list(q.stream())
 
-        # Sort upcoming by time and slice to next 5
-        upcoming_bookings = sorted(upcoming_bookings, key=lambda x: x.get('time', ''))[:5]
+        slots_today, slots_attention = await asyncio.gather(
+            asyncio.to_thread(load_today_slots),
+            asyncio.to_thread(load_attention_slots),
+        )
+
+        def norm_slot_status(raw):
+            if raw is None:
+                return ''
+            s = raw if isinstance(raw, str) else str(raw)
+            return s.strip().lower()
+
+        revenue_today = 0.0
+        bookings_today_count = 0
+        available_today_count = 0
+        resources_today = set()
+
+        for doc in slots_today:
+            data = doc.to_dict() or {}
+            status_key = norm_slot_status(data.get('status'))
+            price = float(data.get('price') or 0)
+            rid = data.get('resource_id')
+            if rid:
+                resources_today.add(rid)
+
+            if status_key in ('confirmed', 'pending', 'locked'):
+                bookings_today_count += 1
+            if status_key in ('confirmed', 'completed'):
+                revenue_today += price
+            if status_key in ('available', 'cancelled'):
+                t = _khi_hhmm_from_slot(data, doc.id, KARACHI_TZ)
+                if t is None or t >= now_time_str:
+                    available_today_count += 1
+
+        pending_actions_count = 0
+        pending_items = []
+        for doc in slots_attention:
+            data = doc.to_dict() or {}
+            if (data.get('date') or '') < today_date_str:
+                continue
+            pending_actions_count += 1
+            time_str = _slot_time_str_khi(data, KARACHI_TZ)
+            hold_exp = data.get('hold_expires_at')
+            hold_iso = None
+            if hold_exp and hasattr(hold_exp, 'isoformat'):
+                hold_iso = hold_exp.isoformat()
+            customer_name = _customer_label_from_slot(data, db)
+            resource_id = data.get('resource_id') or ''
+            resource_name = resource_id
+            if resource_id:
+                rdoc = db.collection('resources').document(resource_id).get()
+                if rdoc.exists:
+                    resource_name = (rdoc.to_dict() or {}).get('name') or resource_id
+            pending_items.append({
+                "id": doc.id,
+                "status": data.get('status'),
+                "date": data.get('date'),
+                "time": time_str,
+                "customer_name": customer_name,
+                "resource_id": resource_id,
+                "resource_name": resource_name,
+                "amount": float(data.get('price') or 0),
+                "hold_expires_at": hold_iso,
+                "booking_source": data.get('booking_source') or 'app',
+            })
+
+        def _pending_sort_key(r):
+            if r["status"] == 'locked' and r.get("hold_expires_at"):
+                return r["hold_expires_at"]
+            return f"{r.get('date', '')}T{r.get('time', '00:00')}"
+
+        pending_items.sort(key=_pending_sort_key)
+        pending_items = pending_items[:15]
+
+        upcoming_bookings = []
+        for doc in slots_today:
+            data = doc.to_dict() or {}
+            status_key = norm_slot_status(data.get('status'))
+            if status_key not in ('confirmed', 'pending', 'locked'):
+                continue
+            time_str = _slot_time_str_khi(data, KARACHI_TZ)
+            if time_str < now_time_str:
+                continue
+            price = float(data.get('price') or 0)
+            customer_name = _customer_label_from_slot(data, db)
+            resource_id = data.get('resource_id') or ''
+            resource_name = resource_id
+            if resource_id:
+                rdoc = db.collection('resources').document(resource_id).get()
+                if rdoc.exists:
+                    resource_name = (rdoc.to_dict() or {}).get('name') or resource_id
+
+            upcoming_bookings.append({
+                "id": doc.id,
+                "customer_name": customer_name,
+                "service": data.get('service_id', 'Service'),
+                "resource_id": resource_id,
+                "resource_name": resource_name,
+                "time": time_str,
+                "status": data.get('status') or status_key,
+                "amount": price,
+                "booking_source": data.get('booking_source') or 'app',
+            })
+
+        upcoming_bookings = sorted(upcoming_bookings, key=lambda x: x.get('time', ''))[:8]
 
         return {
             "success": True,
             "metrics": {
-                "revenue_today": total_revenue,
-                "bookings_today": total_bookings,
-                "active_courts": 3 # Could be dynamic later
+                "revenue_today": revenue_today,
+                "bookings_today": bookings_today_count,
+                "pending_actions": pending_actions_count,
+                "available_today": available_today_count,
+                "active_courts": len(resources_today) or 0,
             },
-            "upcoming": upcoming_bookings
+            "upcoming": upcoming_bookings,
+            "pending_items": pending_items,
         }
 
     except Exception as e:
         logger.error(f"Error getting vendor analytics: {e}")
         raise HTTPException(status_code=500, detail="Failed to get vendor analytics")
+
+
+@router.get("/vendors/{vendor_id}/dashboard/pending-actions")
+async def vendor_dashboard_pending_actions(
+    vendor_id: str,
+    user_id: str = Depends(get_current_user_id),
+    limit: int = 15,
+):
+    """Slots needing vendor attention: pending payment or locked hold."""
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        import pytz
+        from datetime import datetime
+        import asyncio
+
+        require_vendor_owner(user_id, vendor_id)
+        KARACHI_TZ = pytz.timezone('Asia/Karachi')
+        today_date_str = datetime.now(KARACHI_TZ).strftime('%Y-%m-%d')
+        db = firestore_db.db
+
+        def load():
+            q = db.collection('slots').where(
+                filter=FieldFilter('vendor_id', '==', vendor_id)
+            ).where(
+                filter=FieldFilter('status', 'in', ['pending', 'locked'])
+            )
+            return list(q.stream())
+
+        docs = await asyncio.to_thread(load)
+        rows = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            if (data.get('date') or '') < today_date_str:
+                continue
+            time_str = _slot_time_str_khi(data, KARACHI_TZ)
+            hold_exp = data.get('hold_expires_at')
+            hold_iso = None
+            if hold_exp and hasattr(hold_exp, 'isoformat'):
+                hold_iso = hold_exp.isoformat()
+            customer_name = _customer_label_from_slot(data, db)
+            resource_id = data.get('resource_id') or ''
+            resource_name = resource_id
+            if resource_id:
+                rdoc = db.collection('resources').document(resource_id).get()
+                if rdoc.exists:
+                    resource_name = (rdoc.to_dict() or {}).get('name') or resource_id
+            rows.append({
+                "id": doc.id,
+                "status": data.get('status'),
+                "date": data.get('date'),
+                "time": time_str,
+                "customer_name": customer_name,
+                "resource_id": resource_id,
+                "resource_name": resource_name,
+                "amount": float(data.get('price') or 0),
+                "hold_expires_at": hold_iso,
+                "booking_source": data.get('booking_source') or 'app',
+            })
+
+        def sort_key(r):
+            if r["status"] == 'locked' and r.get("hold_expires_at"):
+                return r["hold_expires_at"]
+            return f"{r.get('date', '')}T{r.get('time', '00:00')}"
+
+        rows.sort(key=sort_key)
+        return {"success": True, "items": rows[: max(1, min(limit, 50))]}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error pending-actions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load pending actions")
+
+
+@router.post("/vendors/{vendor_id}/smart-reseed")
+async def vendor_run_smart_reseed(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    """
+    Runs the same additive logic as database/seed/smart_reseed.py (creates missing slot docs only).
+    """
+    try:
+        require_vendor_owner(uid, vendor_id)
+        from database.seed.smart_reseed import smart_reseed
+        import asyncio
+
+        def run():
+            return smart_reseed(firestore_db.db)
+
+        created = await asyncio.to_thread(run)
+        return {"success": True, "created": int(created), "message": f"Added {created} missing slot documents (if any)."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"smart_reseed failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors/{vendor_id}/notifications")
+async def vendor_get_notifications(
+    vendor_id: str,
+    uid: str = Depends(get_current_user_id),
+    limit: int = 30,
+):
+    """Notifications for the logged-in vendor user (Firestore notifications collection)."""
+    try:
+        require_vendor_owner(uid, vendor_id)
+        import asyncio
+
+        def load():
+            q = firestore_db.db.collection('notifications').where('user_id', '==', uid)
+            return list(q.stream())
+
+        docs = await asyncio.to_thread(load)
+        out = []
+        for doc in docs:
+            d = doc.to_dict() or {}
+            created = d.get('created_at')
+            created_s = None
+            if created is not None and hasattr(created, 'isoformat'):
+                created_s = created.isoformat()
+            out.append({
+                "id": doc.id,
+                "user_id": d.get('user_id'),
+                "type": str(d.get('type') or 'system'),
+                "title": d.get('title') or '',
+                "message": d.get('message') or '',
+                "read": bool(d.get('read', False)),
+                "created_at": created_s,
+                "data": d.get('data') or {},
+            })
+        out.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+        return {"success": True, "notifications": out[: max(1, min(limit, 100))]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"vendor notifications: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load notifications")
+
+
+@router.patch("/notifications/{notification_id}/read")
+async def notification_mark_read(notification_id: str, uid: str = Depends(get_current_user_id)):
+    try:
+        ref = firestore_db.db.collection('notifications').document(notification_id)
+        doc = ref.get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        data = doc.to_dict() or {}
+        if data.get('user_id') != uid:
+            raise HTTPException(status_code=403, detail="Not your notification")
+        ref.update({'read': True})
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"mark read: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/vendors/{vendor_id}/slots/{slot_id}/approve")
