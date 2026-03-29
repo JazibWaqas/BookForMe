@@ -884,8 +884,9 @@ async def get_vendor_grid(vendor_id: str, date: str):
             "slots": sorted(slots, key=lambda x: x.get('time', ''))
         }
     except Exception as e:
-        logger.error(f"Error getting vendor grid: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get grid")
+        import traceback
+        logger.error(f"Error getting vendor grid: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Grid error: {str(e)}")
 
 def _slot_time_str_khi(data: dict, KARACHI_TZ) -> str:
     start_time = data.get('start_time')
@@ -1072,8 +1073,9 @@ async def vendor_dashboard_analytics(vendor_id: str):
         }
 
     except Exception as e:
-        logger.error(f"Error getting vendor analytics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get vendor analytics")
+        import traceback
+        logger.error(f"Error getting vendor analytics: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Analytics error: {str(e)}")
 
 
 @router.get("/vendors/{vendor_id}/dashboard/pending-actions")
