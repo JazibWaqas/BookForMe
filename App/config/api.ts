@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
     blockSlot: (vendorId: string, slotId: string) => `/api/vendors/${vendorId}/slots/${slotId}/block`,
     walkIn: (vendorId: string, slotId: string) => `/api/vendors/${vendorId}/slots/${slotId}/walk-in`,
     analyticsToday: (id: string) => `/api/vendors/${id}/analytics/today`,
+    smartReseed: (id: string) => `/api/vendors/${id}/smart-reseed`,
   },
 
   // Bookings
@@ -83,6 +84,8 @@ export const API_ENDPOINTS = {
     acceptFriendRequest: '/api/social/friends/accept',
     rejectFriendRequest: '/api/social/friends/reject',
     removeFriend: '/api/social/friends/remove',
+    notifications: '/api/social/notifications',
+    notificationMarkRead: (nid: string) => `/api/social/notifications/${nid}/read`,
   },
 
   // Health check

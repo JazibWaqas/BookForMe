@@ -263,6 +263,23 @@ async def get_notifications(user_id: str = Query(...), limit: int = 50):
     notifications.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
     return notifications[:limit]
 
+
+@router.patch("/notifications/{notification_id}/read")
+async def social_mark_notification_read(
+    notification_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    ref = db.collection('notifications').document(notification_id)
+    doc = await asyncio.to_thread(ref.get)
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    data = doc.to_dict() or {}
+    if data.get('user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Not your notification")
+    await asyncio.to_thread(lambda: ref.update({'read': True}))
+    return {"success": True}
+
+
 @router.get("/posts/feed", response_model=List[PostResponse])
 @cached(ttl_seconds=60, key_prefix="social_feed")
 async def get_posts_feed(
