@@ -1294,11 +1294,19 @@ class VendorUpdate(BaseModel):
     address: Optional[str] = None
     description: Optional[str] = None
     operating_hours: Optional[Dict[str, Any]] = None
+    owner_name: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    area: Optional[str] = None
+    owner_cnic: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    primary_sport_type: Optional[str] = None
 
 @router.patch("/vendors/{vendor_id}")
 async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str = Depends(get_current_user_id)):
     """Update vendor profile details"""
     try:
+        require_vendor_owner(user_id, vendor_id)
         vendor_ref = firestore_db.db.collection('vendors').document(vendor_id)
         if not vendor_ref.get().exists:
             raise HTTPException(status_code=404, detail="Vendor not found")
@@ -1314,6 +1322,139 @@ async def update_vendor_profile(vendor_id: str, data: VendorUpdate, user_id: str
     except Exception as e:
         logger.error(f"Error updating vendor {vendor_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Vendor profile sub-resources ─────────────────────────────────────────────
+
+@router.get("/vendors/{vendor_id}/resources")
+async def vendor_get_resources(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('resources') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "resources": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting resources: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ResourceUpdate(BaseModel):
+    name: Optional[str] = None
+    capacity: Optional[int] = None
+    active: Optional[bool] = None
+
+
+@router.patch("/vendors/{vendor_id}/resources/{resource_id}")
+async def vendor_update_resource(
+    vendor_id: str, resource_id: str, data: ResourceUpdate, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('resources').document(resource_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Resource not found for this vendor")
+        update = {k: v for k, v in data.dict().items() if v is not None}
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating resource: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors/{vendor_id}/services")
+async def vendor_get_services(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('services') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "services": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting services: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ServicePriceUpdate(BaseModel):
+    base_price: Optional[int] = None
+    duration_min: Optional[int] = None
+    name: Optional[str] = None
+
+
+@router.patch("/vendors/{vendor_id}/services/{service_id}")
+async def vendor_update_service(
+    vendor_id: str, service_id: str, data: ServicePriceUpdate, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('services').document(service_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Service not found for this vendor")
+        update: dict = {}
+        if data.name is not None:
+            update['name'] = data.name
+        if data.duration_min is not None:
+            update['duration_min'] = data.duration_min
+        if data.base_price is not None:
+            update['pricing'] = {**(doc.to_dict() or {}).get('pricing', {}), 'base': data.base_price}
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        if update:
+            ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating service: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors/{vendor_id}/payment-accounts")
+async def vendor_get_payment_accounts(vendor_id: str, uid: str = Depends(get_current_user_id)):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        docs = firestore_db.db.collection('vendor_payment_accounts') \
+            .where(filter=FieldFilter('vendor_id', '==', vendor_id)).stream()
+        return {"success": True, "accounts": [{"id": d.id, **(d.to_dict() or {})} for d in docs]}
+    except Exception as e:
+        logger.error(f"Error getting payment accounts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PaymentAccountUpsert(BaseModel):
+    type: str
+    account_number: str
+    account_title: str
+    bank_name: Optional[str] = None
+    is_default: bool = False
+
+
+@router.patch("/vendors/{vendor_id}/payment-accounts/{account_id}")
+async def vendor_update_payment_account(
+    vendor_id: str, account_id: str, data: PaymentAccountUpsert, uid: str = Depends(get_current_user_id)
+):
+    require_vendor_owner(uid, vendor_id)
+    try:
+        ref = firestore_db.db.collection('vendor_payment_accounts').document(account_id)
+        doc = ref.get()
+        if not doc.exists or (doc.to_dict() or {}).get('vendor_id') != vendor_id:
+            raise HTTPException(status_code=404, detail="Account not found for this vendor")
+        update = {k: v for k, v in data.dict().items()}
+        update['vendor_id'] = vendor_id
+        update['updated_at'] = firestore.SERVER_TIMESTAMP
+        ref.update(update)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating payment account: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 class WalkInRequest(BaseModel):
     customer_name: str

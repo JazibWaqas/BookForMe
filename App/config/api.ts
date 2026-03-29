@@ -44,6 +44,12 @@ export const API_ENDPOINTS = {
     walkIn: (vendorId: string, slotId: string) => `/api/vendors/${vendorId}/slots/${slotId}/walk-in`,
     analyticsToday: (id: string) => `/api/vendors/${id}/analytics/today`,
     smartReseed: (id: string) => `/api/vendors/${id}/smart-reseed`,
+    resources: (id: string) => `/api/vendors/${id}/resources`,
+    updateResource: (vendorId: string, resourceId: string) => `/api/vendors/${vendorId}/resources/${resourceId}`,
+    services: (id: string) => `/api/vendors/${id}/services`,
+    updateService: (vendorId: string, serviceId: string) => `/api/vendors/${vendorId}/services/${serviceId}`,
+    paymentAccounts: (id: string) => `/api/vendors/${id}/payment-accounts`,
+    updatePaymentAccount: (vendorId: string, accountId: string) => `/api/vendors/${vendorId}/payment-accounts/${accountId}`,
   },
 
   // Bookings

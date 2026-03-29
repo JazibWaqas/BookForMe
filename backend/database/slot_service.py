@@ -237,10 +237,8 @@ class SlotService:
     
     def reject_booking(self, slot_id: str, vendor_id: str, reason: str = '') -> Dict[str, Any]:
         """
-        Vendor rejects the booking (payment issue)
-        Creates a new available slot and marks this one as cancelled
-        
-        State transition: pending -> cancelled
+        Vendor rejects or cancels the booking; same slot document becomes available again
+        so calendar and walk-in keep using the canonical slot id.
         """
         try:
             @firestore.transactional
@@ -260,45 +258,28 @@ class SlotService:
                     return {'success': False, 'error': 'Slot is not in a cancellable state'}
                 
                 transaction.update(slot_ref, {
-                    'status': SlotStatus.CANCELLED.value,
-                    'cancellation_reason': reason,
-                    'updated_at': firestore.SERVER_TIMESTAMP
-                })
-                
-                new_slot_id = f"{slot_id}_replacement"
-                new_slot_ref = self.db.collection(Collections.SLOTS).document(new_slot_id)
-                
-                new_slot_data = {
-                    'vendor_id': slot_data.get('vendor_id'),
-                    'service_id': slot_data.get('service_id'),
-                    'resource_id': slot_data.get('resource_id'),
-                    'start_time': slot_data.get('start_time'),
-                    'end_time': slot_data.get('end_time'),
-                    'date': slot_data.get('date'),
-                    'price': slot_data.get('price'),
-                    'price_tier_used': slot_data.get('price_tier_used', PriceTier.BASE.value),
                     'status': SlotStatus.AVAILABLE.value,
                     'user_id': None,
                     'payment_id': None,
                     'hold_expires_at': None,
-                    'created_at': firestore.SERVER_TIMESTAMP,
-                    'updated_at': firestore.SERVER_TIMESTAMP
-                }
-                
-                transaction.set(new_slot_ref, new_slot_data)
+                    'customer_name': None,
+                    'customer_phone': None,
+                    'booking_source': None,
+                    'cancellation_reason': reason or None,
+                    'updated_at': firestore.SERVER_TIMESTAMP,
+                })
                 
                 return {
                     'success': True,
-                    'cancelled_slot_id': slot_id,
-                    'new_slot_id': new_slot_id,
-                    'user_id': slot_data.get('user_id')
+                    'slot_id': slot_id,
+                    'user_id': slot_data.get('user_id'),
                 }
             
             transaction = self.db.transaction()
             result = reject_transaction(transaction)
             
             if result['success']:
-                logger.info(f"Booking rejected for slot {slot_id}, new slot created: {result['new_slot_id']}")
+                logger.info(f"Booking rejected for slot {slot_id}; slot set back to available")
             
             return result
             
@@ -308,10 +289,7 @@ class SlotService:
     
     def cancel_booking(self, slot_id: str, user_id: str = None, vendor_id: str = None) -> Dict[str, Any]:
         """
-        Cancel a confirmed booking (by user or vendor)
-        Creates a new available slot
-        
-        State transition: confirmed -> cancelled
+        Cancel a booking (user or vendor); same slot document becomes available again.
         """
         try:
             @firestore.transactional
@@ -336,38 +314,20 @@ class SlotService:
                 cancelled_by = 'user' if user_id else 'vendor'
                 
                 transaction.update(slot_ref, {
-                    'status': SlotStatus.CANCELLED.value,
-                    'cancelled_by': cancelled_by,
-                    'updated_at': firestore.SERVER_TIMESTAMP
-                })
-                
-                new_slot_id = f"{slot_id}_replacement"
-                new_slot_ref = self.db.collection(Collections.SLOTS).document(new_slot_id)
-                
-                new_slot_data = {
-                    'vendor_id': slot_data.get('vendor_id'),
-                    'service_id': slot_data.get('service_id'),
-                    'resource_id': slot_data.get('resource_id'),
-                    'start_time': slot_data.get('start_time'),
-                    'end_time': slot_data.get('end_time'),
-                    'date': slot_data.get('date'),
-                    'price': slot_data.get('price'),
-                    'price_tier_used': slot_data.get('price_tier_used', PriceTier.BASE.value),
                     'status': SlotStatus.AVAILABLE.value,
                     'user_id': None,
                     'payment_id': None,
                     'hold_expires_at': None,
-                    'created_at': firestore.SERVER_TIMESTAMP,
-                    'updated_at': firestore.SERVER_TIMESTAMP
-                }
-                
-                transaction.set(new_slot_ref, new_slot_data)
+                    'customer_name': None,
+                    'customer_phone': None,
+                    'booking_source': None,
+                    'updated_at': firestore.SERVER_TIMESTAMP,
+                })
                 
                 return {
                     'success': True,
-                    'cancelled_slot_id': slot_id,
-                    'new_slot_id': new_slot_id,
-                    'cancelled_by': cancelled_by
+                    'slot_id': slot_id,
+                    'cancelled_by': cancelled_by,
                 }
             
             transaction = self.db.transaction()

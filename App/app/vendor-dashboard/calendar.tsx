@@ -59,7 +59,7 @@ export default function VendorCalendarScreen() {
   const [resources, setResources] = useState<string[]>(['1', '2', '3']); // Defaulting to 3 courts, will update dynamically based on data if possible.
 
   // Walk-in modal state
-  const [selectedSlot, setSelectedSlot] = useState<{ time: string, resource: string } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ time: string; resource: string; slotId?: string } | null>(null);
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
   const [walkInAmount, setWalkInAmount] = useState('0');
@@ -167,13 +167,23 @@ export default function VendorCalendarScreen() {
 
   // Helper to find specific slot status
   const getSlotDetails = (time: string, resourceId: string) => {
-    return gridData.find(s => s.time === time && s.resource_id === resourceId);
+    const matches = gridData.filter((s) => s.time === time && s.resource_id === resourceId);
+    if (matches.length === 0) return undefined;
+    if (matches.length === 1) return matches[0];
+    const rank = (st: string) => {
+      if (st === 'available') return 0;
+      if (st === 'locked' || st === 'pending') return 1;
+      if (st === 'confirmed' || st === 'completed') return 2;
+      if (st === 'cancelled') return 3;
+      if (st === 'blocked') return 4;
+      return 5;
+    };
+    return [...matches].sort((a, b) => rank(a.status) - rank(b.status))[0];
   };
 
   const handleSlotPress = (time: string, resource: string, slot?: any) => {
     if (slot && (slot.status === 'available' || slot.status === 'cancelled')) {
-      // Pre-seeded slot that is open or was cancelled — open walk-in modal
-      setSelectedSlot({ time, resource });
+      setSelectedSlot({ time, resource, slotId: slot.id });
       setWalkInName('');
       setWalkInPhone('');
       setWalkInAmount('2000');
@@ -197,9 +207,10 @@ export default function VendorCalendarScreen() {
     try {
       // Construct slot ID matching the seeder format: YYYYMMDD_HH_vendorId_resourceId
       // e.g. 20260225_08_ace_padel_dha_ace_court_1
-      const hour = selectedSlot.time.split(':')[0]; // "08" from "08:00"
-      const dateCompact = formatDateCompact(currentDate); // "20260225"
-      const slotId = `${dateCompact}_${hour}_${vendorId}_${selectedSlot.resource}`;
+      const hour = selectedSlot.time.split(':')[0];
+      const dateCompact = formatDateCompact(currentDate);
+      const slotId =
+        selectedSlot.slotId || `${dateCompact}_${hour}_${vendorId}_${selectedSlot.resource}`;
 
       const res = await apiClient.post(API_ENDPOINTS.vendors.walkIn(vendorId, slotId), {
         customer_name: walkInName,

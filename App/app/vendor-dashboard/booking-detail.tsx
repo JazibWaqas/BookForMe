@@ -76,7 +76,7 @@ export default function BookingDetailScreen() {
             if (user && user.vendor_id) {
                 const res = await apiClient.post(API_ENDPOINTS.vendors.rejectSlot(user.vendor_id, booking.id));
                 if (res.data.success) {
-                    setBooking({ ...booking, status: 'cancelled' });
+                    router.back();
                 }
             }
         } catch (error) {
