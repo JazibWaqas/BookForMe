@@ -310,10 +310,9 @@ async def create_booking(booking_data: dict):
 
 
 @router.get("/vendors/{vendor_id}/bookings")
-@cached(ttl_seconds=300, key_prefix="vendor_bookings")
 async def get_vendor_bookings(vendor_id: str, date: str = None):
     """
-    Get bookings for a vendor (cached for 5 minutes)
+    Get bookings for a vendor (no HTTP cache — list must stay fresh; Firestore reads are batched)
     
     Args:
         vendor_id: Vendor ID

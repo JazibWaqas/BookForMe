@@ -357,7 +357,6 @@ class FirestoreDB:
 
             KARACHI_TZ = pytz.timezone('Asia/Karachi')
 
-            bookings = []
             query = self.db.collection('slots')\
                 .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
                 .where(filter=FieldFilter('status', 'in', [
@@ -367,18 +366,16 @@ class FirestoreDB:
             if date:
                 query = query.where(filter=FieldFilter('date', '==', date))
 
-            docs = query.stream()
-            for doc in docs:
+            raw: List[Dict[str, Any]] = []
+            for doc in query.stream():
                 booking_data = doc.to_dict()
                 booking_data['id'] = doc.id
 
-                # ── Derive a human-readable PKT time string ──────────────────
                 start_time = booking_data.get('start_time')
                 if start_time and hasattr(start_time, 'astimezone'):
                     try:
                         start_khi = start_time.astimezone(KARACHI_TZ)
-                        booking_data['time'] = start_khi.strftime('%I:%M %p')   # "07:00 AM"
-                        # Ensure date reflects PKT day (not UTC)
+                        booking_data['time'] = start_khi.strftime('%I:%M %p')
                         if not booking_data.get('date'):
                             booking_data['date'] = start_khi.strftime('%Y-%m-%d')
                     except Exception:
@@ -386,37 +383,50 @@ class FirestoreDB:
                 elif isinstance(start_time, str):
                     booking_data['time'] = start_time
 
-                # ── Customer name: prefer what's already on the slot ─────────
-                # WhatsApp agent & walk-ins write customer_name directly onto
-                # the slot doc. Only look up the users collection if it's blank.
-                if not booking_data.get('customer_name'):
-                    user_id = booking_data.get('user_id')
-                    if user_id:
-                        try:
-                            user_doc = self.db.collection('users').document(user_id).get()
-                            if user_doc.exists:
-                                u = user_doc.to_dict()
-                                booking_data['customer_name'] = (
-                                    u.get('name') or u.get('full_name') or
-                                    u.get('display_name') or u.get('phone_number') or
-                                    'Customer'
-                                )
-                        except Exception:
-                            pass
+                raw.append(booking_data)
 
-                # ── Hydrate payment screenshot if linked ─────────────────────
-                payment_id = booking_data.get('payment_id')
-                if payment_id:
-                    try:
-                        payment_doc = self.db.collection('payments').document(payment_id).get()
-                        if payment_doc.exists:
-                            booking_data['payment'] = payment_doc.to_dict()
-                    except Exception:
-                        pass
+            user_ids = set()
+            payment_ids = set()
+            for b in raw:
+                if not b.get('customer_name') and b.get('user_id'):
+                    user_ids.add(b['user_id'])
+                pid = b.get('payment_id')
+                if pid:
+                    payment_ids.add(pid)
+
+            def batch_get_map(coll: str, ids: set) -> Dict[str, Dict]:
+                out: Dict[str, Dict] = {}
+                if not ids:
+                    return out
+                refs = [self.db.collection(coll).document(i) for i in ids]
+                chunk = 10
+                for i in range(0, len(refs), chunk):
+                    for snap in self.db.get_all(refs[i:i + chunk]):
+                        if snap.exists:
+                            out[snap.id] = snap.to_dict() or {}
+                return out
+
+            users_map = batch_get_map('users', user_ids)
+            pays_map = batch_get_map('payments', payment_ids)
+
+            bookings = []
+            for booking_data in raw:
+                if not booking_data.get('customer_name'):
+                    uid = booking_data.get('user_id')
+                    if uid and uid in users_map:
+                        u = users_map[uid]
+                        booking_data['customer_name'] = (
+                            u.get('name') or u.get('full_name') or
+                            u.get('display_name') or u.get('phone_number') or
+                            'Customer'
+                        )
+
+                pid = booking_data.get('payment_id')
+                if pid and pid in pays_map:
+                    booking_data['payment'] = pays_map[pid]
 
                 bookings.append(booking_data)
 
-            # Sort by date desc, then time desc — safe for mixed None types
             def _sort_key(b):
                 return (b.get('date') or '0000-00-00', b.get('time') or '00:00 AM')
 
