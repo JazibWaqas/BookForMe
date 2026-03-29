@@ -151,6 +151,11 @@ export const SocialService = {
         return response.data;
     },
 
+    async deletePost(postId: string) {
+        const response = await apiClient.delete(`/api/social/posts/${postId}`);
+        return response.data;
+    },
+
     // --- Comments ---
     async getComments(postId: string) {
         const response = await apiClient.get(`/api/social/posts/${postId}/comments`);
@@ -161,6 +166,11 @@ export const SocialService = {
         const response = await apiClient.post(`/api/social/posts/${postId}/comments`, {
             content
         });
+        return response.data;
+    },
+
+    async deleteComment(postId: string, commentId: string) {
+        const response = await apiClient.delete(`/api/social/posts/${postId}/comments/${commentId}`);
         return response.data;
     },
 

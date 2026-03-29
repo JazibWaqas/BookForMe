@@ -342,74 +342,9 @@ async def get_posts_feed(
 
 @router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
 async def get_comments(post_id: str):
-    """Get all comments for a post"""
-    comments_ref = db.collection('comments').where('post_id', '==', post_id).order_by('created_at', direction=firestore.Query.DESCENDING)
-    comments_docs = await asyncio.to_thread(lambda: list(comments_ref.stream()))
-    
-    comments = []
-    for doc in comments_docs:
-        data = doc.to_dict()
-        author = await get_user_profile_social(data.get('user_id'))
-        comments.append(CommentResponse(
-            id=doc.id,
-            author=author,
-            **data
-        ))
-    
-    return comments
-
-@router.post("/posts/{post_id}/comments", response_model=CommentResponse)
-async def create_comment(
-    post_id: str, 
-    comment: CommentCreate, 
-    user_id: str = Depends(get_current_user_id)
-):
-    """Add a comment to a post"""
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    # 1. Verify Post Exists
-    post_ref = db.collection('posts').document(post_id)
-    post = await asyncio.to_thread(post_ref.get)
-    if not post.exists:
-        raise HTTPException(status_code=404, detail="Post not found")
-    
-    # 2. Create Comment
-    comment_data = {
-        "post_id": post_id,
-        "user_id": user_id,
-        "content": comment.content,
-        "created_at": datetime.now()
-    }
-    doc_ref = await asyncio.to_thread(lambda: db.collection('comments').add(comment_data)[1])
-    
-    # 3. Update Post Stats (Increment comments_count)
-    await asyncio.to_thread(post_ref.update, {"comments_count": firestore.Increment(1)})
-    
-    # 4. Notify Post Author
-    post_data = post.to_dict()
-    if post_data.get('user_id') != user_id:
-        # Avoid self-notification
-        notification_service.notify_post_comment(
-            author_id=post_data.get('user_id'),
-            commenter_name="Someone",
-            post_id=post_id,
-            comment_text=comment.content
-        )
-        
-    return CommentResponse(
-        id=doc_ref.id,
-        author=await get_user_profile_social(user_id),
-        **comment_data
-    )
-
-@router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
-async def get_comments(post_id: str):
-    """Get comments for a post"""
-    # FIXED: Remove order_by to avoid index requirement, sort in memory instead
     comments_ref = db.collection('comments').where('post_id', '==', post_id)
     docs = await asyncio.to_thread(lambda: list(comments_ref.stream()))
-    
+
     async def process_comment(doc):
         data = doc.to_dict()
         return CommentResponse(
@@ -418,12 +353,109 @@ async def get_comments(post_id: str):
             **data
         )
 
-    # Fetch all authors in parallel
     comments = await asyncio.gather(*(process_comment(doc) for doc in docs))
-    
-    # Sort in memory by created_at (newest first)
     comments.sort(key=lambda x: x.created_at if x.created_at else datetime.min, reverse=True)
     return comments
+
+
+@router.post("/posts/{post_id}/comments", response_model=CommentResponse)
+async def create_comment(
+    post_id: str,
+    comment: CommentCreate,
+    user_id: str = Depends(get_current_user_id)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    post_ref = db.collection('posts').document(post_id)
+    post = await asyncio.to_thread(post_ref.get)
+    if not post.exists:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    comment_data = {
+        "post_id": post_id,
+        "user_id": user_id,
+        "content": comment.content,
+        "created_at": datetime.now()
+    }
+    doc_ref = await asyncio.to_thread(lambda: db.collection('comments').add(comment_data)[1])
+    await asyncio.to_thread(post_ref.update, {"comments_count": firestore.Increment(1)})
+
+    post_data = post.to_dict()
+    if post_data.get('user_id') != user_id:
+        notification_service.notify_post_comment(
+            author_id=post_data.get('user_id'),
+            commenter_name="Someone",
+            post_id=post_id,
+            comment_text=comment.content
+        )
+
+    return CommentResponse(
+        id=doc_ref.id,
+        author=await get_user_profile_social(user_id),
+        **comment_data
+    )
+
+
+@router.delete("/posts/{post_id}/comments/{comment_id}")
+async def delete_comment(
+    post_id: str,
+    comment_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    comment_ref = db.collection('comments').document(comment_id)
+    comment_doc = await asyncio.to_thread(comment_ref.get)
+    if not comment_doc.exists:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    data = comment_doc.to_dict()
+    if data.get('post_id') != post_id:
+        raise HTTPException(status_code=400, detail="Comment does not belong to this post")
+
+    post_ref = db.collection('posts').document(post_id)
+    post_doc = await asyncio.to_thread(post_ref.get)
+    post_owner = post_doc.to_dict().get('user_id') if post_doc.exists else None
+
+    if data.get('user_id') != user_id and post_owner != user_id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
+
+    await asyncio.to_thread(comment_ref.delete)
+    if post_doc.exists:
+        await asyncio.to_thread(
+            lambda: post_ref.update({"comments_count": firestore.Increment(-1)})
+        )
+
+    return {"success": True}
+
+
+@router.delete("/posts/{post_id}")
+async def delete_post(
+    post_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    post_ref = db.collection('posts').document(post_id)
+    post_doc = await asyncio.to_thread(post_ref.get)
+    if not post_doc.exists:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    if post_doc.to_dict().get('user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this post")
+
+    comments_docs = await asyncio.to_thread(
+        lambda: list(db.collection('comments').where('post_id', '==', post_id).stream())
+    )
+    for cdoc in comments_docs:
+        await asyncio.to_thread(cdoc.reference.delete)
+
+    await asyncio.to_thread(post_ref.delete)
+
+    return {"success": True}
 
 # --- 1. Connections (Follow/Friend) ---
 # Note: Using a subcollection 'following' under users or a separate 'relationships' collection.

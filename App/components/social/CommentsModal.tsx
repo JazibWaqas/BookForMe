@@ -46,6 +46,25 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
         }
     };
 
+    const handleDeleteComment = (commentId: string, commentAuthorId: string) => {
+        if (!currentUser) return;
+        Alert.alert('Delete Comment', 'Delete this comment?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await SocialService.deleteComment(postId, commentId);
+                        setComments(prev => prev.filter(c => c.id !== commentId));
+                    } catch (error) {
+                        Alert.alert('Error', 'Failed to delete comment');
+                    }
+                },
+            },
+        ]);
+    };
+
     const handleSend = async () => {
         if (!newComment.trim() || !currentUser) return;
 
@@ -93,25 +112,35 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
     const avatarUri = (url?: string | null) =>
         url && url.startsWith('http') ? url : getMediaUrl(url || undefined);
 
-    const renderComment = ({ item }: { item: any }) => (
-        <View style={styles.commentItem}>
-            <Avatar
-                uri={avatarUri(item.author?.avatar_url)}
-                name={item.author?.name || 'Unknown'}
-                size={40}
-                style={styles.avatar}
-            />
-            <View style={styles.commentContent}>
-                <View style={styles.commentHeader}>
-                    <Text style={styles.authorName}>{item.author?.name || 'Unknown'}</Text>
-                    <Text style={styles.timestamp}>
-                        {new Date(item.created_at).toLocaleDateString()}
-                    </Text>
+    const renderComment = ({ item }: { item: any }) => {
+        const isOwn = currentUser && (item.author?.id === currentUser.id || item.user_id === currentUser.id);
+        return (
+            <View style={styles.commentItem}>
+                <Avatar
+                    uri={avatarUri(item.author?.avatar_url)}
+                    name={item.author?.name || 'Unknown'}
+                    size={40}
+                    style={styles.avatar}
+                />
+                <View style={styles.commentContent}>
+                    <View style={styles.commentHeader}>
+                        <Text style={styles.authorName}>{item.author?.name || 'Unknown'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.timestamp}>
+                                {new Date(item.created_at).toLocaleDateString()}
+                            </Text>
+                            {isOwn && (
+                                <TouchableOpacity onPress={() => handleDeleteComment(item.id, item.user_id)}>
+                                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                    <Text style={styles.commentText}>{item.content}</Text>
                 </View>
-                <Text style={styles.commentText}>{item.content}</Text>
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
