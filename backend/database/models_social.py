@@ -47,6 +47,8 @@ class UserProfileSocial(BaseModel):
     avatar_url: Optional[str] = None
     rank: Optional[int] = 0
     points: Optional[int] = 0
+    role: Optional[str] = None
+    vendor_id: Optional[str] = None
 
 # --- Post Models ---
 

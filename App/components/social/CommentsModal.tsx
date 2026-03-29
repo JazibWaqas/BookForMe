@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, Modal, StyleSheet, TouchableOpacity, TextInput,
-    FlatList, Image, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Keyboard
+    FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { SocialService } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
 import { getMediaUrl } from '../../config/api';
+import Avatar from '../ui/Avatar';
 
 interface CommentsModalProps {
     visible: boolean;
@@ -89,10 +90,15 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
         }
     };
 
+    const avatarUri = (url?: string | null) =>
+        url && url.startsWith('http') ? url : getMediaUrl(url || undefined);
+
     const renderComment = ({ item }: { item: any }) => (
         <View style={styles.commentItem}>
-            <Image
-                source={{ uri: item.author?.avatar_url || 'https://i.pravatar.cc/150' }}
+            <Avatar
+                uri={avatarUri(item.author?.avatar_url)}
+                name={item.author?.name || 'Unknown'}
+                size={40}
                 style={styles.avatar}
             />
             <View style={styles.commentContent}>
@@ -136,8 +142,10 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
                 >
                     <View style={styles.inputContainer}>
-                        <Image
-                            source={{ uri: currentUser?.avatar_url || 'https://i.pravatar.cc/150' }}
+                        <Avatar
+                            uri={avatarUri(currentUser?.avatar_url)}
+                            name={currentUser?.name || 'You'}
+                            size={36}
                             style={styles.inputAvatar}
                         />
                         <TextInput
@@ -176,7 +184,7 @@ const styles = StyleSheet.create({
     closeButton: { position: 'absolute', right: 16 },
     list: { padding: 16 },
     commentItem: { flexDirection: 'row', marginBottom: 16 },
-    avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+    avatar: { marginRight: 12 },
     commentContent: { flex: 1, backgroundColor: COLORS.card, padding: 12, borderRadius: 12 },
     commentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     authorName: { fontWeight: 'bold', color: COLORS.text, fontSize: 14 },
@@ -187,7 +195,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', padding: 12,
         borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: COLORS.card
     },
-    inputAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 12 },
+    inputAvatar: { marginRight: 12 },
     input: {
         flex: 1, backgroundColor: COLORS.background, borderRadius: 20,
         paddingHorizontal: 16, paddingVertical: 8, maxHeight: 100, color: COLORS.text

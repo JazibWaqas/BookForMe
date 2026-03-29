@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
@@ -41,23 +41,37 @@ const getColorFromName = (name: string): string => {
     return colors[Math.abs(hash) % colors.length];
 };
 
+const looksLikePlaceholderAvatar = (raw: string): boolean => {
+    const u = raw.trim().toLowerCase();
+    if (!u) return true;
+    if (u.includes('undefined') || u.includes('null')) return true;
+    if (u.includes('default_avatar')) return true;
+    return false;
+};
+
 export default function Avatar({ uri, name = '', size = 50, style }: AvatarProps) {
+    const [broken, setBroken] = useState(false);
+    useEffect(() => {
+        setBroken(false);
+    }, [uri]);
+
     const initials = getInitials(name);
     const backgroundColor = getColorFromName(name);
     const fontSize = size * 0.4;
 
-    // Check if URI is valid
-    const hasValidUri = uri && uri.trim() !== '' && !uri.includes('undefined') && !uri.includes('null');
+    const raw = (uri ?? '').trim();
+    const hasValidUri = !broken && raw !== '' && !looksLikePlaceholderAvatar(raw);
 
     if (hasValidUri) {
         return (
             <Image
-                source={{ uri }}
+                source={{ uri: raw }}
                 style={[
                     styles.image,
                     { width: size, height: size, borderRadius: size / 2 },
                     style
                 ]}
+                onError={() => setBroken(true)}
             />
         );
     }

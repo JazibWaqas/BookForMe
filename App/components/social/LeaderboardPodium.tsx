@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
+import Avatar from '../ui/Avatar';
 
 interface LeaderUser {
     id: string;
@@ -31,9 +32,11 @@ export default function LeaderboardPodium({ topThree }: LeaderboardPodiumProps) 
             <View style={[styles.podiumSpot, position === 1 && styles.firstPlace]}>
                 {/* Avatar */}
                 <View style={[styles.avatarContainer, { width: config.size, height: config.size }]}>
-                    <Image
-                        source={{ uri: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&size=128` }}
-                        style={[styles.avatar, { width: config.size - 8, height: config.size - 8 }]}
+                    <Avatar
+                        uri={user.avatar_url}
+                        name={user.name}
+                        size={config.size - 8}
+                        style={styles.avatar}
                     />
                     <View style={styles.medalBadge}>
                         <Text style={styles.medalText}>{config.medal}</Text>

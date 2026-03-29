@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
+import Avatar from '../ui/Avatar';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
@@ -181,11 +182,9 @@ export default function MatchCard({ match, onSwipeRight, onSwipeLeft, isFirst }:
                     <Text style={styles.playersLabel}>PLAYERS</Text>
                     <View style={styles.playersRow}>
                         {match.participants?.slice(0, 4).map((p, i) => (
-                            <Image
-                                key={p.id}
-                                source={{ uri: p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=random` }}
-                                style={[styles.playerAvatar, { marginLeft: i > 0 ? -10 : 0 }]}
-                            />
+                            <View key={p.id} style={[styles.playerAvatarWrap, { marginLeft: i > 0 ? -10 : 0 }]}>
+                                <Avatar uri={p.avatar_url} name={p.name || '?'} size={32} style={styles.playerAvatar} />
+                            </View>
                         ))}
                         <View style={styles.playerCountBadge}>
                             <Text style={styles.playerCountText}>
@@ -352,12 +351,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    playerAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+    playerAvatarWrap: {
         borderWidth: 2,
         borderColor: '#1E293B',
+        borderRadius: 18,
+    },
+    playerAvatar: {
+        borderWidth: 0,
     },
     playerCountBadge: {
         backgroundColor: COLORS.primary,
