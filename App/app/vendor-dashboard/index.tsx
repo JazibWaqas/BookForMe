@@ -10,14 +10,13 @@ import {
   Animated,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
-import { useVendorStream } from '../../hooks/useVendorStream';
 
 type DashboardMetrics = {
   revenue_today: number;
@@ -184,12 +183,11 @@ export default function VendorDashboardScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  // SSE — refetch dashboard metrics whenever a slot changes in Firestore
-  useVendorStream(vendorId, {
-    onSlotChange: useCallback(() => {
+  useFocusEffect(
+    useCallback(() => {
       if (vendorId) fetchDashboardData(vendorId, userId);
-    }, [vendorId, userId, fetchDashboardData]),
-  });
+    }, [vendorId, userId, fetchDashboardData])
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

@@ -837,8 +837,7 @@ async def get_vendor_grid(vendor_id: str, date: str):
         query = firestore_db.db.collection('slots')\
             .where(filter=FieldFilter('vendor_id', '==', vendor_id))\
             .where(filter=FieldFilter('date', 'in', [date, next_date]))
-        
-        import asyncio
+
         slots_docs = await asyncio.to_thread(lambda: list(query.stream()))
         
         slots = []
@@ -1553,66 +1552,3 @@ async def vendor_walk_in_booking(vendor_id: str, slot_id: str, data: WalkInReque
 
 # ─── SSE Real-time Stream ─────────────────────────────────────────────────────
 
-async def _vendor_event_stream(vendor_id: str) -> AsyncGenerator[str, None]:
-    """
-    Stream Firestore slot changes for a vendor as SSE events.
-    Uses on_snapshot to receive pushes the moment a slot doc changes —
-    no polling. Each change is forwarded to the client immediately.
-    """
-    queue: asyncio.Queue = asyncio.Queue()
-    loop = asyncio.get_running_loop()
-
-    def on_snapshot(doc_snapshots, changes, read_time):
-        for change in changes:
-            doc = change.document
-            data = doc.to_dict() or {}
-            # Strip non-serialisable Firestore timestamps
-            for field in ('start_time', 'end_time', 'hold_expires_at', 'created_at', 'updated_at', 'completed_at'):
-                if field in data and hasattr(data[field], 'isoformat'):
-                    data[field] = data[field].isoformat()
-                elif field in data:
-                    data.pop(field, None)
-
-            event_type = (
-                'slot_added' if change.type.name == 'ADDED'
-                else 'slot_updated' if change.type.name == 'MODIFIED'
-                else 'slot_removed'
-            )
-            payload = {'type': event_type, 'slot_id': doc.id, 'slot': data}
-            loop.call_soon_threadsafe(queue.put_nowait, payload)
-
-    db = firestore_db.db
-    query = db.collection('slots').where('vendor_id', '==', vendor_id)
-    unsubscribe = query.on_snapshot(on_snapshot)
-
-    try:
-        # Send initial heartbeat so the client knows the connection is live
-        yield "event: connected\ndata: {\"vendor_id\": \"" + vendor_id + "\"}\n\n"
-
-        while True:
-            try:
-                # Heartbeat every 25s to keep the connection alive through proxies
-                payload = await asyncio.wait_for(queue.get(), timeout=25.0)
-                yield f"event: slot_change\ndata: {json.dumps(payload)}\n\n"
-            except asyncio.TimeoutError:
-                yield "event: heartbeat\ndata: {}\n\n"
-    finally:
-        unsubscribe()
-        logger.info(f"SSE stream closed for vendor {vendor_id}")
-
-
-@router.get("/vendors/{vendor_id}/stream")
-async def vendor_stream(vendor_id: str, user_id: str = Depends(get_current_user_id)):
-    """
-    SSE endpoint — streams real-time slot change events for a vendor.
-    Connect once; the server pushes an event whenever any slot changes.
-    """
-    await require_vendor_owner(user_id, vendor_id)
-    return StreamingResponse(
-        _vendor_event_stream(vendor_id),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering on Render
-        },
-    )
