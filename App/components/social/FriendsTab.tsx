@@ -11,7 +11,16 @@ interface User {
     avatar_url?: string;
     rank?: number;
     points?: number;
+    role?: string | null;
+    vendor_id?: string | null;
 }
+
+const isVendorUser = (u: User): boolean => {
+    const role = u.role != null ? String(u.role).trim().toLowerCase() : '';
+    if (role === 'vendor') return true;
+    const vid = u.vendor_id != null ? String(u.vendor_id).trim() : '';
+    return vid !== '' && vid !== 'none' && vid !== 'null';
+};
 
 interface FriendsTabProps {
     currentUserId: string;
@@ -39,8 +48,9 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
             } else if (activeSection === 'find') {
                 const res = await apiClient.get(API_ENDPOINTS.social.users);
                 const allUsers = res.data || [];
-                // Filter out current user
-                setSuggestions(allUsers.filter((u: User) => u.id !== currentUserId));
+                setSuggestions(
+                    allUsers.filter((u: User) => u.id !== currentUserId && !isVendorUser(u))
+                );
             }
         } catch (error) {
             console.error('Error loading friends data:', error);
@@ -54,7 +64,9 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         if (query.length >= 2) {
             try {
                 const res = await apiClient.get(API_ENDPOINTS.social.users, { params: { search: query } });
-                const results = (res.data || []).filter((u: User) => u.id !== currentUserId);
+                const results = (res.data || []).filter(
+                    (u: User) => u.id !== currentUserId && !isVendorUser(u)
+                );
                 setSearchResults(results);
             } catch (error) {
                 console.error('Error searching users:', error);

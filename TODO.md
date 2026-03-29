@@ -37,7 +37,11 @@ BookForMe: customers book via app + WhatsApp AI; one Firestore inventory; vendor
 
 **Registration / profile gaps:** No single written contract between forms and Firestore `users` / `vendors` (operating hours, `whatsapp_number`, payment accounts, resources). Vendor `vendor_id` from registration must stay consistent with slots and `vendor_id` on the user doc app-wide. CNIC/photos often local-only (AsyncStorage), not authoritative in DB. Customer profile is thin (schema has bio/avatar/stats—little editing in UI). Vendor onboarding overlaps vendor dashboard profile; “complete control from DB” is not true until fields live on the server.
 
-**Social:** Built but fragile: auth/query mismatches, empty data, unfinished bits (e.g. notifications assumptions in code). **Hardening + smoke test** against live API and seeded data, not greenfield.
+**Social:** Hardening applied (March 2026): `toggleLike` uses JWT only; match create sends normalized `YYYY-MM-DD` / `HH:MM`; chats tab no longer hijacks global loading; empty/error states per tab; gated actions redirect to login. Helpers in `App/services/socialDates.ts`.
+
+**Social demo checklist (manual smoke):** Log in with `EXPO_PUBLIC_API_URL` matching the backend you seeded. Forum: feed + create post + like + comments. Matches: list, create match, join. Chats: conversation list. Friends: list/add. Leaderboard: list. Seed: run `backend/database/seed/social_data.py` (or your usual seed) so Firestore has posts/matches/users; otherwise empty states are expected.
+
+**Payment route:** `App/app/payment/upload.tsx` is a redirect to `/(tabs)/home` (real upload is `vendor/booking.tsx` only).
 
 **Priority:** For demos, **booking path** (home → vendor → slot → lock → payment) beats social and registration polish.
 

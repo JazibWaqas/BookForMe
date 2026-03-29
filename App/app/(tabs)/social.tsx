@@ -11,12 +11,15 @@ import LeaderboardPodium from '../../components/social/LeaderboardPodium';
 import LeaderboardRow from '../../components/social/LeaderboardRow';
 import MatchSwiper from '../../components/social/MatchSwiper';
 import FriendsTab from '../../components/social/FriendsTab';
+import Avatar from '../../components/ui/Avatar';
 import { COLORS } from '../../constants/colors';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 import { SocialService, Post, Match, UserProfileSocial } from '../../services/social';
+import { normalizeMatchDateForApi, normalizeMatchTimeForApi } from '../../services/socialDates';
 import { authService, UserData } from '../../services/auth';
 import { useSocialFeed, useSocialMatches, useSocialLeaderboard } from '../../hooks/useQueries';
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function SocialScreen() {
   const router = useRouter();
@@ -30,7 +33,7 @@ export default function SocialScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<UserProfileSocial[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [chatsLoading, setChatsLoading] = useState(false);
 
   // Effects moved below hooks to avoid ReferenceErrors
 
@@ -42,9 +45,9 @@ export default function SocialScreen() {
   const [selectedFilter, setSelectedFilter] = useState('All');
 
   // React Query Hooks (Moved here to access selectedFilter)
-  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useSocialFeed('all');
-  const { data: matchesData, isLoading: matchesLoading, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
-  const { data: leaderboardData, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useSocialLeaderboard();
+  const { data: feedData, isLoading: feedLoading, isError: feedIsError, error: feedError, refetch: refetchFeed } = useSocialFeed('all');
+  const { data: matchesData, isLoading: matchesLoading, isError: matchesIsError, error: matchesError, refetch: refetchMatches } = useSocialMatches(selectedFilter === 'All' ? 'all' : selectedFilter);
+  const { data: leaderboardData, isLoading: leaderboardLoading, isError: leaderboardIsError, error: leaderboardError, refetch: refetchLeaderboard } = useSocialLeaderboard();
 
   // --- Sync Effects (Moved here) ---
   useEffect(() => {
@@ -90,12 +93,11 @@ export default function SocialScreen() {
     loadUser();
   }, []);
 
-  // Load chats when switching to chats tab
   useEffect(() => {
-    if (activeTab === 'chats' && currentUser) {
+    if (activeTab === 'chats' && currentUser?.id) {
       loadChats(currentUser.id);
     }
-  }, [activeTab]);
+  }, [activeTab, currentUser?.id, searchQuery]);
 
   const loadUser = async () => {
     const user = await authService.getCurrentUser();
@@ -103,18 +105,38 @@ export default function SocialScreen() {
   };
 
   const loadChats = async (userId: string) => {
-    setLoading(true);
+    setChatsLoading(true);
     try {
       const chatList = await SocialService.getConversations(userId);
       const filteredChats = searchQuery
-        ? chatList.filter((c: any) => c.last_message?.toLowerCase().includes(searchQuery.toLowerCase()))
+        ? chatList.filter((c: any) => (c.last_message || '').toLowerCase().includes(searchQuery.toLowerCase()))
         : chatList;
       setChats(filteredChats);
     } catch (err) {
       console.error(err);
+      const detail = axios.isAxiosError(err) ? (err.response?.data as any)?.detail : null;
+      Alert.alert('Error', typeof detail === 'string' ? detail : 'Could not load conversations.');
     } finally {
-      setLoading(false);
+      setChatsLoading(false);
     }
+  };
+
+  const apiErrMessage = (err: unknown) => {
+    if (axios.isAxiosError(err)) {
+      const d = err.response?.data as any;
+      if (typeof d?.detail === 'string') return d.detail;
+      if (Array.isArray(d?.detail)) return d.detail.map((x: any) => x?.msg || String(x)).join(', ');
+    }
+    return err instanceof Error ? err.message : 'Something went wrong';
+  };
+
+  const requireUser = (): UserData | null => {
+    if (!currentUser?.id) {
+      Alert.alert('Sign in required', 'Log in to use Social features.');
+      router.push('/(auth)/login');
+      return null;
+    }
+    return currentUser;
   };
 
   // Refresh handler
@@ -130,35 +152,31 @@ export default function SocialScreen() {
   // --- Handlers ---
 
   const handleCreatePost = async () => {
-    if ((!newPostContent.trim() && !newPostImage) || !currentUser) return;
+    if (!newPostContent.trim() && !newPostImage) return;
+    if (!requireUser()) return;
 
     setSendingPost(true);
     try {
-      let imageUrl = null;
+      let imageUrl = null as string | null;
       if (newPostImage) {
-        console.log('📤 Uploading image:', newPostImage);
         const uploadRes = await SocialService.uploadFile(newPostImage, 'post');
-        console.log('✅ Upload response:', uploadRes);
         imageUrl = uploadRes.url;
-        console.log('🔗 Image URL:', imageUrl);
       }
 
+      const text = newPostContent.trim();
       const postData = {
-        content: newPostContent,
+        content: text || (newPostImage ? ' ' : ''),
         type: 'general',
         image_url: imageUrl || undefined
       };
-      console.log('📝 Creating post with data:', postData);
 
       await SocialService.createPost(postData);
-      console.log('✅ Post created successfully');
 
       setNewPostContent('');
       setNewPostImage(null);
       fetchData();
-    } catch (error: any) {
-      console.error('❌ Error creating post:', error);
-      Alert.alert('Error', `Failed to create post: ${error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      Alert.alert('Error', `Failed to create post: ${apiErrMessage(error)}`);
     } finally {
       setSendingPost(false);
     }
@@ -177,20 +195,13 @@ export default function SocialScreen() {
   };
 
   const handleLikePost = async (post: Post) => {
-    if (!currentUser) return;
+    const u = requireUser();
+    if (!u) return;
     try {
-      console.log('👍 Liking post:', post.id);
-      console.log('   Current likes:', post.likes);
-      console.log('   Current likes_count:', post.likes_count);
-
-      // Optimistic Update
-      const isLiked = (post.likes || []).includes(currentUser.id!);
+      const isLiked = (post.likes || []).includes(u.id!);
       const newLikes = isLiked
-        ? (post.likes || []).filter(id => id !== currentUser.id)
-        : [...(post.likes || []), currentUser.id!];
-
-      console.log('   New likes array:', newLikes);
-      console.log('   New likes_count:', newLikes.length);
+        ? (post.likes || []).filter(id => id !== u.id)
+        : [...(post.likes || []), u.id!];
 
       setPosts(posts.map(p =>
         p.id === post.id
@@ -198,15 +209,15 @@ export default function SocialScreen() {
           : p
       ));
 
-      const response = await SocialService.toggleLike(post.id, currentUser.id!);
-      console.log('✅ Backend response:', response);
-    } catch (error: any) {
-      console.error('❌ Like failed:', error);
-      fetchData(); // Revert
+      await SocialService.toggleLike(post.id);
+    } catch (error: unknown) {
+      await refetchFeed();
+      Alert.alert('Error', apiErrMessage(error));
     }
   };
 
   const handleOpenComments = (post: Post) => {
+    if (!requireUser()) return;
     setSelectedPostId(post.id);
     setIsCommentsVisible(true);
   };
@@ -228,36 +239,38 @@ export default function SocialScreen() {
   };
 
   const handleCreateMatch = async () => {
-    if (!currentUser) return;
+    const u = requireUser();
+    if (!u) return;
     try {
+      const dateStr = normalizeMatchDateForApi(newMatchData.date || 'Tomorrow');
+      const timeStr = normalizeMatchTimeForApi(newMatchData.time || '20:00');
       await SocialService.createMatch({
-        host_user_id: currentUser.id!,
+        host_user_id: u.id!,
         sport_type: newMatchData.sport,
-        match_type: newMatchData.type,
-        date: newMatchData.date || 'Tomorrow',
-        time: newMatchData.time || '8:00 PM',
+        match_type: newMatchData.type as 'casual' | 'ranked',
+        date: dateStr,
+        time: timeStr,
         location: newMatchData.location || 'DHA Courts',
-        max_players: parseInt(newMatchData.maxPlayers) || 4,
+        max_players: parseInt(newMatchData.maxPlayers, 10) || 4,
         slot_id: newMatchData.slot_id
       });
       setIsMatchModalVisible(false);
       fetchData();
       Alert.alert('Success', 'Match created!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create match');
+    } catch (error: unknown) {
+      Alert.alert('Error', apiErrMessage(error));
     }
   };
 
   const handleJoinMatch = async (matchId: string) => {
-    if (!currentUser) return;
+    const u = requireUser();
+    if (!u) return;
     try {
-      await SocialService.joinMatch(matchId, currentUser.id!);
+      await SocialService.joinMatch(matchId, u.id!);
       fetchData();
       Alert.alert('Success', 'You joined the match!');
-    } catch (error) {
-      // Backend returns error if full or already joined
-      // Ideally parse error message
-      Alert.alert('Error', 'Failed to join match (Full or Already Joined)');
+    } catch (error: unknown) {
+      Alert.alert('Error', apiErrMessage(error));
     }
   };
 
@@ -312,18 +325,31 @@ export default function SocialScreen() {
         })}
       </View>
 
-      {loading && <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />}
-
-      {!loading && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
           {/* FORUM TAB */}
           {activeTab === 'forum' && (
             <View>
+              {feedIsError && (
+                <Text style={styles.tabErrorText}>
+                  Could not load feed. {apiErrMessage(feedError)}
+                </Text>
+              )}
+              {feedLoading && posts.length === 0 && !feedIsError && (
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
+              )}
+              {!feedLoading && !feedIsError && posts.length === 0 && (
+                <Text style={styles.emptyTabText}>No posts yet. Share the first one above.</Text>
+              )}
               {/* Create Post */}
               <Card style={styles.createPostCard}>
                 <View style={styles.createPostContainer}>
-                  <Image source={{ uri: (currentUser as any)?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.userAvatarSmall} />
+                  <Avatar
+                    uri={(currentUser as any)?.avatar_url}
+                    name={currentUser?.name || 'You'}
+                    size={44}
+                    style={styles.userAvatarSmall}
+                  />
                   <View style={{ flex: 1 }}>
                     <TextInput
                       style={styles.createPostInput}
@@ -356,7 +382,12 @@ export default function SocialScreen() {
                   <View style={styles.postHeader}>
                     <View style={styles.authorInfo}>
                       <View style={styles.avatarGlow}>
-                        <Image source={{ uri: item.author?.avatar_url || 'https://i.pravatar.cc/150' }} style={styles.postAvatar} />
+                        <Avatar
+                          uri={item.author?.avatar_url?.startsWith('http') ? item.author.avatar_url : getMediaUrl(item.author?.avatar_url)}
+                          name={item.author?.name || 'Unknown'}
+                          size={44}
+                          style={styles.postAvatar}
+                        />
                       </View>
                       <View>
                         <Text style={styles.authorName}>{item.author?.name || 'Unknown User'}</Text>
@@ -398,6 +429,17 @@ export default function SocialScreen() {
           {/* MATCHES TAB */}
           {activeTab === 'matches' && (
             <View style={{ flex: 1 }}>
+              {matchesIsError && (
+                <Text style={styles.tabErrorText}>
+                  Could not load matches. {apiErrMessage(matchesError)}
+                </Text>
+              )}
+              {matchesLoading && matches.length === 0 && !matchesIsError && (
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
+              )}
+              {!matchesLoading && !matchesIsError && matches.length === 0 && (
+                <Text style={styles.emptyTabText}>No open matches. Create one with the + button.</Text>
+              )}
               {/* Header with search and toggle */}
               <View style={styles.matchHeader}>
                 <View style={styles.searchContainer}>
@@ -413,7 +455,13 @@ export default function SocialScreen() {
                     onEndEditing={fetchData}
                   />
                 </View>
-                <TouchableOpacity style={styles.createMatchButton} onPress={() => setIsMatchModalVisible(true)}>
+                <TouchableOpacity
+                  style={styles.createMatchButton}
+                  onPress={() => {
+                    if (!requireUser()) return;
+                    setIsMatchModalVisible(true);
+                  }}
+                >
                   <Ionicons name="add" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -506,6 +554,12 @@ export default function SocialScreen() {
           {/* CHATS TAB */}
           {activeTab === 'chats' && (
             <View>
+              {!currentUser?.id && (
+                <Text style={styles.emptyTabText}>Sign in to see your conversations.</Text>
+              )}
+              {chatsLoading && currentUser?.id && (
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
+              )}
               <View style={[styles.searchContainer, { marginBottom: 16 }]}>
                 <Ionicons name="search" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
                 <TextInput
@@ -520,9 +574,11 @@ export default function SocialScreen() {
               {(chats || []).map((chat: any) => (
                 <TouchableOpacity key={chat.id} style={styles.chatCard} activeOpacity={0.7} onPress={() => router.push(`/chat/${chat.id}`)}>
                   <View style={styles.chatAvatarContainer}>
-                    <Image 
-                      source={{ uri: chat.other_user?.avatar_url || 'https://i.pravatar.cc/150' }} 
-                      style={styles.chatAvatar} 
+                    <Avatar
+                      uri={chat.other_user?.avatar_url?.startsWith('http') ? chat.other_user.avatar_url : getMediaUrl(chat.other_user?.avatar_url)}
+                      name={chat.other_user?.name || 'User'}
+                      size={52}
+                      style={styles.chatAvatar}
                     />
                   </View>
                   <View style={styles.chatInfo}>
@@ -539,8 +595,8 @@ export default function SocialScreen() {
                 </TouchableOpacity>
               ))}
 
-              {chats.length === 0 && (
-                <Text style={{ textAlign: 'center', color: COLORS.textMuted, marginTop: 20 }}>No conversations found.</Text>
+              {currentUser?.id && !chatsLoading && chats.length === 0 && (
+                <Text style={styles.emptyTabText}>No conversations found.</Text>
               )}
             </View>
           )}
@@ -561,9 +617,21 @@ export default function SocialScreen() {
             />
           )}
 
+          {activeTab === 'friends' && !currentUser && (
+            <Text style={styles.emptyTabText}>Sign in to find friends and manage requests.</Text>
+          )}
+
           {/* LEADERBOARD TAB */}
           {activeTab === 'leaderboard' && (
             <View>
+              {leaderboardIsError && (
+                <Text style={styles.tabErrorText}>
+                  Could not load leaderboard. {apiErrMessage(leaderboardError)}
+                </Text>
+              )}
+              {leaderboardLoading && leaderboard.length === 0 && !leaderboardIsError && (
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 24 }} />
+              )}
               {/* Top 3 Podium */}
               {leaderboard.length >= 3 && (
                 <LeaderboardPodium topThree={leaderboard.slice(0, 3)} />
@@ -601,8 +669,8 @@ export default function SocialScreen() {
                 ))}
               </View>
 
-              {leaderboard.length === 0 && (
-                <Text style={{ textAlign: 'center', color: COLORS.textMuted, marginTop: 40 }}>
+              {!leaderboardLoading && !leaderboardIsError && leaderboard.length === 0 && (
+                <Text style={[styles.emptyTabText, { marginTop: 40 }]}>
                   No rankings available yet. Start playing to earn points!
                 </Text>
               )}
@@ -610,8 +678,7 @@ export default function SocialScreen() {
           )}
 
           <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
+      </ScrollView>
 
       {/* Create Match Modal */}
       <Modal visible={isMatchModalVisible} transparent animationType="slide">
@@ -722,6 +789,20 @@ export default function SocialScreen() {
 }
 
 const styles = StyleSheet.create({
+  tabErrorText: {
+    color: '#F87171',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    lineHeight: 20,
+  },
+  emptyTabText: {
+    textAlign: 'center',
+    color: COLORS.textMuted,
+    marginTop: 20,
+    paddingHorizontal: 16,
+    lineHeight: 22,
+  },
   container: { flex: 1, backgroundColor: COLORS.background },
   headerWrapper: { overflow: 'hidden', paddingBottom: 24 },
   headerGradient: { padding: 24, paddingTop: 60, paddingBottom: 40 },
@@ -737,7 +818,7 @@ const styles = StyleSheet.create({
   // Post Styles
   createPostCard: { marginBottom: 20, padding: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   createPostContainer: { flexDirection: 'row', alignItems: 'flex-start' },
-  userAvatarSmall: { width: 44, height: 44, borderRadius: 22, marginRight: 14, borderWidth: 2, borderColor: '#3B82F6' },
+  userAvatarSmall: { marginRight: 14, borderWidth: 2, borderColor: '#3B82F6', borderRadius: 24 },
   createPostInput: { flex: 1, color: '#FFF', fontSize: 16, minHeight: 44, textAlignVertical: 'top' },
   postButton: { backgroundColor: '#3B82F6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, alignSelf: 'flex-end', marginLeft: 12 },
   postButtonText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
@@ -746,7 +827,7 @@ const styles = StyleSheet.create({
   postHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   authorInfo: { flexDirection: 'row', alignItems: 'center' },
   avatarGlow: { padding: 2, borderRadius: 26, backgroundColor: 'rgba(59, 130, 246, 0.2)', marginRight: 12 },
-  postAvatar: { width: 44, height: 44, borderRadius: 22 },
+  postAvatar: { marginRight: 12 },
   authorName: { fontSize: 16, fontWeight: '800', color: '#FFF' },
   postTime: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: '600' },
   postContent: { fontSize: 15, color: 'rgba(255,255,255,0.95)', lineHeight: 24, marginBottom: 16 },
@@ -817,7 +898,7 @@ const styles = StyleSheet.create({
   // Chat Styles
   chatCard: { flexDirection: 'row', padding: 16, backgroundColor: COLORS.card, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   chatAvatarContainer: { position: 'relative', marginRight: 16 },
-  chatAvatar: { width: 50, height: 50, borderRadius: 25 },
+  chatAvatar: {},
   chatInfo: { flex: 1, justifyContent: 'center' },
   chatHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   chatName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },

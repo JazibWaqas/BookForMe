@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import Avatar from '../ui/Avatar';
+import { getMediaUrl } from '../../config/api';
 
 interface User {
     id: string;
@@ -35,6 +36,10 @@ export default function FriendCard({
     onRemove,
     onViewProfile,
 }: FriendCardProps) {
+    const rawAvatar = user.avatar_url;
+    const avatarUri =
+        rawAvatar && rawAvatar.startsWith('http') ? rawAvatar : getMediaUrl(rawAvatar);
+
     const renderActionButtons = () => {
         switch (status) {
             case 'none':
@@ -84,8 +89,8 @@ export default function FriendCard({
             {/* Avatar with Level Badge */}
             <View style={styles.avatarContainer}>
                 <Avatar
-                    uri={user.avatar_url}
-                    name={user.name}
+                    uri={avatarUri}
+                    name={user.name || 'User'}
                     size={56}
                     style={styles.avatar}
                 />

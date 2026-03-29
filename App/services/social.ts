@@ -146,10 +146,8 @@ export const SocialService = {
         return response.data;
     },
 
-    async toggleLike(postId: string, userId: string) {
-        const response = await apiClient.post(`/api/social/posts/${postId}/like`, null, {
-            params: { user_id: userId }
-        });
+    async toggleLike(postId: string) {
+        const response = await apiClient.post(`/api/social/posts/${postId}/like`, null);
         return response.data;
     },
 

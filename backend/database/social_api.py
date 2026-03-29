@@ -43,6 +43,19 @@ from app.cache import cache, cached
 
 # --- Helpers ---
 
+def _user_doc_is_vendor(data: dict) -> bool:
+    if not data:
+        return False
+    role = data.get('role')
+    if role is not None and str(role).strip().lower() == 'vendor':
+        return True
+    vid = data.get('vendor_id')
+    if vid is None:
+        return False
+    s = str(vid).strip().lower()
+    return s not in ('', 'none', 'null')
+
+
 async def get_user_profile_social(user_id: str) -> UserProfileSocial:
     """Helper to fetch minimal user profile for social display (Cached)"""
     cache_key = f"social:profile:{user_id}"
@@ -888,31 +901,40 @@ async def send_message(message: MessageCreate):
 # FRIENDS SYSTEM
 # ========================================
 
-@router.get("/users", response_model=List[UserProfileSocial])
-@cached(ttl_seconds=60, key_prefix="social_users")
+@router.get(
+    "/users",
+    response_model=List[UserProfileSocial],
+    response_model_exclude_none=False,
+)
 async def list_users_for_friends(
     search: Optional[str] = None,
     limit: int = 50
 ):
     """List all users for finding friends (excludes sensitive data)"""
-    docs = await asyncio.to_thread(lambda: list(db.collection('users').limit(limit).stream()))
-    
+    cap = min(max(limit * 8, 80), 400)
+    docs = await asyncio.to_thread(lambda: list(db.collection('users').limit(cap).stream()))
+
     users = []
     for doc in docs:
-        data = doc.to_dict()
-        
-        # Filter by search query if provided
+        data = doc.to_dict() or {}
+        if _user_doc_is_vendor(data):
+            continue
+
         if search and search.lower() not in (data.get('name', '')).lower():
             continue
-        
+
         users.append(UserProfileSocial(
             id=doc.id,
             name=data.get('name', 'Unknown'),
             avatar_url=data.get('avatar_url'),
             rank=data.get('rank', 0),
-            points=data.get('points', 0)
+            points=data.get('points', 0),
+            role=data.get('role'),
+            vendor_id=data.get('vendor_id'),
         ))
-    
+        if len(users) >= limit:
+            break
+
     return users
 
 

@@ -149,18 +149,11 @@ export default function BookingScreen() {
       formData.append('slot_id', slotId);
       formData.append('amount_claimed', total.toString());
 
-      console.log('[DEBUG PAYMENT] baseURL:', apiClient.defaults.baseURL);
-      console.log('[DEBUG PAYMENT] posting to /api/payments/upload');
-      console.log('[DEBUG PAYMENT] slot_id:', slotId, 'amount:', total);
-
       const paymentResponse = await apiClient.post('/api/payments/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      console.log('[DEBUG PAYMENT] response status:', paymentResponse.status);
-      console.log('[DEBUG PAYMENT] response data:', JSON.stringify(paymentResponse.data));
 
       if (paymentResponse.data.success) {
         setVerificationStatus('verified');
