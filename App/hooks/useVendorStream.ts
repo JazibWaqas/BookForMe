@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import EventSource from 'react-native-sse';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 export type SlotChangeEvent = {
@@ -16,13 +17,13 @@ type Options = {
 
 /**
  * Opens a persistent SSE connection to the backend for a vendor.
- * The server pushes an event the moment any slot changes in Firestore —
- * no polling needed. Reconnects automatically on drop.
+ * Uses react-native-sse which works correctly on iOS and Android.
+ * The server pushes an event the instant any slot changes in Firestore.
+ * Reconnects automatically on drop.
  */
 export function useVendorStream(vendorId: string | null, options: Options) {
   const { onSlotChange, onConnected, enabled = true } = options;
-  const abortRef = useRef<AbortController | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const esRef = useRef<InstanceType<typeof EventSource> | null>(null);
   const mountedRef = useRef(true);
 
   const onSlotChangeRef = useRef(onSlotChange);
@@ -36,64 +37,41 @@ export function useVendorStream(vendorId: string | null, options: Options) {
     const token = await AsyncStorage.getItem('authToken');
     if (!token || !mountedRef.current) return;
 
-    const url = `${API_BASE_URL}${API_ENDPOINTS.vendors.stream(vendorId)}`;
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controller.signal,
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error(`SSE connection failed: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (mountedRef.current) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        let eventName = '';
-        let dataLine = '';
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            eventName = line.slice(6).trim();
-          } else if (line.startsWith('data:')) {
-            dataLine = line.slice(5).trim();
-          } else if (line === '') {
-            // End of one SSE message
-            if (eventName === 'connected') {
-              onConnectedRef.current?.();
-            } else if (eventName === 'slot_change' && dataLine) {
-              try {
-                const payload = JSON.parse(dataLine) as SlotChangeEvent;
-                onSlotChangeRef.current(payload);
-              } catch {
-                // malformed json — skip
-              }
-            }
-            eventName = '';
-            dataLine = '';
-          }
-        }
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-      // Connection dropped — retry after 3s
-      if (mountedRef.current) {
-        retryRef.current = setTimeout(connect, 3000);
-      }
+    // Close any existing connection before opening a new one
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
     }
+
+    const url = `${API_BASE_URL}${API_ENDPOINTS.vendors.stream(vendorId)}`;
+
+    const es = new EventSource(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      // Automatically reconnect on drop
+      withCredentials: false,
+    });
+
+    esRef.current = es;
+
+    es.addEventListener('connected', () => {
+      onConnectedRef.current?.();
+    });
+
+    es.addEventListener('slot_change', (event: any) => {
+      if (!event.data) return;
+      try {
+        const payload = JSON.parse(event.data) as SlotChangeEvent;
+        onSlotChangeRef.current(payload);
+      } catch {
+        // malformed json — skip
+      }
+    });
+
+    es.addEventListener('error', (event: any) => {
+      // react-native-sse handles reconnection internally when pollingInterval is set
+      // Log for debugging only
+      console.warn('SSE error:', event?.message || 'connection error');
+    });
   }, [vendorId]);
 
   useEffect(() => {
@@ -102,8 +80,10 @@ export function useVendorStream(vendorId: string | null, options: Options) {
 
     return () => {
       mountedRef.current = false;
-      abortRef.current?.abort();
-      if (retryRef.current) clearTimeout(retryRef.current);
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
     };
   }, [vendorId, enabled, connect]);
 }

@@ -1546,7 +1546,7 @@ async def _vendor_event_stream(vendor_id: str) -> AsyncGenerator[str, None]:
     no polling. Each change is forwarded to the client immediately.
     """
     queue: asyncio.Queue = asyncio.Queue()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     def on_snapshot(doc_snapshots, changes, read_time):
         for change in changes:
