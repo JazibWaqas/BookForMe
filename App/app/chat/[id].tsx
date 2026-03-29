@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, Image, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +31,7 @@ export default function ChatDetailScreen() {
         if (user) fetchMessages();
     };
 
-    const fetchMessages = async () => {
+    const fetchMessages = useCallback(async () => {
         try {
             const history = await SocialService.getChatHistory(chatId!);
             setMessages(history);
@@ -40,7 +40,13 @@ export default function ChatDetailScreen() {
             console.error('Error fetching messages:', error);
             setLoading(false);
         }
-    };
+    }, [chatId]);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        const intervalId = setInterval(fetchMessages, 8000);
+        return () => clearInterval(intervalId);
+    }, [currentUser, fetchMessages]);
 
     const handleSend = async (type: 'text' | 'image' | 'audio' = 'text', content: string | null = null, mediaUrl: string | null = null) => {
         if ((!content && !mediaUrl) || !currentUser) return;

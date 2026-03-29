@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { useVendorStream, SlotChangeEvent } from '../../hooks/useVendorStream';
 
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
@@ -108,16 +109,30 @@ export default function VendorCalendarScreen() {
     initialize();
   }, []);
 
-  // Set up 3-second Auto Polling (Ghost Sync)
-  useEffect(() => {
-    if (!vendorId) return;
+  // Handle a single slot pushed via SSE — patch it in-place without a full refetch
+  const handleSlotChange = useCallback((event: SlotChangeEvent) => {
+    const slotDate = event.slot?.date;
+    // Only update if this slot belongs to the currently viewed date
+    if (slotDate && slotDate !== formatDate(currentDate)) return;
 
-    const intervalId = setInterval(() => {
-      fetchGridData(vendorId, formatDate(currentDate));
-    }, 3000);
+    setGridData(prev => {
+      if (event.type === 'slot_removed') {
+        return prev.filter(s => s.id !== event.slot_id);
+      }
+      const idx = prev.findIndex(s => s.id === event.slot_id);
+      if (idx === -1) {
+        // New slot — append
+        return [...prev, { ...event.slot, id: event.slot_id }];
+      }
+      // Existing slot — update status in-place
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], ...event.slot, id: event.slot_id };
+      return updated;
+    });
+  }, [currentDate]);
 
-    return () => clearInterval(intervalId);
-  }, [vendorId, currentDate, fetchGridData]);
+  // SSE connection — replaces the polling interval entirely
+  useVendorStream(vendorId, { onSlotChange: handleSlotChange });
 
   // Refresh when screen comes into focus (e.g., returning from booking detail)
   useFocusEffect(

@@ -221,8 +221,8 @@ export function useAvailableSlotsOptimized(vendorId: string, date: string, enabl
             return Array.from(resourceMap.values());
         },
         enabled: enabled && !!vendorId && !!date,
-        staleTime: 30 * 1000, // 30 seconds - slots change frequently
-        refetchInterval: autoRefetch ? 45 * 1000 : false, // Only auto-refetch when not locked
-        refetchOnWindowFocus: false, // Disable focus refetch to prevent interrupting user actions
+        staleTime: 30 * 1000,
+        refetchInterval: autoRefetch ? 45 * 1000 : false,
+        refetchOnWindowFocus: autoRefetch, // Refresh on focus only when not mid-booking
     });
 }

@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
     updateService: (vendorId: string, serviceId: string) => `/api/vendors/${vendorId}/services/${serviceId}`,
     paymentAccounts: (id: string) => `/api/vendors/${id}/payment-accounts`,
     updatePaymentAccount: (vendorId: string, accountId: string) => `/api/vendors/${vendorId}/payment-accounts/${accountId}`,
+    stream: (id: string) => `/api/vendors/${id}/stream`,
   },
 
   // Bookings
