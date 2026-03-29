@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cardsContainer: {
-        height: 500, // Explicit height to prevent overflowing into action buttons
+        height: 380,
         width: SCREEN_WIDTH,
         alignItems: 'center',
         justifyContent: 'center',

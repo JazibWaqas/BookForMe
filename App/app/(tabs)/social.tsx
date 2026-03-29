@@ -17,6 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../components/ui/Card';
 import CommentsModal from '../../components/social/CommentsModal';
 import FriendsTab from '../../components/social/FriendsTab';
+import MatchesTab from '../../components/social/MatchesTab';
+import LeaderboardTab from '../../components/social/LeaderboardTab';
 import Avatar from '../../components/ui/Avatar';
 import { COLORS } from '../../constants/colors';
 import { getMediaUrl } from '../../config/api';
@@ -30,7 +32,7 @@ const POST_MENU_WIDTH = 184;
 
 export default function SocialScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'forum' | 'chats' | 'friends'>('forum');
+  const [activeTab, setActiveTab] = useState<'forum' | 'chats' | 'friends' | 'matches' | 'leaderboard'>('forum');
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -217,6 +219,8 @@ export default function SocialScreen() {
     { id: 'forum', label: 'Forum', icon: 'newspaper', color: '#3B82F6' },
     { id: 'chats', label: 'Chats', icon: 'chatbubbles', color: '#A855F7' },
     { id: 'friends', label: 'Friends', icon: 'people', color: '#EC4899' },
+    { id: 'matches', label: 'Matches', icon: 'tennisball', color: '#00D084' },
+    { id: 'leaderboard', label: 'Ranks', icon: 'trophy', color: '#F59E0B' },
   ];
 
   return (
@@ -240,21 +244,15 @@ export default function SocialScreen() {
             <TouchableOpacity
               key={tab.id}
               onPress={() => setActiveTab(tab.id as any)}
-              style={[
-                styles.tab,
-                isActive && { backgroundColor: `${tab.color}15` }
-              ]}
+              style={[styles.tab, isActive && { backgroundColor: `${tab.color}15` }]}
             >
               <Ionicons
                 name={isActive ? tab.icon as any : `${tab.icon}-outline` as any}
-                size={22}
+                size={20}
                 color={isActive ? tab.color : 'rgba(255,255,255,0.4)'}
-                style={{ marginBottom: 4 }}
+                style={{ marginBottom: 2 }}
               />
-              <Text style={[
-                styles.tabText,
-                isActive && { color: tab.color, fontWeight: '800' }
-              ]}>
+              <Text style={[styles.tabText, isActive && { color: tab.color, fontWeight: '800' }]}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -262,6 +260,19 @@ export default function SocialScreen() {
         })}
       </View>
 
+      {/* Full-height tabs rendered outside ScrollView */}
+      {activeTab === 'matches' && (
+        <View style={styles.fullHeightTab}>
+          <MatchesTab currentUser={currentUser} />
+        </View>
+      )}
+      {activeTab === 'leaderboard' && (
+        <View style={styles.fullHeightTab}>
+          <LeaderboardTab currentUser={currentUser} />
+        </View>
+      )}
+
+      {(activeTab === 'forum' || activeTab === 'chats' || activeTab === 'friends') && (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
           {/* FORUM TAB */}
@@ -426,6 +437,7 @@ export default function SocialScreen() {
 
           <View style={{ height: 100 }} />
       </ScrollView>
+      )}
 
       {/* Comments Modal */}
       {
@@ -512,12 +524,13 @@ const styles = StyleSheet.create({
   headerGradient: { padding: 24, paddingTop: 60, paddingBottom: 40 },
   title: { fontSize: 32, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 6, letterSpacing: 0.2 },
-  tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', marginHorizontal: 20, marginTop: -40, borderRadius: 20, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 14 },
+  tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', marginHorizontal: 20, marginTop: -36, borderRadius: 20, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 14 },
   tabActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  tabText: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 4 },
+  tabText: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 4 },
   tabTextActive: { color: '#FFF', fontWeight: '700' },
   content: { flex: 1, paddingHorizontal: 20 },
+  fullHeightTab: { flex: 1 },
 
   // Post Styles
   createPostCard: { marginBottom: 20, padding: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },

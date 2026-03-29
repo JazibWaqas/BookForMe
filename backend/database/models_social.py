@@ -47,8 +47,14 @@ class UserProfileSocial(BaseModel):
     avatar_url: Optional[str] = None
     rank: Optional[int] = 0
     points: Optional[int] = 0
+    skill_rating: Optional[float] = 1000.0
     role: Optional[str] = None
     vendor_id: Optional[str] = None
+
+
+class MatchResultSubmit(BaseModel):
+    winner_ids: List[str]
+    loser_ids: List[str]
 
 # --- Post Models ---
 

@@ -7,6 +7,7 @@ export interface UserProfileSocial {
     avatar_url?: string;
     rank: number;
     points: number;
+    skill_rating?: number;
 }
 
 export interface Post {
@@ -191,6 +192,15 @@ export const SocialService = {
         const response = await apiClient.post(`/api/social/matches/${matchId}/join`, null, {
             params: { user_id: userId }
         });
+        return response.data;
+    },
+
+    async submitMatchResult(matchId: string, hostId: string, winnerIds: string[], loserIds: string[]) {
+        const response = await apiClient.post(
+            `/api/social/matches/${matchId}/result`,
+            { winner_ids: winnerIds, loser_ids: loserIds },
+            { params: { host_id: hostId } }
+        );
         return response.data;
     },
 

@@ -13,6 +13,7 @@ from app.firestore import firestore_db
 from database.models_social import (
     PostCreate, PostResponse, PostType,
     MatchCreate, MatchResponse, MatchStatus, MatchType,
+    MatchResultSubmit,
     ConversationCreate, ConversationResponse, MessageCreate, MessageResponse,
     NotificationResponse, UserProfileSocial, CommentCreate, CommentResponse
 )
@@ -759,29 +760,140 @@ async def join_match(match_id: str, user_id: str = Query(...)):
     return {"status": "success", "message": "Joined match"}
 
 
+# ── Elo helpers ──────────────────────────────────────────────────────────────
+
+def _expected_score(rating_a: float, rating_b: float) -> float:
+    return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+
+
+def _new_ratings(winners: List[float], losers: List[float], k: int = 32):
+    """
+    Team Elo: treat each side as a single player whose rating is the average
+    of its members. Each player's individual rating changes by the same delta.
+    """
+    avg_winner = sum(winners) / len(winners)
+    avg_loser  = sum(losers)  / len(losers)
+
+    exp_win = _expected_score(avg_winner, avg_loser)
+    exp_los = _expected_score(avg_loser,  avg_winner)
+
+    delta_win = k * (1 - exp_win)
+    delta_los = k * (0 - exp_los)
+
+    return delta_win, delta_los
+
+
+@router.post("/matches/{match_id}/result")
+async def submit_match_result(
+    match_id: str,
+    result: MatchResultSubmit,
+    host_id: str = Query(...),
+):
+    """
+    Host submits the match result. Elo ratings are updated for all participants.
+    Points awarded: winners +50, losers +25 (participation).
+    Only callable by the match host on a ranked match.
+    """
+    match_ref = db.collection('matches').document(match_id)
+    doc = await asyncio.to_thread(match_ref.get)
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    data = doc.to_dict()
+
+    if data.get('host_user_id') != host_id:
+        raise HTTPException(status_code=403, detail="Only the host can submit results")
+
+    if data.get('status') == MatchStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Result already submitted")
+
+    all_ids = result.winner_ids + result.loser_ids
+    is_ranked = data.get('match_type') == MatchType.RANKED
+
+    def _process(transaction, refs_map: dict):
+        snaps = {uid: refs_map[uid].get(transaction=transaction) for uid in all_ids}
+        ratings = {uid: float(snaps[uid].get('skill_rating') or 1000) for uid in all_ids}
+
+        if is_ranked and result.winner_ids and result.loser_ids:
+            win_ratings = [ratings[uid] for uid in result.winner_ids]
+            los_ratings = [ratings[uid] for uid in result.loser_ids]
+            delta_win, delta_los = _new_ratings(win_ratings, los_ratings)
+        else:
+            delta_win = delta_los = 0
+
+        from database.gamification_service import GamificationService
+        gamify = GamificationService(db)
+
+        for uid in result.winner_ids:
+            new_r = round(max(100, ratings[uid] + delta_win), 2)
+            transaction.update(refs_map[uid], {
+                'skill_rating': new_r,
+                'stats.wins':   firestore.Increment(1),
+                'stats.matches_played': firestore.Increment(1),
+            })
+            gamify.award_match_won(uid)
+
+        for uid in result.loser_ids:
+            new_r = round(max(100, ratings[uid] + delta_los), 2)
+            transaction.update(refs_map[uid], {
+                'skill_rating': new_r,
+                'stats.losses': firestore.Increment(1),
+                'stats.matches_played': firestore.Increment(1),
+            })
+            gamify.award_match_participation(uid)
+
+        transaction.update(match_ref, {
+            'status': MatchStatus.COMPLETED,
+            'winner_ids': result.winner_ids,
+            'updated_at': firestore.SERVER_TIMESTAMP,
+        })
+
+    def run_transaction():
+        refs = {uid: db.collection('users').document(uid) for uid in all_ids}
+        t = db.transaction()
+
+        @firestore.transactional
+        def _t(transaction):
+            _process(transaction, refs)
+
+        _t(t)
+
+    try:
+        await asyncio.to_thread(run_transaction)
+    except Exception as e:
+        logger.error("submit_match_result failed match=%s: %s", match_id, e)
+        raise HTTPException(status_code=500, detail="Failed to record result")
+
+    return {"status": "success", "message": "Result recorded and ratings updated"}
+
+
 # --- 3. Ranking ---
 
 @router.get("/leaderboard", response_model=List[UserProfileSocial])
-@cached(ttl_seconds=300, key_prefix="social_leaderboard")
+@cached(ttl_seconds=60, key_prefix="social_leaderboard")
 async def get_leaderboard(limit: int = 50):
-    """Get top players by points"""
-    # Requires index on 'points' descending
-    docs = db.collection('users')\
-             .order_by('points', direction=firestore.Query.DESCENDING)\
-             .limit(limit)\
-             .stream()
-    
-    leaderboard = []
-    for doc in docs:
-        data = doc.to_dict()
-        leaderboard.append(UserProfileSocial(
-            id=doc.id,
-            name=data.get('name', 'Unknown'),
-            avatar_url=data.get('avatar_url'),
-            rank=data.get('rank', 0), # In real app, rank might be computed position
-            points=data.get('points', 0)
-        ))
-    return leaderboard
+    """Top players ordered by points; includes skill_rating for display."""
+    def _fetch():
+        docs = db.collection('users')\
+                 .order_by('points', direction=firestore.Query.DESCENDING)\
+                 .limit(limit)\
+                 .stream()
+        results = []
+        for i, doc in enumerate(docs):
+            d = doc.to_dict()
+            if _user_doc_is_vendor(d):
+                continue
+            results.append(UserProfileSocial(
+                id=doc.id,
+                name=d.get('name', 'Unknown'),
+                avatar_url=d.get('avatar_url'),
+                rank=i + 1,
+                points=int(d.get('points', 0)),
+                skill_rating=float(d.get('skill_rating', 1000)),
+            ))
+        return results
+
+    return await asyncio.to_thread(_fetch)
 
 
 # --- 4. Chat ---
