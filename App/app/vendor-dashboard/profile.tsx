@@ -159,14 +159,6 @@ export default function VendorProfileScreen() {
         if (typeof v.lat === 'number') setLat(v.lat);
         if (typeof v.lng === 'number') setLng(v.lng);
         if (v.operating_hours && Object.keys(v.operating_hours).length > 0) setHours(v.operating_hours);
-
-        const legacy = await AsyncStorage.getItem('vendorProfile');
-        if (legacy) {
-          try {
-            const data = JSON.parse(legacy);
-            if (data.cnic && !v.owner_cnic) { /* cnic would go in a later field */ }
-          } catch { void 0; }
-        }
       }
 
       if (rRes.status === 'fulfilled' && rRes.value.data.success) {

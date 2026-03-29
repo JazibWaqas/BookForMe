@@ -131,40 +131,30 @@ export default function VendorDashboardScreen() {
   }, []);
 
   const fetchDashboardData = useCallback(async (vId: string, uid?: string | null) => {
-    try {
-      const analyticsRes = await apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId));
-      if (analyticsRes.data.success) {
-        const m = analyticsRes.data.metrics || {};
-        setMetrics({
-          revenue_today: Number(m.revenue_today) || 0,
-          bookings_today: Number(m.bookings_today) || 0,
-          pending_actions: Number(m.pending_actions) || 0,
-          available_today: Number(m.available_today) || 0,
-          active_courts: Number(m.active_courts) || 0,
-        });
-        setUpcoming(analyticsRes.data.upcoming || []);
-        setPendingItems(Array.isArray(analyticsRes.data.pending_items) ? analyticsRes.data.pending_items : []);
-      }
-    } catch (error) {
-      console.error('Error fetching vendor analytics:', error);
+    const requests: Promise<any>[] = [
+      apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId)).catch(e => { console.error('analytics fetch', e); return null; }),
+      apiClient.get(API_ENDPOINTS.vendors.get(vId)).catch(e => { console.error('vendor fetch', e); return null; }),
+      uid ? fetchNotifications(uid).catch(e => { console.error('notifications fetch', e); }) : Promise.resolve(),
+    ];
+
+    const [analyticsRes, vendorRes] = await Promise.all(requests);
+
+    if (analyticsRes?.data?.success) {
+      const m = analyticsRes.data.metrics || {};
+      setMetrics({
+        revenue_today: Number(m.revenue_today) || 0,
+        bookings_today: Number(m.bookings_today) || 0,
+        pending_actions: Number(m.pending_actions) || 0,
+        available_today: Number(m.available_today) || 0,
+        active_courts: Number(m.active_courts) || 0,
+      });
+      setUpcoming(analyticsRes.data.upcoming || []);
+      setPendingItems(Array.isArray(analyticsRes.data.pending_items) ? analyticsRes.data.pending_items : []);
     }
 
-    try {
-      const vendorRes = await apiClient.get(API_ENDPOINTS.vendors.get(vId));
-      if (vendorRes.data.success) {
-        const v = vendorRes.data.vendor;
-        setVendorName(v?.name || v?.business_name || 'Vendor Dashboard');
-      }
-    } catch (error) {
-      console.error('Error fetching vendor profile:', error);
-    }
-
-    if (uid) {
-      try {
-        await fetchNotifications(uid);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
+    if (vendorRes?.data?.success) {
+      const v = vendorRes.data.vendor;
+      setVendorName(v?.name || v?.business_name || 'Vendor Dashboard');
     }
   }, [fetchNotifications]);
 

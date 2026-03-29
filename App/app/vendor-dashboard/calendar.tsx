@@ -134,9 +134,15 @@ export default function VendorCalendarScreen() {
   // SSE connection — replaces the polling interval entirely
   useVendorStream(vendorId, { onSlotChange: handleSlotChange });
 
-  // Refresh when screen comes into focus (e.g., returning from booking detail)
+  const initialLoadDone = useRef(false);
+
+  // Refresh when screen comes into focus — skip first mount since useEffect already fetches
   useFocusEffect(
     useCallback(() => {
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+        return;
+      }
       if (vendorId) {
         fetchGridData(vendorId, formatDate(currentDate));
       }

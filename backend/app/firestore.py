@@ -354,6 +354,7 @@ class FirestoreDB:
         try:
             from google.cloud.firestore_v1.base_query import FieldFilter
             import pytz
+            from datetime import datetime, timedelta
 
             KARACHI_TZ = pytz.timezone('Asia/Karachi')
 
@@ -365,6 +366,9 @@ class FirestoreDB:
 
             if date:
                 query = query.where(filter=FieldFilter('date', '==', date))
+            else:
+                cutoff = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+                query = query.where(filter=FieldFilter('date', '>=', cutoff))
 
             raw: List[Dict[str, Any]] = []
             for doc in query.stream():

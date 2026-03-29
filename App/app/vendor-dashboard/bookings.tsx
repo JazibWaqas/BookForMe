@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, ActivityIndicator, RefreshControl
@@ -101,8 +101,11 @@ export default function VendorBookingsScreen() {
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  // Refresh whenever the screen comes back into focus
-  useFocusEffect(useCallback(() => { fetchBookings(true); }, [fetchBookings]));
+  const initialLoadDone = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (!initialLoadDone.current) { initialLoadDone.current = true; return; }
+    fetchBookings(true);
+  }, [fetchBookings]));
 
   const onRefresh = () => { setRefreshing(true); fetchBookings(true, true); };
 
