@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/typography';
 import { authService } from '../../services/auth';
@@ -33,6 +34,7 @@ const EMPTY_METRICS: AdminOverviewMetrics = {
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<AdminOverviewMetrics>(EMPTY_METRICS);
@@ -123,6 +125,25 @@ export default function AdminDashboardScreen() {
     });
   };
 
+  const onLogout = () => {
+    Alert.alert('Logout', 'Do you want to logout from admin?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await authService.logout();
+            router.replace('/(auth)/login');
+          } catch (e) {
+            console.error('Admin logout failed', e);
+            Alert.alert('Error', 'Failed to logout');
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -132,10 +153,21 @@ export default function AdminDashboardScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Admin Control Center</Text>
-        <Text style={styles.subtitle}>Full platform governance with audit visibility</Text>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 10) + 32 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.title}>Admin Control Center</Text>
+            <Text style={styles.subtitle}>Full platform governance with audit visibility</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+            <Ionicons name="log-out-outline" size={18} color={COLORS.error} />
+            <Text style={styles.logoutBtnText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.metricsGrid}>
           <MetricCard label="Pending Vendors" value={metrics.pending_vendors} icon="business-outline" />
@@ -381,8 +413,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 40 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 14,
+  },
+  headerTextWrap: { flex: 1 },
   title: { fontFamily: FONTS.extrabold, fontSize: 28, color: COLORS.text },
-  subtitle: { marginTop: 6, fontFamily: FONTS.regular, fontSize: 13, color: COLORS.textMuted, marginBottom: 14 },
+  subtitle: { marginTop: 6, fontFamily: FONTS.regular, fontSize: 13, color: COLORS.textMuted },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 69, 58, 0.35)',
+    backgroundColor: 'rgba(255, 69, 58, 0.08)',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 9,
+  },
+  logoutBtnText: { color: COLORS.error, fontFamily: FONTS.semibold, fontSize: 12 },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
   metricCard: {
     width: '48%',
