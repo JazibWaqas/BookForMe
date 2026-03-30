@@ -17,6 +17,7 @@ class Collections:
     PAYMENTS = "payments"
     VENDOR_PAYMENT_ACCOUNTS = "vendor_payment_accounts"
     CONVERSATION_STATES = "conversation_states"
+    ADMIN_AUDIT_LOGS = "admin_audit_logs"
 
 
 class SlotStatus(str, Enum):
@@ -44,6 +45,7 @@ class PaymentAccountType(str, Enum):
 class UserRole(str, Enum):
     CUSTOMER = "customer"
     VENDOR = "vendor"
+    ADMIN = "admin"
 
 
 class SportType(str, Enum):

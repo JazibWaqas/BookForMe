@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 from datetime import datetime
+import bcrypt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -48,6 +49,13 @@ def seed_users(db):
     logger.info("Seeding users collection...")
     
     for user in USERS_DATA:
+        password_hash = None
+        if user.get("password"):
+            password_hash = bcrypt.hashpw(
+                user["password"].encode("utf-8"),
+                bcrypt.gensalt()
+            ).decode("utf-8")
+
         # Canonical user schema - matches firestore_v2.create_user()
         user_doc = {
             "phone": user["phone"],
@@ -77,6 +85,9 @@ def seed_users(db):
             },
             "badges": []
         }
+        if password_hash:
+            user_doc["password_hash"] = password_hash
+
         db.collection(Collections.USERS).document(user["id"]).set(user_doc)
         logger.info(f"  Created user: {user['name']}")
     

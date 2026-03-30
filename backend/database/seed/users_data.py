@@ -58,6 +58,15 @@ USERS_DATA = [
         "email": "admin@acepadel.pk",
         "role": UserRole.VENDOR.value,
         "vendor_id": "ace_padel_dha"
+    },
+    {
+        "id": "platform_admin_demo",
+        "phone": "+92 300 0000000",
+        "name": "Platform Admin",
+        "email": "admin@email.com",
+        "role": UserRole.ADMIN.value,
+        "vendor_id": None,
+        "password": "admin123"
     }
 ]
 

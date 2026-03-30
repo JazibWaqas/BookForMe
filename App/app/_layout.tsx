@@ -79,6 +79,7 @@ export default function RootLayout() {
           <Stack.Screen name="vendor-dashboard/index" />
           <Stack.Screen name="vendor-dashboard/calendar" />
           <Stack.Screen name="vendor-dashboard/bookings" />
+          <Stack.Screen name="admin-dashboard/index" />
         </Stack>
       </QueryProvider>
     </SafeAreaProvider>

@@ -97,7 +97,7 @@ export interface User {
   email: string;
   name: string;
   phone: string;
-  role: 'customer' | 'vendor';
+  role: 'customer' | 'vendor' | 'admin';
   vendor_id?: string;
   created_at: string;
 }

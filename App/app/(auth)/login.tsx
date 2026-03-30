@@ -38,6 +38,8 @@ export default function LoginScreen() {
 
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
+        } else if (userRole === 'admin') {
+          router.replace('/admin-dashboard');
         } else {
           router.replace('/vendor-dashboard');
         }
@@ -62,6 +64,8 @@ export default function LoginScreen() {
 
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
+        } else if (userRole === 'admin') {
+          router.replace('/admin-dashboard');
         } else {
           router.replace('/vendor-dashboard');
         }

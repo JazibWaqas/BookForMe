@@ -22,6 +22,7 @@ from app.firestore import firestore_db  # noqa: E402  (must be early)
 from database.rest_api import router as rest_api_router
 from database.auth_api import router as auth_router
 from database.social_api import router as social_router
+from database.admin_api import router as admin_router
 
 # Configure logging
 logging.basicConfig(
@@ -52,6 +53,9 @@ app.include_router(auth_router)
 
 # Include Social features router
 app.include_router(social_router)
+
+# Include Admin router
+app.include_router(admin_router)
 
 
 # Add CORS middleware (for frontend integration)

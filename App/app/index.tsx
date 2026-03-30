@@ -41,6 +41,8 @@ export default function Index() {
   if (isAuthenticated && userRole) {
     if (userRole === 'vendor') {
       return <Redirect href="/vendor-dashboard" />;
+    } else if (userRole === 'admin') {
+      return <Redirect href="/admin-dashboard" />;
     } else {
       return <Redirect href="/(tabs)/home" />;
     }

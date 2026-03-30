@@ -99,6 +99,22 @@ export const API_ENDPOINTS = {
 
   // Health check
   health: '/health',
+
+  // Admin
+  admin: {
+    overview: '/api/admin/overview',
+    vendors: '/api/admin/vendors',
+    vendorStatus: (vendorId: string) => `/api/admin/vendors/${vendorId}/status`,
+    deleteVendor: (vendorId: string) => `/api/admin/vendors/${vendorId}`,
+    generateSlots: '/api/admin/slots/generate',
+    releaseStaleLocks: '/api/admin/slots/release-stale-locks',
+    pendingPayments: '/api/admin/payments/pending',
+    approvePayment: (paymentId: string) => `/api/admin/payments/${paymentId}/approve`,
+    rejectPayment: (paymentId: string) => `/api/admin/payments/${paymentId}/reject`,
+    users: '/api/admin/users',
+    updateUserStatus: (userId: string) => `/api/admin/users/${userId}/status`,
+    auditLogs: '/api/admin/audit-logs',
+  },
 };
 
 // Helper to build full URL
