@@ -14,6 +14,7 @@ import {
     RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { COLORS, SPACING, RADIUS } from '../../constants/colors';
 import { SocialService, Match } from '../../services/social';
 import { UserData } from '../../services/auth';
@@ -134,6 +135,8 @@ function MatchRow({ match, currentUserId, onJoin, joining }: {
 export default function MatchesTab({ currentUser }: Props) {
     const [matches, setMatches] = useState<Match[]>([]);
     const [myMatches, setMyMatches] = useState<Match[]>([]);
+    const [suggested, setSuggested] = useState<Match[]>([]);
+    const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeSport, setActiveSport] = useState('All');
@@ -145,17 +148,53 @@ export default function MatchesTab({ currentUser }: Props) {
     const [resultModal, setResultModal] = useState<Match | null>(null);
     const [winners, setWinners] = useState<string[]>([]);
 
+    // Date / Time picker state
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [pickerDate, setPickerDate] = useState(new Date());
+
+    const onDateChange = (_: DateTimePickerEvent, selected?: Date) => {
+        setShowDatePicker(Platform.OS === 'ios'); // keep open on iOS
+        if (selected) {
+            setPickerDate(selected);
+            const iso = selected.toISOString().split('T')[0]; // YYYY-MM-DD
+            setForm(f => ({ ...f, date: iso }));
+        }
+    };
+
+    const onTimeChange = (_: DateTimePickerEvent, selected?: Date) => {
+        setShowTimePicker(Platform.OS === 'ios');
+        if (selected) {
+            const hh = selected.getHours().toString().padStart(2, '0');
+            const mm = selected.getMinutes().toString().padStart(2, '0');
+            setForm(f => ({ ...f, time: `${hh}:${mm}` }));
+        }
+    };
+
     const load = useCallback(async (refresh = false) => {
         if (refresh) setRefreshing(true);
         else setLoading(true);
         try {
-            const all: Match[] = await SocialService.getMatches('all');
-            setMatches(all.filter(m => m.status === 'open' || m.status === 'full'));
+            const [all, sugg] = await Promise.all([
+                SocialService.getMatches('all'),
+                currentUser?.id ? SocialService.getSuggestedMatches(currentUser.id) : Promise.resolve([]),
+            ]);
+            const openAll = (all as Match[]).filter(m => m.status === 'open' || m.status === 'full');
+            setMatches(openAll);
             if (currentUser?.id) {
-                setMyMatches(all.filter(
-                    m => m.host_user_id === currentUser.id ||
+                setMyMatches((all as Match[]).filter(
+                    (m: Match) => m.host_user_id === currentUser.id ||
                          m.participants?.some(p => p.id === currentUser.id)
                 ));
+                // Top 3 suggestions, cap to avoid clutter
+                setSuggested((sugg as Match[]).slice(0, 3));
+                // Pre-compute friend IDs from suggestions for badge display
+                const fids = new Set<string>();
+                (sugg as Match[]).forEach((m: Match) => {
+                    m.participants?.forEach(p => fids.add(p.id));
+                    if (m.host_user_id) fids.add(m.host_user_id);
+                });
+                setFriendIds(fids);
             }
         } catch {
             setMatches([]);
@@ -288,7 +327,41 @@ export default function MatchesTab({ currentUser }: Props) {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.primary} />}
                     showsVerticalScrollIndicator={false}
                 >
-                    {activeView === 'open' && filtered.length === 0 && (
+                    {/* ── Suggested for You (Open tab only) ── */}
+                    {activeView === 'open' && suggested.length > 0 && (
+                        <View style={styles.suggestedSection}>
+                            <View style={styles.suggestedHeader}>
+                                <Text style={styles.suggestedHeaderIcon}>⭐</Text>
+                                <Text style={styles.suggestedHeaderText}>Suggested for You</Text>
+                            </View>
+                            {suggested.map(m => {
+                                const hasFriend = m.participants?.some(p => friendIds.has(p.id)) || friendIds.has(m.host_user_id);
+                                return (
+                                    <View key={`sug-${m.id}`}>
+                                        {hasFriend && (
+                                            <View style={styles.friendBadgeRow}>
+                                                <Ionicons name="people" size={11} color={COLORS.primary} />
+                                                <Text style={styles.friendBadgeText}>A friend is playing</Text>
+                                            </View>
+                                        )}
+                                        <MatchRow
+                                            match={m}
+                                            currentUserId={currentUser?.id}
+                                            onJoin={handleJoin}
+                                            joining={joining}
+                                        />
+                                    </View>
+                                );
+                            })}
+                            <View style={styles.suggestedDivider}>
+                                <View style={styles.dividerLine} />
+                                <Text style={styles.dividerLabel}>All Open Matches</Text>
+                                <View style={styles.dividerLine} />
+                            </View>
+                        </View>
+                    )}
+
+                    {activeView === 'open' && filtered.length === 0 && suggested.length === 0 && (
                         <View style={styles.empty}>
                             <Ionicons name="tennisball-outline" size={48} color={COLORS.textMuted} />
                             <Text style={styles.emptyTitle}>No open matches</Text>
@@ -372,9 +445,44 @@ export default function MatchesTab({ currentUser }: Props) {
                             )}
 
                             <Text style={styles.label}>Date</Text>
-                            <TextInput style={styles.input} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textMuted} value={form.date} onChangeText={v => setForm(f => ({ ...f, date: v }))} />
+                            <TouchableOpacity
+                                style={styles.pickerButton}
+                                onPress={() => setShowDatePicker(true)}
+                            >
+                                <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                                <Text style={[styles.pickerButtonText, !form.date && { color: COLORS.textMuted }]}>
+                                    {form.date || 'Select date...'}
+                                </Text>
+                            </TouchableOpacity>
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={pickerDate}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                                    minimumDate={new Date()}
+                                    onChange={onDateChange}
+                                />
+                            )}
+
                             <Text style={styles.label}>Time</Text>
-                            <TextInput style={styles.input} placeholder="18:30" placeholderTextColor={COLORS.textMuted} value={form.time} onChangeText={v => setForm(f => ({ ...f, time: v }))} />
+                            <TouchableOpacity
+                                style={styles.pickerButton}
+                                onPress={() => setShowTimePicker(true)}
+                            >
+                                <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+                                <Text style={[styles.pickerButtonText, !form.time && { color: COLORS.textMuted }]}>
+                                    {form.time || 'Select time...'}
+                                </Text>
+                            </TouchableOpacity>
+                            {showTimePicker && (
+                                <DateTimePicker
+                                    value={pickerDate}
+                                    mode="time"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                                    is24Hour
+                                    onChange={onTimeChange}
+                                />
+                            )}
                             <Text style={styles.label}>Location</Text>
                             <TextInput style={styles.input} placeholder="Venue or area" placeholderTextColor={COLORS.textMuted} value={form.location} onChangeText={v => setForm(f => ({ ...f, location: v }))} />
                             <Text style={styles.label}>Max Players</Text>
@@ -424,6 +532,57 @@ export default function MatchesTab({ currentUser }: Props) {
 
 const styles = StyleSheet.create({
     root: { flex: 1 },
+    // Suggested section
+    suggestedSection: {
+        marginTop: 4,
+    },
+    suggestedHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: SPACING.lg,
+        paddingBottom: 8,
+        paddingTop: 4,
+    },
+    suggestedHeaderIcon: { fontSize: 14 },
+    suggestedHeaderText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.text,
+        letterSpacing: 0.3,
+    },
+    friendBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginHorizontal: SPACING.lg,
+        marginBottom: -6,
+        marginTop: 4,
+    },
+    friendBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    suggestedDivider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: SPACING.lg,
+        marginTop: 6,
+        marginBottom: 10,
+        gap: 8,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: COLORS.border,
+    },
+    dividerLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: COLORS.textMuted,
+        letterSpacing: 0.5,
+    },
     topRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -643,6 +802,23 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         fontSize: 14,
         marginBottom: 4,
+    },
+    pickerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: COLORS.surfaceRaised,
+        borderRadius: RADIUS.md,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: 13,
+        marginBottom: 4,
+    },
+    pickerButtonText: {
+        fontSize: 14,
+        color: COLORS.text,
+        fontWeight: '500',
     },
     submitBtn: {
         backgroundColor: COLORS.primary,

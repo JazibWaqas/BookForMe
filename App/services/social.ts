@@ -188,6 +188,13 @@ export const SocialService = {
         return response.data;
     },
 
+    async getSuggestedMatches(userId: string): Promise<Match[]> {
+        const response = await apiClient.get('/api/social/matches/suggested', {
+            params: { user_id: userId }
+        });
+        return response.data;
+    },
+
     async joinMatch(matchId: string, userId: string) {
         const response = await apiClient.post(`/api/social/matches/${matchId}/join`, null, {
             params: { user_id: userId }

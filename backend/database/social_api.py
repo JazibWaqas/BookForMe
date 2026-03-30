@@ -27,8 +27,11 @@ from fastapi import File, UploadFile, Form
 # from database.auth_api import get_current_user 
 import logging
 import asyncio
+from database.notification_service import NotificationService
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
+# Notification service singleton
+notification_service = NotificationService(firestore_db.db) 
 
 router = APIRouter(
     prefix="/api/social",
@@ -605,14 +608,31 @@ async def create_match(match: MatchCreate):
            match_data['location'] = vendor.get('business_name') or vendor.get('name')
 
     doc_ref.set(match_data)
-    
+
+    # Update host's profile stats (non-blocking)
+    try:
+        host_ref = db.collection('users').document(match.host_user_id)
+        await asyncio.to_thread(
+            lambda: host_ref.update({'stats.matches_created': firestore.Increment(1)})
+        )
+        # Notify the host themselves that their match is live
+        notification_service.create_notification(
+            match.host_user_id,
+            'match_created',
+            '🏅 Match Created!',
+            f'Your {match.sport_type} match is now live. Players can join!',
+            {'match_id': doc_ref.id}
+        )
+    except Exception as e:
+        logger.warning(f"Post-create hook failed: {e}")
+
     # Prepare response data
     response_data = match_data.copy()
     response_data['id'] = doc_ref.id
     response_data['created_at'] = datetime.now()
     response_data['updated_at'] = datetime.now()
-    response_data['participants'] = [get_user_profile_social(match.host_user_id)]
-    
+    response_data['participants'] = [await get_user_profile_social(match.host_user_id)]
+
     return MatchResponse(**response_data)
 
 @router.post("/matches/{match_id}/link_slot")
@@ -718,44 +738,198 @@ async def list_matches(
     matches_list.sort(key=lambda x: x.created_at, reverse=True)
     return matches_list
 
+
+@router.get("/matches/suggested", response_model=List[MatchResponse])
+async def get_suggested_matches(user_id: str = Query(...)):
+    """
+    Return open matches scored and ranked for the requesting user.
+
+    Scoring signals (additive):
+      +40  A friend (host or participant) is in the match
+      +30  Match sport_type matches user's preferred sport
+      +20  Avg participant Elo is within ±200 of user's Elo
+      +10  Match type aligns with user's tendency (ranked vs casual)
+      +10  Match date is within the next 7 days
+      +5   Match still has ≥2 open spots
+
+    Matches the user already joined or hosts are excluded.
+    """
+    from datetime import date, timedelta
+
+    # ── 1. Fetch the requesting user's profile ────────────────────────────────
+    def _get_user():
+        doc = db.collection('users').document(user_id).get()
+        return doc.to_dict() if doc.exists else {}
+
+    user_data = await asyncio.to_thread(_get_user)
+
+    friend_ids: set = set(user_data.get('friends', []))
+    user_elo: float = float(user_data.get('skill_rating') or 1000)
+    # Preferred sport comes from the user profile (may be None)
+    preferred_sport: str = (user_data.get('sport_type') or '').lower().strip()
+    # Gauge ranked preference from win ratio (> 0.5 win ratio → lean ranked)
+    stats = user_data.get('stats', {})
+    wins = int(stats.get('wins', 0))
+    played = int(stats.get('matches_played', 1))
+    win_ratio = wins / max(played, 1)
+    prefers_ranked = win_ratio >= 0.5
+
+    today = date.today()
+    week_ahead = today + timedelta(days=7)
+
+    # ── 2. Fetch all open matches ─────────────────────────────────────────────
+    def _get_matches():
+        return list(db.collection('matches').stream())
+
+    docs = await asyncio.to_thread(_get_matches)
+
+    scored: list = []
+
+    for doc in docs:
+        data = doc.to_dict()
+
+        # Only open matches
+        if data.get('status') not in (MatchStatus.OPEN, 'open'):
+            continue
+
+        p_ids: list = data.get('participants_ids', [])
+
+        # Exclude matches the user already hosts or has joined
+        if user_id in p_ids or data.get('host_user_id') == user_id:
+            continue
+
+        # ── Score ─────────────────────────────────────────────────────────
+        score = 0
+
+        # Friend signal (+40)
+        all_member_ids = set(p_ids) | {data.get('host_user_id', '')}
+        if friend_ids & all_member_ids:
+            score += 40
+
+        # Sport signal (+30)
+        match_sport = (data.get('sport_type') or '').lower().strip()
+        if preferred_sport and match_sport == preferred_sport:
+            score += 30
+
+        # Elo compatibility signal (+20)
+        if p_ids:
+            # Fetch participant Elos synchronously inside the scoring loop
+            # (profiles already cached by get_user_profile_social)
+            participants_elo: list = []
+            for pid in p_ids:
+                pdata = await asyncio.to_thread(
+                    lambda pid=pid: (db.collection('users').document(pid).get().to_dict() or {})
+                )
+                participants_elo.append(float(pdata.get('skill_rating') or 1000))
+            avg_elo = sum(participants_elo) / len(participants_elo)
+            if abs(avg_elo - user_elo) <= 200:
+                score += 20
+
+        # Match type alignment (+10)
+        is_ranked = data.get('match_type') == MatchType.RANKED or data.get('match_type') == 'ranked'
+        if (prefers_ranked and is_ranked) or (not prefers_ranked and not is_ranked):
+            score += 10
+
+        # Upcoming date signal (+10)
+        match_date_str = data.get('date', '')
+        try:
+            match_date = date.fromisoformat(match_date_str)
+            if today <= match_date <= week_ahead:
+                score += 10
+        except (ValueError, TypeError):
+            pass
+
+        # Spots available signal (+5)
+        max_p = int(data.get('max_players', 4))
+        current_p = len(p_ids)
+        if (max_p - current_p) >= 2:
+            score += 5
+
+        # ── Build response ──────────────────────────────────────────────────
+        response_data = data.copy()
+        response_data['id'] = doc.id
+        response_data['participants'] = await asyncio.gather(
+            *[get_user_profile_social(pid) for pid in p_ids]
+        )
+        if 'created_at' not in response_data or response_data['created_at'] is None:
+            response_data['created_at'] = datetime.now()
+        if 'updated_at' not in response_data or response_data['updated_at'] is None:
+            response_data['updated_at'] = datetime.now()
+
+        try:
+            scored.append((score, MatchResponse(**response_data)))
+        except Exception as e:
+            logger.error(f"Skipping match {doc.id} in suggested: {e}")
+            continue
+
+    # ── 3. Sort by score desc, then created_at desc as tiebreaker ─────────────
+    scored.sort(key=lambda x: (x[0], x[1].created_at), reverse=True)
+    return [m for _, m in scored]
+
+
 @router.post("/matches/{match_id}/join")
 async def join_match(match_id: str, user_id: str = Query(...)):
     """Join an existing match"""
     match_ref = db.collection('matches').document(match_id)
-    doc = match_ref.get()
-    
+    doc = await asyncio.to_thread(match_ref.get)
+
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Match not found")
-        
+
     data = doc.to_dict()
-    
-    if data['status'] != MatchStatus.OPEN:
+
+    if data.get('status') not in (MatchStatus.OPEN, 'open'):
         raise HTTPException(status_code=400, detail="Match is not open")
-        
+
     current_ids = data.get('participants_ids', [])
     if user_id in current_ids:
         return {"status": "already_joined"}
-        
+
     if len(current_ids) >= data['max_players']:
         raise HTTPException(status_code=400, detail="Match is full")
-        
+
     # Add user
-    current_ids.append(user_id)
+    new_ids = current_ids + [user_id]
     update_data = {
-        "participants_ids": current_ids,
-        "current_players": len(current_ids)
+        "participants_ids": new_ids,
+        "current_players": len(new_ids)
     }
-    
-    if len(current_ids) >= data['max_players']:
+
+    if len(new_ids) >= data['max_players']:
         update_data['status'] = MatchStatus.FULL
-        
-    match_ref.update(update_data)
-    
-    # Hook: Notification to Host
+
+    await asyncio.to_thread(lambda: match_ref.update(update_data))
+
+    # Fetch joiner profile once for notifications
+    joiner_profile = await get_user_profile_social(user_id)
     host_id = data.get('host_user_id')
+    sport = data.get('sport_type', 'match')
+    match_date = data.get('date', '')
+
+    # Update joiner's stats
+    try:
+        user_ref = db.collection('users').document(user_id)
+        await asyncio.to_thread(
+            lambda: user_ref.update({'stats.matches_joined': firestore.Increment(1)})
+        )
+    except Exception as e:
+        logger.warning(f"Failed to update joiner stats: {e}")
+
+    # Notify joiner: confirmation they joined
+    notification_service.create_notification(
+        user_id,
+        'match_joined',
+        '✅ Match Joined!',
+        f"You've joined a {sport} match on {match_date}. Good luck!",
+        {'match_id': match_id}
+    )
+
+    # Notify host: someone joined their match
     if host_id and host_id != user_id:
-        joiner_profile = get_user_profile_social(user_id)
         notification_service.notify_match_join(host_id, joiner_profile.name, match_id)
+
+    # Invalidate match list cache
+    cache.clear()
 
     return {"status": "success", "message": "Joined match"}
 
