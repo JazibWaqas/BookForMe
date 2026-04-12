@@ -1,15 +1,15 @@
 [0] Config.pm:328> INFO - This is Biber 2.21
 [0] Config.pm:331> INFO - Logfile is 'report.blg'
-[215] biber-MSWIN64:342> INFO - === 
-[311] Biber.pm:421> INFO - Reading 'report.bcf'
-[412] Biber.pm:1002> INFO - Found 33 citekeys in bib section 0
-[422] Biber.pm:4487> INFO - Processing section 0
-[446] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
-[543] bibtex.pm:1713> INFO - LaTeX decoding ...
-[578] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
-[818] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[818] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[818] Biber.pm:4307> INFO - Sorting list 'nty/global//global/global/global' of type 'entry' with template 'nty' and locale 'en-US'
-[818] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
-[885] bbl.pm:676> INFO - Writing 'report.bbl' with encoding 'UTF-8'
-[911] bbl.pm:779> INFO - Output to report.bbl
+[473] biber-MSWIN64:342> INFO - === 
+[661] Biber.pm:421> INFO - Reading 'report.bcf'
+[869] Biber.pm:1002> INFO - Found 39 citekeys in bib section 0
+[894] Biber.pm:4487> INFO - Processing section 0
+[931] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
+[1065] bibtex.pm:1713> INFO - LaTeX decoding ...
+[1141] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[3112] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[3112] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[3113] Biber.pm:4307> INFO - Sorting list 'nty/global//global/global/global' of type 'entry' with template 'nty' and locale 'en-US'
+[3113] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[3309] bbl.pm:676> INFO - Writing 'report.bbl' with encoding 'UTF-8'
+[3377] bbl.pm:779> INFO - Output to report.bbl
