@@ -2,31 +2,31 @@
 \contentsline {figure}{\numberline {1.1}{\ignorespaces High-level overview of the BookForMe platform.}}{14}{figure.caption.6}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces System block diagram for the BookForMe platform.}}{33}{figure.caption.9}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Login screen with role selection (Customer or Vendor).}}{35}{figure.caption.10}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Customer home: venue discovery by sport and area.}}{36}{figure.caption.11}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Live court grid showing real-time slot availability and booking source.}}{36}{figure.caption.11}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces In-app smart filter: AI chat parses Roman Urdu/English queries and returns filtered venues with available slots.}}{37}{figure.caption.12}%
-\contentsline {figure}{\numberline {3.6}{\ignorespaces Community forum.}}{38}{figure.caption.13}%
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Direct messages.}}{38}{figure.caption.13}%
-\contentsline {figure}{\numberline {3.8}{\ignorespaces Friends list.}}{38}{figure.caption.13}%
-\contentsline {figure}{\numberline {3.9}{\ignorespaces Open matches: casual and ranked lobbies.}}{39}{figure.caption.14}%
-\contentsline {figure}{\numberline {3.10}{\ignorespaces Ranked leaderboard with Elo ratings and tiers.}}{39}{figure.caption.14}%
-\contentsline {figure}{\numberline {3.11}{\ignorespaces Vendor dashboard: daily stats, pending actions, slot operations, and upcoming bookings.}}{40}{figure.caption.15}%
-\contentsline {figure}{\numberline {3.12}{\ignorespaces Live court grid calendar: per-court slot status with WhatsApp and walk-in booking sources.}}{40}{figure.caption.15}%
-\contentsline {figure}{\numberline {3.13}{\ignorespaces WhatsApp AI receptionist: bilingual booking conversation returning available padel slots across multiple venues.}}{41}{figure.caption.16}%
-\contentsline {figure}{\numberline {3.14}{\ignorespaces Admin control center: platform-wide stats, slot generation, and vendor moderation.}}{42}{figure.caption.17}%
-\contentsline {figure}{\numberline {3.15}{\ignorespaces Admin vendor moderation: approve, suspend, or delete registered vendors.}}{42}{figure.caption.17}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces System block diagram for the BookForMe platform.}}{35}{figure.caption.9}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Login screen with role selection (Customer or Vendor).}}{37}{figure.caption.10}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Customer home: venue discovery by sport and area.}}{38}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Booking flow: venue detail with date, court, and time slot selection (PKR pricing per slot).}}{38}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces In-app smart filter: AI chat parses Roman Urdu/English queries and returns filtered venues with available slots.}}{39}{figure.caption.12}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Community forum.}}{40}{figure.caption.13}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Direct messages.}}{40}{figure.caption.13}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Friends list.}}{40}{figure.caption.13}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Open matches: casual and ranked lobbies.}}{41}{figure.caption.14}%
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Ranked leaderboard with Elo ratings and tiers.}}{41}{figure.caption.14}%
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Vendor dashboard: daily stats, pending actions, slot operations, and upcoming bookings.}}{42}{figure.caption.15}%
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Live court grid calendar: per-court slot status with WhatsApp and walk-in booking sources.}}{42}{figure.caption.15}%
+\contentsline {figure}{\numberline {3.13}{\ignorespaces WhatsApp AI receptionist: bilingual booking conversation returning available padel slots across multiple venues.}}{43}{figure.caption.16}%
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Admin control center: platform-wide stats, slot generation, and vendor moderation.}}{44}{figure.caption.17}%
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Admin vendor moderation: approve, suspend, or delete registered vendors.}}{44}{figure.caption.17}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces High-Level System Architecture}}{44}{figure.caption.18}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Entity Relationship Diagram defining referential structures.}}{48}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces AI Booking \& Payment Pipeline}}{50}{figure.caption.22}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Activity Diagram: Agent/WhatsApp Booking Flow}}{54}{figure.caption.23}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Activity Diagram: Mobile App Search \& Book}}{56}{figure.caption.24}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity Diagram: Vendor Dashboard \& Approvals}}{57}{figure.caption.25}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces High-Level System Architecture}}{46}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Entity Relationship Diagram defining referential structures.}}{48}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces AI Booking \& Payment Pipeline}}{50}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Activity Diagram: Agent/WhatsApp Booking Flow}}{52}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Activity Diagram: Mobile App Search \& Book}}{53}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity Diagram: Vendor Dashboard \& Approvals}}{54}{figure.caption.24}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{70}{figure.caption.29}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{71}{figure.caption.30}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{67}{figure.caption.28}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{68}{figure.caption.29}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

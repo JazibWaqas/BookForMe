@@ -1,17 +1,16 @@
 \addvspace {10\p@ }
 \contentsline {table}{\numberline {1.1}{\ignorespaces BookForMe project timeline and deliverables.}}{16}{table.caption.7}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {2.1}{\ignorespaces Gap analysis: BookForMe versus existing dialogue and booking paradigms.}}{25}{table.caption.8}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Gap analysis: BookForMe versus existing dialogue and booking paradigms.}}{27}{table.caption.8}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Core Domain Collections}}{46}{table.caption.19}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Social \& Auxiliary Collections}}{47}{table.caption.20}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Domain Entity Descriptions}}{47}{table.caption.19}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{67}{table.caption.26}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{68}{table.caption.27}%
-\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{69}{table.caption.28}%
-\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{72}{table.caption.31}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{64}{table.caption.25}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{65}{table.caption.26}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{66}{table.caption.27}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{69}{table.caption.30}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {8.1}{\ignorespaces Proposed vs.\ achieved features.}}{81}{table.caption.32}%
+\contentsline {table}{\numberline {8.1}{\ignorespaces Proposed vs.\ achieved features.}}{78}{table.caption.31}%

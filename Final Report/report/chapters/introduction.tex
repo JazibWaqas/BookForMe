@@ -2,22 +2,23 @@
 \section{Problem Statement}
 \label{sec:intro-problem}
 
-Booking recreational and informal services in Pakistan is a deeply fragmented and
-inefficient process.  A customer who wants to reserve a futsal court for Friday
-evening must: (1) find the vendor's WhatsApp number, (2) send a message asking for
-availability, (3) wait for a manual reply---sometimes hours later, (4) negotiate a
-time and price, (5) transfer an advance payment via JazzCash or bank transfer, and
-(6) send a payment screenshot as confirmation.  If the chosen slot was taken by
-another customer during the wait, the entire cycle restarts with a different vendor.
+Booking recreational and informal services in Pakistan is a fragmented and
+inefficient process. A customer who wants to reserve a futsal court for Friday
+evening has to find the vendor's WhatsApp number, ask about availability, wait
+for a manual reply that may take hours, negotiate a time and price, transfer an
+advance payment via JazzCash or bank transfer, and send a payment screenshot as
+confirmation. If the chosen slot was taken by another customer during the wait,
+the entire process restarts with a different vendor.
 
-This friction is not limited to sports courts.  Salons, gaming zones, beach houses,
-and most informal service businesses in Karachi operate identically.  No industry-wide
-booking infrastructure serves this segment.  Existing digital solutions are narrow in
-scope---sports-only apps or salon-specific platforms---and do not reflect the
-cross-category, bilingual booking behaviour of real users.
+This friction is not limited to sports courts. Salons, gaming zones, beach
+houses, and most informal service businesses in Karachi operate the same way.
+No industry-wide booking infrastructure serves this segment. Existing digital
+solutions are narrow in scope, covering only sports apps or salon-specific
+platforms, and they do not reflect the cross-category, bilingual booking
+behaviour of real users.
 
 A user survey conducted by the team in Spring 2025 ($n > 50$) quantified this
-friction directly~\cite{survey2025}:
+directly~\cite{survey2025}:
 \begin{itemize}
   \item \textbf{72\%} of respondents rely on WhatsApp or phone calls to make bookings.
   \item \textbf{81\%} reported frustration with contacting multiple vendors to find
@@ -26,71 +27,72 @@ friction directly~\cite{survey2025}:
         conversation and booking on their behalf.
 \end{itemize}
 
-Research by MoldStud~\cite{moldstud2024} corroborates that automated booking systems
-``increase efficiency, reduce human error, and improve customer satisfaction.''
-Kumar et al.~\cite{kumar2020} further show that structured digital workflows reduce
-errors and missed reservations compared to manual methods.  Chatterjee et
-al.~\cite{chatterjee2025} demonstrate through a Turf Booking System study that
-real-time slot availability and automated conflict resolution improve both user
-experience and vendor management---but their solution remains domain-specific and
-does not extend to informal multi-category vendors or support autonomous agent-driven
-negotiation.
+Research by MoldStud~\cite{moldstud2024} corroborates that automated booking
+systems ``increase efficiency, reduce human error, and improve customer
+satisfaction.'' Kumar et al.~\cite{kumar2020} further show that structured
+digital workflows reduce errors and missed reservations compared to manual
+methods. Chatterjee et al.~\cite{chatterjee2025} demonstrate through a Turf
+Booking System study that real-time slot availability and automated conflict
+resolution improve both user experience and vendor management, though their
+solution remains domain-specific and does not extend to informal multi-category
+vendors or support autonomous agent-driven negotiation.
 
-At the vendor side, the problems mirror those of users.  Vendors manage incoming
-WhatsApp requests across multiple simultaneous conversations, maintain schedules in
-personal notebooks or Google Sheets, and face double-bookings whenever they are
-offline or slow to reply.  Small vendors lack the resources to build dedicated booking
-systems, causing them to miss revenue and to offer a poor customer experience.
+The vendor side mirrors this problem. Vendors manage incoming WhatsApp requests
+across multiple simultaneous conversations, maintain schedules in notebooks or
+Google Sheets, and face double-bookings whenever they are offline or slow to
+reply. Small vendors lack the resources to build dedicated booking systems,
+causing missed revenue and a poor customer experience.
 
-The core computer science problem is therefore: \textit{how can an AI agent
-understand and autonomously execute bilingual natural-language booking requests in
-real time, while guaranteeing consistency in a distributed, multi-channel
-environment?}  This decomposes into four sub-problems:
+The core computer science challenge is: \textit{how can an AI agent understand
+and autonomously execute bilingual natural-language booking requests in real
+time, while guaranteeing consistency in a distributed, multi-channel
+environment?} This breaks into four concrete sub-problems:
 
 \begin{enumerate}
   \item \textbf{Bilingual NLU:} Parse booking requests in both English and Roman
-        Urdu, handling code-switching (``Mujhe Friday ko 7 baje ke baad paddle court
-        chahiye under 6000 rupees, preferably in defence'') and severe orthographic
-        variation (\textit{waqt}, \textit{vakt}, \textit{wkht}, and \textit{tym} are
-        all romanisations of the Urdu word for ``time'').
-  \item \textbf{Dialogue Management:} Maintain conversation state across asynchronous
-        WhatsApp sessions, handle partial information, manage clarification loops, and
-        route user intent to the correct backend action.
+        Urdu, handling code-switching (e.g., ``Mujhe Friday ko 7 baje ke baad
+        paddle court chahiye under 6000 rupees, preferably in defence'') and
+        severe orthographic variation (\textit{waqt}, \textit{vakt},
+        \textit{wkht}, and \textit{tym} are all romanisations of the Urdu word
+        for ``time'').
+  \item \textbf{Dialogue Management:} Maintain conversation state across
+        asynchronous WhatsApp sessions, handle partial information, manage
+        clarification loops, and route user intent to the correct backend action.
   \item \textbf{Agentic Execution:} Autonomously check availability, hold slots
-        atomically, verify payment proofs via OCR, and notify vendors---without
+        atomically, verify payment proofs via OCR, and notify vendors without
         hallucinating actions or bypassing business rules.
-  \item \textbf{Concurrency Safety:} Prevent race conditions in a distributed NoSQL
-        environment where multiple simultaneous requests may attempt to book the same
-        time slot.
+  \item \textbf{Concurrency Safety:} Prevent race conditions in a distributed
+        NoSQL environment where multiple simultaneous requests may attempt to
+        book the same slot.
 \end{enumerate}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Proposed Solution}
 \label{sec:intro-solution}
 
-\textbf{BookForMe} is a centralized, agentic AI-powered booking platform that
-addresses all four sub-problems above.  It provides two complementary interaction
-modes:
+\textbf{BookForMe} is a centralized, agentic AI-powered booking platform built
+to address all four sub-problems above. It provides two interaction modes for
+customers and a unified backend for vendors:
 
 \begin{enumerate}
-  \item \textbf{React Native Mobile App (Rich Client):} A full-featured mobile
-        application that allows customers to browse vendors by category and location,
-        view real-time availability calendars, select and confirm slots, upload
-        payment proof, and access a social layer (matchmaking, forums, leaderboard).
+  \item \textbf{React Native Mobile App:} A full-featured mobile application
+        where customers browse vendors by category and location, view real-time
+        availability, select and confirm slots, upload payment proof, and access
+        a social layer including matchmaking, forums, and a leaderboard.
 
-  \item \textbf{WhatsApp AI Receptionist (Conversational Client):} An autonomous
-        agent that operates on the vendor's existing WhatsApp Business number.
-        Customers message the vendor in plain English or Roman Urdu; the agent
-        understands their request, checks availability from the Firestore database,
-        holds the slot via Optimistic Concurrency Control, requests a payment
-        screenshot, verifies the amount via OCR, and notifies the vendor for final
-        approval---all without requiring the vendor to participate in the conversation.
+  \item \textbf{WhatsApp AI Receptionist:} An autonomous agent running on the
+        vendor's existing WhatsApp Business number. Customers message in plain
+        English or Roman Urdu; the agent understands the request, checks
+        availability in Firestore, holds the slot via Optimistic Concurrency
+        Control, requests a payment screenshot, verifies the amount via OCR, and
+        notifies the vendor for final approval. The vendor does not need to
+        participate in the conversation at all.
 \end{enumerate}
 
-Both clients share a single backend and database (the ``Single Source of Truth''),
-meaning that a slot booked via WhatsApp is instantly reflected in the mobile app and
-on the vendor dashboard.  Figure~\ref{fig:intro-overview} gives a high-level
-overview of this architecture.
+Both clients share a single backend and Firestore database, meaning a slot
+booked via WhatsApp is immediately visible in the mobile app and on the vendor
+dashboard. Figure~\ref{fig:intro-overview} gives a high-level overview of this
+architecture.
 
 \begin{figure}[H]
   \centering
@@ -105,46 +107,43 @@ overview of this architecture.
   \label{fig:intro-overview}
 \end{figure}
 
-What differentiates BookForMe from existing booking tools is the integration of
-three capabilities within one platform:
-\begin{itemize}
-  \item bilingual NLU tuned to the local mix of English and Roman Urdu,
-  \item a fully autonomous agentic workflow over WhatsApp with transactional safety,
-  \item a social layer for player community and matchmaking across sports, salons,
-        gaming zones, and other informal services.
-\end{itemize}
+What sets BookForMe apart from existing tools is the combination of three
+capabilities in one platform: bilingual NLU tuned to the local mix of English
+and Roman Urdu; a fully autonomous agentic workflow over WhatsApp with
+transactional safety; and a social layer for player matchmaking and community
+across sports, salons, gaming zones, and other informal services.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Intended User}
+\section{Intended Users}
 \label{sec:intro-users}
 
 BookForMe serves three distinct user groups:
 
 \begin{description}
-  \item[App Users (Customers)] Residents of Karachi who want to book informal
-        services---predominantly sports-active young adults aged 18--35.  They
-        interact with the platform primarily through the React Native mobile app,
-        using the AI chatbot for natural-language search or manual browsing with
-        filters for price, location, and amenities.  Social features (player matching,
-        leaderboards, forums) are especially relevant to this group.
+  \item[App Users (Customers)] Residents of Karachi looking to book informal
+        services, predominantly sports-active young adults aged 18--35. They
+        interact with the platform through the React Native mobile app, using
+        either the AI chat filter for natural-language search or manual browsing
+        with filters for price, location, and amenities. Social features such as
+        player matching, leaderboards, and forums are central to this group.
 
   \item[WhatsApp Users (Casual Customers)] Users who prefer not to install a
-        separate app.  They interact exclusively through the vendor's existing
-        WhatsApp Business number.  The AI Receptionist handles their entire booking
-        journey---from availability check to payment confirmation---without requiring
-        them to change their communication habits.
+        separate app. They interact entirely through the vendor's existing
+        WhatsApp Business number. The AI Receptionist handles their full booking
+        journey from availability check to payment confirmation without requiring
+        them to change how they communicate.
 
   \item[Vendors (Small Business Owners)] Owners of futsal courts, padel courts,
-        salons, gaming zones, and similar informal services in Karachi.  They interact
-        with BookForMe through the Vendor Dashboard, which provides a consolidated
-        booking calendar (aggregating requests from the app and WhatsApp), analytics,
-        pending-booking approvals, and an interface to link their WhatsApp Business
-        account.  Crucially, vendors need no technical expertise---onboarding requires
+        salons, gaming zones, and similar informal services in Karachi. They
+        interact with BookForMe through the Vendor Dashboard, which provides a
+        consolidated booking calendar aggregating requests from both the app and
+        WhatsApp, analytics, pending payment approvals, and WhatsApp Business
+        account linking. Vendors need no technical expertise; onboarding requires
         only connecting their WhatsApp number.
 \end{description}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Project Gantt Chart and Deliverables}
+\section{Project Timeline and Deliverables}
 \label{sec:intro-gantt}
 
 Table~\ref{tab:gantt} shows the monthly project timeline across both Kaavish I
@@ -228,48 +227,50 @@ Table~\ref{tab:gantt} shows the monthly project timeline across both Kaavish I
 
 \begin{description}
   \item[Roman Urdu Orthographic Variation]
-        Roman Urdu lacks a standardised orthography.  A single word like
+        Roman Urdu lacks a standardised orthography. A single word like
         \textit{waqt} (time) may appear as \textit{vakt}, \textit{wkht},
-        \textit{waqat}, or \textit{tym}, depending on the writer.  Standard subword
-        tokenisers (BPE, WordPiece) frequently fail to map these variants to a shared
-        representation.  We address this through targeted data augmentation and the
-        use of multilingual models that are exposed to diverse romanisation patterns.
+        \textit{waqat}, or \textit{tym} depending on the writer. Standard subword
+        tokenisers (BPE, WordPiece) frequently fail to map these variants to a
+        shared representation. We address this through targeted data augmentation
+        and the use of multilingual models exposed to diverse romanisation patterns.
 
   \item[Low-Resource Bilingual Dataset]
-        No publicly available labelled dataset exists for English/Roman Urdu booking
-        conversations.  We constructed one from scratch through real vendor
+        No publicly available labelled dataset exists for English and Roman Urdu
+        booking conversations. We constructed one from scratch using real vendor
         conversations, manual annotation, and LLM-driven synthetic generation.
-        Starting with a small seed set introduces noise and class imbalance, requiring
-        focal loss training and augmentation strategies.
+        Starting from a small seed set introduces noise and class imbalance,
+        requiring focal loss training and augmentation strategies.
 
   \item[Asynchronous Conversation State]
-        WhatsApp conversations are inherently asynchronous: users may reply after
-        hours, change their mind mid-booking, or send the wrong payment screenshot.
-        Unlike synchronous chatbot frameworks, our agent must persist full
-        conversation state in Firestore and resume gracefully.  LangGraph's cyclic
-        state graph design addresses this, but requires careful state serialisation.
+        WhatsApp conversations are inherently asynchronous: users may reply hours
+        later, change their mind mid-booking, or send the wrong payment
+        screenshot. Unlike synchronous chatbot frameworks, our agent must persist
+        full conversation state in Firestore and resume gracefully. LangGraph's
+        cyclic state graph design addresses this, but requires careful state
+        serialisation.
 
   \item[Concurrency and Double-Booking]
-        Multiple users may simultaneously request the same time slot.  In a
-        distributed NoSQL database like Firestore, na{\"i}ve writes allow race
-        conditions.  We implement Optimistic Concurrency Control (OCC) using
-        Firestore atomic transactions with a \texttt{hold\_expires\_at} timestamp,
-        but tuning the hold duration (too short causes false failures; too long ties
-        up inventory) required careful calibration.
+        Multiple users may simultaneously request the same time slot. In a
+        distributed NoSQL database like Firestore, unprotected writes allow race
+        conditions. We implement Optimistic Concurrency Control (OCC) using
+        Firestore atomic transactions with a \texttt{hold\_expires\_at}
+        timestamp. Tuning the hold duration required careful calibration: too
+        short causes false failures, too long unnecessarily ties up inventory.
 
   \item[LLM Latency]
-        Calls to the Gemini API for complex slot extraction add 3--10 seconds of
-        latency per message.  The total WhatsApp response time budget (NFR-PERF-03)
-        is 60 seconds.  We minimise latency by using the fine-tuned DistilBERT model
-        for fast intent classification (47 ms on CPU) and calling the LLM only for
-        slot extraction and edge cases, caching frequent availability queries.
+        Calls to the Groq API for natural language generation add latency per
+        message. The total WhatsApp response time budget is 60 seconds
+        (NFR-PERF-03). We minimise this by using the fine-tuned DistilBERT model
+        for fast intent classification (47~ms on CPU) and invoking the LLM only
+        for generation and edge cases, while caching frequent availability
+        queries.
 
   \item[Prompt Injection Security]
-        Malicious users may attempt to trick the WhatsApp agent into bypassing payment
-        requirements through carefully crafted messages.  The Neuro-Symbolic
-        architecture---where the LLM classifies intent but all database mutations are
-        executed by deterministic code nodes---prevents such attacks, as the LLM
-        cannot directly issue database commands.
+        Malicious users may attempt to trick the WhatsApp agent into bypassing
+        payment requirements through crafted messages. The Neuro-Symbolic
+        architecture prevents this: the LLM classifies intent, but all database
+        mutations are executed by deterministic code nodes, so the LLM cannot
+        directly issue database commands regardless of the input.
 \end{description}
 
 %%% Local Variables:

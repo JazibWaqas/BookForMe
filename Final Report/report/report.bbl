@@ -319,6 +319,74 @@
       \verb https://arxiv.org/abs/1810.04805
       \endverb
     \endentry
+    \entry{elo1978}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=ba734edd6a1a96ab7e1903630e8f56f0}{%
+           family={Elo},
+           familyi={E\bibinitperiod},
+           given={Arpad\bibnamedelima E.},
+           giveni={A\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York}%
+      }
+      \list{publisher}{1}{%
+        {Arco}%
+      }
+      \strng{namehash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{fullhash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{fullhashraw}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{bibnamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{authorbibnamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{authornamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{authorfullhash}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \strng{authorfullhashraw}{ba734edd6a1a96ab7e1903630e8f56f0}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{The Rating of Chessplayers, Past and Present}
+      \field{year}{1978}
+    \endentry
+    \entry{team2023gemini}{online}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{3}{}{%
+        {{hash=176790f20018e62732750fd3853fffa5}{%
+           family={{Gemini Team}},
+           familyi={G\bibinitperiod}}}%
+        {{hash=b22a93be7fdf0fe6a36b9647d21cafdd}{%
+           family={Anil},
+           familyi={A\bibinitperiod},
+           given={Rohan},
+           giveni={R\bibinitperiod}}}%
+        {{hash=c28d74501d531d6672ccf4c28016c7ac}{%
+           family={Borgeaud},
+           familyi={B\bibinitperiod},
+           given={Sebastian},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{0635f9f4ae54558734f1b45942513595}
+      \strng{fullhash}{0635f9f4ae54558734f1b45942513595}
+      \strng{fullhashraw}{0635f9f4ae54558734f1b45942513595}
+      \strng{bibnamehash}{0635f9f4ae54558734f1b45942513595}
+      \strng{authorbibnamehash}{0635f9f4ae54558734f1b45942513595}
+      \strng{authornamehash}{0635f9f4ae54558734f1b45942513595}
+      \strng{authorfullhash}{0635f9f4ae54558734f1b45942513595}
+      \strng{authorfullhashraw}{0635f9f4ae54558734f1b45942513595}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Gemini: A Family of Highly Capable Multimodal Models}
+      \field{year}{2023}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2312.11805
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2312.11805
+      \endverb
+    \endentry
     \entry{handler2023}{online}{}{}
       \name{author}{1}{}{%
         {{hash=e7365d22c2562236545452c6a7ae5b6c}{%
@@ -403,6 +471,45 @@
       \endverb
       \verb{url}
       \verb https://aclanthology.org/2024.emnlp-main.684/
+      \endverb
+    \endentry
+    \entry{hinton2015}{online}{}{}
+      \name{author}{3}{}{%
+        {{hash=9a8750ccdb2a4cf14d2655face1ce016}{%
+           family={Hinton},
+           familyi={H\bibinitperiod},
+           given={Geoffrey},
+           giveni={G\bibinitperiod}}}%
+        {{hash=494b568c5dc85ba8f3f409635f9c5f25}{%
+           family={Vinyals},
+           familyi={V\bibinitperiod},
+           given={Oriol},
+           giveni={O\bibinitperiod}}}%
+        {{hash=62f954323339abeba6c6a240e9d2855b}{%
+           family={Dean},
+           familyi={D\bibinitperiod},
+           given={Jeff},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{fullhash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{fullhashraw}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{bibnamehash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{authorbibnamehash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{authornamehash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{authorfullhash}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \strng{authorfullhashraw}{ffe4fa3a93a3b1a8ca1d3c8b76f864d7}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Distilling the Knowledge in a Neural Network}
+      \field{year}{2015}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1503.02531
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1503.02531
       \endverb
     \endentry
     \entry{hosseini2020}{online}{}{}
@@ -661,6 +768,58 @@
       \verb https://arxiv.org/abs/2005.11401
       \endverb
     \endentry
+    \entry{lin2017}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=08f925fe4692d130a1d7cb7d94483351}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Tsung-Yi},
+           giveni={T\bibinithyphendelim Y\bibinitperiod}}}%
+        {{hash=d87be7c19fa16049347907c9820816c6}{%
+           family={Goyal},
+           familyi={G\bibinitperiod},
+           given={Priya},
+           giveni={P\bibinitperiod}}}%
+        {{hash=bd5dadbe57bedc5957c19a3154c4d424}{%
+           family={Girshick},
+           familyi={G\bibinitperiod},
+           given={Ross},
+           giveni={R\bibinitperiod}}}%
+        {{hash=6b4b60e909e78633945f3f9c9dc83e01}{%
+           family={He},
+           familyi={H\bibinitperiod},
+           given={Kaiming},
+           giveni={K\bibinitperiod}}}%
+        {{hash=37843fd1a96680e7945ac1a059b6e8b8}{%
+           family={Dollar},
+           familyi={D\bibinitperiod},
+           given={Piotr},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{3b7e00bc88d7aca4d4d5ddb8c252e36c}
+      \strng{fullhash}{49b1a03ee516b69a7a3a621dd18b5f8a}
+      \strng{fullhashraw}{49b1a03ee516b69a7a3a621dd18b5f8a}
+      \strng{bibnamehash}{3b7e00bc88d7aca4d4d5ddb8c252e36c}
+      \strng{authorbibnamehash}{3b7e00bc88d7aca4d4d5ddb8c252e36c}
+      \strng{authornamehash}{3b7e00bc88d7aca4d4d5ddb8c252e36c}
+      \strng{authorfullhash}{49b1a03ee516b69a7a3a621dd18b5f8a}
+      \strng{authorfullhashraw}{49b1a03ee516b69a7a3a621dd18b5f8a}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the IEEE International Conference on Computer Vision (ICCV)}
+      \field{title}{Focal Loss for Dense Object Detection}
+      \field{year}{2017}
+      \field{pages}{2980\bibrangedash 2988}
+      \range{pages}{9}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1708.02002
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1708.02002
+      \endverb
+    \endentry
     \entry{liu2024}{online}{}{}
       \name{author}{5}{}{%
         {{hash=5b9a54b9d83697231299711961622ab8}{%
@@ -734,6 +893,51 @@
       \field{year}{2024}
       \verb{doi}
       \verb 10.20944/preprints202411.0566.v1
+      \endverb
+    \endentry
+    \entry{memon2020}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=335e06365851753ebe9c57a6db7ae87c}{%
+           family={Memon},
+           familyi={M\bibinitperiod},
+           given={Jai},
+           giveni={J\bibinitperiod}}}%
+        {{hash=f93d7c89ad7d3d3d741e0691d67bb5fa}{%
+           family={Sami},
+           familyi={S\bibinitperiod},
+           given={Miti},
+           giveni={M\bibinitperiod}}}%
+        {{hash=5fc72826c01bbb5016cec466b61f037e}{%
+           family={Khan},
+           familyi={K\bibinitperiod},
+           given={Rizwan\bibnamedelima Ahmed},
+           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=09c5cdf35f3e7bb97fbf6a0e6a74aa67}{%
+           family={Uddin},
+           familyi={U\bibinitperiod},
+           given={Mueen},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{6dea270d7abfe6cd5e83d85a8330170a}
+      \strng{fullhash}{4cba93b175a8a6e472a3ea7cc2e88604}
+      \strng{fullhashraw}{4cba93b175a8a6e472a3ea7cc2e88604}
+      \strng{bibnamehash}{6dea270d7abfe6cd5e83d85a8330170a}
+      \strng{authorbibnamehash}{6dea270d7abfe6cd5e83d85a8330170a}
+      \strng{authornamehash}{6dea270d7abfe6cd5e83d85a8330170a}
+      \strng{authorfullhash}{4cba93b175a8a6e472a3ea7cc2e88604}
+      \strng{authorfullhashraw}{4cba93b175a8a6e472a3ea7cc2e88604}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Access}
+      \field{title}{Handwritten Optical Character Recognition ({OCR}): A Comprehensive Systematic Literature Review ({SLR})}
+      \field{volume}{8}
+      \field{year}{2020}
+      \field{pages}{142818\bibrangedash 142833}
+      \range{pages}{16}
+      \verb{doi}
+      \verb 10.1109/ACCESS.2020.3012542
       \endverb
     \endentry
     \entry{moldstud2024}{online}{}{}
@@ -834,6 +1038,64 @@
       \endverb
       \verb{url}
       \verb https://arxiv.org/abs/2305.15334
+      \endverb
+    \endentry
+    \entry{peng2021}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=5c8c1bc4adbbd43d1eee7e1621a305a4}{%
+           family={Peng},
+           familyi={P\bibinitperiod},
+           given={Baolin},
+           giveni={B\bibinitperiod}}}%
+        {{hash=307cd2ff14b0ecd5a0ae2ca42e7c71b2}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Chunyuan},
+           giveni={C\bibinitperiod}}}%
+        {{hash=f559fc2299b48fe734d7a75ca03a1800}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jinchao},
+           giveni={J\bibinitperiod}}}%
+        {{hash=3f8a6ad3fc92632a1955fe600bca420b}{%
+           family={Shayandeh},
+           familyi={S\bibinitperiod},
+           given={Shahin},
+           giveni={S\bibinitperiod}}}%
+        {{hash=2a740adde5671d9fd20bf16ac1c07a50}{%
+           family={Liden},
+           familyi={L\bibinitperiod},
+           given={Lars},
+           giveni={L\bibinitperiod}}}%
+        {{hash=159bca5607e3797666654a2e3022978a}{%
+           family={Gao},
+           familyi={G\bibinitperiod},
+           given={Jianfeng},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{5811bf78462796f1a8f7402ca625eb33}
+      \strng{fullhash}{cf44602b2504253beeef60fb7a81e8ff}
+      \strng{fullhashraw}{cf44602b2504253beeef60fb7a81e8ff}
+      \strng{bibnamehash}{5811bf78462796f1a8f7402ca625eb33}
+      \strng{authorbibnamehash}{5811bf78462796f1a8f7402ca625eb33}
+      \strng{authornamehash}{5811bf78462796f1a8f7402ca625eb33}
+      \strng{authorfullhash}{cf44602b2504253beeef60fb7a81e8ff}
+      \strng{authorfullhashraw}{cf44602b2504253beeef60fb7a81e8ff}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Transactions of the Association for Computational Linguistics}
+      \field{title}{Soloist: Building Task Bots at Scale with Transfer Learning and Machine Teaching}
+      \field{volume}{9}
+      \field{year}{2021}
+      \field{pages}{807\bibrangedash 824}
+      \range{pages}{18}
+      \verb{urlraw}
+      \verb https://aclanthology.org/2021.tacl-1.49/
+      \endverb
+      \verb{url}
+      \verb https://aclanthology.org/2021.tacl-1.49/
       \endverb
     \endentry
     \entry{qin2023}{online}{}{}

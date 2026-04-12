@@ -1,10 +1,10 @@
 % ─────────────────────────────────────────────────────────────────────────────
-This chapter presents the current state of the art across the four research areas
-that underpin BookForMe: (1) agentic AI systems built on large language models;
-(2) task-oriented dialogue and state tracking; (3) bilingual and code-switched NLU
-for South Asian languages; and (4) distributed booking systems with concurrency
-guarantees.  It also establishes the novelty of our work by identifying gaps that
-existing research does not address and that directly motivate our design choices.
+This chapter reviews the literature across five areas that underpin BookForMe:
+agentic AI systems; task-oriented dialogue and state tracking; bilingual and
+code-switched NLU; model selection and training for low-resource settings; and
+distributed booking systems with concurrency guarantees. Each section motivates
+the specific technical decisions made in the project and identifies the gaps in
+existing work that this project addresses.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{From Chatbots to Autonomous Agents}
@@ -12,95 +12,119 @@ existing research does not address and that directly motivate our design choices
 
 \subsection{Defining the Agentic Architecture}
 
-The term ``agent'' has been used broadly in software engineering and robotics, but
-its application to large language models (LLMs) represents a specific architectural
-shift.  Wang et al.~\cite{wang2024} propose a unified framework in which an LLM-based
-agent comprises four modules: \textit{Profiling} (role and persona definition),
-\textit{Memory} (short-term context and long-term persistent state), \textit{Planning}
-(decomposing goals into subgoals and choosing actions), and \textit{Action} (calling
-external tools and APIs to effect changes in the environment).  In this framework the
-LLM functions as a ``Brain'' that orchestrates a Perception $\rightarrow$ Reasoning
-$\rightarrow$ Action cycle, fundamentally distinguishing it from a passive token
-predictor.
+The term ``agent'' has been used broadly in software engineering and robotics,
+but its application to large language models (LLMs) represents a specific
+architectural shift. Wang et al.~\cite{wang2024} propose a unified framework in
+which an LLM-based agent comprises four modules: \textit{Profiling} (role and
+persona definition), \textit{Memory} (short-term context and long-term
+persistent state), \textit{Planning} (decomposing goals into subgoals and
+choosing actions), and \textit{Action} (calling external tools and APIs to
+effect changes in the environment). The LLM functions as a coordinator that
+orchestrates a Perception $\rightarrow$ Reasoning $\rightarrow$ Action cycle,
+fundamentally distinguishing it from a passive text predictor.
 
-Xi et al.~\cite{xi2023} further distinguish agents from traditional conversational
-systems by their capacity to \textit{initiate and manage workflows} rather than merely
-respond to prompts.  A conventional chatbot can answer ``Is the 5~PM slot available?'';
-our agent must answer ``Book the 5~PM slot, lock it for ten minutes, verify the advance
-payment, and notify the vendor.''  The latter requires stateful read--write operations
-across multiple external systems---precisely the capability gap this work fills.
+Xi et al.~\cite{xi2023} further distinguish agents from traditional
+conversational systems by their capacity to \textit{initiate and manage
+workflows} rather than merely respond to prompts. A conventional chatbot can
+answer ``Is the 5~PM slot available?''; our agent must answer ``Book the 5~PM
+slot, lock it for ten minutes, verify the advance payment, and notify the
+vendor.'' The latter requires stateful read--write operations across multiple
+external systems, which is precisely the capability gap this work fills.
 
 \subsection{Cognitive Architectures: ReAct, PRACT, and Reflexion}
 
-Yao et al.~\cite{yao2023} introduced the \textbf{ReAct} (Reasoning + Acting) paradigm,
-which interleaves chain-of-thought reasoning with external actions, enabling explicit
-planning traces such as:
+Yao et al.~\cite{yao2023} introduced the \textbf{ReAct} (Reasoning + Acting)
+paradigm, which interleaves chain-of-thought reasoning with external actions,
+enabling explicit planning traces such as:\\
 \textit{Thought}: User requests 5~PM padel.
 $\rightarrow$ \textit{Action}: \texttt{get\_availability("padel","2026-03-15","17:00")}.
 $\rightarrow$ \textit{Observation}: Slot available.
 $\rightarrow$ \textit{Action}: \texttt{create\_booking(user, slot)}.
 
 Liu et al.~\cite{liu2024} extend this with the \textbf{PRACT} agent, adding a
-self-reflection step \textit{before} executing irreversible actions.  Before calling
-\texttt{create\_booking()}, the agent verifies that the action is consistent with the
-user's latest stated intent---a critical safeguard where a confirmed booking constitutes
-a financial commitment.
+self-reflection step before executing irreversible actions. Before calling
+\texttt{create\_booking()}, the agent verifies that the action is consistent
+with the user's latest stated intent, which is a critical safeguard where a
+confirmed booking constitutes a financial commitment.
 
 Shinn et al.~\cite{shinn2023} demonstrate in \textbf{Reflexion} that verbal
 reinforcement and persistent state across iterations significantly improve agent
-reliability on multi-step tasks.  The agent receives textual feedback from the
-environment (e.g., ``payment amount incorrect'') and updates its policy accordingly
-without gradient updates.  This pattern directly informs our OCR rejection loop, where
-the agent re-prompts the user upon detecting an incorrect payment amount.
+reliability on multi-step tasks. The agent receives textual feedback from the
+environment (e.g., ``payment amount incorrect'') and updates its policy
+accordingly without gradient updates. This pattern directly informs our OCR
+rejection loop, where the agent re-prompts the user upon detecting an incorrect
+payment amount.
 
 \subsection{Orchestration Frameworks: LangChain and LangGraph}
 
-LangChain~\cite{mavroudis2024} provides a modular abstraction layer that decouples
-application logic from specific LLM providers, enabling composition of prompt
-templates, vector stores, and output parsers into unified pipelines.  However,
-standard LangChain implementations rely on Directed Acyclic Graphs (DAGs), which
-cannot represent the iterative, self-correcting loops required for asynchronous
-WhatsApp conversations where users may reply late, change their mind, or submit
-incorrect payment proofs.
+LangChain~\cite{mavroudis2024} provides a modular abstraction layer that
+decouples application logic from specific LLM providers, enabling composition
+of prompt templates, vector stores, and output parsers into unified pipelines.
+However, standard LangChain implementations rely on Directed Acyclic Graphs
+(DAGs), which cannot represent the iterative, self-correcting loops required
+for asynchronous WhatsApp conversations where users may reply late, change
+their mind, or submit incorrect payment proofs.
 
 \textbf{LangGraph}~\cite{langgraph2024} addresses this by replacing DAGs with
-\textit{Cyclic State Graphs}: the agent's behaviour is modelled as a state machine
-where nodes represent actions and edges encode conditional logic.  The framework
-provides loop control, state persistence across invocations, and fault recovery---
-all essential for BookForMe's multi-turn WhatsApp booking conversations.
-Shang et al.~\cite{shang2024} confirm in AgentSquare that modular architectures
-separating Planning, Reasoning, and Memory are substantially more robust for complex
-tasks than monolithic prompt designs.
+\textit{Cyclic State Graphs}: the agent's behaviour is modelled as a state
+machine where nodes represent actions and edges encode conditional logic. The
+framework provides loop control, state persistence across invocations, and
+fault recovery, all of which are essential for BookForMe's multi-turn WhatsApp
+booking conversations. Shang et al.~\cite{shang2024} confirm in AgentSquare
+that modular architectures separating Planning, Reasoning, and Memory are
+substantially more robust for complex tasks than monolithic prompt designs.
 
 \subsection{Multi-Agent Decomposition}
 
-H{\"a}ndler~\cite{handler2023} proposes a multi-dimensional taxonomy of autonomous
-LLM-powered multi-agent architectures, showing that complex workflows benefit from
-assigning distinct roles to specialised sub-agents (intent parsing, verification,
-database updates, external communications) coordinated by a central orchestrator.
-Wu et al.~\cite{wu2023autogen} in AutoGen further argue that effective problem-solving
-requires cyclic loops---the ability to retry failed actions, request missing
-information, and self-correct---rather than purely linear pipelines.  BookForMe
-adopts this multi-node, cyclic design in its LangGraph implementation.
+H{\"a}ndler~\cite{handler2023} proposes a multi-dimensional taxonomy of
+autonomous LLM-powered multi-agent architectures, showing that complex
+workflows benefit from assigning distinct roles to specialised sub-agents
+(intent parsing, verification, database updates, external communications)
+coordinated by a central orchestrator. Wu et al.~\cite{wu2023autogen} in
+AutoGen further argue that effective problem-solving requires cyclic loops: the
+ability to retry failed actions, request missing information, and self-correct
+rather than proceeding through purely linear pipelines. BookForMe adopts this
+multi-node, cyclic design in its LangGraph implementation.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Task-Oriented Dialogue and State Tracking}
 \label{sec:lit-tod}
 
-Task-Oriented Dialogue (TOD) systems have evolved from modular pipelines (NLU $\to$
-Dialogue State Tracking $\to$ Policy $\to$ NLG) to end-to-end architectures.
-\textbf{SimpleTOD}~\cite{hosseini2020} treats the entire dialogue as unified causal
-language modelling, jointly predicting belief states, system actions, and responses
-in a single autoregressive model.  While effective on standard benchmarks (MultiWOZ),
-it requires large annotated corpora---a significant barrier for our domain where no
-pre-built dataset exists.
+Task-Oriented Dialogue (TOD) systems have evolved from modular pipelines
+(NLU $\to$ Dialogue State Tracking $\to$ Policy $\to$ NLG) to end-to-end
+architectures. \textbf{SimpleTOD}~\cite{hosseini2020} treats the entire
+dialogue as unified causal language modelling, jointly predicting belief
+states, system actions, and responses in a single autoregressive model. While
+effective on standard benchmarks (MultiWOZ), it requires large annotated
+corpora, which is a significant barrier for our domain where no pre-built
+dataset exists.
 
-Shin et al.~\cite{shin2022} address this data scarcity problem with \textbf{DS2}
-(Dialogue Summaries as Dialogue States), converting conversation history into
-templated natural-language summaries that map directly to structured slot
-representations.  This summarisation-based approach is particularly useful for
-short, noisy WhatsApp messages where maintaining a full belief-state vector is
-impractical.
+Shin et al.~\cite{shin2022} address this data scarcity problem with
+\textbf{DS2} (Dialogue Summaries as Dialogue States), converting conversation
+history into templated natural-language summaries that map directly to
+structured slot representations. This summarisation-based approach is
+particularly useful for short, noisy WhatsApp messages where maintaining a
+full belief-state vector is impractical.
+
+\subsection{Why Separate NLU and NLG}
+
+End-to-end TOD systems that jointly handle understanding and generation perform
+well when large in-domain corpora exist. Peng et al.~\cite{peng2021} in
+\textbf{Soloist} demonstrate that a unified generative model can handle full
+dialogue turns at scale through transfer learning and machine teaching, but
+this approach still requires thousands of task-specific annotated dialogues
+and introduces non-determinism in every response, including slot fills and
+booking decisions. For a production booking system where incorrect slot data
+leads to real financial transactions, non-determinism in the understanding
+stage is unacceptable.
+
+This motivates BookForMe's two-model split: a deterministic, fine-tuned
+classifier (DistilBERT) for intent routing, and a large generative model
+(Qwen 3 32B via Groq) only for surface-level natural language generation of
+responses. The classifier's output is typed and bounded; the generator never
+touches database state directly. This is consistent with the Neuro-Symbolic
+architecture recommended by H{\"a}ndler~\cite{handler2023} and Wu et
+al.~\cite{wu2023autogen}.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Bilingual and Code-Switched NLU}
@@ -108,91 +132,142 @@ impractical.
 
 \subsection{Roman Urdu Challenges}
 
-Processing Roman Urdu introduces challenges largely absent from standard multilingual
-NLP.  Bhat et al.~\cite{bhat2023} classify Roman Urdu as exhibiting severe
-\textit{orthographic variation}: a single word can be rendered in multiple phonetically
-plausible romanisations by different writers (e.g., \textit{waqt}, \textit{vakt},
-\textit{wkht}, \textit{waqat}, and \textit{tym} all mean ``time'').  Standard subword
-tokenisers (BPE, WordPiece) trained on formal corpora frequently fail to map these
-variants to a shared semantic representation.  Integrating a normalisation layer
-before intent classification is therefore necessary.
+Processing Roman Urdu introduces challenges largely absent from standard
+multilingual NLP. Bhat et al.~\cite{bhat2023} classify Roman Urdu as
+exhibiting severe \textit{orthographic variation}: a single word can be
+rendered in multiple phonetically plausible romanisations by different writers
+(e.g., \textit{waqt}, \textit{vakt}, \textit{wkht}, \textit{waqat}, and
+\textit{tym} all mean ``time''). Standard subword tokenisers (BPE, WordPiece)
+trained on formal corpora frequently fail to map these variants to a shared
+semantic representation. A normalisation step or a model pre-exposed to
+informal text is therefore necessary before intent classification.
 
 \subsection{Cross-Lingual Transfer and Adapters}
 
-Yu et al.~\cite{yu2023} address cross-lingual dialogue state tracking via contrastive
-learning, aligning slot embeddings across languages so that semantically equivalent
-slots in different languages map to nearby vector representations.  Wu et al.~\cite{wu2023adapter}
-show that parameter-efficient adapter methods can transfer pretrained models to
-code-switched contexts without full retraining, significantly reducing data and
-compute requirements.
+Yu et al.~\cite{yu2023} address cross-lingual dialogue state tracking via
+contrastive learning, aligning slot embeddings across languages so that
+semantically equivalent slots in different languages map to nearby vector
+representations. Wu et al.~\cite{wu2023adapter} show that parameter-efficient
+adapter methods can transfer pretrained models to code-switched contexts
+without full retraining, significantly reducing data and compute requirements.
 
-The Qwen2.5 technical report~\cite{qwen2025} demonstrates that the 7B variant
-achieves 79.3 on the MMLU-Multi-Understanding benchmark, the highest among models
-of comparable size, validating its use as a multilingual backbone.
+The Qwen2.5 technical report~\cite{qwen2025} demonstrates strong multilingual
+instruction-following capability, validating its use for generating bilingual
+booking responses in English and Roman Urdu where tone, code-switching, and
+natural phrasing are all important.
 
-\subsection{Multilingual Pretrained Models}
+\subsection{Pretrained Models for Classification}
 
-Devlin et al.~\cite{devlin2019} introduced \textbf{BERT}, establishing bidirectional
-masked language modelling as the dominant pretraining paradigm.  The multilingual
-variant (mBERT) was pretrained on 104 languages, including Urdu, providing limited
-but useful cross-lingual transfer.  Conneau et al.~\cite{conneau2020} demonstrate
-that \textbf{XLM-RoBERTa}, trained on a substantially larger multilingual corpus
-with improved data filtering, outperforms mBERT on cross-lingual classification.
-Sanh et al.~\cite{sanh2019} show that \textbf{DistilBERT}, a distilled 66M-parameter
-version of BERT, retains 97\% of BERT's performance while being 40\% smaller and
-60\% faster---a highly attractive tradeoff for latency-sensitive production deployment.
+Devlin et al.~\cite{devlin2019} introduced \textbf{BERT}, establishing
+bidirectional masked language modelling as the dominant pretraining paradigm.
+The multilingual variant (mBERT) was pretrained on 104 languages including
+Urdu, providing limited but useful cross-lingual transfer. Conneau et
+al.~\cite{conneau2020} demonstrate that \textbf{XLM-RoBERTa}, trained on a
+substantially larger multilingual corpus with improved data filtering,
+outperforms mBERT on cross-lingual classification tasks.
+
+Sanh et al.~\cite{sanh2019} show that \textbf{DistilBERT}, a distilled
+66M-parameter version of BERT, retains 97\% of BERT's NLP benchmark
+performance while being 40\% smaller and 60\% faster at inference. Knowledge
+distillation~\cite{hinton2015} achieves this by training a compact student
+model to replicate the soft output distribution of a larger teacher, preserving
+most of the representational quality at a fraction of the compute cost. For a
+latency-sensitive production system like BookForMe, where intent classification
+must complete in under 50~ms per message, this speed-accuracy tradeoff is the
+primary motivation for choosing DistilBERT over larger alternatives.
 
 \subsection{Data Augmentation for Low-Resource Settings}
 
-Given the absence of pre-built bilingual booking datasets, data augmentation is
-essential.  Hou et al.~\cite{hou2020} show that back-translation and contextual
-augmentation improve slot-filling F1 by 6--17\% and intent accuracy by up to 12\%
-in booking domains with fewer than 500 annotated utterances.  An et al.~\cite{an2022}
-demonstrate that controllable T5-based generation yields 8--18\% absolute gains in
-intent classification under 10-shot conditions for restaurant and hotel reservation
-tasks.  He et al.~\cite{he2024} in \textbf{SynthDST} show that fully synthetic
-LLM-generated dialogues can surpass real-data baselines, achieving 4--12\% higher
-Joint Goal Accuracy on MultiWOZ when human annotations are extremely limited.
-BookForMe leverages LLM-driven paraphrasing and synthetic generation following
-these findings.
+Given the absence of any pre-built bilingual booking dataset, data augmentation
+is essential. Hou et al.~\cite{hou2020} show that back-translation and
+contextual augmentation improve slot-filling F1 by 6--17\% and intent accuracy
+by up to 12\% in booking domains with fewer than 500 annotated utterances. An
+et al.~\cite{an2022} demonstrate that controllable T5-based generation yields
+8--18\% absolute gains in intent classification under 10-shot conditions for
+restaurant and hotel reservation tasks. He et al.~\cite{he2024} in
+\textbf{SynthDST} show that fully synthetic LLM-generated dialogues can
+surpass real-data baselines, achieving 4--12\% higher Joint Goal Accuracy on
+MultiWOZ when human annotations are extremely limited. BookForMe's augmentation
+strategy follows these findings directly.
+
+Focal loss~\cite{lin2017}, originally introduced for object detection, is
+effective for training on class-imbalanced datasets: it down-weights easy,
+well-classified examples and focuses training signal on the harder class
+boundaries. Given the imbalance in our 5-class corpus (39.9\% inquiry vs.
+5.3\% greeting), focal loss is more appropriate than standard cross-entropy.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Retrieval, Planning, and Tool Use}
 \label{sec:lit-tools}
 
-Schick et al.~\cite{schick2023} demonstrated in \textbf{Toolformer} that LLMs can
-learn to invoke external APIs through self-supervised training, deciding autonomously
-when and how to call tools---a key capability for our agent's database interactions.
-Patil et al.~\cite{patil2023} (\textbf{Gorilla}) and Qin et al.~\cite{qin2023}
-(\textbf{ToolLLM}) extend this to controlled invocation of structured APIs, providing
-the theoretical basis for our \texttt{get\_availability()},
+Schick et al.~\cite{schick2023} demonstrated in \textbf{Toolformer} that LLMs
+can learn to invoke external APIs through self-supervised training, deciding
+autonomously when and how to call tools. Patil et al.~\cite{patil2023}
+(\textbf{Gorilla}) and Qin et al.~\cite{qin2023} (\textbf{ToolLLM}) extend
+this to controlled invocation of structured APIs, providing the theoretical
+basis for BookForMe's \texttt{get\_availability()},
 \texttt{create\_booking()}, and \texttt{get\_services()} tool set.
 
-Lewis et al.~\cite{lewis2020} introduced \textbf{Retrieval-Augmented Generation
-(RAG)}, conditioning generation on dynamically retrieved documents.  In BookForMe,
-RAG enables the agent to access up-to-date vendor availability and pricing from
-Firestore rather than relying on memorised parametric knowledge---critical for a
-real-time booking system.  Chen et al.~\cite{chen2025} present adaptive retrieval
-strategies where the agent decides when retrieval is necessary, minimising
-unnecessary database queries and reducing latency.
+Lewis et al.~\cite{lewis2020} introduced \textbf{Retrieval-Augmented
+Generation (RAG)}, conditioning generation on dynamically retrieved documents.
+In BookForMe, the agent retrieves up-to-date vendor availability and pricing
+from Firestore rather than relying on memorised parametric knowledge, which is
+critical for a real-time booking system. Chen et al.~\cite{chen2025} present
+adaptive retrieval strategies where the agent decides when retrieval is
+necessary, minimising unnecessary database queries and reducing latency.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Payment Verification via Computer Vision}
+\label{sec:lit-ocr}
+
+A distinguishing feature of BookForMe is its automated payment screenshot
+verification via OCR, eliminating the need for manual receipt checking by
+vendors. Memon et al.~\cite{memon2020} provide a comprehensive review of OCR
+systems, noting that modern deep learning-based OCR achieves high accuracy on
+printed and near-printed text such as bank transfer screenshots, where fonts
+are consistent and the background is predictable. For edge cases such as
+blurry images or unusual receipt formats, their analysis recommends requesting
+a cleaner image rather than forcing a low-confidence extraction, which aligns
+exactly with our fallback strategy.
+
+The Gemini multimodal model~\cite{team2023gemini} extends this capability to
+structured prompting: given a screenshot and a question (``what amount was
+transferred?''), the model returns a specific extracted value rather than a
+general description. This approach is more reliable for our use case than
+training a dedicated OCR model, as it leverages a large pretrained vision
+backbone without requiring any labelled payment screenshot data.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Distributed Booking and Concurrency Safety}
 \label{sec:lit-concurrency}
 
-Mong'are~\cite{mongare2024} provides a thorough analysis of idempotency in APIs
-and distributed systems, specifically addressing the double-booking problem that
-arises when concurrent requests modify shared mutable state.  He recommends
-idempotent APIs combined with Optimistic Concurrency Control (OCC) or distributed
-locking as the preferred approach for booking systems.  Our implementation directly
+Mong'are~\cite{mongare2024} provides a thorough analysis of idempotency in
+APIs and distributed systems, specifically addressing the double-booking
+problem that arises when concurrent requests modify shared mutable state. The
+recommended approach is idempotent APIs combined with Optimistic Concurrency
+Control (OCC) or distributed locking. BookForMe's implementation directly
 follows this recommendation, using Firestore atomic transactions with a
 \texttt{hold\_expires\_at} timestamp to implement OCC.
 
-Singh et al.~\cite{singh2000} demonstrate the effectiveness of reinforcement learning
-for dialogue policy optimisation in the NJFun system, working with compressed 62-state
-state spaces to ``greatly reduce'' training data requirements---an approach that
-validates BookForMe's data-efficient learning strategy for asynchronous multi-party
-interactions.
+Singh et al.~\cite{singh2000} demonstrate the effectiveness of structured
+state management for dialogue policy in the NJFun system, validating the
+importance of separating dialogue state from the booking transaction state,
+which is exactly the separation BookForMe maintains between the LangGraph
+\texttt{AgentState} and the Firestore slot document.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Social Ranking: Elo Rating Systems}
+\label{sec:lit-elo}
+
+The BookForMe social layer includes a competitive matchmaking system using Elo
+ratings. The Elo system~\cite{elo1978}, originally developed for chess, assigns
+each player a numerical rating updated after each match based on the expected
+versus actual outcome, with the magnitude of the update weighted by the
+opponent's relative strength. This produces a self-calibrating ranking that
+accounts for the quality of opponents rather than simply counting wins. It is
+widely adopted in competitive online games (e.g., League of Legends, Chess.com)
+and is well understood by sports players, making it an appropriate choice for
+the casual and competitive match lobbies in BookForMe's social hub.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Novelty and Gap Analysis}
@@ -220,25 +295,26 @@ Domain-specific apps & Single category     & \xmark & \xmark           & \xmark 
 \end{tabularx}
 \end{table}
 
-\noindent The primary research gaps addressed are:
+The primary research gaps addressed are:
 \begin{itemize}
-  \item \textbf{Roman Urdu code-switching:} Existing DST and NLU research does not
-        target informal WhatsApp-style Roman Urdu, presenting significant gaps in
-        language modelling and orthographic normalisation.
+  \item \textbf{Roman Urdu code-switching:} Existing DST and NLU research does
+        not target informal WhatsApp-style Roman Urdu, presenting gaps in
+        language modelling and orthographic normalisation for this dialect.
   \item \textbf{Transactional booking guarantees:} While agent tool-use is well
-        studied, very few works address concurrency, idempotency, and transactional
-        safety in real-world booking systems.
+        studied, very few works address concurrency, idempotency, and
+        transactional safety in real-world booking systems.
   \item \textbf{Asynchronous conversation flow:} Most TOD frameworks assume
-        synchronous interaction.  WhatsApp requires persistent memory and session
+        synchronous interaction. WhatsApp requires persistent memory and session
         resumption across arbitrary time delays.
-  \item \textbf{Evaluation for informal-economy SMEs:} Agent evaluation literature
-        does not address booking systems in informal economies where reliability, low
-        latency, and no-infrastructure vendor onboarding are essential.
+  \item \textbf{Evaluation for informal-economy SMEs:} Agent evaluation
+        literature does not address booking systems in informal economies where
+        reliability, low latency, and no-infrastructure vendor onboarding are
+        essential constraints.
 \end{itemize}
 
-BookForMe synthesises the reviewed literature into a practical LLM-driven booking
-agent that is novel precisely because it operates at the intersection of all four
-gaps listed above.
+BookForMe synthesises the reviewed literature into a practical LLM-driven
+booking agent that is novel precisely because it operates at the intersection
+of all four gaps listed above.
 
 %%% Local Variables:
 %%% mode: latex
