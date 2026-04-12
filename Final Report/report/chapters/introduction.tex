@@ -10,11 +10,9 @@ advance payment via JazzCash or bank transfer, and send a payment screenshot as
 confirmation. If the chosen slot was taken by another customer during the wait,
 the entire process restarts with a different vendor.
 
-This friction is not limited to sports courts. Salons, gaming zones, beach
-houses, and most informal service businesses in Karachi operate the same way.
+This friction is most visible in sports courts and similar slot-based venues in Karachi.
 No industry-wide booking infrastructure serves this segment. Existing digital
-solutions are narrow in scope, covering only sports apps or salon-specific
-platforms, and they do not reflect the cross-category, bilingual booking
+solutions are narrow in scope, covering only sports apps or niche platforms, and they do not reflect the cross-category, bilingual booking
 behaviour of real users.
 
 A user survey conducted by the team in Spring 2025 ($n > 50$) quantified this
@@ -39,7 +37,7 @@ vendors or support autonomous agent-driven negotiation.
 
 The vendor side mirrors this problem. Vendors manage incoming WhatsApp requests
 across multiple simultaneous conversations, maintain schedules in notebooks or
-Google Sheets, and face double-bookings whenever they are offline or slow to
+digital calendars, and face double-bookings whenever they are offline or slow to
 reply. Small vendors lack the resources to build dedicated booking systems,
 causing missed revenue and a poor customer experience.
 
@@ -111,7 +109,7 @@ What sets BookForMe apart from existing tools is the combination of three
 capabilities in one platform: bilingual NLU tuned to the local mix of English
 and Roman Urdu; a fully autonomous agentic workflow over WhatsApp with
 transactional safety; and a social layer for player matchmaking and community
-across sports, salons, gaming zones, and other informal services.
+across sports and other informal services.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Intended Users}
@@ -134,7 +132,7 @@ BookForMe serves three distinct user groups:
         them to change how they communicate.
 
   \item[Vendors (Small Business Owners)] Owners of futsal courts, padel courts,
-        salons, gaming zones, and similar informal services in Karachi. They
+        and similar informal services in Karachi. They
         interact with BookForMe through the Vendor Dashboard, which provides a
         consolidated booking calendar aggregating requests from both the app and
         WhatsApp, analytics, pending payment approvals, and WhatsApp Business
@@ -260,8 +258,8 @@ Table~\ref{tab:gantt} shows the monthly project timeline across both Kaavish I
   \item[LLM Latency]
         Calls to the Groq API for natural language generation add latency per
         message. The total WhatsApp response time budget is 60 seconds
-        (NFR-PERF-03). We minimise this by using the fine-tuned DistilBERT model
-        for fast intent classification (47~ms on CPU) and invoking the LLM only
+        (NFR-PERF). We minimise this by using the fine-tuned DistilBERT model
+        for fast intent classification (47 ms on CPU) and invoking the LLM only
         for generation and edge cases, while caching frequent availability
         queries.
 

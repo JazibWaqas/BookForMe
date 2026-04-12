@@ -132,7 +132,7 @@ distilbert-base-multilingual-cased
   & Compact multilingual; slightly slower
   & 84.8\% & 83.1\% & 84.9\% \\
 \textbf{distilbert-base-uncased}
-  & \textbf{Best overall; fastest inference ($\approx$47 ms)}
+  & \textbf{Best overall; fastest inference (47 ms)}
   & \textbf{90.5\%} & \textbf{91.7\%} & \textbf{90.5\%} \\
 XLM-RoBERTa-base
   & Underfit on small dataset; high variance
@@ -154,9 +154,9 @@ deployment based on:
 \begin{enumerate}
   \item \textbf{Best accuracy} (90.5\%) and \textbf{macro-F1} (91.7\%) across all
         six models tested.
-  \item \textbf{Fastest inference}: $\approx$47~ms per query on CPU, versus
-        $\approx$120~ms for bert-base-multilingual-cased.  This is critical given
-        the 60-second total WhatsApp response budget (\texttt{NFR-PERF-03}).
+  \item \textbf{Fastest inference}: 47 ms per query on CPU, versus
+        120 ms for bert-base-multilingual-cased.  This is critical given
+        the 60-second total WhatsApp response budget (NFR-PERF).
   \item \textbf{Smallest memory footprint} among competitive models (66M parameters),
         enabling cost-effective deployment on free-tier cloud infrastructure.
 \end{enumerate}
@@ -292,7 +292,7 @@ slot conflicts, hold expiry, vendor rejection).
         Roman Urdu phonetic variations.  Expanding to 2,000+ samples would improve
         generalisation.
 
-  \item \textbf{Latency on free-tier deployment:} Response times of 38--52 seconds,
+  \item \textbf{Latency on free-tier deployment:} Response times of 38 to 52 seconds,
         while within the 60-second NFR target, would benefit from caching and a paid
         LLM API endpoint.  Production infrastructure would reduce this to under 10
         seconds.

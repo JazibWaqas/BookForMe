@@ -1,217 +1,40 @@
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Learning Reflection}
+\section{Individual Reflections}
 \label{sec:reflect-learning}
 
 \subsection{Muhammad Ahmad Humayun Hanif}
 
-Kaavish was the first project in which I was responsible for the complete system
-architecture of a production-grade application---not just a module, but the
-integration of an LLM pipeline, a distributed database, a WhatsApp API, an OCR
-service, and a mobile frontend into a coherent whole.  The most significant skill I
-gained was \textbf{system-level thinking}: understanding how a design decision in the
-data model (e.g., separating Payments from Bookings) has downstream consequences for
-the agent's OCR verification loop, the vendor dashboard UI, and the audit trail.
+I came into this project thinking the hard part would be the AI. It turned out the hard part was the database. Once we decided that a slot document would serve as both the inventory record and the booking record, everything else had to be built around that decision. The OCR flow, the agent state machine, the vendor calendar, they all read and write that same document. When any of them fell out of step, it was immediately visible and genuinely painful to fix. That taught me more about system design than anything I have read, because I felt the consequences directly.
 
-Working with LangGraph taught me that \textit{cyclic state} is fundamentally
-different from linear pipeline composition---debugging a loop that can re-enter a
-node after five asynchronous hops requires a completely different mental model than
-debugging a sequential program.  I also developed a deep appreciation for the
-Neuro-Symbolic design pattern: the security and reliability properties it provides
-(no hallucinated bookings, no prompt injection) are not achievable with a pure LLM
-approach.
-
-The hardest challenge was the Roman Urdu orthographic variation problem.  I had
-underestimated how much ``waqt'' versus ``tym'' versus ``vakt'' would matter for a
-tokeniser trained on formal text.  Solving it through targeted data augmentation
-rather than a more complex normalisation layer was a pragmatic decision I stand by,
-but it highlighted the importance of domain-specific data over model complexity.
+LangGraph took longer to get right than I expected. The concept of a persistent graph that resumes across multiple webhook calls sounds clean on paper, but debugging a cyclic state machine where a node can be re-entered several calls later is a different kind of problem. I learned to add explicit logging at every edge transition just to know where the graph was at any given moment. I would not skip that step again.
 
 \subsection{Jazib Waqas}
 
-Designing and implementing the backend was simultaneously the most technical and the
-most frustrating part of the project.  The Optimistic Concurrency Control
-implementation in Firestore was conceptually straightforward but took significant
-debugging to get right---particularly understanding that Firestore transactions retry
-automatically on conflict, which required careful idempotency guarantees in our
-booking creation code to prevent duplicate records on retry.
+The backend work on the booking pipeline was the most demanding part of the project for me. Getting the concurrency control to work correctly took longer than I initially planned. The theory was straightforward but the implementation had a lot of edge cases, particularly around making sure that a transaction retrying automatically would not create a duplicate record. Once that was solid, everything built on top of it was much cleaner.
 
-I learned the value of \textbf{API contract discipline}: establishing clear input/output
-schemas for each microservice (agent, OCR, booking APIs) early in the project
-prevented integration failures later.  The one week we spent without a formal API
-contract between the backend and frontend resulted in two weeks of alignment work
-afterwards.
-
-WhatsApp Business API integration was technically straightforward but operationally
-unpredictable: Meta's review processes for webhook verification and message template
-approval add real latency to development cycles.  Future projects with third-party
-communication APIs should budget this time explicitly.
+The thing I would change if we started over is agreeing on a proper API contract between backend and frontend from day one. We did not do that early on and it cost us real time mid-project when the frontend was calling endpoints that had changed. We eventually sorted it out, but we should have treated the schema as a shared document that neither side could change without the other knowing.
 
 \subsection{Taha Hunaid Ali}
 
-Building the React Native frontend taught me that \textbf{state management at scale}
-is a qualitatively different problem from small-project UI development.  Coordinating
-real-time Firestore listeners, local optimistic UI updates (showing a slot as booked
-before the OCC transaction completes), and background push notification handling
-required careful architecture---I rewrote the booking flow's state management twice
-before arriving at a design that was both correct and maintainable.
+The frontend was harder than I expected, mostly because the data requirements were more complex than a typical app. Slot availability can change at any moment from three different sources simultaneously: a WhatsApp booking, an app booking, and a walk-in. Keeping the UI consistent without hammering the backend or confusing the user required thinking about caching more carefully than I had on previous projects. I rewrote the data layer twice before I was happy with it.
 
-The social features (forum, leaderboard, chat) were the most enjoyable to build
-because they had immediate visual feedback and were the most enthusiastically received
-by test users.  They also taught me the importance of \textbf{performance budgeting}
-on mobile: unoptimised Firestore listeners can drain a phone's battery within hours,
-and pagination on the leaderboard query reduced initial load time from 8 seconds to
-under 2 seconds.
+The social features were honestly the most fun to build and they got the best reaction from people we showed the app to. Getting the leaderboard to load quickly on mobile took real work though. The first version was loading everything at once and it was slow enough that it was embarrassing. Pagination fixed it, but I should have thought about that from the start.
 
 \subsection{Muhammad Taqi}
 
-My primary learning from this project was about \textbf{the cost of data}.  We spent
-more calendar time constructing, annotating, and augmenting the bilingual dataset
-than on any other single task.  This experience permanently reframed my view of ML
-projects: the model choice matters far less than the quality and coverage of training
-data.  The 20-point accuracy gap between XLM-RoBERTa (which should theoretically
-be better at multilingual tasks) and DistilBERT on our small custom dataset makes
-this case compellingly.
-
-Fine-tuning transformers also taught me practical lessons that textbooks gloss over:
-focal loss is essential for class imbalance but its gamma parameter requires careful
-tuning; evaluation should use macro-F1 (not accuracy) when classes are imbalanced;
-and confidence calibration matters when the downstream system (the dialogue state
-validator) relies on model confidence to decide whether to ask a clarifying question.
+Most of my time went into the dataset, not the model. Annotating and cleaning 694 utterances across two languages takes far longer than it sounds, and the quality of those annotations determined everything downstream. The result that surprised me most was XLM-RoBERTa performing worse than DistilBERT. XLM-RoBERTa is a larger multilingual model and should in theory handle Roman Urdu better. But with 500 training samples, it was too large for the data we had and it showed. That was a good reminder that picking a model is not just about capability, it is about what fits the scale of your dataset.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Team Reflection}
 \label{sec:reflect-team}
 
-\subsection{Collaboration and Role Distribution}
+We split the project by ownership, where each person was responsible for their component end-to-end. That worked well for moving in parallel but it created integration points that needed deliberate attention. We learned to treat those handoffs more carefully as the project progressed, but there were a few weeks early on where the backend and frontend were drifting apart without either side realising it.
 
-The team operated with a flat, ownership-based model: each member owned specific
-modules end-to-end (backend APIs, NLU pipeline, frontend, agent), rather than
-collectively owning all code.  This accelerated individual progress but created
-integration risks that required dedicated ``integration weeks'' at the end of each
-phase.
+The most stressful moment was the Twilio sandbox number expiring close to an evaluation. It was a one-person fix but the timing was bad. After that we put API credentials into a shared checklist that we reviewed before any major milestone.
 
-In hindsight, establishing a shared API contract document at the project's start---
-and treating it as a living specification updated before any breaking change---would
-have reduced integration friction significantly.  We introduced this practice in
-Kaavish II after experiencing its absence in Kaavish I.
+The two biggest decisions we made that were not in the original proposal were switching from PostgreSQL to Firestore and deciding to fine-tune a small model rather than use a large one end-to-end. Both were driven by practical constraints that became obvious only after we started building. Firestore's transaction model was a better fit for the slot locking logic than anything we would have written on top of a relational database. And using Groq for everything would have been too slow and too expensive to run on free-tier infrastructure. In both cases the constraint pushed us to a better solution than the one we had originally planned.
 
-\subsection{Teamwork Challenges}
-
-The most significant teamwork challenge arose when the WhatsApp Twilio sandbox number
-expired two weeks before the mid-evaluation, forcing an emergency re-integration.
-The team's ability to divide the problem---one member handling the new Twilio
-credentials, another updating the webhook endpoint, a third preparing a fallback
-demo with the web chat interface---under time pressure was a genuine test of
-collaboration and emerged as one of our team's strengths.
-
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Project Reflection}
-\label{sec:reflect-project}
-
-\subsection{Proposed vs.\ Achieved}
-
-Table~\ref{tab:proposed-vs-achieved} compares the features proposed in the original
-Kaavish I proposal against what was actually delivered.
-
-\begin{table}[H]
-\centering
-\caption{Proposed vs.\ achieved features.}
-\label{tab:proposed-vs-achieved}
-\begin{tabularx}{\textwidth}{Xcc}
-\toprule
-\textbf{Feature} & \textbf{Proposed} & \textbf{Achieved} \\
-\midrule
-WhatsApp AI Receptionist (text-based)   & \cmark & \cmark \\
-Bilingual NLU (English + Roman Urdu)    & \cmark & \cmark \\
-OCC slot locking (no double-booking)    & \cmark & \cmark \\
-OCR payment verification                & Stretch & \cmark \\
-React Native mobile app                 & \cmark & \cmark \\
-Vendor dashboard with analytics         & \cmark & \cmark \\
-Social features (forum, chat, friends)  & \cmark & \cmark \\
-Elo-based matchmaking                   & \cmark & \cmark \\
-Voice-calling agent (Twilio Voice)      & Stretch & \xmark \\
-Live payment gateway (JazzCash)         & Stretch & \xmark \\
-Google Sheets sync                      & \cmark & Partial \\
-Multi-city expansion                    & Stretch & \xmark \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-OCR payment verification was a stretch goal that we implemented ahead of schedule,
-replacing it in the core pipeline.  Voice calling and the live payment gateway were
-deprioritised in favour of polishing the text-based WhatsApp agent and the mobile
-app experience---a deliberate decision based on the user survey finding that 72\% of
-target users primarily communicate via WhatsApp text.
-
-\subsection{Design Decisions Driven by Challenges}
-
-\begin{itemize}
-  \item \textbf{Neuro-Symbolic over pure LLM:} Initially planned to use a single
-        LLM for both NLU and database queries.  After observing the LLM generating
-        invalid Firestore queries and ``inventing'' booking confirmations in early
-        prototypes, we adopted the Neuro-Symbolic architecture where the LLM only
-        classifies intent and extracts entities.
-
-  \item \textbf{DistilBERT over Qwen2.5:} Originally planned to use Qwen2.5-7B
-        as the NLU backbone.  After evaluating inference latency ($>$3 seconds on
-        available GPU, exceeding our WhatsApp response budget), we switched to
-        fine-tuning smaller transformer models, with DistilBERT emerging as the
-        winner.
-
-  \item \textbf{Firestore over PostgreSQL:} The SRS originally listed PostgreSQL
-        as the primary database.  After evaluating real-time listener requirements
-        for the social layer (chat, notifications, leaderboard) and the serverless
-        OCC transaction support needed for the booking pipeline, we migrated to
-        Firestore.  This decision eliminated a planned data synchronisation layer.
-\end{itemize}
-
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Process Reflection}
-\label{sec:reflect-process}
-
-\subsection{What Worked Well}
-
-\begin{itemize}
-  \item \textbf{Phased development:} Delivering a minimal working agent (text only,
-        limited intents) in December 2025 and iterating from there gave us early
-        feedback and a working demo for stakeholders at every subsequent milestone.
-
-  \item \textbf{Structured test cases:} Maintaining a public Google Sheets test case
-        document throughout development (rather than writing tests post-hoc) caught
-        agent regression bugs early and gave us clear evidence for the mid-evaluation
-        presentation.
-
-  \item \textbf{Real vendor engagement:} Testing the agent with actual futsal
-        operators---who sent genuine booking messages in Roman Urdu---surfaced
-        orthographic variations and failure modes that synthetic data generation
-        did not cover.
-
-  \item \textbf{Early SRS/SDS discipline:} Writing the SRS and SDS before coding
-        prevented scope creep and gave every team member a shared vocabulary for
-        system components.
-\end{itemize}
-
-\subsection{What Could Be Improved}
-
-\begin{itemize}
-  \item \textbf{API contract documentation:} As noted above, a formal shared API
-        schema document from day one would have reduced integration friction.
-
-  \item \textbf{Earlier load testing:} We discovered the Render.com free-tier
-        cold-start latency issue ($\approx$8--12 seconds) only during the
-        mid-evaluation rehearsal.  Load testing in January would have given us time
-        to implement response caching before the demo.
-
-  \item \textbf{Dataset annotation tooling:} Manual annotation in a shared Google
-        Sheet was slow and error-prone for the Roman Urdu samples.  A proper
-        annotation tool (Label Studio, Prodigy) with inter-annotator agreement
-        tracking would have improved dataset quality and annotation speed.
-
-  \item \textbf{Third-party API contingency planning:} The WhatsApp Twilio sandbox
-        number expiry was avoidable with a simple API credential rotation schedule.
-        Future projects should treat API credential expiry as a first-class risk with
-        a documented mitigation plan.
-\end{itemize}
+If we did this again, we would write the API contract first and treat it as a binding document. That single change would have saved the most time.
 
 %%% Local Variables:
 %%% mode: latex

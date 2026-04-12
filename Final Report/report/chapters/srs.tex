@@ -4,7 +4,7 @@
 \section{Introduction}
 
 \subsection{Purpose}
-This document defines the requirements for the \textbf{BookForMe} platform. The purpose of BookForMe is to address inefficiencies and fragmentation in booking informal, local services (such as sports courts, salons, and gaming zones) within Karachi. The system replaces unstructured communication and manual record-keeping with a centralized, intelligent, and reliable platform.
+This document defines the requirements for the \textbf{BookForMe} platform. The purpose of BookForMe is to address inefficiencies and fragmentation in booking sports courts and similar slot-based venues within Karachi. The system replaces unstructured communication and manual record-keeping with a centralized, intelligent, and reliable platform.
 
 It provides a streamlined booking interface for end-users alongside a social community layer for players. Vendors receive tools to manage bookings and availability across all channels, including an autonomous AI assistant on WhatsApp, reducing operational friction and revenue loss from missed or mishandled requests.
 
@@ -31,7 +31,7 @@ The BookForMe system comprises four primary components operating together:
 
 \subsection{Module: User (AI Chat \& Discovery)}
 \begin{itemize}
-  \item \texttt{FR-CUST-07} (Smart filter): The system shall provide an in-app AI chat interface that parses natural-language queries in English or Roman Urdu (e.g., ``Aaj Raat DHA mei konsa padel available hei under 2000'') and returns filtered venue results with available slots.
+  \item \textbf{Smart filter} (FR-CUST-07): The system shall provide an in-app AI chat interface that parses natural-language queries in English or Roman Urdu (e.g., ``Aaj Raat DHA mei konsa padel available hei under 2000'') and returns filtered venue results with available slots.
   \item \texttt{FR-CUST-08}: The in-app AI assistant shall return matching venues, available slot times, and pricing in a single response.
 \end{itemize}
 
@@ -99,38 +99,38 @@ Figure~\ref{fig:srs-block} shows the high-level system overview. The use case in
 
 \subsection{Performance}
 \begin{itemize}
-  \item \texttt{NFR-PERF-01}: Key app screens (vendor search, live court grid) shall load within 30 seconds on a stable mobile connection.
-  \item \texttt{NFR-PERF-02}: The AI agent NLU processing for a WhatsApp message shall complete within 60 seconds.
-  \item \texttt{NFR-PERF-03}: Total time from receiving a WhatsApp availability query to sending the initial response shall not exceed 60 seconds.
-  \item \texttt{NFR-PERF-04}: The WhatsApp webhook shall handle at least four simultaneous incoming requests without failure.
+  \item \textbf{Performance} (NFR-PERF): Key app screens (vendor search, live court grid) shall load within 30 seconds on a stable mobile connection.
+  \item \textbf{NLU processing} (NFR-PERF): The AI agent NLU processing for a WhatsApp message shall complete within 60 seconds.
+  \item \textbf{Response time} (NFR-PERF): Total time from receiving a WhatsApp availability query to sending the initial response shall not exceed 60 seconds.
+  \item \textbf{Throughput} (NFR-PERF): The WhatsApp webhook shall handle at least four simultaneous incoming requests without failure.
 \end{itemize}
 
 \subsection{Security}
 \begin{itemize}
-  \item \texttt{NFR-SEC-01}: All user and vendor access shall be protected via Firebase Authentication.
-  \item \texttt{NFR-SEC-02}: All external API keys (WhatsApp, cloud AI providers) shall be stored as environment variables, not hardcoded.
-  \item \texttt{NFR-SEC-03}: The WhatsApp webhook shall verify all incoming requests using the Meta verify token.
-  \item \texttt{NFR-SEC-04}: All data transmission between clients, the backend, and external APIs shall use HTTPS/TLS.
+  \item \textbf{Authentication} (NFR-SEC): All user and vendor access shall be protected via Firebase Authentication.
+  \item \textbf{API key security} (NFR-SEC): All external API keys (WhatsApp, cloud AI providers) shall be stored as environment variables, not hardcoded.
+  \item \textbf{Webhook verification} (NFR-SEC): The WhatsApp webhook shall verify all incoming requests using the Meta verify token.
+  \item \textbf{Encryption} (NFR-SEC): All data transmission between clients, the backend, and external APIs shall use HTTPS/TLS.
 \end{itemize}
 
 \subsection{Reliability}
 \begin{itemize}
-  \item \texttt{NFR-REL-01}: The system shall target 99.0\% uptime during peak operating hours.
-  \item \texttt{NFR-REL-02}: The AI agent shall handle external API errors gracefully, logging them without crashing the main service.
+  \item \textbf{Uptime} (NFR-REL): The system shall target 99.0\% uptime during peak operating hours.
+  \item \textbf{Fault tolerance} (NFR-REL): The AI agent shall handle external API errors gracefully, logging them without crashing the main service.
 \end{itemize}
 
 \subsection{Scalability}
 \begin{itemize}
-  \item \texttt{NFR-SCAL-01}: The backend shall support scaling via cloud deployment to handle increased load.
-  \item \texttt{NFR-SCAL-02}: The Firestore schema shall support at least 100 concurrent users without significant degradation.
-  \item \texttt{NFR-SCAL-03}: The system shall support at least 10 active vendors without degradation.
+  \item \textbf{Cloud scaling} (NFR-SCAL): The backend shall support scaling via cloud deployment to handle increased load.
+  \item \textbf{Concurrent users} (NFR-SCAL): The Firestore schema shall support at least 100 concurrent users without significant degradation.
+  \item \textbf{Vendor capacity} (NFR-SCAL): The system shall support at least 10 active vendors without degradation.
 \end{itemize}
 
 \subsection{Usability}
 \begin{itemize}
-  \item \texttt{NFR-USAB-01}: A new user shall be able to complete a booking in fewer than eight primary steps from the home screen.
-  \item \texttt{NFR-USAB-02}: Key vendor dashboard functions (calendar, pending approvals) shall be accessible within six taps from the main dashboard.
-  \item \texttt{NFR-USAB-03}: WhatsApp agent responses shall be clear and appropriate in both English and Roman Urdu.
+  \item \textbf{Booking efficiency} (NFR-USAB): A new user shall be able to complete a booking in fewer than eight primary steps from the home screen.
+  \item \textbf{Dashboard efficiency} (NFR-USAB): Key vendor dashboard functions (calendar, pending approvals) shall be accessible within six taps from the main dashboard.
+  \item \textbf{Response clarity} (NFR-USAB): WhatsApp agent responses shall be clear and appropriate in both English and Roman Urdu.
 \end{itemize}
 
 \section{System Block Diagram}

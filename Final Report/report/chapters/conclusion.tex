@@ -2,111 +2,47 @@
 \section{Summary}
 \label{sec:outro-summary}
 
-This report presented \textbf{BookForMe}, a centralized, agentic AI-powered booking
-platform designed to address the fragmented, manual booking process for informal
-services in Karachi, Pakistan.  The platform serves three user groups---app
-customers, WhatsApp customers, and vendors---through two interaction modalities: a
-React Native mobile application and an AI Receptionist operating on the vendor's
-WhatsApp Business channel.
+BookForMe set out to solve a genuinely frustrating problem: booking a sports court
+in Karachi involves finding a WhatsApp number, waiting hours for a reply,
+transferring money manually, and starting over if the slot was already taken. The
+platform replaces that entire cycle with a single system that works over WhatsApp,
+through a mobile app, or through a vendor dashboard, all tied to the same slot
+inventory.
 
-The core technical contributions are:
-\begin{enumerate}
-  \item A \textbf{custom bilingual dataset} of 694 annotated English / Roman Urdu
-        booking utterances, constructed through real vendor conversations, manual
-        annotation, and LLM-driven data augmentation.
-  \item A \textbf{comparative NLU evaluation} of six transformer architectures,
-        establishing that fine-tuned DistilBERT achieves the best accuracy--latency
-        tradeoff (90.5\% accuracy, 91.7\% macro-F1, $\approx$47~ms inference on CPU)
-        for this domain.
-  \item A \textbf{production-deployed LangGraph agent} implementing the full booking
-        pipeline with Optimistic Concurrency Control for double-booking prevention,
-        OCR-based payment verification, and human-in-the-loop vendor approval.
-  \item A \textbf{full-stack social platform} with Elo-based matchmaking, community
-        forums, leaderboards, and direct messaging---all integrated with the core
-        booking infrastructure.
-\end{enumerate}
+The core technical work produced four concrete outputs: a custom bilingual
+dataset of 694 English and Roman Urdu booking utterances built from real vendor
+conversations; a comparative evaluation of six transformer models establishing that
+fine-tuned DistilBERT achieves 90.5\% accuracy at 47 ms inference on CPU; a
+production-deployed LangGraph agent implementing the full booking pipeline with
+Optimistic Concurrency Control and OCR-based payment verification; and a social
+layer with Elo-based matchmaking, community forums, and direct messaging. The
+platform is live at \url{https://jhat-to9p.onrender.com}.
 
-End-to-end evaluation across 10 structured test cases demonstrated correct agent
-behaviour for the complete booking lifecycle, including error paths (incorrect
-payment, expired holds, slot conflicts, vendor rejection).  All non-functional
-requirements---including performance, security, reliability, and usability---were met
-on the live deployment.
-
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Research Questions Revisited}
-\label{sec:outro-rq}
-
-\begin{description}
-  \item[RQ1: Centralised platform vs.\ fragmented manual systems]
-        The deployed platform eliminates the three-step manual booking cycle
-        (find number $\to$ wait for reply $\to$ confirm informally) by providing
-        a single interface for discovery, booking, and payment across categories.
-        Vendor survey feedback confirmed reduced scheduling overhead.
-
-  \item[RQ2: Bilingual NLU on a small custom dataset]
-        DistilBERT fine-tuned on 657 utterances achieves 90.5\% accuracy and 91.7\%
-        macro-F1 on the held-out test set, demonstrating that production-grade bilingual
-        NLU is achievable with targeted dataset curation and augmentation---without
-        requiring thousands of manually labelled examples.
-
-  \item[RQ3: Conversational coherence across asynchronous WhatsApp interactions]
-        The LangGraph cyclic state graph, with conversation state persisted in
-        Firestore, correctly handles mid-conversation context switches, late replies,
-        and multi-turn clarification loops in all evaluated test cases.
-
-  \item[RQ4: Double-booking prevention in a distributed multi-channel platform]
-        Optimistic Concurrency Control via Firestore atomic transactions successfully
-        prevents concurrent slot conflicts, as demonstrated in TC-08 where two
-        simultaneous booking requests for the same slot resulted in exactly one
-        confirmed booking and one conflict response with alternatives.
-\end{description}
+All ten structured agent test cases passed on the live deployment, including the
+critical concurrency case where two simultaneous booking requests for the same
+slot produced exactly one confirmed booking.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Future Work}
 \label{sec:outro-future}
 
-Building on the current platform, the following directions are planned or proposed:
+The most impactful next step is replacing screenshot-based payments with a direct
+JazzCash or EasyPaisa API integration. This would eliminate the OCR accuracy
+dependency and cut the booking cycle from around 50 seconds to under 20.
 
-\begin{description}
-  \item[Voice Agent (Phase 2)]
-        Extending the AI Receptionist to handle phone calls via Twilio Voice with
-        Whisper ASR (speech-to-text) and a TTS response, enabling the estimated 30\%
-        of potential users who prefer voice communication over text.
+Alongside that, obtaining a production WhatsApp Business API account is necessary before the platform can be evaluated with
+real vendor traffic at scale.
 
-  \item[Production WhatsApp Re-Integration]
-        Obtaining a production WhatsApp Business API account to replace the expired
-        Twilio sandbox number, enabling evaluation with real vendor traffic at scale.
+On the AI side, the bilingual dataset needs to grow. 694 samples is enough for
+5-class intent classification but leaves the slot extraction model brittle on
+unusual Roman Urdu phrasings. Active learning from live conversations, where the
+deployed agent auto-labels new messages for human review, is the most practical
+path to 2,000+ samples without starting another round of manual annotation.
 
-  \item[Payment Gateway]
-        Integrating JazzCash or EasyPaisa payment APIs to replace screenshot-based
-        payment verification with programmatic confirmation, eliminating the OCR
-        accuracy dependency and reducing the booking cycle from $\sim$52~seconds to
-        under 20~seconds.
-
-  \item[Expanded NLU Dataset]
-        Growing the bilingual dataset to 2,000+ samples using active learning (the
-        deployed agent auto-labels new conversations for human review) and extending
-        coverage to more vendor categories (clinics, tutoring centres, event halls).
-
-  \item[Advanced Matching Algorithms]
-        Replacing the current Elo system with Glicko-2 (which models rating
-        uncertainty) and implementing graph-based player matching (stable matching,
-        max-flow) for fairer lobby formation with asymmetric skill distributions.
-
-  \item[Recommendation Engine]
-        Collaborative filtering and link prediction on the social graph to generate
-        personalised venue suggestions based on booking history, friend activity, and
-        sport preferences.
-
-  \item[Cross-City Expansion]
-        Extending the vendor database to Lahore and Islamabad, requiring
-        location-aware search indexing and multi-city availability management.
-
-  \item[Algorithmic Fairness Auditing]
-        Evaluating the matchmaking and recommendation systems for demographic fairness
-        (e.g., equitable match quality across skill levels), following emerging best
-        practices in fairness-aware ML deployment.
-\end{description}
+Longer term, the platform has clear room to expand: voice-based booking via Twilio
+and Whisper ASR for the estimated 30\% of users who prefer calling, multi-city
+support beyond Karachi, and a recommendation engine using booking history and
+social graph activity for personalised venue suggestions.
 
 %%% Local Variables:
 %%% mode: latex
