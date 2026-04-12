@@ -4,12 +4,13 @@
 \contentsline {table}{\numberline {2.1}{\ignorespaces Gap analysis: BookForMe versus existing dialogue and booking paradigms.}}{27}{table.caption.8}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Domain Entity Descriptions}}{47}{table.caption.19}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Core Domain Collections}}{48}{table.caption.19}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Social \& Auxiliary Collections}}{49}{table.caption.20}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{64}{table.caption.25}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{65}{table.caption.26}%
-\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{66}{table.caption.27}%
-\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{69}{table.caption.30}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{69}{table.caption.26}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{70}{table.caption.27}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{71}{table.caption.28}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{74}{table.caption.31}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
