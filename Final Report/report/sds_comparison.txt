@@ -1,0 +1,40 @@
+﻿
+================================================================================
+REPORT: Final-Report-Aangan.pdf (89 pages)
+================================================================================
+Found SDS-related content on 5 pages
+
+--- Page 7 ---
+python : Traceback (most recent 
+call last):
+At line:1 char:1
++ python extract_sds.py 2>&1 | 
+Out-File -FilePath 
+sds_comparison.txt -E ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (Traceback (mo  
+  st recent call last)::Strin   
+ g) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+  File "C:\Users\LENOVO\Desktop\
+Fyp\JHAT\Final 
+Report\report\extract_sds.py", 
+line 30, in <module>
+    print(text[:2000])
+    ~~~~~^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodin
+gs\cp1252.py", line 19, in 
+encode
+    return codecs.charmap_encode
+(input,self.errors,encoding_tabl
+e)[0]
+           ~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^
+UnicodeEncodeError: 'charmap' 
+codec can't encode character 
+'\ufb01' in position 524: 
+character maps to <undefined>

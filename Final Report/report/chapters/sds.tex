@@ -38,24 +38,72 @@ The diagram below illustrates the high-level data flow across the system's three
 \label{sec:sds-data}
 
 \subsection{Database Strategy}
-Data persistence is handled by \textbf{Google Cloud Firestore}. We employ a "Reference-Based" schema strategy to balance the flexibility of NoSQL with the need for structured relationships. The design strictly separates the transactional domain (vendors, slots, payments) from social or profile elements to ensure data integrity.
+Data persistence is handled by \textbf{Google Cloud Firestore}, chosen for three reasons:
+(1)~its document model maps naturally onto the variable-schema vendor entities---sports
+facilities, salons, and gaming zones differ substantially in structure;
+(2)~its native transaction API enables the Optimistic Concurrency Control required
+for double-booking prevention (Section~\ref{sec:sds-agent-pipeline}); and
+(3)~real-time listeners power the vendor dashboard's live booking feed without the
+overhead of short-interval polling.
 
-\subsection{Entity Descriptions}
-Table~\ref{tab:entities} describes the primary data collections deployed in Firestore.
+We employ a \textbf{Reference-Based} schema: related documents store a foreign-key
+field (e.g.\ \texttt{vendor\_id}) rather than nesting sub-documents, keeping each
+collection independently queryable and pageable. The schema is divided into two
+domains: a \emph{transactional core} that governs booking inventory and payments, and
+a \emph{social layer} that drives community engagement and gamification.
+
+\subsection{Slot Identity Design}
+Slot documents use a \textbf{deterministic composite document ID} of the form:
+
+\begin{center}
+\texttt{YYYYMMDD\_HHMM\_\{vendor\_slug\}\_\{resource\_id\}}
+\end{center}
+
+\noindent For example: \texttt{20260213\_1900\_ace\_padel\_court\_1}. Encoding date,
+start time, vendor, and physical asset directly into the document ID provides three
+benefits: (i)~slot generation is \emph{idempotent}---re-seeding the calendar never
+creates duplicates; (ii)~direct document reads replace expensive composite queries;
+and (iii)~the AI agent can parse date and sport type from a slot ID string without
+an additional database round-trip.
+
+\subsection{Core Domain Collections}
+Table~\ref{tab:entities-core} describes the transactional collections that power the
+booking inventory, pricing, and payment verification pipeline.
 
 \begin{table}[H]
     \centering
-    \caption{Domain Entity Descriptions}
-    \label{tab:entities}
+    \caption{Core Domain Collections}
+    \label{tab:entities-core}
     \small
-    \begin{tabular}{|p{3cm}|p{5cm}|p{6cm}|}
+    \begin{tabular}{|p{3.2cm}|p{4.6cm}|p{6.2cm}|}
     \hline
     \textbf{Collection} & \textbf{Key Attributes} & \textbf{Description \& Purpose} \\ \hline
-    \textbf{users} & phone, role, stats & Maintains core identity, authentication references, and gamification profiles. \\ \hline
-    \textbf{vendors} & operating\_hours, revenue & Represents the business entity and operational constraints. \\ \hline
-    \textbf{services} \& \textbf{resources} & pricing, capacity & Sellable units (e.g., Padel) mapped to specific real-world physical assets (e.g., Court 1). \\ \hline
-    \textbf{slots} & status, hold\_expires\_at & The core inventory ledger representing blockable time intervals. \\ \hline
-    \textbf{payments} & screenshot\_url, ocr\_verified\_amount & Audit trail of transactions, separated to ensure OCR verification operates safely before bookings are confirmed. \\ \hline
+    \textbf{users} & phone, role, skill\_rating, stats & Core identity and authentication. Carries gamification fields (points, level, badges) shared across booking and social features. \\ \hline
+    \textbf{vendors} & operating\_hours, area, revenue & Business entity: name, location, analytics counters, and a link to default payment account. \\ \hline
+    \textbf{services} & sport\_type, pricing, duration\_min & Sellable offering (e.g., ``Padel 60~min''). Defines base and peak pricing per time block. Each service belongs to one vendor. \\ \hline
+    \textbf{resources} & capacity, vendor\_id, service\_id & Physical asset mapped to a service (e.g., Court~1, Pitch~A). Determines how many concurrent bookings a service can accept. \\ \hline
+    \textbf{slots} & status, hold\_expires\_at, price & The core inventory ledger. Each document represents one bookable hour on one resource and carries the seven-state lifecycle described in Section~\ref{sec:sds-agent-pipeline}. \\ \hline
+    \textbf{payments} & screenshot\_url, ocr\_verified\_amount, status & Financial audit trail. Stores the uploaded receipt, the OCR-extracted amount, and a verification status (\texttt{uploaded}, \texttt{verified}, \texttt{rejected}). \\ \hline
+    \textbf{vendor\_payment\_accounts} & type, account\_number, is\_default & Stores JazzCash, EasyPaisa, or bank transfer details per vendor. The agent fetches the default account to share payment instructions with the customer after slot confirmation. \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Social \& Auxiliary Collections}
+Table~\ref{tab:entities-social} lists the collections that support the community and
+engagement layer described in Section~\ref{sec:sds-social}.
+
+\begin{table}[H]
+    \centering
+    \caption{Social \& Auxiliary Collections}
+    \label{tab:entities-social}
+    \small
+    \begin{tabular}{|p{3.2cm}|p{4.6cm}|p{6.2cm}|}
+    \hline
+    \textbf{Collection} & \textbf{Key Attributes} & \textbf{Description \& Purpose} \\ \hline
+    \textbf{posts} & sport\_type, likes\_count, comments\_count & Community forum entries tied to a sport category. Supports likes and threaded comments. \\ \hline
+    \textbf{matches} & status, max\_players, current\_players & Open matchmaking entries. A user who has booked a slot can create a match to recruit opponents; Elo ratings filter candidates. \\ \hline
+    \textbf{reviews} & rating, vendor\_id, slot\_id & Post-session star-rating reviews. Aggregated counters (\texttt{rating\_sum}, \texttt{rating\_count}) are maintained on the vendor document. \\ \hline
+    \textbf{notifications} & type, title, read & In-app alerts written on every booking lifecycle event (payment received, confirmed, rejected). Displayed in a dedicated notifications screen. \\ \hline
     \end{tabular}
 \end{table}
 
@@ -80,9 +128,10 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 \subsection{Pipeline Logic}
 \begin{enumerate}
     \item \textbf{Ingest \& Negotiation:} The Agent loops with the user to clarify intents (e.g., \texttt{GREETING}, \texttt{TRANSACTION}) and specific entities (date, time, service).
-    \item \textbf{Transaction (Locking):} Using OCC, the system creates a \texttt{HOLD} booking state with a 10-minute expiry window.
-    \item \textbf{Intelligent Gatekeeper:} Gemini Vision OCR extracts the payment screenshot amount. If invalid, the Agent auto-rejects quietly, asking for a re-upload.
-    \item \textbf{Human-in-the-Loop:} Valid receipts reach the Vendor Dashboard for a final localized authorization.
+    \item \textbf{Transaction (Locking):} Using OCC, the system atomically transitions the slot to \texttt{LOCKED} with a 10-minute \texttt{hold\_expires\_at} expiry window, preventing any concurrent booking attempt.
+    \item \textbf{Intelligent Gatekeeper:} The user uploads a payment screenshot (JazzCash/EasyPaisa/bank transfer). Meta Llama 4 Scout 17B performs OCR on the image and extracts the transferred amount in PKR. If the amount does not match the booking price within a tolerance of \textpm10~PKR, the Agent re-prompts the user for a corrected screenshot.
+    \item \textbf{Payment Submitted (\texttt{PENDING}):} On successful OCR verification, the slot transitions from \texttt{LOCKED} to \texttt{PENDING}, recording the payment reference and signalling that proof of payment has been received and is awaiting vendor review.
+    \item \textbf{Human-in-the-Loop:} The vendor sees the \texttt{PENDING} booking on their dashboard and issues a final confirmation, transitioning the slot to \texttt{CONFIRMED}.
 \end{enumerate}
 
 \begin{figure}[H]
@@ -95,6 +144,23 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 \end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────────
+\section{Social Layer \& Gamification}
+\label{sec:sds-social}
+
+Beyond booking, BookForMe implements a community-oriented social layer that transforms the platform into a sports engagement ecosystem. This layer is served by a dedicated \texttt{social\_api.py} module and a \texttt{gamification\_service.py}, both backed by additional Firestore collections.
+
+\subsection{Social Collections}
+\begin{itemize}
+    \item \textbf{posts} --- Users can publish community posts tied to a sport type (padel, futsal, cricket). Posts support likes and comments, enabling a sport-specific forum within the app.
+    \item \textbf{matches} --- A \texttt{matches} collection stores open matchmaking entries created by users who have booked a slot and wish to find opponents. Each match record encodes the sport, venue, date, time, maximum players, and a list of joined player IDs.
+    \item \textbf{reviews} --- After a confirmed booking is completed, users can submit a star-rating review attached to a \texttt{vendor\_id} and \texttt{slot\_id}. Aggregated rating fields (\texttt{rating\_sum}, \texttt{rating\_count}, \texttt{average\_rating}) are maintained on the vendor document.
+    \item \textbf{notifications} --- A \texttt{notifications} collection is written to on every significant booking event (payment received, booking confirmed, booking rejected). Notifications are delivered in-app and marked read/unread.
+\end{itemize}
+
+\subsection{Elo-Based Matchmaking \& Gamification}
+Each user document carries a \texttt{skill\_rating} field initialised at 1000 and updated after ranked matches using an Elo algorithm implemented in \texttt{gamification\_service.py}. Wins and losses increment \texttt{stats.wins} and \texttt{stats.losses} respectively. The leaderboard is derived by querying users ordered by \texttt{skill\_rating}, providing a competitive ranking across the platform's sports community. Users also accumulate \texttt{points} and \texttt{badges} (e.g., \texttt{early\_bird}, \texttt{regular}) as gamification incentives for repeat engagement.
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Technical Details \& Workflows}
 \label{sec:sds-technical-workflows}
 
@@ -102,9 +168,14 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 \subsubsection{Algorithm 1: Intent Parsing \& Action Routing}
 \textbf{Purpose:} To translate unstructured natural language into deterministic database actions without hallucination.
 \begin{itemize}
-    \item \textbf{Input:} Raw WhatsApp Message string + User Session State.
-    \item \textbf{Logic:} Qwen 3 32B classifies intent. The state machine "routes" this to a deterministic Python node ensuring the LLM does not generate database queries directly.
-    \item \textbf{Output:} Validated JSON Payload or Clarification Prompt.
+    \item \textbf{Input:} Raw WhatsApp message string + conversation session state.
+    \item \textbf{Logic (Two-Stage NLU Pipeline):}
+    \begin{enumerate}
+        \item \textbf{Intent Classification:} A fine-tuned \textbf{DistilBERT} model (hosted as a REST API on Render) classifies the message into one of five coarse intents: \texttt{GREETING}, \texttt{INQUIRY}, \texttt{INFO\_REQUEST}, \texttt{TRANSACTION}, or \texttt{UNKNOWN}.
+        \item \textbf{Entity Extraction \& Response Generation:} \textbf{Qwen 3 32B} receives the classified intent and extracts structured entities---date, time, sport type, venue, customer name---from the bilingual Roman~Urdu/English message. It then generates a contextually appropriate natural language response.
+    \end{enumerate}
+    The LangGraph state machine routes the extracted intent and entities to a deterministic Python node, ensuring that Qwen never issues database queries directly, eliminating hallucination risk on transactional operations.
+    \item \textbf{Output:} Validated entity payload routed to the correct pipeline node, or a clarification prompt returned to the user.
 \end{itemize}
 
 \subsubsection{Algorithm 2: Optimistic Concurrency Control (OCC)}
@@ -137,7 +208,9 @@ This covers the WhatsApp conversational flow, focusing heavily on the Error Corr
 \FloatBarrier
 \Needspace{0.82\textheight}
 \subsubsection{Workflow 2: The App User Experience}
-This underscores the React Native client's Dual-Search Capability, permitting classic visual filtering alongside natural language queries pointing to the identical underlying slot ledger.
+The React Native client provides a \textbf{Dual-Search Capability}: a traditional category-and-filter browse experience running in parallel with a dedicated natural-language search pipeline.
+
+The natural-language path is powered by two backend modules --- \texttt{ai\_search\_service.py} and \texttt{smart\_search.py} --- that are entirely separate from the WhatsApp LangGraph agent. When a user types a free-text query (e.g., ``padel courts DHA tomorrow evening''), the request is forwarded to the AI search service, which queries Firestore for matching vendors and slots and ranks results using a Groq-backed relevance scoring pass. This architecture ensures that the conversational WhatsApp agent and the in-app search share the same underlying slot inventory ledger while operating through independent NLU pipelines optimised for their respective interaction modalities.
 \begin{figure}[H]
     \centering
     \IfFileExists{images/AD- App flow booking process.png}{
