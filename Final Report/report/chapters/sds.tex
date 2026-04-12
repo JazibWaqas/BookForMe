@@ -1,4 +1,13 @@
 % ─────────────────────────────────────────────────────────────────────────────
+\begingroup
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 4pt}
+\setlength{\floatsep}{10pt plus 2pt minus 4pt}
+\captionsetup[figure]{skip=5pt}
+\newcommand{\sdsfig}[1]{%
+  \includegraphics[width=\linewidth,height=0.69\textheight,keepaspectratio]{#1}%
+}
+
 This chapter provides the critical design artifacts for the BookForMe project. It details the system's design decisions, hybrid architectural patterns, data structures, and the workflow logic required to build a robust service booking application.
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -43,7 +52,7 @@ The diagram below illustrates the high-level data flow across the system's three
 \begin{figure}[H]
     \centering
     \IfFileExists{images/System Architecture.png}{
-        \includegraphics[width=1.0\textwidth]{images/System Architecture.png}
+        \sdsfig{images/System Architecture.png}
     }{\fbox{System Architecture Diagram Missing}}
     \caption{High-Level System Architecture}
     \label{fig:sds-system-arch}
@@ -81,7 +90,7 @@ The Entity Relationship Diagram delineates references between entities, mapping 
 \begin{figure}[H]
     \centering
     \IfFileExists{images/ERD.png}{
-        \includegraphics[width=0.65\textwidth]{images/ERD.png}
+        \sdsfig{images/ERD.png}
     }{\fbox{ERD Diagram Missing}}
     \caption{Entity Relationship Diagram defining referential structures.}
     \label{fig:sds-erd}
@@ -104,7 +113,7 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 \begin{figure}[H]
     \centering
     \IfFileExists{images/FYP - Seq Dig.png}{
-        \includegraphics[width=0.9\textwidth]{images/FYP - Seq Dig.png}
+        \sdsfig{images/FYP - Seq Dig.png}
     }{\fbox{Sequence Diagram Missing}}
     \caption{AI Booking \& Payment Pipeline}
     \label{fig:sds-seq-dig}
@@ -137,36 +146,44 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 \end{itemize}
 
 \subsection{Workflow Visualizations}
+\FloatBarrier
 
+\Needspace{0.82\textheight}
 \subsubsection{Workflow 1: The Agentic Booking Experience}
 This covers the WhatsApp conversational flow, focusing heavily on the Error Correction Loop wherein rejected OCR receipts autonomously trigger a re-prompt.
 \begin{figure}[H]
     \centering
     \IfFileExists{images/Activity Diagram- Whatsapp Booking flow.png}{
-        \includegraphics[width=1.0\textwidth]{images/Activity Diagram- Whatsapp Booking flow.png}
+        \sdsfig{images/Activity Diagram- Whatsapp Booking flow.png}
     }{\fbox{Activity Diagram: Agent Flow Missing}}
     \caption{Activity Diagram: Agent/WhatsApp Booking Flow}
 \end{figure}
 
+\FloatBarrier
+\Needspace{0.82\textheight}
 \subsubsection{Workflow 2: The App User Experience}
 This underscores the React Native client's Dual-Search Capability, permitting classic visual filtering alongside natural language queries pointing to the identical underlying slot ledger.
 \begin{figure}[H]
     \centering
     \IfFileExists{images/AD- App flow booking process.png}{
-        \includegraphics[width=1.0\textwidth]{images/AD- App flow booking process.png}
+        \sdsfig{images/AD- App flow booking process.png}
     }{\fbox{Activity Diagram: App Flow Missing}}
     \caption{Activity Diagram: Mobile App Search \& Book}
 \end{figure}
 
+\FloatBarrier
+\Needspace{0.82\textheight}
 \subsubsection{Workflow 3: The Vendor Management Experience}
 This maps the Vendor integration, indicating that rejections trigger a sweeping cascade releasing \texttt{LOCKED} slots back to \texttt{AVAILABLE}.
 \begin{figure}[H]
     \centering
     \IfFileExists{images/FYP - Vend Activity Dig.png}{
-        \includegraphics[width=0.85\textwidth]{images/FYP - Vend Activity Dig.png}
+        \sdsfig{images/FYP - Vend Activity Dig.png}
     }{\fbox{Activity Diagram: Vendor Flow Missing}}
     \caption{Activity Diagram: Vendor Dashboard \& Approvals}
 \end{figure}
+
+\endgroup
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Security Implementation}

@@ -38,6 +38,7 @@
 \usepackage{setspace}           % line-spacing control
 \usepackage{array}              % extended column types
 \usepackage{needspace}          % keep headings with following content
+\usepackage{placeins}           % FloatBarrier to isolate figure sections
 
 \WarningFilter{tabularx}{X Columns too narrow}
 \WarningFilter{microtype}{Unable to apply patch `footnote'}
@@ -59,6 +60,7 @@
 
 % Chapter title format (matches template exactly)
 \titleformat{\chapter}[hang]{\bf\huge}{\thechapter.}{2pc}{}
+\titlespacing*{\chapter}{0pt}{-14pt}{22pt}
 
 % Image path
 \graphicspath{ {images/} }
