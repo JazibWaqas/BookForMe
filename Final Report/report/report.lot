@@ -1,15 +1,15 @@
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {1.1}{\ignorespaces BookForMe project timeline and deliverables.}}{15}{table.caption.7}%
+\contentsline {table}{\numberline {1.1}{\ignorespaces BookForMe project timeline and deliverables.}}{16}{table.caption.7}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {2.1}{\ignorespaces Gap analysis: BookForMe versus existing dialogue and booking paradigms.}}{24}{table.caption.8}%
-\addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Domain entity descriptions.}}{45}{table.caption.13}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{66}{table.caption.26}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{67}{table.caption.27}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{68}{table.caption.28}%
-\contentsline {table}{\numberline {5.4}{\ignorespaces AI Receptionist agent test case results.}}{71}{table.caption.31}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Gap analysis: BookForMe versus existing dialogue and booking paradigms.}}{25}{table.caption.8}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {7.1}{\ignorespaces Proposed vs.\ achieved features.}}{81}{table.caption.32}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Domain entity descriptions.}}{47}{table.caption.21}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{68}{table.caption.34}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{69}{table.caption.35}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{70}{table.caption.36}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces AI Receptionist agent test case results.}}{73}{table.caption.39}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{\ignorespaces Proposed vs.\ achieved features.}}{83}{table.caption.40}%
