@@ -8,32 +8,7 @@
   \includegraphics[width=\linewidth,height=0.69\textheight,keepaspectratio]{#1}%
 }
 
-This chapter provides the critical design artifacts for the BookForMe project. It details the system's design decisions, hybrid architectural patterns, data structures, and the workflow logic required to build a robust service booking application.
-
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Introduction}
-\label{sec:sds-intro}
-
-\subsection{Purpose}
-The purpose of this Software Design Specification (SDS) is to provide a comprehensive architectural overview of the \textbf{BookForMe} platform. It establishes a single source of truth for all technical decisions, detailing the accurate architecture from the database schema to the conversational AI pipelines.
-
-\subsection{Scope}
-The BookForMe system connects service providers (Vendors) and consumers (Users) in Karachi, Pakistan through a centralized platform. It solves the inefficiency of manual booking by automating the entire booking and payment verification process. The system includes:
-\begin{itemize}
-    \item \textbf{A User Mobile App:} A React Native (Expo) interface for users to browse, book, and engage socially.
-    \item \textbf{An Automated WhatsApp Agent:} An intelligent assistant that handles direct bookings conversations on behalf of the vendor using natural language in English or Roman Urdu.
-    \item \textbf{A Vendor Dashboard:} A React web interface for business owners to view their schedule, manage slots, and give final approval on bookings.
-    \item \textbf{A Centralized Backend:} A Python FastAPI layer that keeps data consistent, ensuring that a slot booked via WhatsApp is instantly updated on the App.
-\end{itemize}
-
-\subsection{Definitions and Acronyms}
-\begin{itemize}
-    \item \textbf{Neuro-Symbolic Agent Pipeline:} An architecture utilizing LangGraph and Qwen 3 32B to parse natural language into strict intents, while deterministic code handles database writes to prevent hallucinated bookings.
-    \item \textbf{Rich Client (Mobile App):} A fully-featured application installed on the phone.
-    \item \textbf{Conversational Client (WhatsApp):} A text-based Webhook interface connected to an AI Receptionist.
-    \item \textbf{OCC (Optimistic Concurrency Control):} A strategy using Firestore transactional locks to prevent double-booking across simultaneous users.
-    \item \textbf{OCR (Optical Character Recognition):} Technology utilizing Gemini Vision to automatically extract and verify amounts from payment screenshots.
-\end{itemize}
+This chapter details the BookForMe system's architectural patterns, data structures, and the workflow logic required to build a robust service booking application. It serves as the technical blueprint for the implementation described in the following chapters.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{System Architecture}

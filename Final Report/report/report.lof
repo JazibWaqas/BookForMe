@@ -18,15 +18,15 @@
 \contentsline {figure}{\numberline {3.14}{\ignorespaces Admin control center: platform-wide stats, slot generation, and vendor moderation.}}{42}{figure.caption.17}%
 \contentsline {figure}{\numberline {3.15}{\ignorespaces Admin vendor moderation: approve, suspend, or delete registered vendors.}}{42}{figure.caption.17}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces High-Level System Architecture}}{45}{figure.caption.18}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Entity Relationship Diagram defining referential structures.}}{47}{figure.caption.20}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces AI Booking \& Payment Pipeline}}{49}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Activity Diagram: Agent/WhatsApp Booking Flow}}{51}{figure.caption.22}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Activity Diagram: Mobile App Search \& Book}}{52}{figure.caption.23}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity Diagram: Vendor Dashboard \& Approvals}}{53}{figure.caption.24}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces High-Level System Architecture}}{44}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Entity Relationship Diagram defining referential structures.}}{46}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces AI Booking \& Payment Pipeline}}{48}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Activity Diagram: Agent/WhatsApp Booking Flow}}{50}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Activity Diagram: Mobile App Search \& Book}}{51}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity Diagram: Vendor Dashboard \& Approvals}}{52}{figure.caption.24}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{66}{figure.caption.28}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{67}{figure.caption.29}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{65}{figure.caption.28}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{66}{figure.caption.29}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

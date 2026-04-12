@@ -50,81 +50,77 @@
 \contentsline {subsection}{\numberline {3.5.5}AI receptionist (WhatsApp)}{41}{subsection.3.5.5}%
 \contentsline {subsection}{\numberline {3.5.6}Admin control panel}{42}{subsection.3.5.6}%
 \contentsline {chapter}{\numberline {4}Software Design Specification (SDS)}{43}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Introduction}{43}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Purpose}{43}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}Scope}{43}{subsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.1.3}Definitions and Acronyms}{44}{subsection.4.1.3}%
-\contentsline {section}{\numberline {4.2}System Architecture}{44}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Architectural Design}{44}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}System Architecture Diagram}{45}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Data Model (Data Design)}{46}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Database Strategy}{46}{subsection.4.3.1}%
-\contentsline {subsection}{\numberline {4.3.2}Entity Descriptions}{46}{subsection.4.3.2}%
-\contentsline {subsection}{\numberline {4.3.3}NoSQL Schema Diagram}{46}{subsection.4.3.3}%
-\contentsline {section}{\numberline {4.4}Agentic Booking Process Pipeline}{47}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}Pipeline Logic}{48}{subsection.4.4.1}%
-\contentsline {section}{\numberline {4.5}Technical Details \& Workflows}{49}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}Key Algorithms}{49}{subsection.4.5.1}%
-\contentsline {subsubsection}{Algorithm 1: Intent Parsing \& Action Routing}{49}{subsection.4.5.1}%
-\contentsline {subsubsection}{Algorithm 2: Optimistic Concurrency Control (OCC)}{50}{subsection.4.5.1}%
-\contentsline {subsection}{\numberline {4.5.2}Workflow Visualizations}{50}{subsection.4.5.2}%
-\contentsline {subsubsection}{Workflow 1: The Agentic Booking Experience}{51}{subsection.4.5.2}%
-\contentsline {subsubsection}{Workflow 2: The App User Experience}{52}{figure.caption.22}%
-\contentsline {subsubsection}{Workflow 3: The Vendor Management Experience}{53}{figure.caption.23}%
-\contentsline {section}{\numberline {4.6}Security Implementation}{54}{section.4.6}%
-\contentsline {chapter}{\numberline {5}Development}{55}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Overview}{55}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Database Design Decisions}{55}{section.5.2}%
-\contentsline {subsection}{\numberline {5.2.1}Slot as the Canonical Booking Record}{55}{subsection.5.2.1}%
-\contentsline {subsection}{\numberline {5.2.2}Composite Document IDs for Collision Prevention}{56}{subsection.5.2.2}%
-\contentsline {subsection}{\numberline {5.2.3}Two-Domain Schema}{56}{subsection.5.2.3}%
-\contentsline {subsection}{\numberline {5.2.4}Batch Reads to Eliminate N+1 Queries}{56}{subsection.5.2.4}%
-\contentsline {section}{\numberline {5.3}AI Receptionist Development}{57}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Two-Model NLU and NLG Architecture}{57}{subsection.5.3.1}%
-\contentsline {subsection}{\numberline {5.3.2}LangGraph: Why a State Graph Over a Simple Pipeline}{57}{subsection.5.3.2}%
-\contentsline {subsection}{\numberline {5.3.3}Entity Validation: From Regex to Pydantic}{58}{subsection.5.3.3}%
-\contentsline {subsection}{\numberline {5.3.4}Guardrails Node}{58}{subsection.5.3.4}%
-\contentsline {section}{\numberline {5.4}Mobile Application Development}{59}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Expo Go Constraints and Library Trade-offs}{59}{subsection.5.4.1}%
-\contentsline {subsection}{\numberline {5.4.2}Caching Strategy}{59}{subsection.5.4.2}%
-\contentsline {subsection}{\numberline {5.4.3}Role-Based Routing in a Single App}{59}{subsection.5.4.3}%
-\contentsline {subsection}{\numberline {5.4.4}Smart Filter (In-App AI Chat)}{60}{subsection.5.4.4}%
-\contentsline {subsection}{\numberline {5.4.5}Matchmaking and Elo Ranking}{60}{subsection.5.4.5}%
-\contentsline {section}{\numberline {5.5}Vendor Dashboard and Admin Panel}{60}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Payment Verification via OCR}{61}{section.5.6}%
-\contentsline {chapter}{\numberline {6}Methodology, Experiments and Results}{62}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Dataset Construction}{62}{section.6.1}%
-\contentsline {subsection}{\numberline {6.1.1}Data Collection}{62}{subsection.6.1.1}%
-\contentsline {subsection}{\numberline {6.1.2}Dataset Statistics}{63}{subsection.6.1.2}%
-\contentsline {subsection}{\numberline {6.1.3}Annotation Schema}{63}{subsection.6.1.3}%
-\contentsline {section}{\numberline {6.2}NLU Model Training and Selection}{64}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Training Configuration}{64}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Model Comparison}{64}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Selected Model: DistilBERT}{65}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}Per-Class Analysis (DistilBERT)}{66}{subsection.6.2.4}%
-\contentsline {section}{\numberline {6.3}Agent Evaluation}{67}{section.6.3}%
-\contentsline {subsection}{\numberline {6.3.1}Test Case Methodology}{67}{subsection.6.3.1}%
-\contentsline {subsection}{\numberline {6.3.2}Test Case Results}{68}{subsection.6.3.2}%
-\contentsline {section}{\numberline {6.4}Discussion}{69}{section.6.4}%
-\contentsline {subsection}{\numberline {6.4.1}Key Findings}{69}{subsection.6.4.1}%
-\contentsline {subsection}{\numberline {6.4.2}Limitations}{69}{subsection.6.4.2}%
-\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{71}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Summary}{71}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Research Questions Revisited}{72}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Future Work}{72}{section.7.3}%
-\contentsline {chapter}{\numberline {8}Reflection}{74}{chapter.8}%
-\contentsline {section}{\numberline {8.1}Learning Reflection}{74}{section.8.1}%
-\contentsline {subsection}{\numberline {8.1.1}Muhammad Ahmad Humayun Hanif}{74}{subsection.8.1.1}%
-\contentsline {subsection}{\numberline {8.1.2}Jazib Waqas}{74}{subsection.8.1.2}%
-\contentsline {subsection}{\numberline {8.1.3}Taha Hunaid Ali}{75}{subsection.8.1.3}%
-\contentsline {subsection}{\numberline {8.1.4}Muhammad Taqi}{76}{subsection.8.1.4}%
-\contentsline {section}{\numberline {8.2}Team Reflection}{76}{section.8.2}%
-\contentsline {subsection}{\numberline {8.2.1}Collaboration and Role Distribution}{76}{subsection.8.2.1}%
-\contentsline {subsection}{\numberline {8.2.2}Teamwork Challenges}{76}{subsection.8.2.2}%
-\contentsline {section}{\numberline {8.3}Project Reflection}{77}{section.8.3}%
-\contentsline {subsection}{\numberline {8.3.1}Proposed vs.\ Achieved}{77}{subsection.8.3.1}%
-\contentsline {subsection}{\numberline {8.3.2}Design Decisions Driven by Challenges}{78}{subsection.8.3.2}%
-\contentsline {section}{\numberline {8.4}Process Reflection}{78}{section.8.4}%
-\contentsline {subsection}{\numberline {8.4.1}What Worked Well}{78}{subsection.8.4.1}%
-\contentsline {subsection}{\numberline {8.4.2}What Could Be Improved}{79}{subsection.8.4.2}%
-\contentsline {chapter}{References}{80}{chapter*.32}%
+\contentsline {section}{\numberline {4.1}System Architecture}{43}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Architectural Design}{43}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}System Architecture Diagram}{43}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Data Model (Data Design)}{44}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Database Strategy}{44}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Entity Descriptions}{44}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}NoSQL Schema Diagram}{45}{subsection.4.2.3}%
+\contentsline {section}{\numberline {4.3}Agentic Booking Process Pipeline}{46}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Pipeline Logic}{47}{subsection.4.3.1}%
+\contentsline {section}{\numberline {4.4}Technical Details \& Workflows}{48}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Key Algorithms}{48}{subsection.4.4.1}%
+\contentsline {subsubsection}{Algorithm 1: Intent Parsing \& Action Routing}{48}{subsection.4.4.1}%
+\contentsline {subsubsection}{Algorithm 2: Optimistic Concurrency Control (OCC)}{49}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Workflow Visualizations}{49}{subsection.4.4.2}%
+\contentsline {subsubsection}{Workflow 1: The Agentic Booking Experience}{50}{subsection.4.4.2}%
+\contentsline {subsubsection}{Workflow 2: The App User Experience}{51}{figure.caption.22}%
+\contentsline {subsubsection}{Workflow 3: The Vendor Management Experience}{52}{figure.caption.23}%
+\contentsline {section}{\numberline {4.5}Security Implementation}{53}{section.4.5}%
+\contentsline {chapter}{\numberline {5}Development}{54}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Overview}{54}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Database Design Decisions}{54}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Slot as the Canonical Booking Record}{54}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Composite Document IDs for Collision Prevention}{55}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Two-Domain Schema}{55}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}Batch Reads to Eliminate N+1 Queries}{55}{subsection.5.2.4}%
+\contentsline {section}{\numberline {5.3}AI Receptionist Development}{56}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Two-Model NLU and NLG Architecture}{56}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}LangGraph: Why a State Graph Over a Simple Pipeline}{56}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}Entity Validation: From Regex to Pydantic}{57}{subsection.5.3.3}%
+\contentsline {subsection}{\numberline {5.3.4}Guardrails Node}{57}{subsection.5.3.4}%
+\contentsline {section}{\numberline {5.4}Mobile Application Development}{58}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Expo Go Constraints and Library Trade-offs}{58}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Caching Strategy}{58}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Role-Based Routing in a Single App}{58}{subsection.5.4.3}%
+\contentsline {subsection}{\numberline {5.4.4}Smart Filter (In-App AI Chat)}{59}{subsection.5.4.4}%
+\contentsline {subsection}{\numberline {5.4.5}Matchmaking and Elo Ranking}{59}{subsection.5.4.5}%
+\contentsline {section}{\numberline {5.5}Vendor Dashboard and Admin Panel}{59}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Payment Verification via OCR}{60}{section.5.6}%
+\contentsline {chapter}{\numberline {6}Methodology, Experiments and Results}{61}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Dataset Construction}{61}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Data Collection}{61}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Dataset Statistics}{62}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}Annotation Schema}{62}{subsection.6.1.3}%
+\contentsline {section}{\numberline {6.2}NLU Model Training and Selection}{63}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Training Configuration}{63}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Model Comparison}{63}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Selected Model: DistilBERT}{64}{subsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.2.4}Per-Class Analysis (DistilBERT)}{65}{subsection.6.2.4}%
+\contentsline {section}{\numberline {6.3}Agent Evaluation}{66}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}Test Case Methodology}{66}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}Test Case Results}{67}{subsection.6.3.2}%
+\contentsline {section}{\numberline {6.4}Discussion}{68}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Key Findings}{68}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Limitations}{68}{subsection.6.4.2}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{70}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Summary}{70}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Research Questions Revisited}{71}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Future Work}{71}{section.7.3}%
+\contentsline {chapter}{\numberline {8}Reflection}{73}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Learning Reflection}{73}{section.8.1}%
+\contentsline {subsection}{\numberline {8.1.1}Muhammad Ahmad Humayun Hanif}{73}{subsection.8.1.1}%
+\contentsline {subsection}{\numberline {8.1.2}Jazib Waqas}{73}{subsection.8.1.2}%
+\contentsline {subsection}{\numberline {8.1.3}Taha Hunaid Ali}{74}{subsection.8.1.3}%
+\contentsline {subsection}{\numberline {8.1.4}Muhammad Taqi}{75}{subsection.8.1.4}%
+\contentsline {section}{\numberline {8.2}Team Reflection}{75}{section.8.2}%
+\contentsline {subsection}{\numberline {8.2.1}Collaboration and Role Distribution}{75}{subsection.8.2.1}%
+\contentsline {subsection}{\numberline {8.2.2}Teamwork Challenges}{75}{subsection.8.2.2}%
+\contentsline {section}{\numberline {8.3}Project Reflection}{76}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Proposed vs.\ Achieved}{76}{subsection.8.3.1}%
+\contentsline {subsection}{\numberline {8.3.2}Design Decisions Driven by Challenges}{77}{subsection.8.3.2}%
+\contentsline {section}{\numberline {8.4}Process Reflection}{77}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}What Worked Well}{77}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}What Could Be Improved}{78}{subsection.8.4.2}%
+\contentsline {chapter}{References}{79}{chapter*.32}%
