@@ -1,0 +1,105 @@
+% Development chapter
+% TeX-master: ../report.tex
+
+This chapter describes how the BookForMe platform was built, covering the key engineering decisions made during implementation, the challenges encountered, and how they were resolved. Where the SDS describes the intended design, this chapter describes what it actually took to realise it.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Overview}
+\label{sec:dev-overview}
+
+BookForMe comprises four deployed components sharing a single Firestore database: a React Native customer app, a vendor dashboard, an admin control panel, and a Python/FastAPI AI backend that handles both WhatsApp conversations and mobile API calls. The backend is deployed on Render; the mobile apps are distributed via Expo Go and Expo EAS builds. All interfaces write to and read from the same slot inventory, which is the fundamental guarantee that a WhatsApp booking is immediately visible on the vendor calendar and vice versa.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Database Design Decisions}
+\label{sec:dev-database}
+
+\subsection{Slot as the Canonical Booking Record}
+
+The most consequential schema decision was to eliminate a separate \texttt{bookings} collection entirely. A slot document in Firestore is both the inventory record and the booking record. When a booking is made, the same document that was previously \texttt{available} gains a \texttt{user\_id}, \texttt{booking\_source}, and \texttt{payment\_id} and transitions through a typed status sequence: \texttt{available} $\to$ \texttt{locked} $\to$ \texttt{pending} $\to$ \texttt{confirmed} $\to$ \texttt{completed}.
+
+This eliminates the class of bugs where a slot record and a booking record fall out of sync. It also makes Optimistic Concurrency Control (OCC) straightforward: the Firestore transaction reads and writes \emph{one} document atomically, so two concurrent booking attempts on the same slot cannot both succeed.
+
+\subsection{Composite Document IDs for Collision Prevention}
+
+Slot documents use a deterministic composite ID: \texttt{YYYYMMDD\_HHMM\_{vendor}\_{resource}} (e.g., \texttt{20260412\_1800\_ace-padel\_court-1}). This serves two purposes. First, it makes the slot ID human-readable and debuggable. Second, because Firestore document IDs are unique by definition, attempting to create two slots for the same court at the same time is structurally impossible: the second write simply overwrites or conflicts rather than creating a duplicate.
+
+\subsection{Two-Domain Schema}
+
+The schema is divided into a \textbf{transactional domain} (vendors, services, resources, slots, payments) governed by Firestore transactions and strong consistency, and a \textbf{social domain} (posts, matches, conversations, notifications) where eventual consistency is acceptable. This separation means high-volume social activity (forum posts, chat messages) cannot interfere with booking transactions, and the transactional collections can be tuned with composite indexes without polluting the social namespace.
+
+\subsection{Batch Reads to Eliminate N+1 Queries}
+
+The vendor bookings endpoint initially fetched user and payment records inside a loop, producing an N+1 query pattern. This was refactored to collect all required user IDs and payment IDs in a first pass, then resolve them via \texttt{db.get\_all()} in batched chunks of ten (the Firestore client library limit per batch call). The enriched records are then assembled from in-memory maps. This reduced the number of Firestore reads for a typical vendor with 20 bookings from ~40 reads to approximately 5.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{AI Receptionist Development}
+\label{sec:dev-agent}
+
+\subsection{Two-Model NLU and NLG Architecture}
+
+The conversational pipeline uses two separate models for two distinct tasks. Intent classification is handled by a fine-tuned \textbf{DistilBERT} model, a compact transformer (66M parameters) trained on the BookForMe bilingual corpus. This task demands speed and determinism: given a short message, the model must output one of five intent classes in under 50~ms with no variability between runs. A generative model would be both slower and non-deterministic for this task.
+
+Natural language generation (constructing the actual reply the user receives) is delegated to \textbf{Groq (Qwen 3 32B)}, a large instruction-tuned model accessed via the Groq API. Generating a response that correctly code-switches between Roman Urdu and English, adapts its tone, and formats slot listings naturally requires a model with broad linguistic capability that a small fine-tuned classifier cannot provide.
+
+The split is deliberate. DistilBERT makes the routing decision (what to do), and Qwen generates the surface form of the reply (what to say).
+
+\subsection{LangGraph: Why a State Graph Over a Simple Pipeline}
+
+The initial agent design used a linear sequence: receive message $\to$ classify intent $\to$ query database $\to$ generate reply. This broke on the first multi-turn conversation. A user could send a booking request, then reply ``kal'' (tomorrow) to a clarification question three minutes later with no additional context. A stateless pipeline has no memory of the prior exchange.
+
+LangGraph was adopted because it provides a persistent, typed state object (\texttt{AgentState}) that survives across webhook calls. Each incoming WhatsApp message resumes the same graph execution context rather than starting fresh. The graph uses conditional edges to route between nodes: after \texttt{validate\_state}, the graph branches to \texttt{query\_availability}, \texttt{query\_info}, \texttt{check\_confirmation}, or \texttt{generate\_response} depending on what information is still missing. This cyclic, conditional structure could not be replicated cleanly with a linear chain.
+
+\subsection{Entity Validation: From Regex to Pydantic}
+
+Slot entity extraction (date, time, service, area) was initially written as a set of regular expressions. This worked for simple inputs but produced silent failures on edge cases: a time like ``bajay 7'' (at 7 o'clock in Roman Urdu) would partially match a pattern but return a malformed result that downstream nodes consumed without error, leading to incorrect availability queries.
+
+The fix was to wrap all extracted entities in Pydantic models (\texttt{ExtractedEntities}, \texttt{AvailableSlot}, \texttt{PendingBooking}). Pydantic validators reject or coerce invalid values at parse time, so a malformed time string raises a validation error immediately rather than propagating silently. The regex patterns still perform the initial extraction, but the results are always passed through a typed model boundary before any node acts on them.
+
+\subsection{Guardrails Node}
+
+The first node in the graph, before any NLU or database access, is a guardrails check. It screens for profanity (via the \texttt{better-profanity} library) and, when the conversation is not already in a booking context, checks whether the message contains any booking-domain keyword from a curated set of ~80 English and Roman Urdu terms. Messages that pass neither test receive a polite redirect response without ever reaching the NLU or database layers. This proved essential for preventing the agent from attempting to answer general questions or being manipulated via prompt injection.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Mobile Application Development}
+\label{sec:dev-mobile}
+
+\subsection{Expo Go Constraints and Library Trade-offs}
+
+The application was developed and tested using \textbf{Expo Go}, which imposes constraints on which native libraries can be used. Several libraries that would have simplified real-time data delivery were either incompatible with Expo Go's managed workflow or required a bare React Native ejection. In particular, libraries that support \textbf{server-sent events (SSE)} or \textbf{long-polling} transports for real-time push were not available without ejecting. As a result, real-time screen updates are implemented via \textbf{interval polling} using \texttt{setInterval}: the vendor live court grid polls the API every 5 seconds, and the DM chat screen polls for new messages every 8 seconds. This is a deliberate practical trade-off rather than the preferred architecture. A production deployment using Expo EAS builds with a bare workflow or a dedicated WebSocket library (e.g., \texttt{socket.io-client}) would replace polling with a persistent connection.
+
+\subsection{Caching Strategy}
+
+All API calls from the customer app go through \textbf{TanStack React Query v5}, configured with a custom \texttt{QueryProvider} that persists the cache to \texttt{AsyncStorage}. The configuration uses a 5-minute stale time (data is served from cache without a network request for 5 minutes) and a 24-hour garbage collection time (the cache survives app restarts for a full day). This means a user who opens the app on a slow connection sees the vendor list immediately from the last cached fetch while a background refetch runs. Writes to \texttt{AsyncStorage} are throttled to once per second to avoid blocking the JS thread. The vendor bookings list uses a separate in-memory cache keyed by vendor ID with a configurable TTL, bypassed only on forced refreshes.
+
+\subsection{Role-Based Routing in a Single App}
+
+Rather than shipping separate customer and vendor apps, the application uses a single Expo Router project with role-based routing. On login, the user's \texttt{role} field (\texttt{customer}, \texttt{vendor}, or \texttt{admin}) is read from the auth response and determines which tab navigator is mounted. This simplified development significantly: shared UI components, the auth service, and the API client are used by all roles without duplication.
+
+\subsection{Smart Filter (In-App AI Chat)}
+
+The in-app AI chat tab operates differently from the WhatsApp agent. Rather than a full multi-turn conversational pipeline, it is a \textbf{synchronous single-turn search}: the user's natural-language query (e.g., ``Aaj Raat DHA mei konsa padel available hei under 2000'') is sent to the backend, which runs NLU entity extraction, constructs a Firestore query from the extracted filters (sport, area, date, price ceiling), and returns matching venues with available slots in a single response. There is no conversation state or slot-filling loop. This keeps the in-app experience fast and focused while the full stateful agent handles the more complex asynchronous WhatsApp channel.
+
+\subsection{Matchmaking and Elo Ranking}
+
+The social hub includes a matchmaking system for casual and ranked sports matches. The ranking design decision centred on choosing between a simple win/loss counter and a proper rating system. Elo was selected because it accounts for opponent strength (beating a higher-rated player yields more points than beating a lower-rated one) and because it is well-understood by competitive sports players. The implementation uses the standard formula with $K = 32$ and an initial rating of 1000. Ranked match lobbies are discovered by querying for open lobbies where the rating difference is within a window of 200 points, expanding by 50 points for every additional minute of wait time to avoid indefinite queuing.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Vendor Dashboard and Admin Panel}
+\label{sec:dev-vendor}
+
+The vendor dashboard's central feature is the \textbf{live court grid}: a matrix of courts against hourly time blocks showing slot status (available, booked, walk-in) and booking source (WhatsApp or app). Because SSE was not available in the managed Expo environment, the grid polls the backend every 5 seconds and additionally refetches when the app returns from the background (via an \texttt{AppState} listener). A green ``LIVE'' indicator is shown when the polling interval is active.
+
+The payment approval flow completes the end-to-end booking loop: the agent sets a slot to \texttt{pending} and attaches a payment record; the vendor dashboard surfaces this as a notification; the vendor reviews the OCR-verified screenshot and taps Approve or Reject; approval triggers a Firestore status write to \texttt{confirmed} and dispatches a WhatsApp confirmation to the customer.
+
+The \textbf{admin control panel} was added as a platform governance layer after it became clear that vendor onboarding required manual oversight. Vendors register through the app but are not visible to customers until an admin approves them. The panel also exposes slot generation (bulk-create 14 days of availability slots for all vendors) and stale lock release (clear \texttt{locked} slots whose \texttt{hold\_expires\_at} has passed), both of which are operationally necessary during seeding and testing.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Payment Verification via OCR}
+\label{sec:dev-ocr}
+
+After a booking is agreed in WhatsApp conversation, the agent requests a payment screenshot from the user. The image is uploaded via the WhatsApp media endpoint, downloaded by the backend, and passed to the \textbf{Gemini Vision API} with a structured prompt requesting the transferred amount. The extracted amount is compared against the required advance payment for the slot. If the amounts do not match, the booking record remains in \texttt{locked} state, the user is informed of the discrepancy, and a corrected screenshot is requested, all without notifying the vendor. The vendor only receives a dashboard notification once OCR verification passes, preventing noise from failed payment attempts. In cases where OCR confidence is low (e.g., blurry screenshot), the system falls back to requesting a clearer image rather than attempting a low-confidence approval.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../report"
+%%% End:
