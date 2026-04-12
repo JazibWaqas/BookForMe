@@ -1,0 +1,1486 @@
+
+================================================================================
+REPORT: Final-Report-Aangan.pdf (89 pages)
+================================================================================
+
+TABLE OF CONTENTS:
+  Introduction (p.13)
+    Problem Statement (p.13)
+    Proposed Solution (p.14)
+    Intended User (p.14)
+    Project gantt chart and deliverable (p.15)
+      Gantt Chart (p.15)
+      Project Deliverable (p.16)
+    Key Challenges (p.17)
+  Literature Review (p.19)
+    Hand-writing Analysis of Urdu (p.19)
+      Literature Researched (p.22)
+    Analysis of Hand-drawn Sketches (p.22)
+      Literature Researched (p.25)
+    Related Existing Solutions (p.26)
+  Software Requirement Specification (SRS) (p.30)
+    System Overview (p.30)
+      Module: Teaching Urdu (p.30)
+      Module: Drawing (p.31)
+      Performance Reporting and Visualization (p.32)
+    Functional Requirements (p.32)
+    Non-functional Requirements (p.34)
+      Performance (p.34)
+      Reliability (p.35)
+      Availability (p.35)
+      Maintainability (p.35)
+      Scalability (p.35)
+    External Interfaces (p.35)
+      User Interfaces (p.35)
+      Application Program Interface (API) (p.40)
+    Use Cases (p.40)
+    Datasets (p.43)
+    System Diagram (p.45)
+  Software Design Specification (SDS) (p.48)
+    Software Design (p.48)
+    Data Design (p.50)
+  Application (p.52)
+    Register, Login and Main Menus (p.52)
+    Urdu Module (p.57)
+      Urdu Letter Writing (p.58)
+      Urdu Word Writing (p.60)
+      Object Identification with Urdu Words (p.61)
+      Urdu Words' Identification (p.62)
+    Drawing Module (p.63)
+    Personalization of Exercises (p.64)
+    Dashboard (p.64)
+  Dataset (p.66)
+    Data Collection for Urdu Characters (p.66)
+      Data Scoring (p.67)
+      Data Pre-processing (p.69)
+    Data Generation for Urdu Words (p.69)
+  Experiments and Results (p.72)
+    Methodology (p.72)
+      Interclass Score (p.72)
+      Intra-class Score (p.74)
+      Scoring for Urdu Characters (p.75)
+      Scoring for Urdu Words (p.75)
+      Interclass Score (p.77)
+      IntraClass Score (p.78)
+      Score Combination (p.79)
+    Results (p.79)
+      Inter-class Model (p.79)
+      Intra-class Model (p.80)
+  Conclusion and Future Work (p.83)
+    Conclusion (p.83)
+    Future work (p.83)
+  Appendix Code (p.85)
+  References (p.86)
+
+SDS-related content on 14 pages
+
+--- Page 7 ---
+3.4
+External Interfaces . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+34
+3.4.1
+User Interfaces
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+34
+3.4.2
+Application Program Interface (API) . . . . . . . . . . . . . .
+39
+3.5
+Use Cases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+39
+3.6
+Datasets . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+42
+3.7
+System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+44
+4
+Software Design Speciﬁcation (SDS)
+47
+4.1
+Software Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+47
+4.2
+Data Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+49
+5
+Application
+51
+5.1
+Register, Login and Main Menus
+. . . . . . . . . . . . . . . . . . . .
+51
+5.2
+Urdu Module
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+57
+5.2.1
+Urdu Letter Writing
+. . . . . . . . . . . . . . . . . . . . . . .
+57
+5.2.2
+Urdu Word Writing . . . . . . . . . . . . . . . . . . . . . . . .
+59
+5.2.3
+Object Identiﬁcation with Urdu Words . . . . . . . . . . . . .
+60
+5.2.4
+Urdu Words’ Identiﬁcation . . . . . . . . . . . . . . . . . . . .
+61
+5.3
+Drawing Module
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+62
+5.4
+Personalization of Exercises
+. . . . . . . . . . . . . . . . . . . . . . .
+63
+5.5
+Dashboard . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+63
+6
+Dataset
+65
+6.1
+Data Collection for Urdu Characters
+. . . . . . . . . . . . . . . . . .
+65
+6.1.1
+Data Scoring
+. . . . . . . . . . . . . . . . . . . . . . . . . . .
+67
+6.1.2
+Data Pre-processing
+. . . . . . . . . . . . . . . . . . . . . . .
+68
+6.2
+Data Generation for Urdu Words
+. . . . . . . . . . . . . . . . . . . .
+68
+7
+Experiments and Results
+71
+7.1
+Methodology
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+71
+7.1.1
+Interclass Score . . . . . . . . . . . . . . . . . . . . . . . . . .
+71
+7.1.2
+Intra-class Score . . . . . . . . . . . . . . . . . . . . . . . . . .
+73
+7.1.3
+Scoring for Urdu Characters . . . . . . . . . . . . . . . . . . .
+74
+7.1.4
+Scoring for Urdu Words
+. . . . . . . . . . . . . . . . . . . . .
+75
+7.1.5
+Interclass Score . . . . . . . . . . . . . . . . . . . . . . . . . .
+76
+7.1.6
+IntraClass Score . . . . . . . . . . . . . . . . . . . . . . . . . .
+78
+7.1.7
+Score Combination . . . . . . . . . . . . . . . . . . . . . . . .
+78
+7.2
+Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+78
+7.2.1
+Inter-class Model . . . . . . . . . . . . . . . . . . . . . . . . .
+78
+6
+
+
+--- Page 9 ---
+List of Figures
+1.1
+Gantt chart of the application . . . . . . . . . . . . . . . . . . . . . .
+15
+2.1
+The 8-direction stroke convention [22] . . . . . . . . . . . . . . . . . .
+19
+2.2
+Proposed procedure for segmentation of words [22] . . . . . . . . . . .
+20
+2.3
+Stroke representation of sketches in the QuickDraw dataset . . . . . .
+23
+2.4
+UI of Kaligo Application . . . . . . . . . . . . . . . . . . . . . . . . .
+27
+2.5
+UI of Kids Urdu Learning App - Alphabets Learning App . . . . . . .
+28
+2.6
+UI of Draw it - Learning App
+. . . . . . . . . . . . . . . . . . . . . .
+28
+3.1
+Introductory Screens . . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+3.2
+Module Selection . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+36
+3.3
+Urdu Module - UI . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+3.4
+Remaining modules for Urdu . . . . . . . . . . . . . . . . . . . . . . .
+38
+3.5
+Drawing module . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+38
+3.6
+Performance Visualization Screens . . . . . . . . . . . . . . . . . . . .
+39
+3.7
+Usecase diagram of the application
+. . . . . . . . . . . . . . . . . . .
+41
+3.8
+Usecase diagram of Urdu module
+. . . . . . . . . . . . . . . . . . . .
+42
+3.9
+UHaT: Urdu handwritten text dataset
+. . . . . . . . . . . . . . . . .
+44
+3.10 System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+45
+4.1
+UML Class Diagram of the system
+. . . . . . . . . . . . . . . . . . .
+47
+4.2
+Entity Relationship Diagram of the system . . . . . . . . . . . . . . .
+50
+5.1
+Logging in to application . . . . . . . . . . . . . . . . . . . . . . . . .
+52
+5.2
+Urdu letter tracing . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+53
+5.3
+Registering to use application . . . . . . . . . . . . . . . . . . . . . .
+54
+5.4
+Adding child proﬁle . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+55
+5.5
+Selecting child proﬁle . . . . . . . . . . . . . . . . . . . . . . . . . . .
+56
+5.6
+Selecting module
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+56
+8
+
+
+--- Page 10 ---
+5.7
+Selecting Urdu module . . . . . . . . . . . . . . . . . . . . . . . . . .
+57
+5.8
+Urdu letter tracing . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+58
+5.9
+Urdu letter tracing for incorrect attempt . . . . . . . . . . . . . . . .
+59
+5.10 Urdu word tracing
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+60
+5.11 Object identiﬁcation with Urdu Words . . . . . . . . . . . . . . . . .
+61
+5.12 Urdu Word identiﬁcation with Objects . . . . . . . . . . . . . . . . .
+62
+5.13 Drawing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+63
+6.1
+Distribution of Characters . . . . . . . . . . . . . . . . . . . . . . . .
+66
+6.2
+Data Collection Application . . . . . . . . . . . . . . . . . . . . . . .
+66
+6.3
+Interface for Scoring Application . . . . . . . . . . . . . . . . . . . . .
+67
+6.4
+Distribution of Scores . . . . . . . . . . . . . . . . . . . . . . . . . . .
+67
+6.5
+Distribution of Age Groups
+. . . . . . . . . . . . . . . . . . . . . . .
+68
+6.6
+Word Data Samples . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+69
+6.7
+Word Data Samples . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+70
+6.8
+Data Generation Process . . . . . . . . . . . . . . . . . . . . . . . . .
+70
+7.1
+From Left to right: Urdu characters Chey (Primary features: Hori-
+zontal Line left to right, Semi Circle Up to down. Secondary Features:
+3 dots, middle), Bey (Primary features: Start Vertical Line, Horizon-
+tal Line right to left, End Vertical Line. Secondary Features: 1 dots,
+below), and Ayn (Primary features: Start Semi Circle, Semi Circle
+Up to down. Secondary Features: None) . . . . . . . . . . . . . . . .
+72
+7.2
+Primary Features Model Architecture . . . . . . . . . . . . . . . . . .
+72
+7.3
+Secondary Features Model Architecture . . . . . . . . . . . . . . . . .
+72
+7.4
+Urdu Words Segmentation Model Architecture . . . . . . . . . . . . .
+75
+7.5
+The ﬁgure shows the process of segmentation.
+From left to right:
+Reference image, sample stroke, sample stroke with dots removed,
+sample stroke segmented into two diﬀerent strokes to be sent to the
+model described in Section 7.1.2 . . . . . . . . . . . . . . . . . . . . .
+75
+7.7
+Stepwise procedure for the Dataset Preparation . . . . . . . . . . . .
+77
+7.8
+Few Samples from the training set . . . . . . . . . . . . . . . . . . . .
+77
+7.6
+Architecture for the Drawing interclass Model . . . . . . . . . . . . .
+77
+7.9
+From left to right: Reference Image shown on the application for
+the character ‘Jeem’, Sample stroke classiﬁed as ‘unrecognizable’ by
+the interclass model, Sample stroke classes as ‘recognizable’ by the
+interclass model.
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+79
+9
+
+
+--- Page 17 ---
+5. A SDS document listing design details and how the application is built.
+6. An initial proposal that states the aims, objectives and goals of the team.
+7. Literature review
+8. Product Prototype
+9. A Poster summarizing the features of the ﬁnal product.
+10. A Final report with details of the end product
+What will not be covered as a part of the project
+1. The application provides a real-time interactive learning experience by acting
+as a tutor to a learner. Video lessons are therefore not a part of the application.
+2. The application is not intended to test or improve a learner’s speaking ability.
+The methods and means employed in the application only cover a range of
+cognitive levels including writing, comprehension and understanding.
+1.5
+Key Challenges
+1. Online and oﬄine elements in application
+Ideally, most application features and modules should run without being con-
+nected to the internet, but keeping everything oﬄine would mean application
+size can become huge.
+Similarly, keeping application features and modules
+available to use only when connected to internet, not only limits accessibility
+but Amazon Web Services free tier provides limited access only. Therefore,
+deciding which elements to keep online and oﬄine will be a challenge.
+2. User experiences on diﬀerent devices
+We aim that the the application should be able to run smoothly on most touch-
+screen systems. However, diﬀerent systems have diﬀerent touch sensitivities
+(touch sampling rate). Moreover, diﬀerent devices have diﬀerent refresh rates
+1 which means that user experience may vary depending upon the device being
+used.
+1refresh rate: the number of times the monitor updates with new images each second
+16
+
+
+--- Page 23 ---
+2.2
+Analysis of Hand-drawn Sketches
+The drawing module of our application displays a simple sketch to the user and the
+user is required to draw the sketch on the canvas using a pen. The main task under
+this module is to be able to recognize how good or bad a user-drawn sketch is in com-
+parison to the reference image. There exists a generous amount of research within
+machine learning approaches that target hand-drawn sketches. Hand-drawn sketches
+come with their own share of domain-speciﬁc challenges and beneﬁts as compared
+to natural photos. For instance, freehand sketches are highly diverse, sparse, and
+abstract and do not follow a speciﬁc set of rules. At the same time, hand-drawn
+sketches do not have any background clutter and the sequential nature of sketch
+generation allows for better analysis. Sketch properties also allow for various repre-
+sentations of hand-drawn sketches and at the same time call for Machine learning
+strategies that are speciﬁc to Freehand drawing leading to Sketch-speciﬁc models
+that can extract sketch properties and are designed to overcome challenges within
+the domain. In this part of the research, we will analyze some techniques that have
+been used for sketch recognition, classiﬁcation, and representation.
+As compared to natural photos that are pixel perfect, hand sketches are highly ab-
+stract. A major challenge in coming up with a representation of free-hand sketches to
+model sketch inputs is to look out for richer representations that are based on eﬃcient
+storage and at the same time allow for faster calculations. Some popular techniques
+for sketch representation include storing freehand sketches as a sparse matrix or in
+the form of strokes or pen coordinates represented in Euclidean space. This represen-
+tation is particularly useful when considering sketches as time series. Sketches may
+also be represented as Static pixel space if they’re being rendered as images. Topo-
+logically, freehand sketches can also be stored as connected graphs where each stroke
+may be represented in the form of an edge. Such a representation would also comple-
+ment the abstract nature of sketches themselves and is expected to be more ﬂexible
+as compared to the others. Among various other state of art architectures [15] pro-
+posed a “SketchRNN” which is a Recurrent neural network-based deep Variational
+AutoEncoder (VAE) capable of generating sketches in a stroke by stroke manner.
+This sequence-to-sequence variational encoder has inspired various researchers to
+use stroke sequences as input to many recent developments in sketch-based models.
+Due to the eﬃciency of the stroke-based representation, our application also aims
+to store user sketches in the form of strokes represented by horizontal and vertical
+coordinates with respect to time. Figure 2.3 below shows a similar representation of
+sketches in the QuickDraw dataset.
+22
+
+
+--- Page 25 ---
+to employ online sketch classiﬁcation models to be able to provide real-time feedback
+to the user. A sketch recognition network proposed by [12] utilizes the sequential
+process of sketching for training and plots each training sketch as a continuous se-
+quence of cumulative stroke pictures. Then the deep features extracted from the
+corresponding AlexNet [18] are preprocessed and sent into a Gated Recurrent Unit
+(GRU) [23] network in sequence. This network generally works for oﬄine methods
+but has also proved to work well in online recognition mode due to the involvement of
+the intermediate status of the sketches. [14] discusses traditional Machine learning
+approaches- including KNN, RNN, SVM, and MLP to recognize hand-drawn im-
+ages and is particularly focuses on basic shapes like squares, triangle, and oval. [14]
+gives a performance analysis of traditional techniques as compared to deep learning
+methods including CNN, LSTM, and WaveNet networks where deep learning models
+outperform the traditional approaches alongside ensuring computational eﬃciency.
+For automated scoring, [30] proposed Deep convolutional neural networks or Con-
+vNets called DeepSketch that uses a modiﬁed structure of AlexNet. The architecture
+in [30] is speciﬁcally designed to extract features from diﬀerent layers of DNN which
+leaves room for diﬀerent facets of similarity. Similarly, [19] employs a deep learn-
+ing methodology that processes two sketch patches together to generate a similarity
+score through a semi Siamese network.
+Our literature review indicates limited research in the scoring of sketches represented
+as strokes and a lack of automatic scoring for drawing in general.
+2.2.1
+Literature Researched
+The table on the following pages outlines important details acquired from the liter-
+ature researched.
+24
+
+
+--- Page 26 ---
+Paper
+Dataset
+Technique/Architecture
+Year
+Accuracy
+Analysis
+and
+Recog-
+nition of Hand-Drawn
+Images with Eﬀective
+Data Handling
+QuickDraw
+A comparison of Nearest
+Neighbor (K-NN), Random
+Forest
+Classiﬁer
+(RFC),
+Support
+Vector
+Classiﬁer
+(SVC),
+and
+Multi-Layer
+Perceptron
+model
+(MLP)
+was provided against CNN,
+LSTM,
+and
+WaveNet
+Network.
+2019
+Max:
+82%
+Sketch Image Recogni-
+tion Using Deep Fea-
+tures
+HDFS
+VGGS Model’s pre-trained
+sketches were preprocessed
+using MatConvNet library
+and fed into a semi-siamese
+network for deep recogni-
+tion of human sketches.
+2016
+-
+DeepSketch:
+Deep
+CNN for Sketch recog-
+nition
+and
+similarity
+search
+TU-Berlin
+Uses
+CNN
+for
+classiﬁca-
+tion, feature extraction and
+evaluates a similarity index
+through application of K-
+Nearest Neighbour.
+2015
+75.42%
+Sketch-a-Net:
+A deep
+neural
+network
+that
+beats humans
+TU-Berlin
+A picture with stroke infor-
+mation is provided as an in-
+put to a 5-layered CNN with
+8.5M parameters for sketch
+recognition.
+2015
+74.90%
+Free-Hand
+Sketch
+Recognition Classiﬁca-
+tion
+Name
+not
+speciﬁed
+PNG ﬁles are used for clas-
+sifying hand drawn drawn
+sketches through diﬀerent
+depths(maximum 25) of the
+same CNN architecture.
+2016
+65%
+2.3
+Related Existing Solutions
+We now shift our attention towards existing applications and solutions. This section
+provides a general overview of the applications which exist for our problem. We
+will ﬁrst survey the applications available internationally for other languages, and
+25
+
+
+--- Page 48 ---
+4.
+Software Design Speciﬁcation (SDS)
+This chapter provides important artifacts related to design of our project.
+4.1
+Software Design
+This section presents the UML class diagram and gives a brief description of each
+class in our system. A high quality image of the class diagram can be found here.
+Figure 4.1: UML Class Diagram of the system
+The main components of the class diagram are explained below:
+47
+
+
+--- Page 50 ---
+AttemptedExercise and Scorer
+• As the name suggests, the AttemptedExercise class is responsible for recording
+and saving the user’s attempt. It will also evaluate the exercise by triggering
+the scoring methods of the scorer class depending on the module which that
+particular exercise belongs to.
+• The Scorer exercise is responsible for evaluating the exercise and generating
+a score that is to be saved and sent back to the user as feedback. The class
+contains four sub-classes, each corresponding to the four diﬀerent modules of
+our application. Each module has a distinct method for scoring the exercise,
+with separate models using which the combined is generated. The logic for
+generating the ﬁnal score is implemented in the virtual function getScore().
+Dashboard
+• This is a static class which is responsible for the operations that would be
+required when displaying the feedback and performance of a child to their par-
+ents. This includes, but is not limited to, generating reports and corresponding
+graphs for each child.
+4.2
+Data Design
+This section presents the structure of our database that caters to persistent data
+storage in our project. A high quality PDF of the ERD can be found here.
+49
+
+
+--- Page 51 ---
+Figure 4.2: Entity Relationship Diagram of the system
+50
+
+
+================================================================================
+REPORT: Final-Report-Hamdard.pdf (71 pages)
+================================================================================
+
+TABLE OF CONTENTS:
+  Introduction (p.13)
+    Problem Statement (p.13)
+    Proposed Solution (p.13)
+    Intended User (p.13)
+    Project gantt chart and deliverables (p.14)
+      Deliverables (p.14)
+      Gantt Chart (p.15)
+    Key Challenges (p.17)
+  Literature Review (p.18)
+    Chatbots for Healthcare (p.18)
+    Chatbots to Assist Pregnant Women (p.20)
+    RASA and NLP Chatbots (p.21)
+    Chatbots Involving Bayesian Networks and PL bots (p.21)
+    Chatbots in Urdu Language (p.22)
+    Conversational Assistants in Non-English languages (p.23)
+  Software Requirement Specification (SRS) (p.26)
+    Functional Requirements (p.26)
+      Login (p.26)
+      Complication Prediction (p.26)
+      Weekly messaging (p.27)
+      Typing in queries (p.27)
+      User sign-up (p.28)
+      Maintaining chat history (p.28)
+      Identifying and confirming spelling mistakes (p.29)
+      Keeping track of context (p.29)
+    Non-functional Requirements (p.30)
+    External Interfaces (p.31)
+      User Interfaces (p.31)
+      Application Program Interface (API) (p.36)
+      Hardware/Communication Interfaces (p.36)
+    Use Cases (p.37)
+    Datasets (p.38)
+    System Diagram (p.41)
+  Software Design Specification (SDS) (p.42)
+    Software Design (p.42)
+    Data Design (p.43)
+      WhatsApp Messaging functionality and Personal Dashboard (p.43)
+      FAQ conversational functionality (p.44)
+  Development (p.46)
+    Web App Development (p.46)
+    Chatbot Development (p.46)
+      Conversational Data Preparation (p.46)
+      Transliteration (p.48)
+      Urdu Language Processing (p.49)
+      Programming Custom Actions (p.49)
+    Complication Prediction (p.49)
+      Identifying Complication and Symptoms (p.49)
+      Integrating Bayesian Network in RASA (p.52)
+    Weekly Messages (p.53)
+      Automating Running the Script (p.54)
+      Querying the Database (p.54)
+      Twilio API (p.54)
+  Experiments and Results (p.55)
+    Talking to Hamdard (p.55)
+    Data Validation (p.56)
+    Testing Results (p.56)
+      Testing within RASA (p.56)
+      Testing Custom Actions (p.63)
+      Testing using sample User Statements from Survey (p.63)
+  Conclusion and Future Work (p.66)
+  Appendix Data (p.67)
+  Appendix Code (p.68)
+  References (p.69)
+
+SDS-related content on 5 pages
+
+--- Page 8 ---
+3.3
+External Interfaces . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+3.3.1
+User Interfaces
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+3.3.2
+Application Program Interface (API) . . . . . . . . . . . . . .
+35
+3.3.3
+Hardware/Communication Interfaces . . . . . . . . . . . . . .
+35
+3.4
+Use Cases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+36
+3.5
+Datasets . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+3.6
+System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+40
+4
+Software Design Speciﬁcation (SDS)
+41
+4.1
+Software Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+41
+4.2
+Data Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+42
+4.2.1
+WhatsApp Messaging functionality and Personal Dashboard .
+43
+4.2.2
+FAQ conversational functionality
+. . . . . . . . . . . . . . . .
+43
+5
+Development
+45
+5.1
+Web App Development . . . . . . . . . . . . . . . . . . . . . . . . . .
+45
+5.2
+Chatbot Development
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+45
+5.2.1
+Conversational Data Preparation
+. . . . . . . . . . . . . . . .
+46
+5.2.2
+Transliteration
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+5.2.3
+Urdu Language Processing . . . . . . . . . . . . . . . . . . . .
+48
+5.2.4
+Programming Custom Actions . . . . . . . . . . . . . . . . . .
+48
+5.3
+Complication Prediction . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+5.3.1
+Identifying Complication and Symptoms . . . . . . . . . . . .
+48
+5.3.2
+Integrating Bayesian Network in RASA . . . . . . . . . . . . .
+51
+5.4
+Weekly Messages . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+53
+5.4.1
+Automating Running the Script . . . . . . . . . . . . . . . . .
+53
+5.4.2
+Querying the Database . . . . . . . . . . . . . . . . . . . . . .
+53
+5.4.3
+Twilio API
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+53
+6
+Experiments and Results
+54
+6.1
+Talking to Hamdard
+. . . . . . . . . . . . . . . . . . . . . . . . . . .
+54
+6.2
+Data Validation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+55
+6.3
+Testing Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+55
+6.3.1
+Testing within RASA . . . . . . . . . . . . . . . . . . . . . . .
+55
+6.3.2
+Testing Custom Actions . . . . . . . . . . . . . . . . . . . . .
+62
+6.3.3
+Testing using sample User Statements from Survey
+. . . . . .
+62
+7
+Conclusion and Future Work
+65
+7
+
+
+--- Page 10 ---
+List of Figures
+1.1
+Gantt Chart Kaavish 1 . . . . . . . . . . . . . . . . . . . . . . . . . .
+15
+1.2
+Gantt Chart Kaavish 2 . . . . . . . . . . . . . . . . . . . . . . . . . .
+16
+3.1
+Home screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+3.2
+User login screen
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+3.3
+User dashboard screen
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+3.4
+User registration screen (for users to subscribe for weekly messaging
+and complication prediction services) . . . . . . . . . . . . . . . . . .
+33
+3.5
+Weekly messaging service to users on WhatsApp . . . . . . . . . . . .
+34
+3.6
+Use-Case Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+36
+3.7
+A snapshot of the FAQ data-set . . . . . . . . . . . . . . . . . . . . .
+37
+3.8
+A snapshot of the Hospital location data-set . . . . . . . . . . . . . .
+38
+3.9
+A snapshot of the weekly messaging data-set . . . . . . . . . . . . . .
+39
+3.10 System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+40
+4.1
+UML Class Diagram for the system . . . . . . . . . . . . . . . . . . .
+41
+4.2
+A snapshot of the weekly messaging data-set . . . . . . . . . . . . . .
+42
+5.1
+Training examples stored in nlu.yml . . . . . . . . . . . . . . . . . . .
+46
+5.2
+A snapshot of stories . . . . . . . . . . . . . . . . . . . . . . . . . . .
+47
+5.3
+Complication Prediction Disclaimer . . . . . . . . . . . . . . . . . . .
+49
+5.4
+Complication Predictor Bayesian Network
+. . . . . . . . . . . . . . .
+51
+5.5
+Intents to trigger Complication Predictor . . . . . . . . . . . . . . . .
+52
+6.1
+Testing Chatbot . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+54
+6.2
+Testing Complications Predictor . . . . . . . . . . . . . . . . . . . . .
+55
+6.3
+Intent Conﬁdence through Test/train data represented as a histogram
+57
+6.4
+Intent Conﬁdence through Test/train data in a confusion matrix . . .
+58
+6.5
+Intent Conﬁdence through Cross Validation represented as a histogram 60
+9
+
+
+--- Page 14 ---
+1.3
+Intended User
+Hamdard aims to provide support and maternity-related information to women who
+are pregnant or are planning on getting pregnant soon, to give them advice on how to
+look after themselves and their baby during their pregnancy. Through conversations
+with this maternity partner, women will be able to know what to expect during
+pregnancy and labour which will help them make educated decisions about their well-
+being. Since pregnancy is a time of uncertainty, Hamdard will also provide emotional
+support through its messaging functionality. Husbands and family members are also
+encouraged to use Hamdard’s services so that they can know more about pregnancy
+and how it aﬀects the mother. The assistant would give answers and respond to
+questions in Urdu, hence the user should know how to read and type in Urdu.
+1.4
+Project gantt chart and deliverables
+1.4.1
+Deliverables
+1.4.1.1
+Kaavish 1
+1. SRS, SDS and Literature Review documents.
+2. Data-set in implementation form i.e., categorized into intents, stories, entities
+format.
+3. Application prototype-Bot is able to give appropriate responses to queries in
+Urdu and convert Romanized queries into Urdu and answer them. (20-30% of
+the chatbot)
+4. Rudimentary implementation of weekly messaging. The prototype would be
+something like the following: (a) On typing in the week number, the week’s
+messages and resources would be received. (b) WhatsApp integration needs to
+be completed to a certain level.
+1.4.1.2
+Kaavish 2
+1. Complete Project Report
+2. Complete web application with chatbot widget that answers queries in Urdu
+language as well as transliterates Romanized Urdu queries into Urdu and pro-
+vides appropriate responses.
+13
+
+
+--- Page 42 ---
+4.
+Software Design Speciﬁcation (SDS)
+4.1
+Software Design
+Figure 4.1: UML Class Diagram for the system
+This diagram shows that our applications consists of diﬀerent screens which are
+individual Angular components.
+User has to ﬁrst register using her information
+which will be be stored in our database. She can then log in to access dashboard.
+41
+
+
+--- Page 43 ---
+Her phone number will be retrieved by the message scheduler from the database
+to send weekly WhatsApp messages using Twilio API. Notes, Appointments and
+Moods are further components of the Dashboard which the user can use, which are
+also stored in the database. The chatbot class is for the chatbot widget which will
+appear on user screen to access our RASA AI assistant by sending and receiving
+messages using REST and WebSockets for communication.
+4.2
+Data Design
+This section presents the structure of our database that caters to persistent data
+storage in our project.
+The structure is shown as a normalized data model for
+relational databases. It clearly shows entities, attributes, relationships with their
+cardinalities, and primary and foreign keys. We have used DB designer to build our
+data model.
+Figure 4.2: A snapshot of the weekly messaging data-set
+There are two components of this project:
+42
+
+
+================================================================================
+REPORT: Final-Report-Saathi-Virtual-Assistant.pdf (48 pages)
+================================================================================
+
+TABLE OF CONTENTS:
+  Introduction (p.10)
+    Problem Statement (p.10)
+    Proposed Solution (p.10)
+    Intended User (p.11)
+    Project gantt chart and deliverables (p.11)
+    Key Challenges (p.14)
+      Saathi Application (p.14)
+      Conversation Generation (p.14)
+  Literature Review (p.15)
+    Elderly Care and Technology (p.15)
+    Virtual Assistants (p.16)
+    Chatbots in Urdu (p.17)
+      Urdu Natural Language Processing (p.18)
+    Natural Language Generation Through Deep Learning Models (p.20)
+  Software Requirement Specification (SRS) (p.21)
+    Functional Requirements (p.21)
+    Non-functional Requirements (p.22)
+    External Interfaces (p.24)
+      User Interfaces (p.24)
+      Application Program Interface (API) (p.27)
+      Hardware/Communication Interfaces (p.27)
+    Use Cases (p.28)
+    Datasets (p.29)
+      Universal Dependencies Dataset (p.29)
+      Urdu Named Entity Recognition Dataset (p.29)
+      Urdu Dataset for RASA Chatbot (p.29)
+      Dataset Compilation for Conversation Generation (p.29)
+    System Diagram (p.31)
+  Software Design Specification (SDS) (p.32)
+    Software Design (p.32)
+    Data Design (p.33)
+      Data Pipeline (p.33)
+    Deep Learning NLG Models Used for Transfer Learning (p.33)
+  Experiments and Results (p.36)
+    Results for RASA Conversational Agent (p.36)
+    Evaluation and Results for Conversation Generation (p.37)
+      Metrics & Experiments for Evaluation (p.37)
+      Results (p.38)
+  Conclusion and Future Work (p.42)
+  Appendix Data (p.43)
+  References (p.44)
+
+SDS-related content on 9 pages
+
+--- Page 7 ---
+3.5.4
+Dataset Compilation for Conversation Generation . . . . . . .
+28
+3.6
+System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+4
+Software Design Specification (SDS)
+31
+4.1
+Software Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+4.2
+Data Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+4.2.1
+Data Pipeline . . . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+4.3
+Deep Learning NLG Models Used for Transfer Learning . . . . . . . .
+33
+5
+Experiments and Results
+35
+5.1
+Results for RASA Conversational Agent
+. . . . . . . . . . . . . . . .
+35
+5.2
+Evaluation and Results for Conversation Generation . . . . . . . . . .
+36
+5.2.1
+Metrics & Experiments for Evaluation
+. . . . . . . . . . . . .
+36
+5.2.2
+Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+6
+Conclusion and Future Work
+41
+Appendix A Data
+42
+References
+43
+6
+
+
+--- Page 8 ---
+List of Figures
+1.1
+Saathi Gantt Chart . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+3.1
+Use Case Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+27
+3.2
+Screenshot from the Urdu Named Entity Recognition Dataset
+. . . .
+28
+3.3
+A conversation example from the UrduSaathi Dataset . . . . . . . . .
+30
+3.4
+System Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+4.1
+UML class diagram of the system. . . . . . . . . . . . . . . . . . . . .
+32
+4.2
+ERD Diagram for the database
+. . . . . . . . . . . . . . . . . . . . .
+33
+4.3
+Data Pipeline for Chatbot Framework
+. . . . . . . . . . . . . . . . .
+33
+5.1
+Confusion matrix of intents with cross-validation . . . . . . . . . . . .
+36
+5.2
+Responses generated from all three trained models . . . . . . . . . . .
+39
+5.3
+Generated sample from the mT5 model . . . . . . . . . . . . . . . . .
+40
+5.4
+Generated sample from the DialoGPT model . . . . . . . . . . . . . .
+40
+7
+
+
+--- Page 12 ---
+1.4
+Project gantt chart and deliverables
+Deliverables
+1. Conduct interviews and survey to better asses the problems and requirements
+in order to refine our solution.
+2. A Project Proposal that states the aims, objectives and goals of the team.
+3. Literature review for different aspects of our project including but not limited
+to multilingual chatbots, open-domain conversation generation through deep
+learning models etc.
+4. SRS documentation providing the details of the application and project.
+5. SDS documentation listing the design details and how the application is built.
+6. External interface of our application, that will showcase how the end-product
+works as a whole.
+7. Chatbot development to build a domain specific Urdu chatbot in RASA
+8. Dataset development: Urdu dataset had to be pre-processed and compiled for
+transfer learning for Urdu conversation generation
+9. Database development for saving the necessary user data.
+10. Urdu conversation generation using transferred learning
+11. Integration of different components
+12. Submission of the application prototype: Testing of integrated prototype for
+fixing any bugs
+13. Working on research papers in order to publish our findings
+14. Final report: compiling all the development and research work into a compre-
+hensive report
+11
+
+
+--- Page 13 ---
+Gantt Chart
+10/21
+11/21
+12/21
+1/22
+2/22
+3/22
+4/22
+5/22
+Saathi FYP
+0h
+24%
+  Project Proposal
+0h
+100%
+      Initial literature review and research
+0
+100%
+      Proposal Writing
+0
+100%
+  SRS Documentation
+0h
+100%
+      Non-functional Requirements
+0
+100%
+      Functional Requirements
+0
+100%
+      External Interface
+0
+100%
+      System Diagram
+0
+100%
+      Use Case Diagram
+0
+100%
+  SDS
+0h
+0%
+      Entity Relationship Diagram (ERD)
+0
+0%
+      UML Class Diagram
+0
+0%
+      Technical Details
+0
+0%
+  GUI
+0h
+100%
+      Literature Review for Elderly UI deve...
+0
+100%
+      Create Wireframes
+0
+100%
+  Research
+0h
+40%
+      Literature Review for Urdu Language...
+0
+50%
+      Literature Review for Chatbot develo...
+0
+10%
+      User Experience Survey
+0
+75%
+      IRB Report
+0
+30%
+  Learning Tools
+0h
+46%
+      Learning Flutter Development
+0
+30%
+      Learning RASA Chatbot Development
+0
+90%
+      Learning Spacy for Urdu Pipeline
+0
+30%
+  Models
+0h
+34%
+      Researching NLU for chatbot
+0
+75%
+      Building Spacy Urdu Pipeline
+0
+0%
+      Speech Emotion Detection Model
+0
+0%
+  Database
+0h
+0%
+      Database Setup
+0
+0%
+      Database Population
+0
+0%
+  Frontend Development
+0h
+3%
+      Creating Functional UI
+0
+5%
+      Connecting Frontend with Backend
+0
+0%
+      Connecting Frontend with Custom Ac...
+0
+0%
+  Backend Development
+0h
+0%
+      Database Development
+0
+0%
+      Creating Endpoints
+0
+0%
+      Database Connection
+0
+0%
+  Chatbot Development
+0h
+2%
+      Conversational Data Preparation
+0
+5%
+      Programming Custom Actions
+0
+0%
+  Testing
+0h
+0%
+      Integrating Everything
+0
+0%
+      User Testing
+0
+0%
+  
+0h
+0%
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider
+Anand Kumar, Ghani Haider
+Maheen Khan, Rida Zahid Khan
+Ghani Haider, Maheen Khan
+Anand Kumar, Rida Zahid Khan
+Ghani Haider, Rida Zahid Khan
+Anand Kumar, Maheen Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Ghani Haider
+Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider
+Maheen Khan, Rida Zahid Khan
+Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider
+Anand Kumar
+Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Maheen Khan
+Anand Kumar, Maheen Khan
+Ghani Haider
+Rida Zahid Khan
+Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Anand Kumar, Ghani Haider, Maheen Khan, Rida Zahid Khan
+Powered by TCPDF (www.tcpdf.org)
+Figure 1.1: Saathi Gantt Chart
+12
+
+
+--- Page 20 ---
+A rule-based NER system tags a corpus with named entities using pre-written
+rules. A statistical NER system uses a training dataset to learn the proba-
+bilities of named entities, whereas hybrid systems employ both [21]. However,
+rule-based approach results are more accurate than statistical techniques in the
+context of Urdu NER tasks [52].
+2.4
+Natural Language Generation Through Deep
+Learning Models
+Before transformers and attention mechanisms were common for natural language
+generation, state-of-the-art architectures such as Recurrent Neural Network (RNN)
+and Long Short-Term Memory (LSTM) were used for this task [22]. However, one
+of the main problems with these models was the vanishing gradient problem due to
+their deep architecture. Transformer-based language models marked a new era of ad-
+vancements in natural language generation tasks. The GPT-2 [47] model, a 1.5 billion
+parameter transformer, was introduced in an effort to perform unsupervised learning
+for natural language processing tasks such as question answering, machine transla-
+tion, reading comprehension, and summarization. It was trained on a dataset of 8
+million web pages. Following this, many models based on GPT-2 were introduced.
+DLGNet [43], a transformer-based model is an extension of GPT-2 for multi-turn di-
+alogue modelling. It proposes a hybrid of long-range transformer design and random
+informative padding injection.
+Currently, there exist several pre-trained models for open-ended conversational
+agents. Meena [3], uses social media comments to perform pre-training for dialogue
+generation. Its neural network with 2.6 billion parameters has been trained to reduce
+the perplexity of every next token. Blender [54] suggests fine-tuning the pre-trained
+dialogue model with human-annotated datasets in order to emphasize the conversa-
+tional traits of engagingness, knowledge, empathy, and personality.
+While much work on natural language generation is being done in prominent
+languages such as English, many resource-poor languages including Urdu have been
+left behind due to the lack of relevant resources. There have been instances of work
+being done on dataset compilation and natural language generation in languages
+other than English [39, 23, 2, 17, 5]. However, to our knowledge, no such effort has
+been made in the Urdu language.
+19
+
+
+--- Page 32 ---
+4.
+Software Design Specification (SDS)
+4.1
+Software Design
+The UML class diagram shows the different screens that will be a part of our ap-
+plication. Since the app is user-specific, the user will first have to register using the
+registration screen and every time a new user object is created, their medical infor-
+mation and preferences will be saved in order to make sure they are given relevant
+reminders throughout their day. Once they have registered and logged in, they will
+be redirected to the chat screen where the user will be able to interact with the
+chatbot. Additionally, there is a visual virtual assistant screen that can be used to
+perform basic everyday actions like calling, taking pictures, playing their YouTube
+playlist, setting a reminder etc. via one click buttons. The caretaker’s phone num-
+ber will be used to send them message on WhatsApp about the elderly user’s daily
+updates. This will be done using the message scheduler class and Twilio API. The
+user is connected to various classes like user log class which is used to store the
+information that needs to be sent to the caretaker at the end of the day. Figure 4.1
+represents the UML structure of our application. A high quality image of the class
+diagram can be found here.
+31
+
+
+--- Page 33 ---
+Figure 4.1: UML class diagram of the system.
+4.2
+Data Design
+This section presents the structure of our database that caters to persistent data
+storage in our project. Figure 4.2 shows our ERD and a high quality image of the
+class diagram can be also found at here.
+4.2.1
+Data Pipeline
+Data Pipeline for Chatbot Framework (RASA)
+The input to the data pipeline is the Urdu text converted from the user input audio.
+RASA framework breaks down the processing of user query and returning of response
+into two components. The text input is first passed through the NLU component
+of the framework which involves natural language processing over the raw text and
+outputs intents and entities. There are two parts of the NLU component, 1) Urdu
+NLP Pipeline and 2) Entities Extractor and Intent Classifier. The raw Urdu text is
+first passed into the NLP pipeline which outputs processed query. This processed
+query is then passed into the intent classifier and entity extractor, which maps it to
+a pre-defined intent and extracts important entities from it. These extracted intents
+and entities are then passed on to the second component of the framework called
+RASA core. RASA core uses a classifier which finds out the best response to the
+query and outputs the response, which is then sent to the user. Table 4.3 shows the
+complete data-pipeline for our chatbot module.
+32
+
+
+--- Page 34 ---
+Figure 4.2: ERD Diagram for the database
+Figure 4.3: Data Pipeline for Chatbot Framework
+4.3
+Deep Learning NLG Models Used for Transfer
+Learning
+For the task of conversation generation in Urdu, our work investigates the perfor-
+mance of three different pre-trained transformer-based models on the UrduSaathi
+Dataset. The three models are: DialoGPT [67] which is an English conversation
+generation model, and two multi-lingual models, mT5 [65], and XGLM [36].
+Table 4.1 shows the values of the hyper-parameters used during the fine-tuning
+of these models.
+DialoGPT
+DialoGPT (dialogue generative pre-trained transformer) is an open-source tunable
+gigaword scale neural network model for the generation of conversational responses
+for the English language [67]. DialoGPT extends GPT-2, which is a transformer-
+33
+
+
+--- Page 45 ---
+[13]
+BPCL launches AI-enabled chatbot Urja. url: https://www.livemint.com/
+companies/news/bpcl-launches-ai-enabled-chatbot-urja-11629439490779.
+html (visited on 09/17/2021).
+[14]
+J. Cassell et al. “Requirements for an Architecture for Embodied Conversa-
+tional Characters”. In: Eurographics Computer Animation and Simulation ’99
+(1999), pp. 109–120. doi: 10.1007/978-3-7091-6423-5_11.
+[15]
+Iv Com. Global strategy and action plan on ageing and health. 2017. isbn:
+9789241513500. url: http://apps.who.int/bookorders..
+[16]
+Angelo Costa et al. “PHAROS—PHysical assistant RObot system”. In: Sensors
+(Switzerland) 18.8 (2018), pp. 1–19. issn: 14248220. doi: 10.3390/s18082633.
+[17]
+Martin d’Hoffschmidt et al. “FQuAD: French Question Answering Dataset”.
+In: CoRR abs/2002.06071 (2020). arXiv: 2002.06071. url: https://arxiv.
+org/abs/2002.06071.
+[18]
+Ali Daud, Wahab Khan, and Dunren Che. “Urdu language processing: a sur-
+vey”. In: Artificial Intelligence Review 47 (Mar. 2017). doi: 10.1007/s10462-
+016-9482-x.
+[19]
+Nadir Durrani and Sarmad Hussain. “Urdu Word Segmentation”. In: Human
+Language Technologies: The 2010 Annual Conference of the North American
+Chapter of the Association for Computational Linguistics. HLT ’10. Los Ange-
+les, California: Association for Computational Linguistics, 2010, pp. 528–536.
+isbn: 1932432655.
+[20]
+Roos Eisma et al. “Mutual inspiration in the development of new technology
+for older people”. In: (Jan. 2003).
+[21]
+Karthik Gali et al. “Aggregating machine learning and rule based heuristics
+for named entity recognition”. In: Proceedings of the IJCNLP-08 Workshop on
+Named Entity Recognition for South and South East Asian Languages. 2008.
+[22]
+Albert Gatt and Emiel Krahmer. “Survey of the State of the Art in Natu-
+ral Language Generation: Core tasks, applications and evaluation”. In: CoRR
+abs/1703.09902 (2017). arXiv: 1703.09902. url: http://arxiv.org/abs/
+1703.09902.
+[23]
+Deepak Gupta, Asif Ekbal, and Pushpak Bhattacharyya. “A Deep Neural Net-
+work Framework for English Hindi Question Answering”. In: ACM Trans.
+Asian Low-Resour. Lang. Inf. Process. 19.2 (Nov. 2019). issn: 2375-4699. doi:
+10.1145/3359988. url: https://doi.org/10.1145/3359988.
+[24]
+Francisco J. Gutierrez et al. “Assembling mass-market technology for the sake
+of wellbeing: a case study on the adoption of ambient intelligent systems by
+older adults living at home”. In: Journal of Ambient Intelligence and Human-
+ized Computing 10.6 (2017), pp. 2213–2233. doi: 10.1007/s12652-017-0591-
+4.
+[25]
+A Hardie. “Developing a tagset for automated part-of-speech tagging in Urdu.”
+English. In: Corpus Linguistics 2003 ; Conference date: 01-03-2003. 2003.
+[26]
+HOBBIT Project FP7. url: http://hobbit.acin.tuwien.ac.at/ (visited
+on 09/17/2021).
+44
+
