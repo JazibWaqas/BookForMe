@@ -1,0 +1,244 @@
+% ─────────────────────────────────────────────────────────────────────────────
+This appendix provides a full description of the BookForMe bilingual dataset,
+including the annotation schema, sample utterances, class distribution, and
+augmentation statistics.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Dataset Overview}
+\label{app:data-overview}
+
+The BookForMe dataset is a custom-built collection of 657 annotated utterances
+representing real-world booking conversations for informal services in Karachi,
+Pakistan.  It is the first publicly documented bilingual (English / Roman Urdu)
+dataset for task-oriented booking dialogue in an informal South Asian service
+context.
+
+\begin{table}[H]
+\centering
+\caption{BookForMe dataset summary statistics.}
+\label{tab:data-summary}
+\begin{tabularx}{0.75\textwidth}{Xr}
+\toprule
+\textbf{Property} & \textbf{Value} \\
+\midrule
+Total utterances                & 657 \\
+Training split (80\%)           & 526 \\
+Test split (20\%)               & 131 \\
+Number of intent classes        & 5 \\
+Languages                       & English, Roman Urdu, Mixed (code-switched) \\
+Service categories covered      & Futsal, Padel, Cricket, Salon, Gaming Zone \\
+Collection period               & October 2025 -- January 2026 \\
+Annotation tool                 & Google Sheets (manual) \\
+Inter-annotator agreement       & Cohen's $\kappa = 0.87$ (substantial) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Annotation Schema}
+\label{app:data-schema}
+
+Each utterance in the dataset is annotated with three fields:
+
+\subsection{Intent Labels}
+
+\begin{table}[H]
+\centering
+\caption{Intent label definitions and examples.}
+\label{tab:intent-defs}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.20\textwidth}Y Y@{}}
+\toprule
+\textbf{Label} & \textbf{Description} & \textbf{Example Utterances} \\
+\midrule
+inquiry
+  & User is checking availability or requesting to book a specific slot.
+  & ``Is the 7~PM padel court available on Friday?'' /
+    ``Mujhe kal shaam 6 baje futsal chahiye.'' \\[4pt]
+info
+  & User is asking for general information (price, amenities, location, hours).
+  & ``What is the price per hour for the cricket net?'' /
+    ``Parking hai yahan?'' \\[4pt]
+transaction\_confirm
+  & User is referencing a payment, confirming a transaction, or submitting proof.
+  & ``I've sent the Rs 2000 advance.'' /
+    ``Screenshot bhej diya hai.'' \\[4pt]
+greeting
+  & User is initiating conversation with a greeting or pleasantry.
+  & ``Hi'' / ``Hello, are you there?'' / ``Aoa'' (Urdu greeting abbreviation) \\[4pt]
+unknown
+  & Out-of-scope, unintelligible, or irrelevant message.
+  & ``I want pineapple juice.'' / ``???'' / Random keyboard mash \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Language Labels}
+
+Each utterance is also tagged with one of three language labels:
+\begin{itemize}
+  \item \texttt{EN}: Purely English utterance.
+  \item \texttt{UR}: Purely Roman Urdu utterance.
+  \item \texttt{MIXED}: Code-switched utterance containing both English and Roman Urdu
+        elements (the most common type in real vendor conversations).
+\end{itemize}
+
+\subsection{Slot Annotations}
+
+For utterances where slots are extractable, a JSON dictionary of entities is
+provided:
+
+\begin{lstlisting}[style=jsonstyle, caption={Sample slot annotation for an inquiry utterance.}]
+{
+  "intent": "inquiry",
+  "language": "MIXED",
+  "text": "Mujhe Friday ko 7 baje ke baad paddle court chahiye under 6000",
+  "slots": {
+    "service": "padel court",
+    "day_of_week": "Friday",
+    "time_after": "19:00",
+    "budget_max": 6000,
+    "currency": "PKR"
+  }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsonstyle, caption={Sample slot annotation for a transaction\_confirm utterance.}]
+{
+  "intent": "transaction_confirm",
+  "language": "MIXED",
+  "text": "Screenshot bhej diya hai. 2000 rupay transfer kiye.",
+  "slots": {
+    "payment_amount": 2000,
+    "currency": "PKR",
+    "payment_method": "transfer"
+  }
+}
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Sample Utterances}
+\label{app:data-samples}
+
+Table~\ref{tab:data-samples} shows representative utterances from each intent class
+in all three language varieties.
+
+\begin{table}[H]
+\centering
+\caption{Sample utterances from the BookForMe dataset.}
+\label{tab:data-samples}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.30\textwidth}p{0.10\textwidth}Y}
+\toprule
+\textbf{Intent} & \textbf{Lang.} & \textbf{Utterance} \\
+\midrule
+\texttt{inquiry} & EN
+  & ``Do you have a futsal court available tomorrow at 9~PM?'' \\
+\texttt{inquiry} & UR
+  & ``Kal raat 9 baje futsal available hai?'' \\
+\texttt{inquiry} & MIXED
+  & ``Friday evening mein padel slot available hai under 1500?'' \\
+\hline
+\texttt{info} & EN
+  & ``What's the price for a one-hour padel session?'' \\
+\texttt{info} & UR
+  & ``Kitna rate hai ek ghante ka?'' \\
+\texttt{info} & MIXED
+  & ``AC courts hain aur parking bhi hai kya?'' \\
+\hline
+\texttt{transaction\_confirm} & EN
+  & ``I've sent the advance payment of Rs~2000 to the number.'' \\
+\texttt{transaction\_confirm} & UR
+  & ``Paisa bhej diya. Screenshot deta hoon.'' \\
+\texttt{transaction\_confirm} & MIXED
+  & ``2000 rupees transfer ho gayi. Screenshot attach kar raha hoon.'' \\
+\hline
+\texttt{greeting} & EN
+  & ``Hello! Is anyone there?'' \\
+\texttt{greeting} & UR
+  & ``Aoa, koi hai?'' \\
+\texttt{greeting} & MIXED
+  & ``Hi, booking karni thi.'' \\
+\hline
+\texttt{unknown} & EN
+  & ``Can you order me a pizza?'' \\
+\texttt{unknown} & UR
+  & ``Yaar mujhe neend aa rahi hai.'' \\
+\texttt{unknown} & MIXED
+  & ``asdfghjkl'' \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Roman Urdu Orthographic Variation Examples}
+\label{app:data-variation}
+
+Table~\ref{tab:ortho-variation} documents the orthographic variations encountered
+in the dataset for common booking-domain words.  These variations were catalogued
+from real vendor conversation logs and represent the primary challenge for subword
+tokenisers.
+
+\begin{table}[H]
+\centering
+\caption{Roman Urdu orthographic variation examples (booking domain vocabulary).}
+\label{tab:ortho-variation}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.18\textwidth}Y Y}
+\toprule
+\textbf{Urdu Word} & \textbf{Meaning} & \textbf{Observed Romanisations} \\
+\midrule
+waqt     & time  & waqt, vakt, wkht, waqat, tym, time \\
+kal      & tomorrow / yesterday & kal, kull, cal, kl \\
+raat     & night & raat, rat, raat ko, raaat, night \\
+sham     & evening & sham, shaam, sham ko, evening \\
+paise    & money & paise, paisa, paisay, money \\
+booking  & booking & booking, buking, book karna \\
+dastyab  & available & available, available hai, khali \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Data Augmentation Statistics}
+\label{app:data-augmentation}
+
+\begin{table}[H]
+\centering
+\caption{Dataset size before and after augmentation, by source and class.}
+\label{tab:aug-stats}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.34\textwidth}Yrrr}
+\toprule
+\textbf{Class} & \textbf{Source} & \textbf{Real} & \textbf{Augmented} & \textbf{Total} \\
+\midrule
+\texttt{inquiry}              & Vendor logs + manual & 120 & 157 & 277 \\
+\texttt{info}                 & Manual + synthetic   &  80 &  91 & 171 \\
+\texttt{transaction\_confirm} & Vendor logs + manual &  60 &  87 & 147 \\
+\texttt{unknown}              & Manual + synthetic   &  20 &  42 &  62 \\
+\hline
+\textbf{Total}                &                      & \textbf{280} & \textbf{377} & \textbf{657} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Augmentation techniques applied (in order of application):
+\begin{enumerate}
+  \item \textbf{Back-translation} (English $\to$ Urdu script $\to$ Roman Urdu $\to$
+        English): applied to all English utterances.
+  \item \textbf{Paraphrasing via Gemini API}: 3 paraphrases per original utterance,
+        filtered to remove duplicates and low-confidence outputs.
+  \item \textbf{Lexical substitution}: replaced time expressions and service names
+        with domain-synonyms (e.g., ``futsal'' $\leftrightarrow$ ``5-a-side'',
+        ``7~PM'' $\leftrightarrow$ ``tonight'' $\leftrightarrow$ ``raat ko'').
+  \item \textbf{Phonetic Roman Urdu rewriting}: applied to all Roman Urdu utterances
+        using a custom rule set derived from Table~\ref{tab:ortho-variation}.
+\end{enumerate}
+
+The dataset and annotation files are available in the project repository at:\\
+\url{https://github.com/JazibWaqas/JHAT/tree/main/data}.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../report"
+%%% End:

@@ -1,0 +1,135 @@
+% ─────────────────────────────────────────────────────────────────────────────
+Here we describe the background mathematics for the key techniques used in
+the BookForMe system: the Elo rating system, Softmax classification, focal loss,
+and the expected-score calculation underlying intent confidence thresholding.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Elo Rating System}
+\label{app:math-elo}
+
+The Elo rating system~\cite{elo1978} assigns each player a numerical rating
+$R \in \mathbb{R}$ that reflects their skill level relative to other players.
+After each match between a player with rating $R_A$ and an opponent with rating
+$R_B$, both ratings are updated as follows.
+
+\subsection{Expected Score}
+
+The expected score $E_A$ for player $A$ against player $B$ is:
+
+\begin{equation}
+  E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}
+  \label{eq:elo-expected-full}
+\end{equation}
+
+This is a logistic function scaled so that a rating difference of 400 points
+corresponds to an expected score of approximately 0.91 (the stronger player wins
+roughly 91\% of the time).
+
+\subsection{Rating Update}
+
+After the match, each player's rating is updated by:
+
+\begin{equation}
+  R'_A = R_A + K \cdot (S_A - E_A)
+  \label{eq:elo-update-full}
+\end{equation}
+
+\noindent where:
+\begin{itemize}
+  \item $K = 32$ is the development coefficient (higher values produce larger
+        rating swings; BookForMe uses $K = 32$ for all players, consistent with the
+        standard chess Elo implementation for active players).
+  \item $S_A \in \{0, 0.5, 1\}$ is the actual outcome score: 1 for a win, 0.5 for
+        a draw, 0 for a loss.
+  \item $E_A$ is the expected score from Equation~(\ref{eq:elo-expected-full}).
+\end{itemize}
+
+\subsection{Matchmaking Window}
+
+The matchmaking search window $\Delta(t)$ expands with wait time $t$ (in seconds)
+to guarantee match completion:
+
+\begin{equation}
+  \Delta(t) = 200 + 50 \cdot \left\lfloor \frac{t}{60} \right\rfloor
+  \label{eq:elo-window}
+\end{equation}
+
+A new lobby is created when no existing lobby satisfies
+$|R_u - \bar{R}_{\text{lobby}}| \leq \Delta(t)$, where $\bar{R}_{\text{lobby}}$
+is the average Elo of current lobby participants.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Softmax Classification}
+\label{app:math-softmax}
+
+The intent classification head of the DistilBERT model applies a softmax function
+over the five logit outputs $z_1, \ldots, z_5$:
+
+\begin{equation}
+  P(\text{intent} = k \mid \mathbf{x}) = \frac{e^{z_k}}{\sum_{j=1}^{5} e^{z_j}}
+  \label{eq:softmax}
+\end{equation}
+
+\noindent The predicted intent class is $\hat{k} = \arg\max_k P(k \mid \mathbf{x})$.
+
+\subsection{Confidence Thresholding}
+
+The dialogue state validation node uses a confidence threshold $\tau = 0.65$:
+if $\max_k P(k \mid \mathbf{x}) < \tau$, the agent routes to the Gemini LLM fallback
+for intent re-classification rather than proceeding with the low-confidence
+DistilBERT prediction.  This prevents the agent from executing incorrect booking
+actions based on ambiguous inputs.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Focal Loss}
+\label{app:math-focal}
+
+Standard cross-entropy loss treats all examples equally:
+
+\begin{equation}
+  \mathcal{L}_{\text{CE}} = -\sum_{k=1}^{C} y_k \log \hat{p}_k
+  \label{eq:ce-loss}
+\end{equation}
+
+For our imbalanced dataset (42\% \texttt{inquiry}, 9\% \texttt{unknown}), standard
+cross-entropy causes the model to over-optimise for the majority class.  Focal
+loss~\cite{an2022} addresses this by down-weighting easy (well-classified) examples
+via a modulating factor $(1 - \hat{p}_t)^\gamma$:
+
+\begin{equation}
+  \mathcal{L}_{\text{FL}} = -\sum_{k=1}^{C} y_k \cdot (1 - \hat{p}_k)^\gamma \cdot \log \hat{p}_k
+  \label{eq:focal-loss}
+\end{equation}
+
+\noindent where $\gamma \geq 0$ is the focusing parameter (we use $\gamma = 2.0$).
+When the model is uncertain about a class ($\hat{p}_k \approx 0.5$), the factor
+$(1 - 0.5)^2 = 0.25$ reduces the loss contribution by 75\% relative to perfectly
+confident examples, focusing gradient updates on the hard minority-class samples.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Optimistic Concurrency Control (OCC) Correctness}
+\label{app:math-occ}
+
+Let $S_i$ be the state of slot $i$ at time $t$, with $S_i \in \{\text{AVAILABLE},
+\text{HOLD}, \text{CONFIRMED}\}$.  Let two concurrent booking requests $r_1$ and
+$r_2$ arrive at times $t_1 < t_2$ for the same slot $i$.
+
+In the OCC protocol, each request performs:
+\begin{enumerate}
+  \item \textbf{Read:} $r_j$ reads $S_i^{(t_j)}$.
+  \item \textbf{Verify:} $r_j$ checks $S_i^{(t_j)} = \text{AVAILABLE}$.
+  \item \textbf{Write (atomic transaction):} $r_j$ atomically writes
+        $S_i \leftarrow \text{HOLD}$ if and only if the document version at write
+        time equals the version read in step 1.
+\end{enumerate}
+
+By Firestore's serializable transaction isolation guarantee, only one of $r_1, r_2$
+can win the atomic compare-and-swap.  Suppose $r_1$ wins.  Then when $r_2$ executes
+step 3, the document version has changed (due to $r_1$'s write), and Firestore
+returns a transaction conflict error.  $r_2$ then invokes the alternative-slot
+query rather than retrying, ensuring exactly-once booking semantics.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../report"
+%%% End:

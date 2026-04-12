@@ -1,0 +1,440 @@
+% ─────────────────────────────────────────────────────────────────────────────
+This appendix provides the key code listings for the BookForMe system.  Full source
+code is available at \url{https://github.com/JazibWaqas/JHAT}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{LangGraph Agent State Definition}
+\label{app:code-langgraph}
+
+The following listing shows the core LangGraph state schema and node graph
+construction for the AI Receptionist.
+
+\begin{lstlisting}[style=pythonstyle, caption={LangGraph agent state schema and graph construction (agent/graph.py).}]
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Optional, List
+from enum import Enum
+
+class BookingIntent(str, Enum):
+    INQUIRY              = "inquiry"
+    INFO                 = "info"
+    TRANSACTION_CONFIRM  = "transaction_confirm"
+    GREETING             = "greeting"
+    UNKNOWN              = "unknown"
+
+class AgentState(TypedDict):
+    # Conversation context
+    session_id:       str
+    vendor_id:        str
+    user_phone:       str
+    messages:         List[dict]          # full conversation history
+
+    # Extracted slot entities
+    intent:           Optional[BookingIntent]
+    service:          Optional[str]
+    booking_date:     Optional[str]       # ISO 8601 date string
+    booking_time:     Optional[str]       # HH:MM 24-hour
+    duration_minutes: Optional[int]
+    budget_max:       Optional[float]
+    location:         Optional[str]
+
+    # Booking state
+    available_slots:  Optional[List[dict]]
+    selected_slot:    Optional[dict]
+    booking_id:       Optional[str]
+    hold_expires_at:  Optional[str]
+
+    # Payment state
+    payment_required: Optional[float]
+    screenshot_url:   Optional[str]
+    ocr_amount:       Optional[float]
+
+    # Control flow
+    clarification_needed: bool
+    error_message:    Optional[str]
+
+def build_agent_graph() -> StateGraph:
+    """Build and compile the cyclic LangGraph state machine."""
+    graph = StateGraph(AgentState)
+
+    # Register nodes
+    graph.add_node("guardrails",        guardrails_node)
+    graph.add_node("classify_intent",   classify_intent_node)
+    graph.add_node("extract_slots",     extract_slots_node)
+    graph.add_node("validate_state",    validate_state_node)
+    graph.add_node("query_availability",query_availability_node)
+    graph.add_node("execute_booking",   execute_booking_node)
+    graph.add_node("request_payment",   request_payment_node)
+    graph.add_node("verify_ocr",        verify_ocr_node)
+    graph.add_node("notify_vendor",     notify_vendor_node)
+
+    # Entry point
+    graph.set_entry_point("guardrails")
+
+    # Linear edges
+    graph.add_edge("guardrails",          "classify_intent")
+    graph.add_edge("classify_intent",     "extract_slots")
+    graph.add_edge("extract_slots",       "validate_state")
+
+    # Conditional: slots complete or need clarification
+    graph.add_conditional_edges("validate_state", route_after_validation, {
+        "clarify":    "classify_intent",   # loop back for clarification
+        "available":  "query_availability"
+    })
+
+    # Conditional: slot available or not
+    graph.add_conditional_edges("query_availability", route_after_availability, {
+        "unavailable": END,                # send alternatives, end turn
+        "available":   "execute_booking"
+    })
+
+    # Booking and payment flow
+    graph.add_edge("execute_booking",     "request_payment")
+
+    # Conditional: OCR pass or fail (loops until valid screenshot)
+    graph.add_conditional_edges("verify_ocr", route_after_ocr, {
+        "invalid":  "request_payment",    # loop: ask for new screenshot
+        "valid":    "notify_vendor"
+    })
+
+    graph.add_edge("notify_vendor", END)
+
+    return graph.compile()
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Optimistic Concurrency Control Implementation}
+\label{app:code-occ}
+
+\begin{lstlisting}[style=pythonstyle, caption={OCC slot locking via Firestore transaction (agent/booking.py).}]
+import firebase_admin
+from firebase_admin import firestore
+from datetime import datetime, timedelta, timezone
+import uuid
+
+db = firestore.client()
+HOLD_DURATION_MINUTES = 10
+
+def create_booking_hold(
+    service_id: str,
+    slot_start: str,
+    user_phone: str,
+    vendor_id:  str
+) -> dict:
+    """
+    Atomically lock a time slot using Optimistic Concurrency Control.
+    Returns booking record on success, raises ConflictError on failure.
+    """
+    slot_ref = (
+        db.collection("vendors")
+          .document(vendor_id)
+          .collection("slots")
+          .document(f"{service_id}_{slot_start}")
+    )
+
+    booking_id = f"BFM-{uuid.uuid4().hex[:8].upper()}"
+    hold_expiry = datetime.now(timezone.utc) + timedelta(
+                      minutes=HOLD_DURATION_MINUTES)
+
+    @firestore.transactional
+    def run_transaction(transaction):
+        snapshot = slot_ref.get(transaction=transaction)
+
+        if not snapshot.exists:
+            raise ValueError(f"Slot {slot_start} does not exist.")
+
+        data = snapshot.to_dict()
+        status = data.get("status", "AVAILABLE")
+
+        # Check for active HOLD that has not expired
+        if status == "HOLD":
+            expiry = data.get("hold_expires_at")
+            if expiry and expiry > datetime.now(timezone.utc):
+                raise ConflictError(
+                    f"Slot {slot_start} is currently held by another user.")
+
+        if status == "CONFIRMED":
+            raise ConflictError(
+                f"Slot {slot_start} is already booked.")
+
+        # Atomic write: transition to HOLD
+        transaction.update(slot_ref, {
+            "status":          "HOLD",
+            "booking_id":      booking_id,
+            "user_phone":      user_phone,
+            "hold_expires_at": hold_expiry,
+        })
+
+    transaction = db.transaction()
+    run_transaction(transaction)
+
+    return {
+        "booking_id":      booking_id,
+        "status":          "HOLD",
+        "hold_expires_at": hold_expiry.isoformat(),
+        "service_id":      service_id,
+        "slot_start":      slot_start,
+    }
+
+
+class ConflictError(Exception):
+    """Raised when a slot is concurrently locked by another user."""
+    pass
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Intent Classification (DistilBERT Inference)}
+\label{app:code-nlu}
+
+\begin{lstlisting}[style=pythonstyle, caption={Intent classification using fine-tuned DistilBERT (agent/nlu.py).}]
+from transformers import pipeline
+from agent.graph import BookingIntent
+import os
+
+# Load fine-tuned DistilBERT model from local path or HuggingFace Hub
+_NLU_MODEL_PATH = os.getenv("NLU_MODEL_PATH", "./models/distilbert-booking")
+CONFIDENCE_THRESHOLD = 0.65   # below this, route to Gemini fallback
+
+_classifier = None
+
+def get_classifier():
+    global _classifier
+    if _classifier is None:
+        _classifier = pipeline(
+            "text-classification",
+            model=_NLU_MODEL_PATH,
+            top_k=None,                  # return scores for all classes
+            truncation=True,
+            max_length=128,
+        )
+    return _classifier
+
+
+def classify_intent(text: str) -> tuple[BookingIntent, float]:
+    """
+    Classify a user message into one of the five BookingIntent classes.
+
+    Returns:
+        (intent, confidence) where intent is a BookingIntent enum value
+        and confidence is the softmax probability of the top class.
+
+    If top confidence < CONFIDENCE_THRESHOLD, returns
+    (BookingIntent.UNKNOWN, confidence) to trigger LLM fallback.
+    """
+    clf = get_classifier()
+    results = clf(text)[0]                # list of {label, score}
+
+    # Sort by score descending
+    results_sorted = sorted(results, key=lambda x: x["score"], reverse=True)
+    top = results_sorted[0]
+
+    label_map = {
+        "LABEL_0": BookingIntent.GREETING,
+        "LABEL_1": BookingIntent.INQUIRY,
+        "LABEL_2": BookingIntent.INFO,
+        "LABEL_3": BookingIntent.TRANSACTION_CONFIRM,
+        "LABEL_4": BookingIntent.UNKNOWN,
+    }
+
+    intent = label_map.get(top["label"], BookingIntent.UNKNOWN)
+    confidence = top["score"]
+
+    if confidence < CONFIDENCE_THRESHOLD:
+        return BookingIntent.UNKNOWN, confidence
+
+    return intent, confidence
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{OCR Payment Verification}
+\label{app:code-ocr}
+
+\begin{lstlisting}[style=pythonstyle, caption={OCR payment amount extraction (services/ocr\_service.py).}]
+import re
+import requests
+from PIL import Image
+import pytesseract
+import io
+
+PKR_PATTERNS = [
+    r'Rs\.?\s*([\d,]+)',
+    r'PKR\s*([\d,]+)',
+    r'Amount[:\s]+([\d,]+)',
+    r'([\d,]+)\s*(?:rupees?|PKR|Rs)',
+]
+
+def extract_payment_amount(image_url: str) -> float | None:
+    """
+    Download payment screenshot from Firebase Storage and extract
+    the transaction amount using Tesseract OCR.
+
+    Returns:
+        Extracted amount as float, or None if extraction fails.
+    """
+    # Download image from signed URL
+    response = requests.get(image_url, timeout=10)
+    response.raise_for_status()
+
+    # Open with Pillow and run Tesseract
+    image = Image.open(io.BytesIO(response.content))
+    raw_text = pytesseract.image_to_string(image, config="--psm 6")
+
+    # Try each PKR pattern in order of specificity
+    for pattern in PKR_PATTERNS:
+        match = re.search(pattern, raw_text, re.IGNORECASE)
+        if match:
+            amount_str = match.group(1).replace(",", "")
+            try:
+                return float(amount_str)
+            except ValueError:
+                continue
+
+    return None   # OCR could not extract a valid amount
+
+
+def verify_payment(
+    image_url:       str,
+    required_amount: float,
+    tolerance:       float = 0.01   # 1% tolerance for rounding
+) -> tuple[bool, float | None]:
+    """
+    Verify that the payment screenshot shows the required advance amount.
+
+    Returns:
+        (is_valid, extracted_amount)
+    """
+    extracted = extract_payment_amount(image_url)
+
+    if extracted is None:
+        return False, None
+
+    is_valid = abs(extracted - required_amount) <= (required_amount * tolerance)
+    return is_valid, extracted
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Elo Rating Update}
+\label{app:code-elo}
+
+\begin{lstlisting}[style=pythonstyle, caption={Elo rating calculation and update (social/elo.py).}]
+K_FACTOR = 32   # development coefficient for all players
+
+def expected_score(rating_a: float, rating_b: float) -> float:
+    """Compute expected score for player A against player B."""
+    return 1.0 / (1.0 + 10 ** ((rating_b - rating_a) / 400.0))
+
+
+def update_elo(
+    rating_a: float,
+    rating_b: float,
+    score_a:  float   # 1.0 = win, 0.5 = draw, 0.0 = loss
+) -> tuple[float, float]:
+    """
+    Compute new Elo ratings for both players after a match.
+
+    Returns:
+        (new_rating_a, new_rating_b)
+    """
+    ea = expected_score(rating_a, rating_b)
+    eb = expected_score(rating_b, rating_a)
+    score_b = 1.0 - score_a
+
+    new_a = rating_a + K_FACTOR * (score_a - ea)
+    new_b = rating_b + K_FACTOR * (score_b - eb)
+
+    return round(new_a, 1), round(new_b, 1)
+
+
+def matchmaking_window(wait_seconds: int, base: int = 200,
+                       expansion: int = 50) -> int:
+    """
+    Compute the Elo search window that expands with wait time.
+    Expands by `expansion` points for every 60 seconds waiting.
+    """
+    return base + expansion * (wait_seconds // 60)
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{WhatsApp Webhook Handler}
+\label{app:code-webhook}
+
+\begin{lstlisting}[style=pythonstyle, caption={FastAPI WhatsApp webhook endpoint (api/whatsapp\_webhook.py).}]
+from fastapi import APIRouter, Request, HTTPException, Query
+from agent.graph   import build_agent_graph
+from agent.session import load_session, save_session
+import os, hashlib, hmac, json
+
+router = APIRouter()
+_agent = build_agent_graph()
+
+VERIFY_TOKEN  = os.environ["WHATSAPP_VERIFY_TOKEN"]
+APP_SECRET    = os.environ["WHATSAPP_APP_SECRET"]
+
+# -- Webhook verification (GET) -----------------------------------------------
+@router.get("/webhook")
+async def verify_webhook(
+    hub_mode:        str = Query(alias="hub.mode"),
+    hub_challenge:   str = Query(alias="hub.challenge"),
+    hub_verify_token:str = Query(alias="hub.verify_token"),
+):
+    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+        return int(hub_challenge)
+    raise HTTPException(status_code=403, detail="Forbidden")
+
+# -- Inbound message handler (POST) -------------------------------------------
+@router.post("/webhook")
+async def receive_message(request: Request):
+    # Verify Meta signature
+    body_bytes = await request.body()
+    signature  = request.headers.get("X-Hub-Signature-256", "")
+    expected   = "sha256=" + hmac.new(
+        APP_SECRET.encode(), body_bytes, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        raise HTTPException(status_code=403, detail="Invalid signature")
+
+    payload = json.loads(body_bytes)
+
+    # Extract message details from Meta webhook payload
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value", {})
+            for msg in value.get("messages", []):
+                user_phone = msg.get("from")
+                vendor_id  = value.get("metadata", {}).get("phone_number_id")
+
+                # Load or initialise conversation session
+                state = await load_session(user_phone, vendor_id)
+
+                # Append new user message
+                if msg.get("type") == "text":
+                    state["messages"].append({
+                        "role": "user",
+                        "content": msg["text"]["body"]
+                    })
+                elif msg.get("type") == "image":
+                    state["screenshot_url"] = msg["image"]["id"]
+                    state["messages"].append({
+                        "role": "user",
+                        "content": "[Payment screenshot uploaded]"
+                    })
+
+                # Run agent graph
+                updated_state = await _agent.ainvoke(state)
+
+                # Persist updated session
+                await save_session(user_phone, vendor_id, updated_state)
+
+    return {"status": "ok"}
+\end{lstlisting}
+
+\bigskip
+\noindent The complete source code, including the React Native frontend, vendor
+dashboard, training scripts, and deployment configuration, is available at:
+
+\begin{center}
+  \url{https://github.com/JazibWaqas/JHAT}
+\end{center}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../report"
+%%% End:
