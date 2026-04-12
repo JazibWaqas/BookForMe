@@ -1,5 +1,7 @@
 {
   "latex-workshop.latex.rootFile": "report.tex",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.recipe.default": "pdflatex → biber → pdflatex ×2",
   "latex-workshop.latex.recipes": [
     {
       "name": "pdflatex → biber → pdflatex ×2",

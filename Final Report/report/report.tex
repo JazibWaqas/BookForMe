@@ -10,8 +10,10 @@
 \usepackage{lmodern}
 \usepackage{biblatex}           % reference management
 \usepackage{geometry}           % better margins and margin control
-\usepackage{graphicx}           % to include figures
-\usepackage{hyperref}           % internal and external links
+\usepackage{graphicx}
+\usepackage{eso-pic}
+\usepackage{transparent}
+\usepackage{hyperref}
 \usepackage{listings}           % typeset code
 \usepackage{outlines}           % easy nesting of lists
 \usepackage{tabularx}           % more control over table column width
@@ -125,12 +127,56 @@
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{document}
 
-% ── Front matter ─────────────────────────────────────────────────────────────
+% ── Front matter (title page only; chapters in chapters/) ──
 
-\input{titlepage}   % title page
+\begin{titlepage}
+  \thispagestyle{empty}
+  \newgeometry{top=2.2cm,bottom=2cm,left=2.5cm,right=2.5cm}
+  \singlespacing
+  \centering
+  \vspace*{1cm}
+  \begin{minipage}{\textwidth}\centering
+    {\Huge\bfseries\Title\par}
+  \end{minipage}\par
+  \vspace{1.1em}
+  {\large Kaavish Report\par\vspace{0.35em}
+   presented to the academic faculty\par\vspace{0.35em}
+   by\par}
+  \vspace{1em}
+  {\large
+  \begin{tabular}{@{}l@{\hspace{2.25em}}r@{}}
+    Muhammad Taqi                & mt08073 \\
+    Muhammad Ahmad Humayun Hanif & mh08072 \\
+    Jazib Waqas                  & jw08048 \\
+    Taha Hunaid Ali              & ta08451 \\
+  \end{tabular}\par}
+  \vspace{2em}
+  \includegraphics[width=0.34\textwidth,keepaspectratio]{logo.pdf}\par
+  \vspace{1.6em}
+  {\large In partial fulfillment of the requirements for\par\vspace{0.5em}
+    \textit{Bachelor of Science}\par\vspace{0.35em}
+    Computer Science\par\vspace{0.5em}
+    \textbf{Dhanani School of Science and Engineering}\par\vspace{0.5em}
+    Habib University\par\vspace{0.4em}
+    Spring 2026\par}
+  \vfill
+  {\normalsize Copyright \textcopyright\ 2026 Habib University\par}
+  \vspace{0.4cm}
+  \restoregeometry
+\end{titlepage}
 
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
+\AddToShipoutPictureBG*{%
+  \put(0,0){%
+    \parbox[b][\paperheight]{\paperwidth}{%
+      \vfill
+      \centering
+      {\transparent{0.09}\includegraphics[width=0.44\paperwidth,keepaspectratio]{logo.pdf}}%
+      \vfill
+    }%
+  }%
+}%
 We want to thank the CS faculty at Habib University for their guidance throughout
 the Kaavish programme, particularly during milestone reviews where their feedback
 sharpened our system design and evaluation methodology.
@@ -229,8 +275,3 @@ DistilBERT.
 \printbibliography[heading=bibintoc,title={References}]
 
 \end{document}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: t
-%%% End:

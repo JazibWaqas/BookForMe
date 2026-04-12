@@ -6,13 +6,11 @@ Work only inside this folder. Put new figures in **`images/`** (and subfolders l
 
 ```
 report/
-├── report.tex           ← compile this (pulls in chapters)
-├── titlepage.tex
-├── approval.tex
+├── report.tex           ← compile this only; title + approval + structure live here
 ├── references.bib
-├── logo.pdf             ← HU logo next to report.tex
+├── images/logo.pdf      ← HU logo (title page)
 ├── images/              ← all PNG/PDF figures
-└── chapters/            ← one file per chapter (good for Git + team splits)
+└── chapters/            ← chapter bodies only (\input from report.tex)
     ├── introduction.tex
     ├── review.tex
     ├── srs.tex
