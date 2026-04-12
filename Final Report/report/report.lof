@@ -5,7 +5,7 @@
 \contentsline {figure}{\numberline {3.1}{\ignorespaces System block diagram for the BookForMe platform.}}{35}{figure.caption.9}%
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Login screen with role selection (Customer or Vendor).}}{37}{figure.caption.10}%
 \contentsline {figure}{\numberline {3.3}{\ignorespaces Customer home: venue discovery by sport and area.}}{38}{figure.caption.11}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Live court grid showing real-time slot availability and booking source.}}{38}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Booking flow: venue detail with date, court, and time slot selection (PKR pricing per slot).}}{38}{figure.caption.11}%
 \contentsline {figure}{\numberline {3.5}{\ignorespaces In-app smart filter: AI chat parses Roman Urdu/English queries and returns filtered venues with available slots.}}{39}{figure.caption.12}%
 \contentsline {figure}{\numberline {3.6}{\ignorespaces Community forum.}}{40}{figure.caption.13}%
 \contentsline {figure}{\numberline {3.7}{\ignorespaces Direct messages.}}{40}{figure.caption.13}%
