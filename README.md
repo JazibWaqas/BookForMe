@@ -80,6 +80,10 @@ python backend/scripts/seed_all.py
 👉 **[contextFiles/VENDOR_DASHBOARD_PLAN.md](./contextFiles/VENDOR_DASHBOARD_PLAN.md)**  
 *Vendor dashboard PRD, technical requirements, implementation strategy*
 
+### 📄 **Kaavish / FYP LaTeX report**
+👉 **[Final Report/README.md](./Final Report/README.md)**  
+*LaTeX sources: open `Final Report/report/`, compile `report.tex`*
+
 ---
 
 ## 🎪 What Makes BookForMe Different

@@ -15,8 +15,8 @@ frontend/build/
 .env.test.local
 .env.production.local
 
-# IDE files
-.vscode/
+# IDE files (repo-root only; nested .vscode e.g. LaTeX project may be tracked)
+/.vscode/
 .idea/
 *.swp
 *.swo

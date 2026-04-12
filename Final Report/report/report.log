@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  12 APR 2026 17:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  12 APR 2026 17:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -36,6 +36,41 @@ Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
 Package: inputenc 2024/02/08 v1.3d Input encoding file
 \inpenc@prehook=\toks17
 \inpenc@posthook=\toks18
+)
+(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/lm\lmodern.sty
+Package: lmodern 2015/05/01 v1.6.1 Latin Modern Fonts
+LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
+(Font)                  OT1/cmr/m/n --> OT1/lmr/m/n on input line 22.
+LaTeX Font Info:    Overwriting symbol font `letters' in version `normal'
+(Font)                  OML/cmm/m/it --> OML/lmm/m/it on input line 23.
+LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
+(Font)                  OMS/cmsy/m/n --> OMS/lmsy/m/n on input line 24.
+LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
+(Font)                  OMX/cmex/m/n --> OMX/lmex/m/n on input line 25.
+LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
+(Font)                  OT1/cmr/bx/n --> OT1/lmr/bx/n on input line 26.
+LaTeX Font Info:    Overwriting symbol font `letters' in version `bold'
+(Font)                  OML/cmm/b/it --> OML/lmm/b/it on input line 27.
+LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
+(Font)                  OMS/cmsy/b/n --> OMS/lmsy/b/n on input line 28.
+LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
+(Font)                  OMX/cmex/m/n --> OMX/lmex/m/n on input line 29.
+LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
+(Font)                  OT1/cmr/bx/n --> OT1/lmr/bx/n on input line 31.
+LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
+(Font)                  OT1/cmss/m/n --> OT1/lmss/m/n on input line 32.
+LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
+(Font)                  OT1/cmr/m/it --> OT1/lmr/m/it on input line 33.
+LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
+(Font)                  OT1/cmtt/m/n --> OT1/lmtt/m/n on input line 34.
+LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
+(Font)                  OT1/cmr/bx/n --> OT1/lmr/bx/n on input line 35.
+LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
+(Font)                  OT1/cmss/bx/n --> OT1/lmss/bx/n on input line 36.
+LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
+(Font)                  OT1/cmr/bx/it --> OT1/lmr/bx/it on input line 37.
+LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
+(Font)                  OT1/cmtt/m/n --> OT1/lmtt/m/n on input line 38.
 )
 (C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\biblatex.st
 y
@@ -854,79 +889,6 @@ Package: setspace 2022/12/04 v6.7b set line spacing
 sty
 Package: needspace 2025/03/13 v1.3e reserve vertical space
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 55.
-
-! Undefined control sequence.
-l.122 \makeatletter\let\Titlmakeatletter\let\Title
-                                                  \@title\makeatother
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
- 
-Here is how much of TeX's memory you used:
- 22635 strings out of 467871
- 388904 string characters out of 5416924
- 1003898 words of memory out of 5000000
- 51299 multiletter control sequences out of 15000+600000
- 629473 words of font info for 44 fonts, out of 8000000 for 9000
- 1141 hyphenation exceptions out of 8191
- 63i,0n,67p,439b,386s stack positions out of 10000i,1000n,20000p,200000b,200000s
-!  ==> Fatal error occurred, no output PDF file produced!
-:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/silence\silence.sty
-Package: silence 2012/07/02 v1.5b Selective filtering of warnings and error mes
-sages
-\sl@Save=\count469
-\sl@StateNumber=\count470
-\sl@MessageCount=\count471
-\sl@Casualties=\count472
-\sl@Filter=\toks36
-\sl@Message=\toks37
-\sl@UnexpandedMessage=\toks38
-\sl@Mess@ge=\toks39
-\sl@WarningCount=\count473
-\sl@WarningNumber=\count474
-\sl@WarningCasualties=\count475
-\sl@TempBOW=\toks40
-\sl@BankOfWarnings=\toks41
-LaTeX Info: Redefining \GenericWarning on input line 433.
-\sl@ErrorCount=\count476
-\sl@ErrorNumber=\count477
-\sl@ErrorCasualties=\count478
-\sl@TempBOE=\toks42
-\sl@BankOfErrors=\toks43
-LaTeX Info: Redefining \GenericError on input line 601.
-)
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/fancyhdr\fancyhdr.st
-y
-Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
-
-\f@nch@headwidth=\skip89
-\f@nch@offset@elh=\skip90
-\f@nch@offset@erh=\skip91
-\f@nch@offset@olh=\skip92
-\f@nch@offset@orh=\skip93
-\f@nch@offset@elf=\skip94
-\f@nch@offset@erf=\skip95
-\f@nch@offset@olf=\skip96
-\f@nch@offset@orf=\skip97
-\f@nch@height=\skip98
-\f@nch@footalignment=\skip99
-\f@nch@widthL=\skip100
-\f@nch@widthC=\skip101
-\f@nch@widthR=\skip102
-\@temptokenb=\toks44
-)
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/setspace\setspace.st
-y
-Package: setspace 2022/12/04 v6.7b set line spacing
-)
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/needspace\needspace.
-sty
-Package: needspace 2025/03/13 v1.3e reserve vertical space
-)
 Package hyperref Info: Option `colorlinks' set `true' on input line 56.
 \@quotelevel=\count479
 \@quotereset=\count480
@@ -1352,26 +1314,25 @@ Overfull \hbox (6.88963pt too wide) in paragraph at lines 150--150
  []
 
 [66]
-<images/../images/distilbert_per_class_prf.png, id=980, 433.62pt x 289.08pt>
-File: images/../images/distilbert_per_class_prf.png Graphic file (type png)
-<use images/../images/distilbert_per_class_prf.png>
-Package pdftex.def Info: images/../images/distilbert_per_class_prf.png  used on
- input line 174.
+<images/distilbert_per_class_prf.png, id=980, 433.62pt x 289.08pt>
+File: images/distilbert_per_class_prf.png Graphic file (type png)
+<use images/distilbert_per_class_prf.png>
+Package pdftex.def Info: images/distilbert_per_class_prf.png  used on input lin
+e 174.
 (pdftex.def)             Requested size: 430.00462pt x 286.6841pt.
  [67]
-<images/../images/distilbert_confusion_matrix.png, id=988, 361.35pt x 325.215pt
->
-File: images/../images/distilbert_confusion_matrix.png Graphic file (type png)
-<use images/../images/distilbert_confusion_matrix.png>
-Package pdftex.def Info: images/../images/distilbert_confusion_matrix.png  used
- on input line 189.
+<images/distilbert_confusion_matrix.png, id=988, 361.35pt x 325.215pt>
+File: images/distilbert_confusion_matrix.png Graphic file (type png)
+<use images/distilbert_confusion_matrix.png>
+Package pdftex.def Info: images/distilbert_confusion_matrix.png  used on input 
+line 189.
 (pdftex.def)             Requested size: 430.00462pt x 387.00569pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[68 <./images/../images/distilbert_per_class_prf.png>] [69 <./images/../images/
-distilbert_confusion_matrix.png>] [70] [71]) [72]
+[68 <./images/distilbert_per_class_prf.png>] [69 <./images/distilbert_confusion
+_matrix.png>] [70] [71]) [72]
 Chapter 6.
 (chapters/conclusion.tex [73
 
@@ -1399,7 +1360,7 @@ Package logreq Info: Writing requests to 'report.run.xml'.
  ) 
 Here is how much of TeX's memory you used:
  26144 strings out of 467871
- 456273 string characters out of 5416924
+ 455903 string characters out of 5416924
  1308372 words of memory out of 5000000
  54049 multiletter control sequences out of 15000+600000
  728925 words of font info for 265 fonts, out of 8000000 for 9000
