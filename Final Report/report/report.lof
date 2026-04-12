@@ -18,21 +18,15 @@
 \contentsline {figure}{\numberline {3.14}{\ignorespaces Admin control center: platform-wide stats, slot generation, and vendor moderation.}}{43}{figure.caption.17}%
 \contentsline {figure}{\numberline {3.15}{\ignorespaces Admin vendor moderation: approve, suspend, or delete registered vendors.}}{43}{figure.caption.17}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Entity Relationship Diagram (ERD) for the core data model.}}{48}{figure.caption.19}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Detailed data model used for Firestore document structure.}}{49}{figure.caption.20}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Class diagram for major domain objects and relationships.}}{50}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Booking record state lifecycle.}}{51}{figure.caption.22}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces LangGraph cyclic state graph for the AI Receptionist.}}{54}{figure.caption.23}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity diagram of the WhatsApp booking flow.}}{56}{figure.caption.24}%
-\contentsline {figure}{\numberline {4.7}{\ignorespaces Sequence diagram for the agentic booking interaction.}}{57}{figure.caption.25}%
-\contentsline {figure}{\numberline {4.8}{\ignorespaces Sequence diagram variant covering alternate message flow.}}{58}{figure.caption.26}%
-\contentsline {figure}{\numberline {4.9}{\ignorespaces Activity diagram for the in-app booking process.}}{60}{figure.caption.27}%
-\contentsline {figure}{\numberline {4.10}{\ignorespaces General activity diagram of the booking lifecycle.}}{61}{figure.caption.28}%
-\contentsline {figure}{\numberline {4.11}{\ignorespaces Vendor dashboard activity diagram for booking approval handling.}}{63}{figure.caption.29}%
-\contentsline {figure}{\numberline {4.12}{\ignorespaces Vendor activity diagram variant for exception-handling paths.}}{64}{figure.caption.30}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces High-Level System Architecture}}{47}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Entity Relationship Diagram defining referential structures.}}{49}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces AI Booking \& Payment Pipeline}}{51}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Activity Diagram: Agent/WhatsApp Booking Flow}}{54}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Activity Diagram: Mobile App Search \& Book}}{56}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity Diagram: Vendor Dashboard \& Approvals}}{58}{figure.caption.24}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{77}{figure.caption.34}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{78}{figure.caption.35}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{71}{figure.caption.28}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{72}{figure.caption.29}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

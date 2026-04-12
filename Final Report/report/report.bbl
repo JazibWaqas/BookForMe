@@ -319,35 +319,6 @@
       \verb https://arxiv.org/abs/1810.04805
       \endverb
     \endentry
-    \entry{elo1978}{book}{}{}
-      \name{author}{1}{}{%
-        {{hash=ba734edd6a1a96ab7e1903630e8f56f0}{%
-           family={Elo},
-           familyi={E\bibinitperiod},
-           given={Arpad\bibnamedelima E.},
-           giveni={A\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
-      }
-      \list{location}{1}{%
-        {New York}%
-      }
-      \list{publisher}{1}{%
-        {Arco}%
-      }
-      \strng{namehash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{fullhash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{fullhashraw}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{bibnamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{authorbibnamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{authornamehash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{authorfullhash}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \strng{authorfullhashraw}{ba734edd6a1a96ab7e1903630e8f56f0}
-      \field{sortinit}{E}
-      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{title}{The Rating of Chessplayers, Past and Present}
-      \field{year}{1978}
-    \endentry
     \entry{handler2023}{online}{}{}
       \name{author}{1}{}{%
         {{hash=e7365d22c2562236545452c6a7ae5b6c}{%

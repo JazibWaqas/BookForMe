@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  12 APR 2026 22:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  12 APR 2026 22:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1132,7 +1132,7 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <10> on input line 147.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <7> on input line 147.
-<images/logo.pdf, id=483, 597.55246pt x 845.07718pt>
+<images/logo.pdf, id=503, 597.55246pt x 845.07718pt>
 File: images/logo.pdf Graphic file (type pdf)
 <use images/logo.pdf>
 Package pdftex.def Info: images/logo.pdf  used on input line 154.
@@ -1245,7 +1245,7 @@ Chapter 1.
 (chapters/introduction.tex [12
 
 ] [13]
-<images/introduction/system-overview.png, id=774, 1259.4553pt x 568.37344pt>
+<images/introduction/system-overview.png, id=787, 1259.4553pt x 568.37344pt>
 File: images/introduction/system-overview.png Graphic file (type png)
 <use images/introduction/system-overview.png>
 Package pdftex.def Info: images/introduction/system-overview.png  used on input
@@ -1261,46 +1261,46 @@ Chapter 3.
 (chapters/srs.tex [27
 
 ] [28] [29] [30] [31] [32] [33]
-<images/system-overview.png, id=934, 1259.4553pt x 568.37344pt>
+<images/system-overview.png, id=947, 1259.4553pt x 568.37344pt>
 File: images/system-overview.png Graphic file (type png)
 <use images/system-overview.png>
 Package pdftex.def Info: images/system-overview.png  used on input line 143.
 (pdftex.def)             Requested size: 408.50307pt x 184.34625pt.
  [34 <./images/system-overview.png>]
-<images/Login.jpeg, id=940, 598.235pt x 1284.8pt>
+<images/Login.jpeg, id=953, 598.235pt x 1284.8pt>
 File: images/Login.jpeg Graphic file (type jpg)
 <use images/Login.jpeg>
 Package pdftex.def Info: images/Login.jpeg  used on input line 168.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
  [35]
-<images/Home Page.jpeg, id=945, 598.235pt x 1284.8pt>
+<images/Home Page.jpeg, id=958, 598.235pt x 1284.8pt>
 File: images/Home Page.jpeg Graphic file (type jpg)
 <use images/Home Page.jpeg>
 Package pdftex.def Info: images/Home Page.jpeg  used on input line 179.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
-<images/Booking slots.jpeg, id=946, 598.235pt x 1284.8pt>
+<images/Booking slots.jpeg, id=959, 598.235pt x 1284.8pt>
 File: images/Booking slots.jpeg Graphic file (type jpg)
 <use images/Booking slots.jpeg>
 Package pdftex.def Info: images/Booking slots.jpeg  used on input line 186.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
  [36 <./images/Login.jpeg>]
-<images/AI chat App.jpeg, id=952, 598.235pt x 1284.8pt>
+<images/AI chat App.jpeg, id=965, 598.235pt x 1284.8pt>
 File: images/AI chat App.jpeg Graphic file (type jpg)
 <use images/AI chat App.jpeg>
 Package pdftex.def Info: images/AI chat App.jpeg  used on input line 194.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
  [37 <./images/Home Page.jpeg> <./images/Booking slots.jpeg>]
-<images/Forum.jpeg, id=957, 598.235pt x 1284.8pt>
+<images/Forum.jpeg, id=970, 598.235pt x 1284.8pt>
 File: images/Forum.jpeg Graphic file (type jpg)
 <use images/Forum.jpeg>
 Package pdftex.def Info: images/Forum.jpeg  used on input line 205.
 (pdftex.def)             Requested size: 129.00269pt x 277.05pt.
-<images/Chat Page.jpeg, id=958, 598.235pt x 1284.8pt>
+<images/Chat Page.jpeg, id=971, 598.235pt x 1284.8pt>
 File: images/Chat Page.jpeg Graphic file (type jpg)
 <use images/Chat Page.jpeg>
 Package pdftex.def Info: images/Chat Page.jpeg  used on input line 212.
 (pdftex.def)             Requested size: 129.00269pt x 277.05pt.
-<images/WhatsApp Image 2026-04-12 at 7.53.09 PM.jpeg, id=959, 598.235pt x 1284.
+<images/WhatsApp Image 2026-04-12 at 7.53.09 PM.jpeg, id=972, 598.235pt x 1284.
 8pt>
 File: images/WhatsApp Image 2026-04-12 at 7.53.09 PM.jpeg Graphic file (type jp
 g)
@@ -1309,19 +1309,19 @@ Package pdftex.def Info: images/WhatsApp Image 2026-04-12 at 7.53.09 PM.jpeg  u
 sed on input line 219.
 (pdftex.def)             Requested size: 129.00269pt x 277.05pt.
  [38 <./images/AI chat App.jpeg>]
-<images/Match Page.jpeg, id=964, 598.235pt x 1284.8pt>
+<images/Match Page.jpeg, id=977, 598.235pt x 1284.8pt>
 File: images/Match Page.jpeg Graphic file (type jpg)
 <use images/Match Page.jpeg>
 Package pdftex.def Info: images/Match Page.jpeg  used on input line 229.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
-<images/Leadboard.jpeg, id=965, 598.235pt x 1284.8pt>
+<images/Leadboard.jpeg, id=978, 598.235pt x 1284.8pt>
 File: images/Leadboard.jpeg Graphic file (type jpg)
 <use images/Leadboard.jpeg>
 Package pdftex.def Info: images/Leadboard.jpeg  used on input line 236.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
  [39 <./images/Forum.jpeg> <./images/Chat Page.jpeg> <./images/WhatsApp Image 2
 026-04-12 at 7.53.09 PM.jpeg>]
-<images/Vendor Dashboard.jpeg, id=970, 598.235pt x 1284.8pt>
+<images/Vendor Dashboard.jpeg, id=983, 598.235pt x 1284.8pt>
 File: images/Vendor Dashboard.jpeg Graphic file (type jpg)
 <use images/Vendor Dashboard.jpeg>
 Package pdftex.def Info: images/Vendor Dashboard.jpeg  used on input line 248.
@@ -1331,19 +1331,19 @@ File: images/Booking slots.jpeg Graphic file (type jpg)
 Package pdftex.def Info: images/Booking slots.jpeg  used on input line 255.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
  [40 <./images/Match Page.jpeg> <./images/Leadboard.jpeg>]
-<images/WhatsApp Converstation.jpeg, id=975, 799.98875pt x 914.41624pt>
+<images/WhatsApp Converstation.jpeg, id=988, 799.98875pt x 914.41624pt>
 File: images/WhatsApp Converstation.jpeg Graphic file (type jpg)
 <use images/WhatsApp Converstation.jpeg>
 Package pdftex.def Info: images/WhatsApp Converstation.jpeg  used on input line
  265.
 (pdftex.def)             Requested size: 322.50346pt x 368.63431pt.
  [41 <./images/Vendor Dashboard.jpeg>]
-<images/Admin Dashboard.jpeg, id=980, 598.235pt x 1284.8pt>
+<images/Admin Dashboard.jpeg, id=993, 598.235pt x 1284.8pt>
 File: images/Admin Dashboard.jpeg Graphic file (type jpg)
 <use images/Admin Dashboard.jpeg>
 Package pdftex.def Info: images/Admin Dashboard.jpeg  used on input line 276.
 (pdftex.def)             Requested size: 193.50076pt x 415.57501pt.
-<images/Admin Dashboard (2).jpeg, id=981, 598.235pt x 1284.8pt>
+<images/Admin Dashboard (2).jpeg, id=994, 598.235pt x 1284.8pt>
 File: images/Admin Dashboard (2).jpeg Graphic file (type jpg)
 <use images/Admin Dashboard (2).jpeg>
 Package pdftex.def Info: images/Admin Dashboard (2).jpeg  used on input line 28
@@ -1354,103 +1354,77 @@ g> <./images/Admin Dashboard (2).jpeg>]
 Chapter 4.
 (chapters/sds.tex [44
 
-] [45] [46]
-<images/ERD.png, id=1006, 435.87843pt x 549.55313pt>
+] [45]
+<images/System Architecture.png, id=1012, 927.465pt x 612.03656pt>
+File: images/System Architecture.png Graphic file (type png)
+<use images/System Architecture.png>
+Package pdftex.def Info: images/System Architecture.png  used on input line 47.
+
+(pdftex.def)             Requested size: 430.00462pt x 283.7629pt.
+ [46]
+Overfull \hbox (5.93391pt too wide) in paragraph at lines 67--76
+ [][] 
+ []
+
+[47 <./images/System Architecture.png>]
+<images/ERD.png, id=1023, 435.87843pt x 549.55313pt>
 File: images/ERD.png Graphic file (type png)
 <use images/ERD.png>
-Package pdftex.def Info: images/ERD.png  used on input line 141.
-(pdftex.def)             Requested size: 236.50385pt x 298.17981pt.
- [47]
-<images/Data Model.png, id=1012, 1146.53343pt x 674.52pt>
-File: images/Data Model.png Graphic file (type png)
-<use images/Data Model.png>
-Package pdftex.def Info: images/Data Model.png  used on input line 154.
-(pdftex.def)             Requested size: 408.50307pt x 240.32597pt.
- [48 <./images/ERD.png>]
-<images/Class diagram.png, id=1019, 417.81094pt x 685.8122pt>
-File: images/Class diagram.png Graphic file (type png)
-<use images/Class diagram.png>
-Package pdftex.def Info: images/Class diagram.png  used on input line 167.
-(pdftex.def)             Requested size: 236.50385pt x 388.21715pt.
- [49 <./images/Data Model.png>]
-<images/AD- App flow booking process.png, id=1026, 592.46344pt x 707.64375pt>
-File: images/AD- App flow booking process.png Graphic file (type png)
-<use images/AD- App flow booking process.png>
-Package pdftex.def Info: images/AD- App flow booking process.png  used on input
- line 184.
-(pdftex.def)             Requested size: 365.50655pt x 436.57504pt.
- [50 <./images/Class diagram.png>] [51 <./images/AD- App flow booking process.p
-ng>] [52] [53] [54]
-<images/Activity Diagram- Whatsapp Booking flow.png, id=1071, 713.66624pt x 709
+Package pdftex.def Info: images/ERD.png  used on input line 85.
+(pdftex.def)             Requested size: 279.50037pt x 352.39203pt.
+ [48] [49 <./images/ERD.png>]
+<images/FYP - Seq Dig.png, id=1034, 857.2025pt x 1513.655pt>
+File: images/FYP - Seq Dig.png Graphic file (type png)
+<use images/FYP - Seq Dig.png>
+Package pdftex.def Info: images/FYP - Seq Dig.png  used on input line 108.
+(pdftex.def)             Requested size: 387.00153pt x 683.37883pt.
+ [50]
+[51 <./images/FYP - Seq Dig.png>]
+<images/Activity Diagram- Whatsapp Booking flow.png, id=1048, 713.66624pt x 709
 .14937pt>
 File: images/Activity Diagram- Whatsapp Booking flow.png Graphic file (type png
 )
 <use images/Activity Diagram- Whatsapp Booking flow.png>
 Package pdftex.def Info: images/Activity Diagram- Whatsapp Booking flow.png  us
-ed on input line 337.
-(pdftex.def)             Requested size: 408.50307pt x 405.9182pt.
- [55]
-<images/FYP - Seq Dig.png, id=1076, 857.2025pt x 1513.655pt>
-File: images/FYP - Seq Dig.png Graphic file (type png)
-<use images/FYP - Seq Dig.png>
-Package pdftex.def Info: images/FYP - Seq Dig.png  used on input line 350.
-(pdftex.def)             Requested size: 408.50307pt x 721.32635pt.
- [56 <./images/Activity Diagram- Whatsapp Booking flow.png>] [57 <./images/FYP 
-- Seq Dig.png>]
-<images/FYP - Seq Dig (1).png, id=1087, 857.2025pt x 1513.655pt>
-File: images/FYP - Seq Dig (1).png Graphic file (type png)
-<use images/FYP - Seq Dig (1).png>
-Package pdftex.def Info: images/FYP - Seq Dig (1).png  used on input line 363.
-(pdftex.def)             Requested size: 408.50307pt x 721.32635pt.
- [58 <./images/FYP - Seq Dig (1).png>]
+ed on input line 147.
+(pdftex.def)             Requested size: 430.00462pt x 427.27834pt.
+ [52] [53]
+<images/AD- App flow booking process.png, id=1060, 592.46344pt x 707.64375pt>
 File: images/AD- App flow booking process.png Graphic file (type png)
 <use images/AD- App flow booking process.png>
 Package pdftex.def Info: images/AD- App flow booking process.png  used on input
- line 385.
-(pdftex.def)             Requested size: 408.50307pt x 487.92918pt.
- [59]
-<images/Activity Diagram.png, id=1097, 677.53125pt x 708.39656pt>
-File: images/Activity Diagram.png Graphic file (type png)
-<use images/Activity Diagram.png>
-Package pdftex.def Info: images/Activity Diagram.png  used on input line 398.
-(pdftex.def)             Requested size: 408.50307pt x 427.1274pt.
- [60] [61 <./images/Activity Diagram.png>]
-<images/FYP - Vend Activity Dig.png, id=1108, 720.6925pt x 1045.9075pt>
+ line 157.
+(pdftex.def)             Requested size: 430.00462pt x 513.61707pt.
+ [54 <./images/Activity Diagram- Whatsapp Booking flow.png>] [55]
+<images/FYP - Vend Activity Dig.png, id=1071, 720.6925pt x 1045.9075pt>
 File: images/FYP - Vend Activity Dig.png Graphic file (type png)
 <use images/FYP - Vend Activity Dig.png>
 Package pdftex.def Info: images/FYP - Vend Activity Dig.png  used on input line
- 421.
-(pdftex.def)             Requested size: 408.50307pt x 592.838pt.
- [62] [63 <./images/FYP - Vend Activity Dig.png>]
-<images/FYP - Vend Activity Dig (1).png, id=1118, 720.6925pt x 1045.9075pt>
-File: images/FYP - Vend Activity Dig (1).png Graphic file (type png)
-<use images/FYP - Vend Activity Dig (1).png>
-Package pdftex.def Info: images/FYP - Vend Activity Dig (1).png  used on input 
-line 434.
-(pdftex.def)             Requested size: 408.50307pt x 592.838pt.
- [64 <./images/FYP - Vend Activity Dig (1).png>])
-[65]
+ 167.
+(pdftex.def)             Requested size: 365.50655pt x 530.43735pt.
+ [56 <./images/AD- App flow booking process.png>]
+[57] [58 <./images/FYP - Vend Activity Dig.png>]) [59]
 Chapter 5.
-(chapters/development.tex [66
+(chapters/development.tex [60
 
-] [67] [68] [69] [70] [71]) [72]
+] [61] [62] [63] [64] [65]) [66]
 Chapter 6.
-(chapters/results.tex [73
+(chapters/results.tex [67
 
-] [74]
+] [68]
 Overfull \hbox (6.88963pt too wide) in paragraph at lines 150--150
  []|\T1/lmr/bx/n/10.95 (-20) Accuracy| 
  []
 
-[75]
-<images/distilbert_per_class_prf.png, id=1178, 433.62pt x 289.08pt>
+[69]
+<images/distilbert_per_class_prf.png, id=1140, 433.62pt x 289.08pt>
 File: images/distilbert_per_class_prf.png Graphic file (type png)
 <use images/distilbert_per_class_prf.png>
 Package pdftex.def Info: images/distilbert_per_class_prf.png  used on input lin
 e 174.
 (pdftex.def)             Requested size: 430.00462pt x 286.6841pt.
- [76]
-<images/distilbert_confusion_matrix.png, id=1186, 361.35pt x 325.215pt>
+ [70]
+<images/distilbert_confusion_matrix.png, id=1148, 361.35pt x 325.215pt>
 File: images/distilbert_confusion_matrix.png Graphic file (type png)
 <use images/distilbert_confusion_matrix.png>
 Package pdftex.def Info: images/distilbert_confusion_matrix.png  used on input 
@@ -1460,43 +1434,39 @@ line 189.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[77 <./images/distilbert_per_class_prf.png>] [78 <./images/distilbert_confusion
-_matrix.png>] [79] [80]) [81]
+[71 <./images/distilbert_per_class_prf.png>] [72 <./images/distilbert_confusion
+_matrix.png>] [73] [74]) [75]
 Chapter 7.
-(chapters/conclusion.tex [82
+(chapters/conclusion.tex [76
 
-] [83] [84]) [85]
+] [77] [78]) [79]
 Chapter 8.
-(chapters/reflection.tex [86
+(chapters/reflection.tex [80
 
-] [87] [88] [89] [90]) [91]
+] [81] [82] [83] [84]) [85]
 Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/lmr/m/sc/12'.
 (microtype)             Ignoring protrusion settings for this character.
- [92
+ [86
 
-] [93] [94] [95]
+] [87] [88] [89]
 (report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: 8C2A39FE5CF3100A2DAA4A50B6757AD5;21591.
+(rerunfilecheck)             Checksum: 45C01870D50DE35F92B73F4DFD8A0717;22317.
 Package logreq Info: Writing requests to 'report.run.xml'.
 \openout1 = `report.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 26506 strings out of 467871
- 464498 string characters out of 5416924
- 1313944 words of memory out of 5000000
- 54355 multiletter control sequences out of 15000+600000
- 731947 words of font info for 268 fonts, out of 8000000 for 9000
+ 26439 strings out of 467871
+ 462845 string characters out of 5416924
+ 1313141 words of memory out of 5000000
+ 54310 multiletter control sequences out of 15000+600000
+ 725795 words of font info for 264 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  63i,12n,76p,1185b,1497s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10
@@ -1505,21 +1475,17 @@ x12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/
 lmcsc10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/public
 /lm/lmmi10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/pub
 lic/lm/lmmi12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/lm/lmmi8.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type
-1/public/lm/lmr10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/ty
-pe1/public/lm/lmr12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/
-type1/public/lm/lmr17.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/font
-s/type1/public/lm/lmr6.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fon
-ts/type1/public/lm/lmr8.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fo
-nts/type1/public/lm/lmri12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX
-/fonts/type1/public/lm/lmsy10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/M
-iKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/OMNIBOOK/AppData/Local/Program
-s/MiKTeX/fonts/type1/public/lm/lmtt12.pfb><C:/Users/OMNIBOOK/AppData/Local/Prog
-rams/MiKTeX/fonts/type1/urw/zapfding/uzdr.pfb>
-Output written on report.pdf (96 pages, 2729860 bytes).
+public/lm/lmr10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type
+1/public/lm/lmr12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/ty
+pe1/public/lm/lmr17.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/
+type1/public/lm/lmri12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fon
+ts/type1/public/lm/lmsy10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/
+fonts/type1/public/lm/lmtt10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKT
+eX/fonts/type1/public/lm/lmtt12.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/M
+iKTeX/fonts/type1/urw/zapfding/uzdr.pfb>
+Output written on report.pdf (90 pages, 2171872 bytes).
 PDF statistics:
- 1478 PDF objects out of 1728 (max. 8388607)
- 320 named destinations out of 1000 (max. 500000)
- 55373 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 1420 PDF objects out of 1440 (max. 8388607)
+ 304 named destinations out of 1000 (max. 500000)
+ 51297 words of extra memory for PDF output out of 51595 (max. 10000000)
 
