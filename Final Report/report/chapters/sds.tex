@@ -29,38 +29,11 @@ Backend API is the sole orchestrator; it delegates to the AI Agent and OCR Servi
 for specialised logic.  Dependencies are strictly unidirectional: Clients depend on
 Backend; Backend depends on Database.
 
-\begin{figure}[H]
-  \centering
-  \IfFileExists{images/System Architecture.png}{
-    \includegraphics[width=0.95\textwidth]{images/System Architecture.png}
-  }{
-    \fbox{\parbox{0.85\textwidth}{\centering\vspace{0.8cm}
-    Missing figure file: \texttt{images/System Architecture.png}\par
-    System architecture diagram placeholder\vspace{0.8cm}}}
-  }
-  \caption{Primary system architecture of BookForMe.}
-  \label{fig:sds-system-architecture}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \IfFileExists{images/system-overview.png}{
-    \includegraphics[width=0.95\textwidth]{images/system-overview.png}
-  }{
-    \fbox{\parbox{0.85\textwidth}{\centering\vspace{0.8cm}
-    Missing figure file: \texttt{images/system-overview.png}\par
-    System overview diagram placeholder\vspace{0.8cm}}}
-  }
-  \caption{System overview showing major platform components.}
-  \label{fig:sds-system-overview}
-\end{figure}
-
 \subsection{Architectural Design Decisions}
 
 \begin{description}
   \item[Neuro-Symbolic AI Architecture]
-        The LLM (Gemini) interprets natural language (creative / linguistic),
-        but all database mutations are executed by deterministic LangGraph code nodes
+        The LLM interprets natural language (creative / linguistic), but all database mutations are executed by deterministic LangGraph code nodes
         (symbolic / strict logic).  This prevents the agent from ``hallucinating''
         bookings or bypassing payment requirements.  It also provides a natural
         security boundary against prompt-injection attacks.
@@ -244,8 +217,6 @@ database actions without hallucination.
   \item The fine-tuned DistilBERT model classifies the user's message into one of
         five intent classes: \texttt{inquiry}, \texttt{info},
         \texttt{transaction\_confirm}, \texttt{greeting}, \texttt{unknown}.
-  \item The Gemini API (fallback for complex or ambiguous cases) extracts slot
-        entities: service type, date, time, duration, budget, location.
   \item The classified intent routes to a specific LangGraph node which executes
         rigid Python code (e.g., a Firestore query) rather than allowing the LLM
         to generate queries itself.
