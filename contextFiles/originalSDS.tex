@@ -1,0 +1,243 @@
+reference:
+\documentclass[12pt, a4paper]{article}
+
+% --- PREAMBLE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{caption}
+
+% --- CONFIGURATION ---
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    pdftitle={SDS - BookForMe},
+}
+
+\title{\textbf{Software Design Specification}\\BookForMe: AI-Powered  Booking Platform}
+\author{
+    \textbf{Department of Computer Science}\\
+    Final Year Project\\[0.3cm]
+    \textbf{Team Members:}\\
+    Jazib Waqas, Ahmad Hanif, Muhammad Taqi, Taha Hunaid
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Purpose}
+The purpose of this Software Design Specification (SDS) is to provide a comprehensive architectural overview of the \textbf{BookForMe} platform. It details the system's design decisions, hybrid architectural patterns, data structures, and the workflow logic required to build a robust service booking application.
+
+\subsection{Scope}
+The BookForMe system connects service providers (Vendors) and consumers (Users) in Pakistan through a centralized platform. It solves the inefficiency of manual booking by automating the entire Booking and payment verification process.
+
+The system includes:
+\begin{itemize}
+    \item \textbf{A User Mobile App:} A complete interface for users to book services, join ranked or casual match lobbies, and interact with the community via forums.
+    \item \textbf{An Automated WhatsApp Agent:} An intelligent assistant that handles booking conversations on behalf of the vendor. It manages availability checks, locks time slots to prevent double-booking, and automatically verifies payment receipts using OCR.
+    \item \textbf{A Vendor Dashboard:} A management tool for business owners to view their schedule, manage slots, and give final approval on bookings without needing to chat with customers.
+    \item \textbf{A Centralized Backend:} A single API layer that keeps data consistent, ensuring that a slot booked via WhatsApp is instantly updated on the App.
+\end{itemize}
+\subsection{Definitions and Acronyms}
+To ensure clarity for all stakeholders, the following technical terms are defined:
+
+\begin{itemize}
+    \item \textbf{Neuro-Symbolic AI:} A hybrid approach that combines the "Creative" capabilities of a Language Model (to understand speech) with the "Strict" logic of code (to handle payments). This ensures the AI understands the user but cannot "hallucinate" fake bookings.
+    \item \textbf{Rich Client (The Mobile App):} A fully-featured application installed on the phone (React Native). It handles complex visuals, maps, and menus directly on the device, offering a smoother experience than a website.
+    \item \textbf{Conversational Client (WhatsApp):} A text-based interface where the user interacts via natural language instead of buttons. It relies entirely on the AI Agent to guide the user.
+    \item \textbf{LangGraph:} A framework used to build the AI's "brain." It acts like a flowchart manager, ensuring the AI follows specific steps (e.g., Check Availability $\rightarrow$ Ask for Payment) and doesn't get confused.
+    \item \textbf{OCC (Optimistic Concurrency Control):} A strategy to prevent double-booking.It "locks" a time slot for a few milliseconds while a booking is being processed to ensure two people don't book it simultaneously.
+    \item \textbf{OCR (Optical Character Recognition):} Technology used to "read" text from images. We use this to automatically extract the amount (e.g., "500 PKR") from payment screenshots uploaded by users.
+\end{itemize}
+
+
+\section{System Architecture}
+
+\subsection{Architectural Design}
+The system follows a \textbf{Service-Oriented Architecture (SOA)} with a clear separation between the Presentation, Business Logic, and Persistence layers. 
+
+Uniquely, the system supports two distinct client types:
+\begin{enumerate}
+    \item \textbf{The Rich Client (Mobile App):} Connects directly via HTTPS/JSON. Best for power users who want to browse categories or join social lobbies.
+    \item \textbf{The Conversational Client (WhatsApp):} Connects via Webhooks to the AI Agent. Best for quick bookings without downloading an app.
+\end{enumerate}
+
+Both clients converge on a single backend and database, ensuring a "Single Source of Truth." Dependencies are strictly unidirectional: Clients depend on the Backend, and the Backend depends on the Database.
+
+\subsection{System Architecture Diagram}
+The diagram below illustrates the high-level data flow across the system's three tiers: Client, Backend, and Persistence.
+
+The architecture highlights two distinct communication patterns:
+\begin{itemize}
+    \item \textbf{Synchronous API Flow (Left):} The \textbf{Mobile Application} communicates directly with the \textbf{Central Backend API} via JSON/HTTPS requests. This path handles real-time user actions like searching for slots or managing the vendor dashboard.
+    \item \textbf{Asynchronous Event Flow (Right):} The \textbf{WhatsApp API} operates via Webhooks. When a user sends a message, it triggers an asynchronous event to the backend, which then routes the context to the \textbf{AI Receptionist Agent} for processing.
+\end{itemize}
+
+The \textbf{Central Backend API} acts as the orchestrator, delegating heavy logic to specialized microservices (AI Agent and OCR Service) while maintaining data consistency in the \textbf{Firestore DB}.
+
+\begin{figure}[H]
+    \centering
+    % IMAGE 1: System Architecture
+    \includegraphics[width=1.0\textwidth]{SAD.png}
+    \caption{High-Level System Architecture}
+\end{figure}
+
+\section{Data Model (Data Design)}
+
+\subsection{Database Strategy}
+Data persistence is handled by \textbf{Google Cloud Firestore}. We employ a "Reference-Based" schema strategy to balance the flexibility of NoSQL with the need for structured relationships.
+
+The design creates a strict separation between the \textbf{Social Ecosystem} (User reputation, Matchmaking) and the \textbf{Transactional Domain} (Vendors, Bookings). This ensures that high-volume social interactions (like chatting or posting) do not impact the performance or integrity of critical financial data.
+
+\subsection{Entity Descriptions}
+The table below details the primary entities in the system and their specific responsibilities.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{3cm}|p{5cm}|p{6cm}|}
+    \hline
+    \textbf{Entity} & \textbf{Key Attributes} & \textbf{Description \& Purpose} \\ \hline
+    \textbf{Users} & user\_id, auth\_uid, elo\_rating, skill\_profile & The central anchor. Bridges the gap between social features (like skill ratings) and commercial features. \\ \hline
+    \textbf{Vendors} & vendor\_id, location, owner\_ref & Represents the business entity. Defined independently of services to allow for scalable inventory management. \\ \hline
+    \textbf{Services} & service\_id, price, type & Represents the sellable unit (e.g., a specific Futsal Court or Gaming PC). \\ \hline
+    \textbf{Bookings} & booking\_id, hold\_expires\_at, status & The transactional record. Includes a \texttt{hold\_expires\_at} timestamp for the AI Agent's concurrency locking logic. \\ \hline
+    \textbf{Payments} & transaction\_id, ocr\_verified\_amount, screenshot\_url & Separated from bookings to ensure auditability. Stores the raw evidence (screenshot) and the AI-validated amount. \\ \hline
+    \textbf{Match\_Lobbies} & match\_id, participants, mode & Manages matchmaking logic, tracking users in Ranked or Casual groups. \\ \hline
+    \textbf{Forum\_Posts} & post\_id, content, timestamp & drive user engagement, allowing the community to interact beyond just making bookings. \\ \hline
+    \end{tabular}
+    \caption{Domain Entity Descriptions}
+\end{table}
+
+\subsection{NoSQL Schema Diagram}
+The diagram below visualizes the relationships between these entities. The schema is divided into two distinct domains:
+
+\begin{enumerate}
+    \item \textbf{User \& Social Domain (Left):} Manages user engagement, allowing users to build reputation (Elo) without necessarily making purchases.
+    \item \textbf{Core Booking Domain (Right):} Manages business logic. Note that \textbf{Payments} are separated from \textbf{Bookings}; this allows the AI to perform OCR verification on the payment receipt before the booking is officially confirmed.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.1\textwidth]{Data Model.png}
+    \caption{Logical Data Model}
+\end{figure}
+
+
+\section{Agentic Booking Process Pipeline (Sequence Diagram)}
+
+Building on the data structures defined in the previous section, this diagram details the specific interaction sequence for the AI-driven booking process. It demonstrates how the system leverages the \texttt{hold\_expires\_at} timestamp and the separated \texttt{Payments} entity to manage concurrency and verification in real-time.
+
+Unlike a standard request-response cycle, the AI Agent manages a stateful conversation, enforcing a strict validation pipeline before any data reaches the vendor.
+
+\subsection{Pipeline Logic}
+\begin{enumerate}
+    \item \textbf{Ingest \& Negotiation:} The Agent maintains a conversational loop with the user to clarify the specific date and time before querying the database.
+    \item \textbf{Transaction (Locking):} Once the intent is finalized, the system utilizes the Optimistic Concurrency Control strategy to create a "HOLD" booking with a 10-minute expiry window.
+    \item \textbf{Intelligent Gatekeeper:} The Agent processes the uploaded payment receipt using the OCR service. If the extracted amount does not match the service price, the system automatically rejects the request. This ensures that the vendor is not disturbed by invalid transactions.
+    \item \textbf{Human-in-the-Loop:} Only validated requests are forwarded to the Vendor Dashboard, where the final approval status is determined.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % IMAGE 3: Sequence Diagram
+    \includegraphics[width=0.9\textwidth]{FYP - Seq Dig.png}
+    \caption{AI Booking & Payment Pipeline}
+\end{figure}
+
+
+
+\newpage
+\section{Technical Details \& Workflows}
+
+While the previous section illustrated the data pipeline for a single transaction, this section expands on the broader algorithmic logic and user workflows. It details the specific decision trees used to handle complex interactions across the Agent, the App, and the Vendor Dashboard.
+
+\subsection{Key Algorithms}
+The system employs three core algorithms to handle intelligence, concurrency, and social matchmaking.
+
+\subsubsection{Algorithm 1: Intent Parsing \& Action Routing}
+\textbf{Purpose:} To translate unstructured natural language into deterministic database actions without hallucination.
+\begin{itemize}
+    \item \textbf{Input:} Raw WhatsApp Message string + User Session State.
+    \item \textbf{Logic:} The LLM classifies the user's intent (e.g., \texttt{BOOK\_SLOT} vs. \texttt{CHECK\_PRICE}). The system then "routes" this intent to a specific LangGraph node, which executes rigid code (like checking a specific Firestore document) rather than letting the LLM generate a query itself.
+    \item \textbf{Output:} Validated JSON Payload or Error Prompt.
+\end{itemize}
+
+\subsubsection{Algorithm 2: Optimistic Concurrency Control (OCC)}
+\textbf{Purpose:} To prevent race conditions (double bookings) in a distributed NoSQL environment.
+\begin{itemize}
+    \item \textbf{Input:} \texttt{service\_id}, \texttt{time\_slot}, \texttt{user\_id}.
+    \item \textbf{Logic:}
+    \begin{enumerate}
+        \item \textbf{Read:} Fetch the current slot status.
+        \item \textbf{Verify:} Check if status is \texttt{AVAILABLE}.
+        \item \textbf{Write:} If valid, update status to \texttt{HOLD} with a timestamp. This atomic operation fails if the underlying document changed since the "Read" step.
+    \end{enumerate}
+    \item \textbf{Output:} Transaction Success or Conflict Error.
+\end{itemize}
+
+\subsubsection{Algorithm 3: Elo-Based Matchmaking}
+\textbf{Purpose:} To pair users of similar skill levels for "Ranked" matches.
+\begin{itemize}
+    \item \textbf{Input:} User's current Elo rating, Preferred Sport, Wait Time.
+    \item \textbf{Logic:} The system searches the \texttt{Match\_Lobbies} collection for open lobbies where the average Elo is within a distinct threshold (e.g., $\pm 200$ points). As wait time increases, the threshold expands to ensure a match is found.
+    \item \textbf{Output:} \texttt{lobby\_id} or \texttt{WAIT} signal.
+\end{itemize}
+
+\subsection{Workflow Visualizations}
+To demonstrate how these algorithms manifest in the user experience, the following diagrams detail the specific interaction flows for each primary actor.
+
+\subsubsection{Workflow 1: The Agentic Booking Experience}
+This diagram illustrates the "Conversational Flow" on WhatsApp. It specifically highlights the \textbf{Error Correction Loop}: if a user uploads an invalid receipt (detected via OCR), the Agent handles the rejection automatically. The Vendor is only notified once a valid proof is submitted.
+
+\begin{figure}[H]
+    \centering
+    % IMAGE 4: Activity Diagram - WhatsApp User
+    \includegraphics[width=1.1\textwidth]{Activity Diagram- Whatsapp Booking flow.png}
+    \caption{Activity Diagram: Agent/WhatsApp Booking Flow}
+\end{figure}
+
+\newpage
+\subsubsection{Workflow 2: The App User Experience}
+This diagram illustrates the "Rich Client" flow. A key feature highlighted here is the \textbf{Dual-Search Capability}: users can browse manually via filters (Location/Price) or use the embedded AI Assistant to find slots via natural language, catering to both power users and casual browsers.
+
+\begin{figure}[H]
+    \centering
+    % IMAGE 5: Activity Diagram - App User
+    \includegraphics[width=1.0\textwidth]{AD- App flow booking process.png}
+    \caption{Activity Diagram: Mobile App Search & Book}
+\end{figure}
+
+\subsubsection{Workflow 3: The Vendor Management Experience}
+This diagram illustrates the "Human-in-the-Loop" process. It shows how vendors maintain control over their inventory. Crucially, it demonstrates that a \textbf{Vendor Rejection} triggers a cascading update in the backend to release the held slot, ensuring the system never deadlocks.
+
+\begin{figure}[H]
+    \centering
+    % IMAGE 6: Activity Diagram - Vendor Dashboard
+    \includegraphics[width=0.85\textwidth]{FYP - Vend Activity Dig.png}
+    \caption{Activity Diagram: Vendor Dashboard & Approvals}
+\end{figure}
+\section{Security Implementation}
+\begin{itemize}
+    \item \textbf{Authentication:} Managed via Firebase Auth. The \texttt{auth\_uid} in the \texttt{Users} collection strictly links the secure token to the application data, preventing unauthorized access.
+    \item \textbf{Role-Based Access Control (RBAC):} Custom API middleware validates user claims (Vendor vs. Customer) on every request before granting write access to critical collections like \texttt{Services} or \texttt{Approvals}.
+    \item \textbf{AI Guardrails:} The Neuro-Symbolic architecture acts as a security firewall. Since the LLM cannot execute database queries directly—but must route intents through deterministic code nodes—the system is resilient against "Prompt Injection" attacks where users might try to trick the bot into bypassing payment rules.
+    \item \textbf{Data Privacy:} Payment screenshots are stored in a private cloud storage bucket. The system generates time-limited Signed URLs that are only accessible to the specific Vendor and Admin, ensuring financial data remains private.
+\end{itemize}
+
+\end{document}
