@@ -2,7 +2,7 @@
 
 Purpose: give coding agents and humans a single source of truth for **vision**, **scope**, and **ordered work** so implementation stays aligned. Main surface: React Native `App/app/vendor-dashboard/`. Backend: FastAPI + Firestore (`backend/database/rest_api.py` and related).
 
----
+
 
 ## Vision (high level)
 
