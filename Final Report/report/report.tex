@@ -127,7 +127,7 @@
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{document}
 
-% ── Front matter (title page only; chapters in chapters/) ──
+% ── Front matter: title (p.1), approval (p.2); chapters in chapters/ ──
 
 \begin{titlepage}
   \thispagestyle{empty}
@@ -164,6 +164,52 @@
   \vspace{0.4cm}
   \restoregeometry
 \end{titlepage}
+
+\clearpage
+\thispagestyle{empty}
+\AddToShipoutPictureBG*{%
+  \put(0,0){%
+    \parbox[b][\paperheight]{\paperwidth}{%
+      \vfill
+      \centering
+      {\transparent{0.09}\includegraphics[width=0.44\paperwidth,keepaspectratio]{logo.pdf}}%
+      \vfill
+    }%
+  }%
+}%
+\begingroup
+\singlespacing
+\newgeometry{left=2.5cm,right=2.5cm,top=2.8cm,bottom=2.5cm}
+\vspace*{0.5cm}
+\begin{center}
+  \begin{minipage}{0.94\textwidth}\centering
+    {\Huge\bfseries\linespread{1.08}\selectfont\Title\par}
+  \end{minipage}
+\end{center}
+
+\vspace{6em}
+
+\noindent{\Large This Kaavish project was supervised by:\par}
+
+\vspace{5.5em}
+
+\begin{flushright}
+  \begin{tabular}{@{}l@{}}
+    \rule{9.5cm}{0.55pt} \\[1.15em]
+    {\large Project Supervisor} \\[0.45em]
+    {\large Faculty of Computer Science} \\[0.45em]
+    {\large Habib University}
+  \end{tabular}
+\end{flushright}
+
+\vfill
+
+\noindent{\large Approved by the Faculty of Computer Science on \hrulefill}
+
+\vspace{1.2cm}
+\restoregeometry
+\endgroup
+\clearpage
 
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
@@ -219,6 +265,8 @@ validating the social relevance of this work.  The platform is live at
 \noindent\textbf{Keywords:} Agentic AI, Task-Oriented Dialogue, Bilingual NLU,
 Roman Urdu, LangGraph, Optimistic Concurrency Control, WhatsApp Business API,
 DistilBERT.
+
+\setcounter{tocdepth}{2}
 
 % ── Tables ───────────────────────────────────────────────────────────────────
 \tableofcontents

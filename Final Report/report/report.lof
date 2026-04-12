@@ -1,26 +1,26 @@
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {1.1}{\ignorespaces High-level overview of the BookForMe platform.}}{12}{figure.caption.6}%
+\contentsline {figure}{\numberline {1.1}{\ignorespaces High-level overview of the BookForMe platform.}}{13}{figure.caption.6}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces System block diagram for the BookForMe platform.}}{35}{figure.caption.9}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces System block diagram for the BookForMe platform.}}{36}{figure.caption.9}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Primary system architecture of BookForMe.}}{41}{figure.caption.10}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces System overview showing major platform components.}}{42}{figure.caption.11}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Software Architecture Diagram (SAD) for BookForMe.}}{43}{figure.caption.12}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Entity Relationship Diagram (ERD) for the core data model.}}{45}{figure.caption.14}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Detailed data model used for Firestore document structure.}}{46}{figure.caption.15}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Class diagram for major domain objects and relationships.}}{47}{figure.caption.16}%
-\contentsline {figure}{\numberline {4.7}{\ignorespaces Booking record state lifecycle.}}{49}{figure.caption.17}%
-\contentsline {figure}{\numberline {4.8}{\ignorespaces LangGraph cyclic state graph for the AI Receptionist.}}{52}{figure.caption.18}%
-\contentsline {figure}{\numberline {4.9}{\ignorespaces Activity diagram of the WhatsApp booking flow.}}{54}{figure.caption.19}%
-\contentsline {figure}{\numberline {4.10}{\ignorespaces Sequence diagram for the agentic booking interaction.}}{55}{figure.caption.20}%
-\contentsline {figure}{\numberline {4.11}{\ignorespaces Sequence diagram variant covering alternate message flow.}}{56}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.12}{\ignorespaces Activity diagram for the in-app booking process.}}{58}{figure.caption.22}%
-\contentsline {figure}{\numberline {4.13}{\ignorespaces General activity diagram of the booking lifecycle.}}{59}{figure.caption.23}%
-\contentsline {figure}{\numberline {4.14}{\ignorespaces Vendor dashboard activity diagram for booking approval handling.}}{61}{figure.caption.24}%
-\contentsline {figure}{\numberline {4.15}{\ignorespaces Vendor activity diagram variant for exception-handling paths.}}{62}{figure.caption.25}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Primary system architecture of BookForMe.}}{42}{figure.caption.10}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces System overview showing major platform components.}}{43}{figure.caption.11}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Software Architecture Diagram (SAD) for BookForMe.}}{44}{figure.caption.12}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Entity Relationship Diagram (ERD) for the core data model.}}{46}{figure.caption.14}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Detailed data model used for Firestore document structure.}}{47}{figure.caption.15}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Class diagram for major domain objects and relationships.}}{48}{figure.caption.16}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Booking record state lifecycle.}}{50}{figure.caption.17}%
+\contentsline {figure}{\numberline {4.8}{\ignorespaces LangGraph cyclic state graph for the AI Receptionist.}}{53}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Activity diagram of the WhatsApp booking flow.}}{55}{figure.caption.19}%
+\contentsline {figure}{\numberline {4.10}{\ignorespaces Sequence diagram for the agentic booking interaction.}}{56}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.11}{\ignorespaces Sequence diagram variant covering alternate message flow.}}{57}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.12}{\ignorespaces Activity diagram for the in-app booking process.}}{59}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.13}{\ignorespaces General activity diagram of the booking lifecycle.}}{60}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.14}{\ignorespaces Vendor dashboard activity diagram for booking approval handling.}}{62}{figure.caption.24}%
+\contentsline {figure}{\numberline {4.15}{\ignorespaces Vendor activity diagram variant for exception-handling paths.}}{63}{figure.caption.25}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{68}{figure.caption.29}%
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Confusion matrix for DistilBERT}}{69}{figure.caption.30}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{69}{figure.caption.29}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Confusion matrix for DistilBERT}}{70}{figure.caption.30}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
