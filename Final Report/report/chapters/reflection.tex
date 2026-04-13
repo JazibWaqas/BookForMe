@@ -22,7 +22,9 @@ The social features were honestly the most fun to build and they got the best re
 
 \subsection{Muhammad Taqi}
 
-Most of my time went into the dataset, not the model. Annotating and cleaning 694 utterances across two languages takes far longer than it sounds, and the quality of those annotations determined everything downstream. The result that surprised me most was XLM-RoBERTa performing worse than DistilBERT. XLM-RoBERTa is a larger multilingual model and should in theory handle Roman Urdu better. But with 500 training samples, it was too large for the data we had and it showed. That was a good reminder that picking a model is not just about capability, it is about what fits the scale of your dataset.
+My personal learning experience throughout this final year project was an incredible deep dive into the practical realities of Conversational AI, which is an area my experience has been growing in the past year. I primarily worked on the NLP model and LangGraph orchestration, moving from raw data annotation to deploying a functional state machine. Annotating and cleaning the data across English and Roman Urdu was tedious, but it was my first real lesson in how the quality of data absolutely defines the ceiling of a model's performance.
+
+Writing the normalization layers and watching the LangGraph orchestrator successfully manage conversational state, hold context, and route users across multiple webhook calls was a highly rewarding progression. Debugging complex state leakage and cyclic memory bugs pushed my problem-solving skills, ultimately teaching me that the true reliability of an AI agent lives entirely in its deterministic state management rather than just the generative model wrapping it.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Team Reflection}
