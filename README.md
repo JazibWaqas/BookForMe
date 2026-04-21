@@ -45,6 +45,9 @@ cd backend
 
 python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 
+#for testing chat locally 
+python backend/scripts/chat_web.py
+
 # 2. Mobile App Setup  
 cd App
 npm install

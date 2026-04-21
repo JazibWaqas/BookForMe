@@ -7,7 +7,8 @@
     <title>Agent Dev Chat</title>
     <style>
         :root {
-            --bg-color: #111b21;
+            --app-bg: #0c1317;
+            --app-accent: #00a884;
             --header-bg: #202c33;
             --chat-bg: #0b141a;
             --incoming-bg: #202c33;
@@ -16,345 +17,215 @@
             --text-secondary: #8696a0;
             --input-bg: #2a3942;
             --accent: #00a884;
-            --card-bg: #2a3942;
-            --card-border: rgba(255,255,255,0.08);
-            --card-radius: 12px;
-            --slot-card-radius: 8px;
-            --venue-separator: 1px solid rgba(255,255,255,0.06);
             --hover-bg: rgba(255,255,255,0.05);
-            --success-bg: rgba(0,168,132,0.15);
-            --max-bubble-width: 85%;
-            --max-content-width: 480px;
+            --max-bubble-width: 65%;
+            --card-border: rgba(255,255,255,0.05);
         }
 
         * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
+            background-color: var(--app-bg);
             color: var(--text-primary);
             margin: 0;
             height: 100vh;
             display: flex;
             justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 127px;
+            background-color: var(--app-accent);
+            z-index: 0;
         }
 
         .app-container {
             width: 100%;
-            max-width: 640px;
-            height: 100%;
+            max-width: 1000px;
+            height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
             background-color: var(--chat-bg);
             position: relative;
+            z-index: 1;
+            box-shadow: 0 17px 50px 0 rgba(11,20,26,.19), 0 12px 15px 0 rgba(11,20,26,.24);
         }
 
         header {
             background-color: var(--header-bg);
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             z-index: 10;
+            height: 59px;
             flex-shrink: 0;
         }
 
-        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-info { display: flex; align-items: center; gap: 15px; cursor: pointer; }
         .avatar {
             width: 40px; height: 40px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #008f6b);
+            background: #dfe5e7;
             display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
+            overflow: hidden;
         }
-        .user-details h2 { margin: 0; font-size: 16px; font-weight: 600; }
-        .user-details span { font-size: 12px; color: var(--text-secondary); }
+        .user-details h2 { margin: 0; font-size: 16px; font-weight: 500; }
+        .user-details span { font-size: 13px; color: var(--text-secondary); }
         .actions button {
-            background: none; border: none; color: var(--text-secondary);
-            cursor: pointer; padding: 8px; border-radius: 8px;
+            background: none; border: none; color: #aebac1;
+            cursor: pointer; padding: 8px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
         }
-        .actions button:hover { background: var(--hover-bg); color: var(--text-primary); }
-
+        .actions button:hover { background: rgba(255,255,255,0.1); }
+        
         #chat-container {
             flex: 1; overflow-y: auto;
-            padding: 16px;
-            display: flex; flex-direction: column; gap: 12px;
-            scroll-behavior: smooth;
+            padding: 20px 6%;
+            display: flex; flex-direction: column; gap: 2px;
+            /* Combine dark gradient with sports image to achieve transparency over a black bg */
+            background-color: #0b141a;
+            background-image: linear-gradient(rgba(11,20,26,0.92), rgba(11,20,26,0.92)), url('sports_bg.png');
+            background-repeat: repeat;
+            background-size: auto;
         }
 
         .message {
             max-width: var(--max-bubble-width);
-            padding: 14px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.5;
+            padding: 6px 7px 8px 9px;
+            border-radius: 7.5px;
+            font-size: 14.2px;
+            line-height: 19px;
             position: relative;
-            animation: fadeIn 0.25s ease;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
+            display: flex; flex-direction: column;
+            padding-right: 65px; /* prevent text overlapping with absolute timestamp */
+            padding-bottom: 12px;
         }
+
         .message.incoming {
             align-self: flex-start;
             background-color: var(--incoming-bg);
-            border-top-left-radius: 4px;
+            border-top-left-radius: 0;
         }
+        .message.incoming::before {
+            content: ""; position: absolute; top: 0; left: -8px; width: 8px; height: 13px;
+            background: radial-gradient(circle at top left, transparent 0, transparent 70%, var(--incoming-bg) 70%);
+        }
+
         .message.outgoing {
             align-self: flex-end;
             background-color: var(--outgoing-bg);
-            border-top-right-radius: 4px;
+            border-top-right-radius: 0;
         }
-        .message-content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .message.outgoing::before {
+            content: ""; position: absolute; top: 0; right: -8px; width: 8px; height: 13px;
+            background: radial-gradient(circle at top right, transparent 0, transparent 70%, var(--outgoing-bg) 70%);
         }
-        .message-time {
-            display: block;
-            margin-top: 8px;
-            font-size: 11px;
-            color: rgba(255,255,255,0.5);
-        }
-        .message-status { margin-left: 4px; color: #53bdeb; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        .message-content {
+            white-space: pre-wrap; word-wrap: break-word;
         }
+
+        .message-time {
+            position: absolute; right: 9px; bottom: 4px;
+            font-size: 11px; color: rgba(255,255,255,0.6);
+            display: flex; align-items: center; gap: 3px;
+        }
+
+        /* Adjustments for structured card messages */
+        .message:has(.slot-results-card),
+        .message:has(.confirmation-card) { padding-right: 9px; padding-bottom: 9px; }
+        .message:has(.slot-results-card) .message-time,
+        .message:has(.confirmation-card) .message-time { position: static; justify-content: flex-end; margin-top: 4px; margin-right: 0;}
+
+        .message-status { color: #53bdeb; font-size: 13px; font-weight: normal; margin-left: 2px; letter-spacing: -2px;}
 
         .typing-indicator {
-            display: none;
-            align-self: flex-start;
+            display: none; align-self: flex-start;
             background-color: var(--incoming-bg);
-            border-radius: 12px;
-            border-top-left-radius: 4px;
-            padding: 14px 18px;
-            max-width: var(--max-bubble-width);
+            border-radius: 7.5px; border-top-left-radius: 0;
+            padding: 12px 14px; margin-bottom: 8px; position: relative;
         }
-        .typing-inner { display: flex; align-items: center; gap: 12px; }
+        .typing-indicator::before {
+            content: ""; position: absolute; top: 0; left: -8px; width: 8px; height: 13px;
+            background: radial-gradient(circle at top left, transparent 0, transparent 70%, var(--incoming-bg) 70%);
+        }
+        .typing-inner { display: flex; align-items: center; gap: 8px; }
         .typing-dots { display: flex; gap: 4px; }
-        .dot {
-            width: 6px; height: 6px;
-            background-color: var(--text-secondary);
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out;
-        }
+        .dot { width: 6px; height: 6px; background-color: var(--text-secondary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
         .dot:nth-child(1) { animation-delay: -0.32s; }
         .dot:nth-child(2) { animation-delay: -0.16s; }
-        .typing-text { font-size: 13px; color: var(--text-secondary); }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
+        .typing-text { font-size: 13px; color: var(--text-secondary); display: none; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; } 40% { transform: scale(1); opacity: 1; } }
 
-        .slot-results-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--card-radius);
-            overflow: hidden;
-            max-width: var(--max-content-width);
-        }
-        .slot-results-header {
-            padding: 14px 16px;
-            font-size: 14px;
-            color: var(--text-primary);
-            border-bottom: var(--venue-separator);
-        }
+        /* Card stylings */
+        .slot-results-card { width: 100%; min-width: 250px; }
+        .slot-results-header { padding-bottom: 8px; font-size: 14.5px; }
         .slot-results-header strong { color: var(--accent); }
-        .venue-section {
-            padding: 12px 16px;
-            border-bottom: var(--venue-separator);
-        }
-        .venue-section:last-of-type { border-bottom: none; }
-        .venue-header {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-        .venue-address {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-        }
-        .slot-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-        }
+        .venue-section { padding: 10px 0; border-top: var(--card-border); }
+        .venue-header { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+        .venue-address { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+        .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
         .slot-card {
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--card-border);
-            border-radius: var(--slot-card-radius);
-            padding: 10px 12px;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
+            background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px;
+            cursor: pointer; transition: background 0.2s; text-align: center;
         }
-        .slot-card:hover {
-            background: var(--hover-bg);
-            border-color: rgba(0,168,132,0.3);
-        }
-        .slot-time {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .slot-price {
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 500;
-            margin-top: 2px;
-        }
+        .slot-card:hover { background: rgba(255,255,255,0.08); }
+        .slot-time { font-size: 13.5px; font-weight: 500; }
+        .slot-price { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
         .slot-select-btn {
-            margin-top: 8px;
-            width: 100%;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 600;
-            background: var(--accent);
-            color: #111;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: opacity 0.15s;
+            margin-top: 8px; width: 100%; padding: 5px 0; font-size: 13px; font-weight: 500;
+            background: var(--outgoing-bg); color: #fff; border: none; border-radius: 20px; cursor: pointer;
         }
-        .slot-select-btn:hover { opacity: 0.9; }
-        .slot-cta {
-            padding: 12px 16px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-align: center;
-            border-top: var(--venue-separator);
-        }
+        .slot-cta { padding-top: 10px; font-size: 13px; color: var(--text-secondary); border-top: var(--card-border); margin-top: 8px; }
 
         .confirmation-card {
-            background: #111b21;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 16px 18px;
-            width: 100%;
-            max-width: 340px;
-            position: relative;
-            overflow: hidden;
+            background: rgba(0,0,0,0.15); border-radius: 8px; padding: 12px; width: 100%; min-width: 250px; position: relative;
         }
-
-        .confirmation-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-        }
-
-        .confirmation-card.locked {
-            background: linear-gradient(180deg, #1c1b10 0%, #111b21 100%);
-            border-color: rgba(255, 210, 121, 0.1);
-        }
-        .confirmation-card.locked::before {
-            background: #ffd279;
-        }
-
-        .confirmation-card.confirmed {
-            background: linear-gradient(180deg, #0c1d19 0%, #111b21 100%);
-            border-color: rgba(0, 168, 132, 0.1);
-        }
-        .confirmation-card.confirmed::before {
-            background: #00a884;
-        }
-
-        .confirmation-header {
-            margin-bottom: 14px;
-        }
-
-        .confirmation-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-
-        .confirmation-details {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .confirmation-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }
-
-        .confirmation-label {
-            color: #8696a0;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .confirmation-value {
-            color: #e9edef;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .confirmation-value.mono {
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
-            background: rgba(255,255,255,0.04);
-            padding: 3px 7px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .confirmation-amount {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .confirmation-card.locked .confirmation-amount { color: #ffd279; }
-        .confirmation-card.confirmed .confirmation-amount { color: #00a884; }
-
-        .confirmation-cta {
-            margin-top: 18px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            font-size: 12px;
-            color: #8696a0;
-            line-height: 1.5;
-        }
+        .confirmation-header { margin-bottom: 12px; border-bottom: var(--card-border); padding-bottom: 8px; }
+        .confirmation-title { font-size: 14px; font-weight: 500; color: var(--accent); }
+        .confirmation-card.locked .confirmation-title { color: #f2a74c; }
+        .confirmation-details { display: flex; flex-direction: column; gap: 8px; }
+        .confirmation-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .confirmation-label { color: var(--text-secondary); font-size: 13px; }
+        .confirmation-value { color: var(--text-primary); font-size: 14px; font-weight: 500; }
+        .confirmation-cta { margin-top: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
 
         .input-area {
-            background: var(--header-bg);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
+            background: var(--header-bg); padding: 10px 16px; display: flex; align-items: flex-end; gap: 10px; min-height: 62px;
+        }
+        .input-area > button {
+            background: none; border: none; color: #aebac1; padding: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; height: 42px; width: 42px;
+            border-radius: 50%;
+        }
+        .input-area > button:hover { background: rgba(255,255,255,0.05); }
+        .input-wrap {
+            flex: 1; background: var(--input-bg); border-radius: 8px; display: flex; align-items: center;
+            min-height: 42px; padding: 9px 15px; margin: 0 4px;
         }
         #message-input {
-            flex: 1;
-            background: var(--input-bg);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 14px;
-            color: var(--text-primary);
-            font-size: 15px;
-            outline: none;
+            width: 100%; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none;
         }
-        #message-input:focus { box-shadow: 0 0 0 2px rgba(0,168,132,0.3); }
-        #send-btn {
-            background: var(--accent);
-            color: #111;
-            border: none;
-            border-radius: 10px;
-            width: 44px;
-            height: 44px;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.15s;
-        }
-        #send-btn:hover { opacity: 0.9; }
-        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #message-input::placeholder { color: #8696a0; }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
 
-        @media (max-width: 480px) {
-            .message, .typing-indicator { max-width: 92%; }
-            .slot-grid { grid-template-columns: 1fr; }
-            .slot-results-card, .confirmation-card { max-width: 100%; }
+        @media (max-width: 768px) {
+            body::before { display: none; }
+            .app-container { height: 100vh; max-width: 100%; box-shadow: none; }
+            .message { max-width: 85%; }
+            #chat-container { padding: 12px 4%; }
         }
     </style>
 </head>
@@ -363,14 +234,18 @@
     <div class="app-container">
         <header>
             <div class="user-info">
-                <div class="avatar">🤖</div>
+                <div class="avatar">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="#aebac1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"></path></svg>
+                </div>
                 <div class="user-details">
                     <h2>Booking Agent</h2>
                     <span id="header-status">online</span>
                 </div>
             </div>
             <div class="actions">
-                <button onclick="clearHistory()" title="Clear Chat">🗑️</button>
+                <button onclick="clearHistory()" title="Clear Chat">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+                </button>
             </div>
         </header>
 
@@ -388,10 +263,16 @@
         </div>
 
         <div class="input-area">
-            <button onclick="document.getElementById('image-input').click()" title="Upload image">📎</button>
+            <button onclick="document.getElementById('image-input').click()" title="Attach image">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M21.58 12.58l-9-9a6.53 6.53 0 00-9.19 9.19l1.2 1.2 1.42-1.42-1.2-1.2a4.53 4.53 0 016.36-6.36l9 9a4.53 4.53 0 01-6.36 6.36l-6.18-6.18a2.53 2.53 0 013.54-3.54l4.76 4.76 1.42-1.42-4.76-4.76a4.53 4.53 0 00-6.36 6.36l6.18 6.18a6.53 6.53 0 009.19-9.19z"></path></svg>
+            </button>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">➤</button>
+            <div class="input-wrap">
+                <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
+            </div>
+            <button id="send-btn" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+            </button>
         </div>
     </div>
 
