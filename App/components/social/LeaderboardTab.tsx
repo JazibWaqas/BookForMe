@@ -15,7 +15,7 @@ import LeaderboardRow from './LeaderboardRow';
 import { SocialService, UserProfileSocial } from '../../services/social';
 import { UserData } from '../../services/auth';
 
-const SPORT_FILTERS = ['All', 'Padel', 'Tennis', 'Futsal', 'Football', 'Basketball', 'Cricket', 'Squash', 'Badminton'];
+
 
 interface Props {
     currentUser: UserData | null;
@@ -34,7 +34,7 @@ export default function LeaderboardTab({ currentUser }: Props) {
     const [players, setPlayers] = useState<UserProfileSocial[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeSport, setActiveSport] = useState('All');
+
     const [myRank, setMyRank] = useState<number | null>(null);
     const [myEntry, setMyEntry] = useState<UserProfileSocial | null>(null);
 
@@ -118,22 +118,7 @@ export default function LeaderboardTab({ currentUser }: Props) {
                 </View>
             )}
 
-            {/* Sport filter */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterRow}
-            >
-                {SPORT_FILTERS.map(s => (
-                    <TouchableOpacity
-                        key={s}
-                        style={[styles.chip, activeSport === s && styles.chipActive]}
-                        onPress={() => setActiveSport(s)}
-                    >
-                        <Text style={[styles.chipText, activeSport === s && styles.chipTextActive]}>{s}</Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+
 
             {/* Podium */}
             {topThree.length >= 3 && <LeaderboardPodium topThree={topThree} />}
@@ -224,24 +209,7 @@ const styles = StyleSheet.create({
     tierText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
     myCardPts: { fontSize: 16, fontWeight: '700', color: COLORS.text },
     myCardRating: { fontSize: 12, color: COLORS.textMuted },
-    filterRow: {
-        paddingHorizontal: SPACING.lg,
-        paddingVertical: SPACING.sm,
-        flexDirection: 'row',
-        gap: 6,
-    },
-    chip: {
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: RADIUS.pill,
-        backgroundColor: COLORS.surface,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        marginRight: 6,
-    },
-    chipActive: { backgroundColor: COLORS.primaryGlow, borderColor: COLORS.primary },
-    chipText: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
-    chipTextActive: { color: COLORS.primary },
+
     sectionTitle: {
         fontSize: 13,
         fontWeight: '800',
