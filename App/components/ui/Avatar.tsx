@@ -46,6 +46,8 @@ const looksLikePlaceholderAvatar = (raw: string): boolean => {
     if (!u) return true;
     if (u.includes('undefined') || u.includes('null')) return true;
     if (u.includes('default_avatar')) return true;
+    if (u.includes('pravatar') || u.includes('randomuser')) return true;
+    if (u.includes('cloudflare-ipfs') || u.includes('ui-avatars')) return true;
     return false;
 };
 

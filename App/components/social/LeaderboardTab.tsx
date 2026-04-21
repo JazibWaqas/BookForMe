@@ -61,7 +61,7 @@ export default function LeaderboardTab({ currentUser }: Props) {
 
     useEffect(() => { load(); }, []);
 
-    const visiblePlayers = players;
+    const visiblePlayers = players.filter(p => p.name && !p.name.toLowerCase().includes('test'));
 
     const topThree = visiblePlayers.slice(0, 3).map((p, i) => ({
         id: p.id,

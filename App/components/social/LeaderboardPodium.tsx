@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../../constants/colors';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, RADIUS, SHADOWS } from '../../constants/colors';
 import Avatar from '../ui/Avatar';
 
 interface LeaderUser {
@@ -23,52 +23,46 @@ export default function LeaderboardPodium({ topThree }: LeaderboardPodiumProps) 
 
     const renderPodiumSpot = (user: LeaderUser, position: 1 | 2 | 3) => {
         const config = {
-            1: { height: 100, colors: ['#FFD700', '#FFA500'] as const, medal: '🥇', size: 80 },
-            2: { height: 70, colors: ['#C0C0C0', '#A0A0A0'] as const, medal: '🥈', size: 65 },
-            3: { height: 50, colors: ['#CD7F32', '#8B4513'] as const, medal: '🥉', size: 65 },
-        }[position];
+            1: { height: 110, color: '#FFB800', icon: 'trophy', size: 76 },
+            2: { height: 85, color: '#A0B2C6', icon: 'medal', size: 60 },
+            3: { height: 65, color: '#CD7F32', icon: 'medal', size: 60 },
+        }[position] as const;
 
         return (
             <View style={[styles.podiumSpot, position === 1 && styles.firstPlace]}>
-                {/* Avatar */}
-                <View style={[styles.avatarContainer, { width: config.size, height: config.size }]}>
+                <View style={styles.avatarWrap}>
                     <Avatar
                         uri={user.avatar_url}
                         name={user.name}
-                        size={config.size - 8}
-                        style={styles.avatar}
+                        size={config.size}
+                        style={[styles.avatar, { borderColor: config.color, borderWidth: position === 1 ? 3 : 2 }]}
                     />
-                    <View style={styles.medalBadge}>
-                        <Text style={styles.medalText}>{config.medal}</Text>
+                    <View style={[styles.badge, { backgroundColor: config.color }]}>
+                        <MaterialCommunityIcons name={config.icon as any} size={position === 1 ? 16 : 14} color="#FFF" />
                     </View>
                 </View>
 
-                {/* Name */}
                 <Text style={styles.userName} numberOfLines={1}>{user.name}</Text>
-
-                {/* Points */}
-                <View style={styles.pointsBadge}>
+                
+                <View style={styles.pointsPill}>
                     <Text style={styles.pointsText}>{user.points.toLocaleString()}</Text>
                 </View>
 
-                {/* Podium Block */}
-                <LinearGradient
-                    colors={config.colors}
-                    style={[styles.podiumBlock, { height: config.height }]}
-                >
-                    <Text style={styles.podiumRank}>#{position}</Text>
-                </LinearGradient>
+                <View style={[
+                    styles.podiumBlock, 
+                    { height: config.height, borderTopColor: config.color }
+                ]}>
+                    <Text style={[styles.podiumRank, { color: config.color }]}>{position}</Text>
+                    <Text style={styles.podiumSuffix}>
+                        {position === 1 ? 'st' : position === 2 ? 'nd' : 'rd'}
+                    </Text>
+                </View>
             </View>
         );
     };
 
     return (
         <View style={styles.container}>
-            <View style={styles.headerRow}>
-                <Text style={styles.crownIcon}>👑</Text>
-                <Text style={styles.title}>TOP PLAYERS</Text>
-            </View>
-
             <View style={styles.podiumContainer}>
                 {renderPodiumSpot(second, 2)}
                 {renderPodiumSpot(first, 1)}
@@ -80,94 +74,89 @@ export default function LeaderboardPodium({ topThree }: LeaderboardPodiumProps) 
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 20,
+        paddingTop: 16,
+        paddingBottom: 24,
         paddingHorizontal: 16,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
-    },
-    crownIcon: {
-        fontSize: 28,
-        marginRight: 8,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: COLORS.text,
-        letterSpacing: 2,
     },
     podiumContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'flex-end',
+        marginHorizontal: 8,
     },
     podiumSpot: {
         alignItems: 'center',
-        marginHorizontal: 8,
+        flex: 1,
+        maxWidth: 110,
+        marginHorizontal: 4,
     },
     firstPlace: {
-        marginBottom: 0,
+        zIndex: 2,
     },
-    avatarContainer: {
-        borderRadius: 50,
-        borderWidth: 3,
-        borderColor: COLORS.primary,
-        backgroundColor: COLORS.card,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
+    avatarWrap: {
         position: 'relative',
+        marginBottom: 10,
     },
     avatar: {
-        borderRadius: 50,
+        borderRadius: 40,
+        backgroundColor: COLORS.surface,
     },
-    medalBadge: {
+    badge: {
         position: 'absolute',
-        bottom: -5,
-        right: -5,
-        backgroundColor: COLORS.background,
+        bottom: -4,
+        alignSelf: 'center',
+        padding: 4,
         borderRadius: 12,
-        padding: 2,
-    },
-    medalText: {
-        fontSize: 20,
+        borderWidth: 2,
+        borderColor: COLORS.background,
+        ...SHADOWS.primaryGlow,
     },
     userName: {
         color: COLORS.text,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '700',
         marginBottom: 4,
-        maxWidth: 80,
+        maxWidth: 90,
         textAlign: 'center',
     },
-    pointsBadge: {
-        backgroundColor: COLORS.primary + '30',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginBottom: 8,
+    pointsPill: {
+        backgroundColor: COLORS.surfaceRaised,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: RADIUS.pill,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     pointsText: {
-        color: COLORS.primary,
-        fontSize: 12,
-        fontWeight: 'bold',
+        color: COLORS.textMuted,
+        fontSize: 11,
+        fontWeight: '700',
     },
     podiumBlock: {
-        width: 70,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
+        width: '100%',
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: RADIUS.md,
+        borderTopRightRadius: RADIUS.md,
+        borderTopWidth: 3,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: COLORS.border,
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'row',
     },
     podiumRank: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-        textShadowColor: 'rgba(0,0,0,0.3)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
+        fontSize: 28,
+        fontWeight: '800',
+        letterSpacing: -1,
+    },
+    podiumSuffix: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: COLORS.textMuted,
+        marginTop: -10,
+        marginLeft: 2,
     },
 });

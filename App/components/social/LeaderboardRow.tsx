@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import Avatar from '../ui/Avatar';
 
@@ -39,15 +39,15 @@ export default function LeaderboardRow({ user, rank, isCurrentUser, onPress }: L
         return { backgroundColor: COLORS.card, borderColor: COLORS.border };
     };
 
-    const getRankBadge = () => {
-        if (rank === 1) return { icon: '🥇', color: '#FFD700' };
-        if (rank === 2) return { icon: '🥈', color: '#C0C0C0' };
-        if (rank === 3) return { icon: '🥉', color: '#CD7F32' };
-        if (rank <= 10) return { icon: '🔥', color: COLORS.warning };
+    const getRankIcon = () => {
+        if (rank === 1) return { name: 'trophy', color: '#FFB800', type: 'material' };
+        if (rank === 2) return { name: 'medal', color: '#A0B2C6', type: 'material' };
+        if (rank === 3) return { name: 'medal', color: '#CD7F32', type: 'material' };
+        if (rank <= 10) return { name: 'flame', color: COLORS.warning, type: 'ion' };
         return null;
     };
 
-    const badge = getRankBadge();
+    const iconData = getRankIcon();
 
     return (
         <TouchableOpacity
@@ -58,7 +58,13 @@ export default function LeaderboardRow({ user, rank, isCurrentUser, onPress }: L
             {/* Rank */}
             <View style={styles.rankContainer}>
                 <Text style={[styles.rankText, rank <= 3 && styles.topRankText]}>#{rank}</Text>
-                {badge && <Text style={styles.badgeIcon}>{badge.icon}</Text>}
+                {iconData && (
+                    iconData.type === 'material' ? (
+                        <MaterialCommunityIcons name={iconData.name as any} size={14} color={iconData.color} style={styles.badgeIcon} />
+                    ) : (
+                        <Ionicons name={iconData.name as any} size={14} color={iconData.color} style={styles.badgeIcon} />
+                    )
+                )}
             </View>
 
             {/* Avatar */}
