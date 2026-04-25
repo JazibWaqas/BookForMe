@@ -29,6 +29,7 @@
             color: var(--text-primary);
             margin: 0;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -222,10 +223,23 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
 
         @media (max-width: 768px) {
+            body {
+                height: 100dvh;
+                height: 100vh;
+                align-items: stretch;
+                overflow: hidden;
+            }
             body::before { display: none; }
-            .app-container { height: 100vh; max-width: 100%; box-shadow: none; }
+            .app-container {
+                height: 100dvh;
+                height: 100vh;
+                max-width: 100%;
+                box-shadow: none;
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
             .message { max-width: 85%; }
             #chat-container { padding: 12px 4%; }
+            .input-area { padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)); }
         }
     </style>
 </head>
