@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../services/firebase';
 import { COLORS } from '../../constants/colors';
 import { SocialService } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
@@ -50,6 +53,41 @@ export default function ChatDetailScreen() {
         return () => clearInterval(intervalId);
     }, [currentUser, fetchMessages]);
 
+    const handleImagePick = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Required', 'Please allow access to your photos.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'] as any,
+            quality: 0.8,
+        });
+        if (result.canceled || !currentUser) return;
+
+        setSending(true);
+        try {
+            const asset = result.assets[0];
+            const response = await fetch(asset.uri);
+            const blob = await response.blob();
+            const storageRef = ref(storage, `chat/${chatId}/${Date.now()}_${asset.fileName || 'image.jpg'}`);
+            await uploadBytes(storageRef, blob);
+            const url = await getDownloadURL(storageRef);
+            const msg = await SocialService.sendMessage({
+                conversation_id: chatId!,
+                sender_id: currentUser.id!,
+                content: null,
+                media_url: url,
+                media_type: 'image',
+            });
+            setMessages(prev => [...prev, msg]);
+        } catch (e) {
+            Alert.alert('Upload failed', 'Could not send the image. Please try again.');
+        } finally {
+            setSending(false);
+        }
+    };
+
     const handleSend = async () => {
         if (!inputText.trim() || !currentUser) return;
 
@@ -75,7 +113,13 @@ export default function ChatDetailScreen() {
         const isMe = item.sender_id === currentUser?.id;
         return (
             <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
-                {item.content ? (
+                {item.media_type === 'image' && item.media_url ? (
+                    <Image
+                        source={{ uri: item.media_url }}
+                        style={styles.messageImage}
+                        resizeMode="cover"
+                    />
+                ) : item.content ? (
                     <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
                         {item.content}
                     </Text>
@@ -114,6 +158,9 @@ export default function ChatDetailScreen() {
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={10}>
                 <View style={styles.inputContainer}>
+                    <TouchableOpacity onPress={handleImagePick} disabled={sending} style={styles.imageButton}>
+                        <Ionicons name="image-outline" size={24} color={COLORS.textMuted} />
+                    </TouchableOpacity>
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message..."
@@ -193,5 +240,16 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    imageButton: {
+        paddingHorizontal: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    messageImage: {
+        width: 200,
+        height: 200,
+        borderRadius: 10,
+        marginBottom: 4,
     },
 });

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Firestore (instead of PostgreSQL)
     FIRESTORE_PROJECT_ID: str = "bookforme-dev"
     
+    # Firebase Storage
+    FIREBASE_STORAGE_BUCKET: str = "bookforme-c93a6.firebasestorage.app"
+    
     @property
     def FIRESTORE_CREDENTIALS_FILE(self) -> str:
         # Resolves to: JHAT/backend/credentials/firestore-service-account.json

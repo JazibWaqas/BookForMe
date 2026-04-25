@@ -565,8 +565,24 @@
             }
         }
 
+        function renderOutgoingImage(file) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', 'outgoing');
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.alt = file.name;
+            img.style.cssText = 'max-width:220px;max-height:220px;border-radius:10px;display:block;margin-bottom:4px;';
+            const timeDiv = document.createElement('div');
+            timeDiv.classList.add('message-time');
+            timeDiv.innerHTML = formatTime() + '<span class="message-status">✓✓</span>';
+            msgDiv.appendChild(img);
+            msgDiv.appendChild(timeDiv);
+            chatContainer.insertBefore(msgDiv, typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
         async function uploadImage(file) {
-            renderMessage('[Sending Image: ' + file.name + ']', 'outgoing');
+            renderOutgoingImage(file);
             showTyping('Processing payment…');
 
             const formData = new FormData();

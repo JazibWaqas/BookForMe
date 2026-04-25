@@ -138,6 +138,12 @@ class WhatsAppAgent:
             filepath.write_bytes(image_bytes)
             logger.info(f"Payment screenshot saved: {filepath}")
 
+            from app.storage import upload_bytes
+            content_type = f"image/{ext if ext != 'jpg' else 'jpeg'}"
+            storage_url = upload_bytes(image_bytes, f"payments/{filename}", content_type)
+            if storage_url:
+                logger.info(f"Payment screenshot uploaded to Firebase Storage: {storage_url}")
+
             ocr_result = await self.payment_ocr.verify_payment(image_bytes, expected_amount)
 
             if not ocr_result["verified"]:
@@ -159,7 +165,15 @@ class WhatsAppAgent:
 
             slot_service = SlotService(firestore_db.db)
             payment_result = slot_service.submit_payment(locked_slot_id, phone_number, payment_ref)
-            
+
+            if payment_result.get('success') and storage_url:
+                try:
+                    firestore_db.db.collection('slots').document(locked_slot_id).update(
+                        {'screenshot_url': storage_url}
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not save screenshot_url to Firestore: {e}")
+
             if not payment_result.get('success'):
                 logger.error(f"Failed to submit payment: {payment_result.get('error')}")
                 return "Sorry, there was an error processing your payment. Please try again or contact support."
