@@ -39,7 +39,7 @@ import pytz
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-DAYS_AHEAD = 14  # how many days ahead to ensure slots exist
+DAYS_AHEAD = 30  # how many days ahead to ensure slots exist
 
 # Day-of-week index → short name used in operating_hours maps
 DOW_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]

@@ -278,7 +278,11 @@
 
     <script>
         const API_URL = '/dev-api';
-        const PHONE_NUMBER = '+923001234567';
+        let PHONE_NUMBER = localStorage.getItem('dev_chat_session_id');
+        if (!PHONE_NUMBER) {
+            PHONE_NUMBER = 'dev_' + Math.random().toString(36).slice(2, 10) + Date.now();
+            localStorage.setItem('dev_chat_session_id', PHONE_NUMBER);
+        }
         const MAX_SLOTS_PER_VENUE = 8;
 
         const chatContainer = document.getElementById('chat-container');
