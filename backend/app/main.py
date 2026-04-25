@@ -75,10 +75,10 @@ dev_chat_agent = None
 
 class ChatRequest(BaseModel):
     message: str
-    phone_number: str = "+923001234567"
+    phone_number: str
 
 class ClearRequest(BaseModel):
-    phone_number: str = "+923001234567"
+    phone_number: str
 
 class ChatResponse(BaseModel):
     response: str
