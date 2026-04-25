@@ -392,6 +392,37 @@ def extract_slot_from_message(message: str) -> Optional[Dict[str, str]]:
     return None
 
 
+CONFIRM_WORDS = {
+    "yes", "yep", "yup", "ok", "okay", "sure", "confirm", "confirmed",
+    "proceed", "done", "book", "book it", "reserve", "go ahead",
+    "han", "haan", "ji", "theek", "bilkul", "ha", "k", "y",
+}
+CANCEL_WORDS = {
+    "no", "nope", "cancel", "nahi", "na", "stop", "nevermind",
+    "never mind", "dont", "don't", "nah",
+}
+
+
+def _fast_classify(message: str, state: dict) -> Optional[str]:
+    msg = message.strip().lower()
+
+    if re.fullmatch(r'\d{1,2}', msg):
+        num = int(msg)
+        if 1 <= num <= 20:
+            return "transaction"
+
+    awaiting_confirm = state.get("awaiting_confirmation") or state.get("awaiting_slot_selection")
+    awaiting_payment = state.get("awaiting_payment")
+
+    if awaiting_confirm or awaiting_payment:
+        if msg in CONFIRM_WORDS:
+            return "transaction"
+        if msg in CANCEL_WORDS:
+            return "transaction"
+
+    return None
+
+
 # =============================================================================
 # NODE 1: CLASSIFY INTENT (Pure NLU)
 # =============================================================================
@@ -420,6 +451,14 @@ async def classify_intent_node(state: AgentState) -> AgentState:
             state["selected_sport_type"] = None
             state["selected_area"] = None
             # Do NOT default vendor_id — that caused Ace to leak into all queries.
+            return state
+
+        fast_intent = _fast_classify(last_message, state)
+        if fast_intent:
+            logger.info(f"Fast-path classification: '{last_message}' -> {fast_intent}")
+            state["current_intent"] = fast_intent
+            if fast_intent == "transaction" and not state.get("entities"):
+                state["entities"] = {}
             return state
 
         # Cap history to last 6 messages to prevent old sport/vendor context from
