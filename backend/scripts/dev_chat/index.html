@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Agent Dev Chat</title>
     <style>
         :root {
@@ -23,13 +23,13 @@
         }
 
         * { box-sizing: border-box; }
+        html { height: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--app-bg);
             color: var(--text-primary);
             margin: 0;
-            height: 100vh;
-            height: 100dvh;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -48,7 +48,7 @@
         .app-container {
             width: 100%;
             max-width: 1000px;
-            height: calc(100vh - 40px);
+            height: calc(100% - 40px);
             display: flex;
             flex-direction: column;
             background-color: var(--chat-bg);
@@ -223,23 +223,17 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
 
         @media (max-width: 768px) {
-            body {
-                height: 100dvh;
-                height: 100vh;
-                align-items: stretch;
-                overflow: hidden;
-            }
             body::before { display: none; }
             .app-container {
-                height: 100dvh;
-                height: 100vh;
+                height: 100%;
                 max-width: 100%;
                 box-shadow: none;
-                padding-bottom: env(safe-area-inset-bottom, 0px);
             }
             .message { max-width: 85%; }
             #chat-container { padding: 12px 4%; }
-            .input-area { padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)); }
+            .input-area {
+                padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+            }
         }
     </style>
 </head>
