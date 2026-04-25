@@ -6,6 +6,7 @@ Uses Pydantic models for type safety
 
 import logging
 import re
+import difflib
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from agent.state import AgentState
@@ -85,6 +86,16 @@ BOOKING_KEYWORDS = {
 }
 
 
+def _fuzzy_has_keyword(words: set) -> bool:
+    keyword_list = list(BOOKING_KEYWORDS)
+    for word in words:
+        if len(word) < 3:
+            continue
+        if difflib.get_close_matches(word, keyword_list, n=1, cutoff=0.80):
+            return True
+    return False
+
+
 def check_guardrails(message: str, in_booking_context: bool = False) -> Optional[str]:
     msg = message.strip()
     if not msg:
@@ -99,8 +110,9 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
     msg_lower = msg.lower()
     words = set(re.findall(r"[a-z0-9]+", msg_lower))
     if words and not words.intersection(BOOKING_KEYWORDS):
-        if len(msg) > 2:
-            return "off_topic"
+        if not _fuzzy_has_keyword(words):
+            if len(msg) > 2:
+                return "off_topic"
 
     return None
 

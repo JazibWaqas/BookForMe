@@ -10,13 +10,15 @@ from pathlib import Path
 
 from sklearn.metrics import accuracy_score, classification_report, f1_score, confusion_matrix
 from groq import Groq
+from dotenv import load_dotenv
 
-# Use the exact model your project uses, or standard 32B for evaluation
+load_dotenv()
+
 MODEL_NAME = "qwen/qwen3-32b"
-API_KEY = "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"
+API_KEY = os.getenv("GROQ_API_KEY", "")
 
 if not API_KEY or API_KEY == "dummy_key_for_dev":
-    raise ValueError("Missing valid API key!")
+    raise ValueError("Set GROQ_API_KEY in your .env file before running evaluation.")
 
 client = Groq(api_key=API_KEY)
 

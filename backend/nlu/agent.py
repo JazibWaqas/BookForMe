@@ -226,6 +226,15 @@ Roman Urdu Reference:
 - "shaam" = evening (17:00-19:00), "raat" = night (20:00-23:00)
 - "bajay/baje" = o'clock, "ghanta" = hour
 
+Common misspellings to handle:
+- "tommorow", "tommorrow", "tomoro", "tomorow" = tomorrow
+- "yestarday", "yesturday" = yesterday
+- "padekl", "paddle", "padle", "padell" = padel
+- "futsall", "futsal" = futsal
+- "criket", "crickt" = cricket
+- "availble", "avaliable", "availibility" = availability
+- "bookng", "bookin" = booking
+
 Extract entities (return null for any not found in the message):
 - service_type: padel, futsal, cricket, salon (handle typos: "paddle"="padel", "padle"="padel")
 - date: tomorrow, today, specific date, "kal", "aaj", day names
