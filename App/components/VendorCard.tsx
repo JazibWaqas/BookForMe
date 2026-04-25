@@ -29,6 +29,10 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
       onPress={onPress}
       style={styles.card}
       activeOpacity={0.88}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`${vendorName}${vendorArea ? `, ${vendorArea}` : ''}, from PKR ${getDisplayPrice(vendor)} per hour`}
+      accessibilityHint="Double tap to view venue details"
     >
       {/* ── Image with full gradient overlay ── */}
       <View style={styles.imageContainer}>
@@ -45,8 +49,13 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
         >
           {/* Rating badge — top right corner */}
           {vendor.rating && (
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={11} color="#FF9F0A" />
+            <View
+              style={styles.ratingBadge}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`Rating ${vendor.rating} out of 5`}
+            >
+              <Ionicons name="star" size={11} color={COLORS.accent} />
               <Text style={styles.ratingText}>{vendor.rating}</Text>
             </View>
           )}
@@ -77,6 +86,10 @@ export default function VendorCard({ vendor, onPress, onBookPress }: VendorCardP
             }}
             style={styles.bookButton}
             activeOpacity={0.8}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={`Book ${vendorName}`}
+            accessibilityHint="Double tap to start the booking flow"
           >
             <Text style={styles.bookText}>Book Now</Text>
           </TouchableOpacity>
@@ -131,7 +144,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FF9F0A',
+    color: COLORS.accent,
   },
   overlayContent: {
     gap: 5,

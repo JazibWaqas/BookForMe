@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Modal,
     TextInput, ScrollView, Alert, ActivityIndicator,
-    KeyboardAvoidingView, Platform, RefreshControl, Pressable,
+    KeyboardAvoidingView, Platform, RefreshControl, Pressable, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -49,6 +49,8 @@ const DEFAULT_MAX: Record<string, string> = {
 const getDefaultMax = (s: string) => DEFAULT_MAX[s?.toLowerCase()] ?? '4';
 
 const SPORT_LIST = ['All', 'Padel', 'Futsal', 'Cricket', 'Pickleball'];
+
+const SCREEN_H = Dimensions.get('window').height;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -231,7 +233,7 @@ function MatchDetailModal({ match, currentUserId, visible, onClose, onJoin, onSu
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
             <View style={styles.overlay}>
                 <Pressable style={styles.backdrop} onPress={onClose} />
-                <View style={styles.sheet}>
+                <View style={styles.matchDetailSheet}>
                     {/* Coloured header bar */}
                     <View style={[styles.detailTopBar, { backgroundColor: ranked ? COLORS.accent : COLORS.primary }]} />
                     <View style={styles.sheetHandle} />
@@ -246,7 +248,7 @@ function MatchDetailModal({ match, currentUserId, visible, onClose, onJoin, onSu
                                     color={ranked ? COLORS.accent : COLORS.primary}
                                 />
                             </View>
-                            <View style={{ marginLeft: 14 }}>
+                            <View style={{ marginLeft: 14, flex: 1 }}>
                                 <Text style={styles.detailSport}>{match.sport_type}</Text>
                                 <Text style={[styles.detailType, ranked && { color: COLORS.accent }]}>
                                     {ranked ? '🏆 Ranked  ·  affects Elo' : 'Casual match'}
@@ -270,37 +272,44 @@ function MatchDetailModal({ match, currentUserId, visible, onClose, onJoin, onSu
                         </View>
                     )}
 
-                    <View style={styles.detailDivider} />
-
-                    {/* Scrollable body */}
-                    <ScrollView style={styles.detailBody} contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-
-                        {/* When / Where */}
-                        <View style={styles.infoBlock}>
-                            <View style={styles.infoRow}>
-                                <Ionicons name="calendar-outline" size={15} color={COLORS.textMuted} />
-                                <View style={{ marginLeft: 12 }}>
-                                    <Text style={styles.infoLabel}>Date</Text>
-                                    <Text style={styles.infoValue}>{formatDateLong(match.date)}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.infoSep} />
-                            <View style={styles.infoRow}>
-                                <Ionicons name="time-outline" size={15} color={COLORS.textMuted} />
-                                <View style={{ marginLeft: 12 }}>
-                                    <Text style={styles.infoLabel}>Kick-off</Text>
-                                    <Text style={styles.infoValue}>{formatTime12(match.time)}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.infoSep} />
-                            <View style={styles.infoRow}>
-                                <Ionicons name="location-outline" size={15} color={COLORS.textMuted} />
-                                <View style={{ marginLeft: 12, flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Venue</Text>
-                                    <Text style={styles.infoValue}>{match.location || 'TBD'}</Text>
-                                </View>
+                    <View style={styles.infoBlock}>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="calendar-outline" size={15} color={COLORS.textMuted} />
+                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                <Text style={styles.infoLabel}>Date</Text>
+                                <Text style={styles.infoValue}>
+                                    {match.date ? formatDateLong(match.date) : 'TBD'}
+                                </Text>
                             </View>
                         </View>
+                        <View style={styles.infoSep} />
+                        <View style={styles.infoRow}>
+                            <Ionicons name="time-outline" size={15} color={COLORS.textMuted} />
+                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                <Text style={styles.infoLabel}>Time</Text>
+                                <Text style={styles.infoValue}>
+                                    {match.time ? formatTime12(match.time) : 'TBD'}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.infoSep} />
+                        <View style={styles.infoRow}>
+                            <Ionicons name="location-outline" size={15} color={COLORS.textMuted} />
+                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                <Text style={styles.infoLabel}>Venue</Text>
+                                <Text style={styles.infoValue}>{(match.location || '').trim() || 'TBD'}</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.detailDivider} />
+
+                    {/* Scrollable: players, notes, host actions */}
+                    <ScrollView
+                        style={{ maxHeight: SCREEN_H * 0.42 }}
+                        contentContainerStyle={{ paddingBottom: 24 }}
+                        showsVerticalScrollIndicator
+                    >
 
                         {/* Players */}
                         <Text style={styles.sectionTitle}>
@@ -966,6 +975,17 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
         maxHeight: '94%', borderWidth: 1, borderColor: COLORS.borderStrong, borderBottomWidth: 0,
     },
+    matchDetailSheet: {
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        maxHeight: '94%' as any,
+        minHeight: SCREEN_H * 0.52,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: COLORS.borderStrong,
+        borderBottomWidth: 0,
+    },
     sheetHandle: {
         width: 36, height: 4, borderRadius: 2,
         backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10,
@@ -1002,7 +1022,6 @@ const styles = StyleSheet.create({
     },
     hostLabel2: { fontSize: 13, color: COLORS.textMuted },
     detailDivider: { height: 1, backgroundColor: COLORS.border, marginBottom: SPACING.md },
-    detailBody: { flex: 1 },
 
     // Info block (used for when/where and players)
     infoBlock: {

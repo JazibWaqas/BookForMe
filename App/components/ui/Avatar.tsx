@@ -7,6 +7,7 @@ interface AvatarProps {
     name?: string;
     size?: number;
     style?: any;
+    accessibilityLabel?: string;
 }
 
 // Generate initials from a name (e.g., "John Doe" -> "JD")
@@ -51,7 +52,7 @@ const looksLikePlaceholderAvatar = (raw: string): boolean => {
     return false;
 };
 
-export default function Avatar({ uri, name = '', size = 50, style }: AvatarProps) {
+export default function Avatar({ uri, name = '', size = 50, style, accessibilityLabel }: AvatarProps) {
     const [broken, setBroken] = useState(false);
     useEffect(() => {
         setBroken(false);
@@ -63,6 +64,7 @@ export default function Avatar({ uri, name = '', size = 50, style }: AvatarProps
 
     const raw = (uri ?? '').trim();
     const hasValidUri = !broken && raw !== '' && !looksLikePlaceholderAvatar(raw);
+    const a11yLabel = accessibilityLabel ?? (name ? `Avatar for ${name}` : 'User avatar');
 
     if (hasValidUri) {
         return (
@@ -74,6 +76,9 @@ export default function Avatar({ uri, name = '', size = 50, style }: AvatarProps
                     style
                 ]}
                 onError={() => setBroken(true)}
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={a11yLabel}
             />
         );
     }
@@ -90,8 +95,11 @@ export default function Avatar({ uri, name = '', size = 50, style }: AvatarProps
                 },
                 style
             ]}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={a11yLabel}
         >
-            <Text style={[styles.initialsText, { fontSize }]}>
+            <Text style={[styles.initialsText, { fontSize }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 {initials}
             </Text>
         </View>

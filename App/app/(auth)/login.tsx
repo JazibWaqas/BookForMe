@@ -18,10 +18,24 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validate = () => {
+    const next: { email?: string; password?: string } = {};
+    if (!email.trim()) {
+      next.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      next.email = 'Enter a valid email address';
+    }
+    if (!password) {
+      next.password = 'Password is required';
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!validate()) {
       return;
     }
 
@@ -147,38 +161,54 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.email && styles.inputWrapperError]}>
                   <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="your@email.com"
                     placeholderTextColor={COLORS.textMuted}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(t) => {
+                      setEmail(t);
+                      if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    accessibilityLabel="Email"
+                    accessibilityHint="Enter the email address linked to your account"
                   />
                 </View>
+                {!!errors.email && (
+                  <Text style={styles.fieldError} accessibilityLiveRegion="polite">
+                    {errors.email}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.password && styles.inputWrapperError]}>
                   <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter password"
                     placeholderTextColor={COLORS.textMuted}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+                    }}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    accessibilityLabel="Password"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeIcon}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
                       name={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -187,6 +217,11 @@ export default function LoginScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+                {!!errors.password && (
+                  <Text style={styles.fieldError} accessibilityLiveRegion="polite">
+                    {errors.password}
+                  </Text>
+                )}
               </View>
 
               <TouchableOpacity>
@@ -354,10 +389,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.border,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 58,
+  },
+  inputWrapperError: {
+    borderColor: COLORS.error,
+    backgroundColor: 'rgba(255, 69, 58, 0.06)',
+  },
+  fieldError: {
+    marginTop: 6,
+    fontSize: 12,
+    color: COLORS.error,
+    fontWeight: '500',
   },
   inputIcon: {
     marginRight: 12,

@@ -31,6 +31,56 @@ export default function RegisterScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    confirmPassword?: string;
+    businessName?: string;
+    address?: string;
+  }>({});
+
+  const clearError = (field: keyof typeof errors) => {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!name.trim()) next.name = role === 'vendor' ? 'Owner name is required' : 'Full name is required';
+
+    if (!email.trim()) {
+      next.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      next.email = 'Enter a valid email address';
+    }
+
+    if (!phone.trim()) {
+      next.phone = 'Phone number is required';
+    }
+
+    if (!password) {
+      next.password = 'Password is required';
+    } else if (password.length < 6) {
+      next.password = 'Password must be at least 6 characters';
+    }
+
+    if (!confirmPassword) {
+      next.confirmPassword = 'Please confirm your password';
+    } else if (password && confirmPassword !== password) {
+      next.confirmPassword = 'Passwords do not match';
+    }
+
+    if (role === 'vendor') {
+      if (!businessName.trim()) next.businessName = 'Business name is required';
+      if (!address.trim()) next.address = 'Business address is required';
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const getCurrentLocation = async () => {
     setLocationLoading(true);
@@ -68,34 +118,7 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (role === 'customer') {
-      if (!name || !email || !phone || !password || !confirmPassword) {
-        Alert.alert('Error', 'Please fill in all required fields');
-        return;
-      }
-    } else {
-      if (!name || !email || !phone || !password || !confirmPassword || !businessName || !address || !category) {
-        Alert.alert('Error', 'Please fill in all required fields');
-        return;
-      }
-      // CNIC and location are optional - no validation needed
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    // Validate password strength
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!validate()) {
       return;
     }
 
@@ -206,34 +229,38 @@ export default function RegisterScreen() {
               {/* Name Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>{role === 'vendor' ? "Owner Name *" : "Full Name *"}</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.name && styles.inputWrapperError]}>
                   <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter your name"
                     placeholderTextColor={COLORS.textMuted}
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={(t) => { setName(t); clearError('name'); }}
                     autoCapitalize="words"
+                    accessibilityLabel="Name"
                   />
                 </View>
+                {!!errors.name && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.name}</Text>}
               </View>
 
               {role === 'vendor' && (
                 <>
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Business Name *</Text>
-                    <View style={styles.inputWrapper}>
+                    <View style={[styles.inputWrapper, !!errors.businessName && styles.inputWrapperError]}>
                       <Ionicons name="briefcase-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="Enter business name"
                         placeholderTextColor={COLORS.textMuted}
                         value={businessName}
-                        onChangeText={setBusinessName}
+                        onChangeText={(t) => { setBusinessName(t); clearError('businessName'); }}
                         autoCapitalize="words"
+                        accessibilityLabel="Business name"
                       />
                     </View>
+                    {!!errors.businessName && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.businessName}</Text>}
                   </View>
 
                   <View style={styles.inputContainer}>
@@ -278,17 +305,19 @@ export default function RegisterScreen() {
 
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Business Address *</Text>
-                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }]}>
+                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }, !!errors.address && styles.inputWrapperError]}>
                       <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
                       <TextInput
                         style={[styles.textInput, { height: 'auto' }]}
                         placeholder="Enter business address"
                         placeholderTextColor={COLORS.textMuted}
                         value={address}
-                        onChangeText={setAddress}
+                        onChangeText={(t) => { setAddress(t); clearError('address'); }}
                         multiline
+                        accessibilityLabel="Business address"
                       />
                     </View>
+                    {!!errors.address && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.address}</Text>}
                   </View>
 
                   <Button
@@ -325,54 +354,61 @@ export default function RegisterScreen() {
               {/* Email Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email *</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.email && styles.inputWrapperError]}>
                   <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="your@email.com"
                     placeholderTextColor={COLORS.textMuted}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(t) => { setEmail(t); clearError('email'); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    accessibilityLabel="Email"
                   />
                 </View>
+                {!!errors.email && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.email}</Text>}
               </View>
 
               {/* Phone Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Phone Number *</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.phone && styles.inputWrapperError]}>
                   <Ionicons name="call-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="+92 300 1234567"
                     placeholderTextColor={COLORS.textMuted}
                     value={phone}
-                    onChangeText={setPhone}
+                    onChangeText={(t) => { setPhone(t); clearError('phone'); }}
                     keyboardType="phone-pad"
+                    accessibilityLabel="Phone number"
                   />
                 </View>
+                {!!errors.phone && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.phone}</Text>}
               </View>
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password *</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.password && styles.inputWrapperError]}>
                   <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Create password (min 6 chars)"
                     placeholderTextColor={COLORS.textMuted}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(t) => { setPassword(t); clearError('password'); }}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
+                    accessibilityLabel="Password"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeIcon}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
                       name={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -381,25 +417,29 @@ export default function RegisterScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+                {!!errors.password && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.password}</Text>}
               </View>
 
               {/* Confirm Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Confirm Password *</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, !!errors.confirmPassword && styles.inputWrapperError]}>
                   <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Re-enter password"
                     placeholderTextColor={COLORS.textMuted}
                     value={confirmPassword}
-                    onChangeText={setConfirmPassword}
+                    onChangeText={(t) => { setConfirmPassword(t); clearError('confirmPassword'); }}
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
+                    accessibilityLabel="Confirm password"
                   />
                   <TouchableOpacity
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                     style={styles.eyeIcon}
+                    accessibilityRole="button"
+                    accessibilityLabel={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
                       name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
@@ -408,6 +448,7 @@ export default function RegisterScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+                {!!errors.confirmPassword && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.confirmPassword}</Text>}
               </View>
             </View>
 
@@ -506,6 +547,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 52,
+  },
+  inputWrapperError: {
+    borderColor: COLORS.error,
+    backgroundColor: 'rgba(255, 69, 58, 0.06)',
+  },
+  fieldError: {
+    marginTop: 6,
+    fontSize: 12,
+    color: COLORS.error,
+    fontWeight: '500',
   },
   inputIcon: {
     marginRight: 12,

@@ -12,6 +12,10 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: any;
   icon?: React.ReactNode;
+  /** Defaults to `title` if not provided. */
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 export default function Button({
@@ -22,7 +26,10 @@ export default function Button({
   disabled = false,
   style,
   textStyle: customTextStyle,
-  icon
+  icon,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }: ButtonProps) {
   const textStyle = [
     styles.text,
@@ -39,12 +46,22 @@ export default function Button({
     </>
   );
 
+  const a11yProps = {
+    accessible: true,
+    accessibilityRole: 'button' as const,
+    accessibilityLabel: accessibilityLabel ?? title,
+    accessibilityHint,
+    accessibilityState: { disabled: disabled || loading, busy: loading },
+    testID,
+  };
+
   if (variant === 'secondary') {
     return (
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled || loading}
         style={[styles.base, styles.glow, disabled && styles.disabled, style]}
+        {...a11yProps}
       >
         <LinearGradient
           colors={[COLORS.primary, COLORS.primaryDark]}
@@ -75,6 +92,7 @@ export default function Button({
       onPress={onPress}
       disabled={disabled || loading}
       style={[buttonStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
+      {...a11yProps}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.text} />

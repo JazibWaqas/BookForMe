@@ -21,7 +21,8 @@ import {
 } from '../../services/bookings';
 import { ResourceGroup, SlotDetails } from '../../types/booking';
 import Button from '../../components/ui/Button';
-import { COLORS } from '../../constants/colors';
+import Skeleton, { SkeletonGroup } from '../../components/ui/Skeleton';
+import { COLORS, RADIUS, SPACING } from '../../constants/colors';
 import { getVendorImage } from '../../constants/vendorImages';
 import { getCourtImage } from '../../constants/images';
 import { useVendor, useAvailableSlotsOptimized } from '../../hooks/useQueries';
@@ -244,9 +245,30 @@ export default function VendorDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading venue...</Text>
+      <View style={styles.container}>
+        <SkeletonGroup>
+          {/* Hero image */}
+          <Skeleton width="100%" height={260} borderRadius={0} />
+          {/* Body */}
+          <View style={{ padding: SPACING.xl, gap: SPACING.md }}>
+            <Skeleton width="70%" height={26} />
+            <Skeleton width="50%" height={14} />
+            <Skeleton width="100%" height={1} style={{ marginVertical: SPACING.md }} />
+            <Skeleton width="40%" height={16} />
+            <View style={{ flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.sm }}>
+              <Skeleton width={92} height={88} borderRadius={RADIUS.md} />
+              <Skeleton width={92} height={88} borderRadius={RADIUS.md} />
+              <Skeleton width={92} height={88} borderRadius={RADIUS.md} />
+            </View>
+            <Skeleton width="100%" height={1} style={{ marginVertical: SPACING.md }} />
+            <Skeleton width="35%" height={14} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm }}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} width={78} height={36} borderRadius={RADIUS.sm} />
+              ))}
+            </View>
+          </View>
+        </SkeletonGroup>
       </View>
     );
   }

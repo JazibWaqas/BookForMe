@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Category } from '../types';
+import { COLORS, RADIUS, SPACING } from '../constants/colors';
 
 interface CategoryScrollProps {
   categories: Category[];
@@ -9,16 +10,22 @@ interface CategoryScrollProps {
 
 export default function CategoryScroll({ categories, onCategoryPress }: CategoryScrollProps) {
   return (
-    <ScrollView 
-      horizontal={true}
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      accessibilityLabel="Sport categories"
     >
       {categories.map((category) => (
         <TouchableOpacity
           key={category.id}
           onPress={() => onCategoryPress(category)}
           style={styles.categoryCard}
+          activeOpacity={0.85}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={`${category.name} category, ${category.count} venues`}
+          accessibilityHint="Double tap to browse venues in this category"
         >
           <Text style={styles.categoryName}>{category.name}</Text>
           <Text style={styles.categoryCount}>{category.count} venues</Text>
@@ -30,27 +37,27 @@ export default function CategoryScroll({ categories, onCategoryPress }: Category
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.md,
   },
   categoryCard: {
     width: 140,
     height: 112,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.md,
     justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#1f1f1f',
-    marginRight: 12,
+    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    marginRight: SPACING.md,
   },
   categoryName: {
     fontWeight: '600',
     fontSize: 14,
-    color: '#e5e7eb',
+    color: COLORS.text,
   },
   categoryCount: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.textMuted,
   },
 });

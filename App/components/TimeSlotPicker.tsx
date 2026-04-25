@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { format, addDays } from 'date-fns';
+import { COLORS, RADIUS, SPACING } from '../constants/colors';
 
 interface TimeSlotPickerProps {
   selectedDate: Date;
@@ -17,7 +18,7 @@ export default function TimeSlotPicker({
   onDateChange,
   onTimeChange,
   availableSlots,
-  bookedSlots
+  bookedSlots,
 }: TimeSlotPickerProps) {
   const generateDates = () => {
     const dates = [];
@@ -33,7 +34,7 @@ export default function TimeSlotPicker({
     <View style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.label}>Select Date</Text>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.dateRow}>
             {dates.map((date, index) => {
               const isSelected = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
@@ -42,6 +43,10 @@ export default function TimeSlotPicker({
                   key={index}
                   onPress={() => onDateChange(date)}
                   style={[styles.dateButton, isSelected && styles.dateButtonSelected]}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={format(date, 'EEEE, MMMM d')}
                 >
                   <Text style={[styles.dateText, isSelected && styles.dateTextSelected]}>
                     {format(date, 'd')}
@@ -55,33 +60,45 @@ export default function TimeSlotPicker({
 
       <View style={styles.section}>
         <Text style={styles.label}>Available Time Slots</Text>
-        <View style={styles.timeGrid}>
-          {availableSlots.map((time) => {
-            const isBooked = bookedSlots.includes(time);
-            const isSelected = time === selectedTime;
-            
-            return (
-              <TouchableOpacity
-                key={time}
-                onPress={() => !isBooked && onTimeChange(time)}
-                disabled={isBooked}
-                style={[
-                  styles.timeButton,
-                  isBooked && styles.timeButtonBooked,
-                  isSelected && styles.timeButtonSelected,
-                ]}
-              >
-                <Text style={[
-                  styles.timeText,
-                  isBooked && styles.timeTextBooked,
-                  isSelected && styles.timeTextSelected,
-                ]}>
-                  {time}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {availableSlots.length === 0 ? (
+          <Text style={styles.emptyText}>No slots available for this date.</Text>
+        ) : (
+          <View style={styles.timeGrid}>
+            {availableSlots.map((time) => {
+              const isBooked = bookedSlots.includes(time);
+              const isSelected = time === selectedTime;
+
+              return (
+                <TouchableOpacity
+                  key={time}
+                  onPress={() => !isBooked && onTimeChange(time)}
+                  disabled={isBooked}
+                  style={[
+                    styles.timeButton,
+                    isBooked && styles.timeButtonBooked,
+                    isSelected && styles.timeButtonSelected,
+                  ]}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected, disabled: isBooked }}
+                  accessibilityLabel={
+                    isBooked ? `${time}, booked` : `${time}${isSelected ? ', selected' : ''}`
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.timeText,
+                      isBooked && styles.timeTextBooked,
+                      isSelected && styles.timeTextSelected,
+                    ]}
+                  >
+                    {time}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -89,75 +106,85 @@ export default function TimeSlotPicker({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: SPACING.md,
   },
   section: {
-    gap: 8,
+    gap: SPACING.sm,
   },
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  emptyText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+    paddingVertical: SPACING.md,
+  },
   dateRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACING.sm,
   },
   dateButton: {
-    height: 32,
+    height: 36,
     borderWidth: 1,
-    borderColor: '#4b5563',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.md,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.surface,
   },
   dateButtonSelected: {
-    borderColor: '#6b7280',
-    backgroundColor: '#4b5563',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryGlow,
   },
   dateText: {
-    fontSize: 12,
-    color: '#9ca3af',
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
   dateTextSelected: {
-    color: '#f9fafb',
-    fontWeight: '600',
+    color: COLORS.text,
+    fontWeight: '700',
   },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: SPACING.sm,
   },
   timeButton: {
-    height: 36,
-    borderWidth: 2,
-    borderColor: '#4b5563',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    height: 38,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.surface,
   },
   timeButtonBooked: {
-    borderColor: '#374151',
+    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
     opacity: 0.5,
   },
   timeButtonSelected: {
-    borderColor: '#6b7280',
-    backgroundColor: '#4b5563',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryGlow,
   },
   timeText: {
-    fontSize: 12,
-    color: '#d1d5db',
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   timeTextBooked: {
-    color: '#6b7280',
+    color: COLORS.textMuted,
     textDecorationLine: 'line-through',
   },
   timeTextSelected: {
-    color: '#f9fafb',
-    fontWeight: '600',
+    color: COLORS.text,
+    fontWeight: '700',
   },
 });

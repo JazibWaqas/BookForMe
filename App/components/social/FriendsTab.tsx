@@ -17,9 +17,20 @@ interface User {
 
 const isVendorUser = (u: User): boolean => {
     const role = u.role != null ? String(u.role).trim().toLowerCase() : '';
-    if (role === 'vendor') return true;
+    if (role === 'vendor' || role === 'admin') return true;
     const vid = u.vendor_id != null ? String(u.vendor_id).trim() : '';
     return vid !== '' && vid !== 'none' && vid !== 'null';
+};
+
+const isSocialPlayer = (u: User): boolean => {
+    if (isVendorUser(u)) return false;
+    const n = (u.name || '').trim().toLowerCase();
+    if (!n) return false;
+    if (n === 'unknown' || n === 'unknown user') return false;
+    if (n === 'test user') return false;
+    if (/\badmin\b/.test(n)) return false;
+    if (n.includes('vendor')) return false;
+    return true;
 };
 
 interface FriendsTabProps {
@@ -44,12 +55,12 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         try {
             if (activeSection === 'friends') {
                 const res = await apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } });
-                setFriends(res.data.friends || []);
+                setFriends((res.data.friends || []).filter((u: User) => isSocialPlayer(u)));
             } else if (activeSection === 'find') {
                 const res = await apiClient.get(API_ENDPOINTS.social.users);
                 const allUsers = res.data || [];
                 setSuggestions(
-                    allUsers.filter((u: User) => u.id !== currentUserId && !isVendorUser(u))
+                    allUsers.filter((u: User) => u.id !== currentUserId && isSocialPlayer(u))
                 );
             }
         } catch (error) {
@@ -65,7 +76,7 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
             try {
                 const res = await apiClient.get(API_ENDPOINTS.social.users, { params: { search: query } });
                 const results = (res.data || []).filter(
-                    (u: User) => u.id !== currentUserId && !isVendorUser(u)
+                    (u: User) => u.id !== currentUserId && isSocialPlayer(u)
                 );
                 setSearchResults(results);
             } catch (error) {

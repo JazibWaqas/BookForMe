@@ -29,7 +29,7 @@ export default function ChatBubble({ message, isOwn }: ChatBubbleProps) {
         if (!isOwn) return null;
         switch (message.status) {
             case 'read':
-                return <Ionicons name="checkmark-done" size={14} color="#3B82F6" />;
+                return <Ionicons name="checkmark-done" size={14} color={COLORS.secondary} />;
             case 'delivered':
                 return <Ionicons name="checkmark-done" size={14} color={COLORS.textMuted} />;
             default:
@@ -38,7 +38,12 @@ export default function ChatBubble({ message, isOwn }: ChatBubbleProps) {
     };
 
     return (
-        <View style={[styles.container, isOwn ? styles.own : styles.other]}>
+        <View
+            style={[styles.container, isOwn ? styles.own : styles.other]}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${isOwn ? 'You' : 'Them'}: ${message.content}, sent at ${formatTime(message.created_at)}${isOwn && message.status ? `, ${message.status}` : ''}`}
+        >
             <View style={[styles.bubble, isOwn ? styles.ownBubble : styles.otherBubble]}>
                 <Text style={[styles.text, isOwn && styles.ownText]}>{message.content}</Text>
                 <View style={styles.meta}>
@@ -58,7 +63,7 @@ const styles = StyleSheet.create({
     ownBubble: { backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
     otherBubble: { backgroundColor: COLORS.card, borderBottomLeftRadius: 4 },
     text: { fontSize: 15, color: COLORS.text, lineHeight: 20 },
-    ownText: { color: '#fff' },
+    ownText: { color: COLORS.textDark },
     meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 4 },
     time: { fontSize: 11, color: COLORS.textMuted },
     ownTime: { color: 'rgba(255,255,255,0.7)' },

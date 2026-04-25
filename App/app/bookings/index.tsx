@@ -4,7 +4,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Booking } from '../../types';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import { COLORS } from '../../constants/colors';
+import Skeleton, { SkeletonGroup } from '../../components/ui/Skeleton';
+import { COLORS, RADIUS } from '../../constants/colors';
 import { format } from 'date-fns';
 import { useUserBookings } from '../../hooks/useQueries';
 
@@ -161,10 +162,24 @@ export default function MyBookingsScreen() {
 
             <ScrollView style={styles.content}>
                 {loading ? (
-                    <View style={styles.emptyState}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.emptyText}>Loading bookings...</Text>
-                    </View>
+                    <SkeletonGroup style={{ paddingVertical: 4 }}>
+                        {[0, 1, 2].map((i) => (
+                            <View key={i} style={styles.glassCard}>
+                                <View style={styles.bookingHeader}>
+                                    <Skeleton width={140} height={14} />
+                                    <Skeleton width={80} height={22} borderRadius={RADIUS.sm} />
+                                </View>
+                                <Skeleton width="70%" height={20} style={{ marginTop: 16 }} />
+                                <Skeleton width="50%" height={14} style={{ marginTop: 8 }} />
+                                <Skeleton width="40%" height={14} style={{ marginTop: 6 }} />
+                                <Skeleton width="100%" height={1} style={{ marginVertical: 16 }} />
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                    <Skeleton width={90} height={14} />
+                                    <Skeleton width={70} height={14} />
+                                </View>
+                            </View>
+                        ))}
+                    </SkeletonGroup>
                 ) : displayBookings.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyIcon}>📅</Text>

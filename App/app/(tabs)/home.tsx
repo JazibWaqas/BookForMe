@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Image, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Vendor, Category } from '../../types';
 import VendorCard from '../../components/VendorCard';
+import VendorCardSkeleton from '../../components/VendorCardSkeleton';
+import Skeleton, { SkeletonGroup } from '../../components/ui/Skeleton';
 import { COLORS, GRADIENTS, SHADOWS } from '../../constants/colors';
 import { getCourtImage } from '../../constants/images';
 import { useCategories, useVendorsBySport } from '../../hooks/useQueries';
@@ -128,9 +130,46 @@ export default function HomeScreen() {
 
   if (loading && categories.length === 0) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ marginTop: 12, color: COLORS.textMuted }}>Loading venues...</Text>
+      <View style={styles.container}>
+        {/* Skeleton header — mirrors the real header so layout doesn't shift */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Skeleton width={70} height={12} />
+              <Skeleton width={140} height={20} style={{ marginTop: 8 }} />
+            </View>
+            <Skeleton width={44} height={44} borderRadius={22} />
+          </View>
+          <Skeleton width="100%" height={46} borderRadius={14} style={{ marginTop: 4 }} />
+        </View>
+
+        <SkeletonGroup style={{ flex: 1 }}>
+          {/* Category pills skeleton */}
+          <View style={styles.categoriesSection}>
+            <View style={[styles.categoryPillsScroll, { flexDirection: 'row' }]}>
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} width={92} height={40} borderRadius={24} style={{ marginRight: 12 }} />
+              ))}
+            </View>
+          </View>
+
+          {/* Two skeleton sections of vendor cards */}
+          {[0, 1].map((sectionIdx) => (
+            <View key={sectionIdx} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Skeleton width={140} height={20} />
+                <Skeleton width={70} height={14} />
+              </View>
+              <View style={[styles.vendorsScroll, { flexDirection: 'row' }]}>
+                {[0, 1].map((i) => (
+                  <View key={i} style={styles.vendorCardWrapper}>
+                    <VendorCardSkeleton />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </SkeletonGroup>
       </View>
     );
   }
@@ -142,7 +181,12 @@ export default function HomeScreen() {
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.greeting}>Hello{userName ? `, ${userName}` : ''}</Text>
-            <TouchableOpacity style={styles.locationRow}>
+            <TouchableOpacity
+              style={styles.locationRow}
+              accessibilityRole="button"
+              accessibilityLabel="Current location, Karachi DHA"
+              accessibilityHint="Double tap to change your location"
+            >
               <Ionicons name="location" size={16} color={COLORS.primary} />
               <Text style={styles.location}>Karachi, DHA</Text>
               <Ionicons name="chevron-down" size={14} color={COLORS.textMuted} />
@@ -151,6 +195,8 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push('/(tabs)/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Open your profile"
           >
             <LinearGradient
               colors={[COLORS.primary + '40', COLORS.primary + '15']}
@@ -171,9 +217,15 @@ export default function HomeScreen() {
             onChangeText={setSearchQuery}
             autoCorrect={false}
             autoCapitalize="none"
+            accessibilityLabel="Search venues and areas"
+            accessibilityHint="Type to filter the list of venues"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
               <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
@@ -237,6 +289,9 @@ export default function HomeScreen() {
                       style={[styles.categoryPill, { borderColor: iconColor + '30', backgroundColor: iconColor + '08' }]}
                       onPress={() => router.push(`/category/${cat.id}`)}
                       activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${cat.name} category`}
+                      accessibilityHint="Double tap to browse this sport"
                     >
                       <Ionicons
                         name={categoryIcons[cat.id] || 'tennisball'}
