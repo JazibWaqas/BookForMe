@@ -37,6 +37,12 @@ class PhoneLoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    email: EmailStr
+    name: str
+    firebase_uid: str
+
+
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
@@ -155,6 +161,18 @@ async def login_with_phone(request: PhoneLoginRequest):
     except Exception as e:
         logger.error(f"Error in phone login endpoint: {e}")
         raise HTTPException(status_code=500, detail="Login failed")
+
+
+@router.post("/google")
+async def google_login(request: GoogleLoginRequest):
+    result = await auth_service.google_login_or_create(
+        email=request.email,
+        name=request.name,
+        firebase_uid=request.firebase_uid,
+    )
+    if result["success"]:
+        return result
+    raise HTTPException(status_code=400, detail=result.get("error", "Google login failed"))
 
 
 @router.post("/change-password")

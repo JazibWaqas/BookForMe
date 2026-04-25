@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     register: '/api/auth/register',
     login: '/api/auth/login',
     loginPhone: '/api/auth/login/phone',
+    google: '/api/auth/google',
     me: '/api/auth/me',
     changePassword: '/api/auth/change-password',
     setPassword: '/api/auth/set-password',

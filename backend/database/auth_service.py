@@ -137,6 +137,50 @@ class AuthService:
             logger.error(f"Error registering user: {e}")
             return {"success": False, "error": f"Registration failed: {str(e)}"}
     
+    async def google_login_or_create(self, email: str, name: str, firebase_uid: str) -> Dict[str, Any]:
+        try:
+            docs = list(self.db.collection(Collections.USERS).where('email', '==', email).limit(1).stream())
+            if docs:
+                doc = docs[0]
+                user_id = doc.id
+                user = doc.to_dict()
+                user['id'] = user_id
+                user.pop('password_hash', None)
+                token = self.create_access_token(user_id, email, user.get('role', 'customer'))
+                logger.info(f"Google sign-in: existing user {user_id} ({email})")
+                return {"success": True, "token": token, "user": user}
+
+            email_hash = sum(ord(c) for c in email)
+            phone = f"+92{3000000000 + (email_hash % 7000000000)}"
+            user_data = {
+                "email": email,
+                "name": name,
+                "phone": phone,
+                "role": "customer",
+                "firebase_uid": firebase_uid,
+                "password_hash": None,
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "bio": "",
+                "points": 50,
+                "level": 1,
+                "skill_rating": 1000.0,
+                "avatar_url": f"https://ui-avatars.com/api/?name={name.replace(' ', '+')}&background=random",
+                "stats": {"matches_played": 0, "wins": 0, "losses": 0, "win_rate": 0.0},
+                "preferences": {"favorite_sports": [], "skill_level": "beginner", "play_areas": []},
+                "badges": [],
+                "last_active": firestore.SERVER_TIMESTAMP,
+                "is_online": True,
+            }
+            doc_ref = self.db.collection(Collections.USERS).add(user_data)
+            user_id = doc_ref[1].id
+            user = await self.firestore_v2.get_user(user_id)
+            token = self.create_access_token(user_id, email, "customer")
+            logger.info(f"Google sign-in: created new user {user_id} ({email})")
+            return {"success": True, "token": token, "user": user}
+        except Exception as e:
+            logger.error(f"Google login/create error: {e}")
+            return {"success": False, "error": str(e)}
+
     async def login(self, email: str, password: str) -> Dict[str, Any]:
         """
         Login user with email and password

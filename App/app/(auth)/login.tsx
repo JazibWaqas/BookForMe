@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { auth } from '../../services/firebase';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/typography';
 import { authService } from '../../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,6 +25,23 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '330764738815-dq8dstvtsruk6rd25tpmm32632lm1igo.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (!response) return;
+    if (response.type === 'success') {
+      const { id_token } = response.params;
+      handleGoogleCallback(id_token);
+    } else if (response.type === 'error') {
+      setGoogleLoading(false);
+      Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.');
+    } else if (response.type === 'cancel' || response.type === 'dismiss') {
+      setGoogleLoading(false);
+    }
+  }, [response]);
 
   const validate = () => {
     const next: { email?: string; password?: string } = {};
@@ -67,32 +90,39 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
-
+  const handleGoogleCallback = async (idToken: string) => {
     try {
-      const result = await authService.loginWithGoogle();
+      const credential = GoogleAuthProvider.credential(idToken);
+      const { user: firebaseUser } = await signInWithCredential(auth, credential);
 
-      if (result.success && result.user && result.token) {
+      const result = await authService.loginWithGoogleToken({
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || 'Google User',
+        uid: firebaseUser.uid,
+      });
+
+      if (result.success && result.user) {
         const userRole = result.user.role || 'customer';
-
-        if (userRole === 'customer') {
-          router.replace('/(tabs)/home');
-        } else if (userRole === 'admin') {
+        if (userRole === 'admin') {
           router.replace('/admin-dashboard');
-        } else {
+        } else if (userRole === 'vendor') {
           router.replace('/vendor-dashboard');
+        } else {
+          router.replace('/(tabs)/home');
         }
       } else {
-        if (result.error !== 'Google Sign-In cancelled') {
-          Alert.alert('Google Sign-In Failed', result.error || 'Please try again.');
-        }
+        Alert.alert('Sign-In Failed', result.error || 'Please try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+      Alert.alert('Error', error.message || 'Google Sign-In failed.');
     } finally {
       setGoogleLoading(false);
     }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    await promptAsync();
   };
 
   return (

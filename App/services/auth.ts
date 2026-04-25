@@ -1,15 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signInWithCredential, GoogleAuthProvider, signOut as firebaseSignOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { signOut as firebaseSignOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { User as UserType } from '../types';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// Import API configuration
 import { API_ENDPOINTS, apiClient, clearTokenCache, updateTokenCache } from '../config/api';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export interface UserData {
   id: string;
@@ -298,167 +292,26 @@ class AuthService {
     }
   }
 
-  async loginWithGoogle(): Promise<AuthResponse> {
+  async loginWithGoogleToken(userInfo: { email: string; name: string; uid: string }): Promise<AuthResponse> {
     try {
-      // Try env variable first, fallback to hardcoded value
-      const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '330764738815-dq8dstvtsruk6rd25tpmm32632lm1igo.apps.googleusercontent.com';
-
-      console.log('Google Client ID:', clientId ? `${clientId.substring(0, 20)}...` : 'NOT SET');
-
-      if (!clientId) {
-        return {
-          success: false,
-          error: 'Google Sign-In not configured.'
-        };
-      }
-
-      const redirectUri = AuthSession.makeRedirectUri();
-
-      const discovery = {
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-        tokenEndpoint: 'https://oauth2.googleapis.com/token',
-        revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-      };
-
-      const request = new AuthSession.AuthRequest({
-        clientId: clientId,
-        scopes: ['openid', 'profile', 'email'],
-        responseType: AuthSession.ResponseType.IdToken,
-        redirectUri: redirectUri,
-        usePKCE: false,
+      const response = await apiClient.post(API_ENDPOINTS.auth.google, {
+        email: userInfo.email,
+        name: userInfo.name || 'Google User',
+        firebase_uid: userInfo.uid,
       });
 
-      const result = await request.promptAsync(discovery);
-
-      if (result.type !== 'success') {
-        console.error('Google Sign-In result:', result);
-        if (result.type === 'cancel') {
-          return {
-            success: false,
-            error: 'Google Sign-In cancelled'
-          };
-        }
-        // Handle error case safely
-        const errorMsg = result.type === 'error' && result.error ? (result.error.message || result.error.code) : 'Unknown error';
-        return {
-          success: false,
-          error: `Google Sign-In failed: ${errorMsg}`
-        };
+      if (response.data.success) {
+        await this.setToken(response.data.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+        await AsyncStorage.setItem('userRole', response.data.user.role || 'customer');
+        updateTokenCache(response.data.token);
+        return { success: true, token: response.data.token, user: response.data.user };
       }
 
-      const { id_token } = result.params;
-
-      if (!id_token) {
-        return {
-          success: false,
-          error: 'Failed to get Google authentication token'
-        };
-      }
-
-      const credential = GoogleAuthProvider.credential(id_token);
-      const firebaseUserCredential = await signInWithCredential(auth, credential);
-      const firebaseUser = firebaseUserCredential.user;
-
-      if (!firebaseUser.email) {
-        return {
-          success: false,
-          error: 'Google account does not have an email address'
-        };
-      }
-
-      const googleUserInfo = {
-        email: firebaseUser.email,
-        name: firebaseUser.displayName || '',
-        phone: firebaseUser.phoneNumber || '',
-      };
-
-      let backendUser;
-      let token;
-
-      const generateSecurePassword = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        let password = '';
-        for (let i = 0; i < 32; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
-      };
-
-      const securePassword = generateSecurePassword();
-      const emailHash = googleUserInfo.email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const phoneNumber = googleUserInfo.phone || `+92${3000000000 + (emailHash % 7000000000)}`;
-
-      try {
-        const registerResponse = await apiClient.post(API_ENDPOINTS.auth.register, {
-          email: googleUserInfo.email,
-          password: securePassword,
-          name: googleUserInfo.name || 'Google User',
-          phone: phoneNumber,
-          role: 'customer'
-        });
-
-        if (registerResponse.data.success) {
-          backendUser = registerResponse.data.user;
-          token = registerResponse.data.token;
-        } else {
-          const errorMsg = registerResponse.data.error || '';
-          if (errorMsg.includes('already') || errorMsg.includes('registered') || errorMsg.includes('Email already')) {
-            return {
-              success: false,
-              error: 'An account with this email already exists. Please use email/password login instead.'
-            };
-          }
-          return {
-            success: false,
-            error: errorMsg || 'Failed to create account'
-          };
-        }
-      } catch (registerError: any) {
-        const errorDetail = registerError.response?.data?.detail || '';
-        if (registerError.response?.status === 400 && (errorDetail.includes('already') || errorDetail.includes('registered') || errorDetail.includes('Email already'))) {
-          return {
-            success: false,
-            error: 'An account with this email already exists. Please use email/password login instead.'
-          };
-        }
-        return {
-          success: false,
-          error: errorDetail || registerError.response?.data?.error || 'Failed to create account with Google'
-        };
-      }
-
-      if (token && backendUser) {
-        await this.setToken(token);
-        await AsyncStorage.setItem('userData', JSON.stringify(backendUser));
-        await AsyncStorage.setItem('userRole', backendUser.role || 'customer');
-
-        return {
-          success: true,
-          token: token,
-          user: backendUser
-        };
-      }
-
-      return {
-        success: false,
-        error: 'Failed to authenticate with backend'
-      };
+      return { success: false, error: response.data.error || 'Google login failed' };
     } catch (error: any) {
-      console.error('Google login error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network')) {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.'
-        };
-      }
-
-      const errorMessage = error.message || error.error?.message || 'Google Sign-In failed. Please try again.';
-      return {
-        success: false,
-        error: typeof errorMessage === 'string' ? errorMessage : String(errorMessage)
-      };
+      const msg = error.response?.data?.detail || error.message || 'Google login failed';
+      return { success: false, error: msg };
     }
   }
 
