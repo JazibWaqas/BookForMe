@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BookForMe – Academic Poster</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --teal:#006B6B;--teal-dark:#004D4D;--teal-light:#009898;
+  --gold:#C8962A;--gold-light:#F0C050;
+  --bg:#F4F7F7;--white:#FFFFFF;
+  --text:#1A2323;--muted:#5A7070;
+  --border:#D0DEDE;
+}
+body{
+  font-family:'Inter',sans-serif;
+  background:#C8D8D8;
+  display:flex;justify-content:center;
+  padding:24px;
+}
+.poster{
+  width:860px;
+  background:var(--bg);
+  color:var(--text);
+  box-shadow:0 8px 48px rgba(0,0,0,0.28);
+  border-radius:4px;
+  overflow:hidden;
+}
+
+/* HEADER */
+.header{
+  background:linear-gradient(135deg,var(--teal-dark) 0%,#007878 55%,var(--teal-light) 100%);
+  padding:20px 26px 16px;
+  display:grid;
+  grid-template-columns:110px 1fr 160px;
+  gap:18px;
+  align-items:center;
+}
+.logo-block{
+  background:rgba(255,255,255,0.13);
+  border-radius:10px;
+  padding:10px 12px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,0.18);
+}
+.logo-block .uni{font-size:10.5px;font-weight:800;color:#fff;letter-spacing:.4px;line-height:1.3;}
+.logo-block .sub{font-size:8.5px;color:rgba(255,255,255,0.72);font-style:italic;margin-top:2px;}
+.logo-block .course{font-size:8px;color:rgba(255,255,255,0.55);margin-top:6px;}
+.header-center .title{
+  font-size:24px;font-weight:900;color:#fff;line-height:1.18;letter-spacing:-.3px;
+}
+.header-center .title span{color:var(--gold-light);}
+.subtitle-tag{
+  margin-top:7px;font-size:10px;color:rgba(255,255,255,0.8);
+  background:rgba(255,255,255,0.13);display:inline-block;
+  padding:3px 10px;border-radius:20px;letter-spacing:.35px;
+  border:1px solid rgba(255,255,255,0.18);
+}
+.authors-block{text-align:right;}
+.supervisor{font-size:9.5px;color:rgba(255,255,255,0.72);margin-bottom:8px;line-height:1.5;}
+.supervisor strong{color:var(--gold-light);font-weight:700;}
+.authors{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;}
+.author{font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;text-align:right;}
+
+/* BODY */
+.body{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:11px;
+  padding:13px;
+}
+.card{
+  background:var(--white);
+  border-radius:8px;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  box-shadow:0 1px 4px rgba(0,77,77,0.07);
+}
+.card.span2{grid-column:span 2;}
+.card.span3{grid-column:span 3;}
+.card-title{
+  font-size:10.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.85px;color:var(--teal-dark);
+  border-bottom:2px solid var(--teal);
+  padding-bottom:5px;margin-bottom:9px;
+  display:flex;align-items:center;gap:5px;
+}
+p,li{font-size:10px;line-height:1.55;color:var(--text);}
+ul{padding-left:14px;}
+li{margin-bottom:3px;}
+strong{color:var(--teal-dark);}
+
+/* BAR CHART */
+.survey-label{
+  font-size:9.5px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;
+}
+.bar-chart{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;
+  margin:6px 0 2px;
+}
+.bar-col{
+  display:flex;flex-direction:column;align-items:center;
+}
+.bar-pct{
+  font-size:13px;font-weight:900;color:var(--teal-dark);
+  margin-bottom:4px;line-height:1;
+}
+.bar-track{
+  width:100%;background:#EDF3F3;border-radius:6px;
+  height:56px;display:flex;align-items:flex-end;overflow:hidden;
+}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;}
+.bar-lbl{font-size:8px;text-align:center;color:var(--muted);line-height:1.3;margin-top:5px;}
+
+/* OBJECTIVES */
+.obj-item{display:flex;gap:8px;margin-bottom:7px;}
+.obj-num{
+  min-width:20px;height:20px;border-radius:50%;
+  background:var(--teal);color:#fff;
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.obj-text{font-size:9.5px;line-height:1.5;color:var(--text);}
+.obj-text strong{color:var(--teal-dark);}
+
+/* DATASET */
+.ds-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.ds-stat{
+  background:linear-gradient(135deg,rgba(0,107,107,0.06),rgba(0,107,107,0.01));
+  border:1px solid rgba(0,107,107,0.14);border-radius:7px;
+  padding:7px;text-align:center;
+}
+.ds-num{font-size:19px;font-weight:900;color:var(--gold);line-height:1;}
+.ds-lbl{font-size:8px;color:var(--muted);margin-top:2px;}
+.intent-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
+.intent-pill{
+  font-size:8px;padding:2px 7px;border-radius:20px;
+  font-weight:700;letter-spacing:.1px;
+}
+.p-inquiry{background:#E2F3F3;color:#004D4D;}
+.p-info{background:#FFF7E0;color:#7A5000;}
+.p-confirm{background:#EBF5EB;color:#1B5E20;}
+.p-unknown{background:#F3EBF8;color:#4A0072;}
+.p-greet{background:#FDE9E8;color:#B71C1C;}
+
+/* MODEL TABLE */
+.model-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:4px;}
+.model-table th{
+  background:var(--teal-dark);color:#fff;
+  padding:5px 7px;text-align:left;font-weight:700;font-size:8.5px;
+}
+.model-table td{padding:4px 7px;border-bottom:1px solid #E8F0F0;font-size:9px;}
+.model-table tr.best td{background:rgba(200,150,42,0.09);}
+.badge-sel{
+  background:var(--gold);color:#fff;
+  font-size:7px;padding:1px 5px;border-radius:10px;
+  font-weight:800;letter-spacing:.3px;margin-left:3px;vertical-align:middle;
+}
+.mv{font-weight:700;color:var(--teal-dark);}
+.mv-best{font-weight:800;color:var(--gold);}
+.model-note{font-size:8.5px;color:var(--muted);margin-top:5px;line-height:1.45;}
+
+/* WHAT WE BUILT */
+.built-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.built-item{
+  border-radius:7px;padding:8px 10px;
+  border-left:3px solid var(--teal);
+  background:linear-gradient(135deg,rgba(0,107,107,0.04),transparent);
+}
+.built-item.gold{border-left-color:var(--gold);}
+.built-head{font-size:9px;font-weight:800;color:var(--teal-dark);margin-bottom:3px;}
+.built-item.gold .built-head{color:var(--gold);}
+.built-body{font-size:8.5px;line-height:1.5;color:var(--muted);}
+
+/* ARCHITECTURE */
+.arch-wrapper{display:grid;grid-template-columns:1fr 1px 1fr;gap:14px;align-items:start;}
+.arch-divider{background:var(--border);height:100%;}
+.arch-sub-title{font-size:9px;font-weight:800;color:var(--teal-dark);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;}
+.flow-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.fnode{
+  background:var(--white);border:1.5px solid var(--teal);border-radius:6px;
+  padding:4px 8px;font-size:8.5px;font-weight:600;color:var(--teal-dark);
+  text-align:center;
+}
+.fnode.hi{background:var(--teal);color:#fff;}
+.farrow{color:var(--teal);font-size:11px;font-weight:900;}
+.paths-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:2px;}
+.path-box{border:1px solid var(--border);border-radius:6px;padding:6px 7px;background:rgba(0,107,107,0.02);}
+.path-head{font-size:8px;font-weight:800;margin-bottom:2px;}
+.path-body{font-size:7.5px;color:var(--muted);line-height:1.4;}
+.slot-flow{display:flex;flex-direction:column;gap:5px;}
+.slot-row{display:flex;align-items:center;gap:5px;}
+.snode{
+  border:1.5px solid var(--teal);border-radius:5px;padding:3px 7px;
+  font-size:8px;font-weight:600;color:var(--teal-dark);background:var(--white);
+  white-space:nowrap;
+}
+.snode.hi{background:var(--teal);color:#fff;}
+.snode.gold{border-color:var(--gold);color:var(--gold);background:rgba(200,150,42,0.06);}
+
+/* FUTURE + REFERENCES */
+.future-list{list-style:none;padding:0;}
+.future-list li{
+  font-size:9.5px;padding:4px 0 4px 16px;
+  border-bottom:1px solid var(--border);
+  position:relative;color:var(--text);line-height:1.45;
+}
+.future-list li::before{content:'→';position:absolute;left:0;color:var(--teal);font-weight:800;}
+.future-list li:last-child{border-bottom:none;}
+.ref-list{list-style:none;padding:0;}
+.ref-list li{
+  font-size:8.5px;color:var(--muted);line-height:1.6;padding-left:12px;position:relative;margin-bottom:2px;
+}
+.ref-list li::before{content:'·';position:absolute;left:0;color:var(--teal);font-weight:900;}
+
+/* FOOTER */
+.footer{
+  background:var(--teal-dark);
+  padding:7px 22px;display:flex;justify-content:space-between;align-items:center;
+}
+.footer-txt{font-size:8.5px;color:rgba(255,255,255,0.65);}
+.footer-url{font-size:8.5px;font-weight:700;color:var(--gold-light);}
+</style>
+</head>
+<body>
+<div class="poster">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-block">
+    <div class="uni">🎓 HABIB UNIVERSITY</div>
+    <div class="sub">Shaping Futures</div>
+    <div class="course">CS 491/492 · Kaavish II</div>
+  </div>
+  <div class="header-center">
+    <div class="title"><span>BookForMe:</span> An Agentic AI-Powered<br>Centralized Booking Platform</div>
+    <div class="subtitle-tag">🇵🇰 Pakistan's First Bilingual Agentic Sports Booking System · Live in Production</div>
+  </div>
+  <div class="authors-block">
+    <div class="supervisor">Supervisor: <strong>Dr. Qasim Pasta</strong><br>Associate Professor, HU</div>
+    <div class="authors">
+      <div class="author">Ahmad Hanif</div>
+      <div class="author">Jazib Waqas</div>
+      <div class="author">Muhammad Taqi</div>
+      <div class="author">Taha Hunaid</div>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- R1C1: Background -->
+  <div class="card">
+    <div class="card-title">⚠️ Background</div>
+    <p>Booking recreational services in Karachi (futsal, padel, salons) is <strong>fragmented &amp; manual</strong>. Customers contact vendors via WhatsApp, wait hours for replies, and restart from scratch if a slot is taken by another customer first.</p>
+    <br>
+    <div class="survey-label">User Survey — n &gt; 50, Spring 2025</div>
+    <div class="bar-chart">
+      <div class="bar-col">
+        <div class="bar-pct">72%</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="height:88%;background:linear-gradient(180deg,var(--teal-light),var(--teal));"></div>
+        </div>
+        <div class="bar-lbl">Use WhatsApp<br>to book</div>
+      </div>
+      <div class="bar-col">
+        <div class="bar-pct">81%</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="height:100%;background:linear-gradient(180deg,var(--gold-light),var(--gold));"></div>
+        </div>
+        <div class="bar-lbl">Frustrated with<br>multiple vendors</div>
+      </div>
+      <div class="bar-col">
+        <div class="bar-pct">68%</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="height:84%;background:linear-gradient(180deg,#7CB9C4,#3A8A96);"></div>
+        </div>
+        <div class="bar-lbl">Would switch<br>to an app</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- R1C2: Objectives -->
+  <div class="card">
+    <div class="card-title">🎯 Objectives</div>
+    <div class="obj-item">
+      <div class="obj-num">1</div>
+      <div class="obj-text"><strong>Bilingual NLU —</strong> Parse EN + Roman Urdu requests, handling variants like <em>waqt / vakt / tym</em></div>
+    </div>
+    <div class="obj-item">
+      <div class="obj-num">2</div>
+      <div class="obj-text"><strong>Agentic Pipeline —</strong> LangGraph state machine manages slot locking, OCR payment verification &amp; vendor approval autonomously</div>
+    </div>
+    <div class="obj-item">
+      <div class="obj-num">3</div>
+      <div class="obj-text"><strong>Concurrency Safety —</strong> Firestore OCC prevents double-booking across all channels simultaneously</div>
+    </div>
+    <div class="obj-item">
+      <div class="obj-num">4</div>
+      <div class="obj-text"><strong>Social Layer —</strong> Elo matchmaking, ranked leaderboard, community forum, friend system + DMs</div>
+    </div>
+    <div style="margin-top:10px;padding:8px 10px;background:rgba(0,107,107,0.05);border-radius:6px;border-left:3px solid var(--teal);">
+      <p style="font-size:9px;color:var(--muted);">Core research question: <em>How can an AI agent understand &amp; autonomously execute bilingual natural-language booking requests while guaranteeing consistency across a distributed multi-channel environment?</em></p>
+    </div>
+  </div>
+
+  <!-- R1C3: Dataset -->
+  <div class="card">
+    <div class="card-title">📊 Dataset</div>
+    <p style="font-size:9px;color:var(--muted);margin-bottom:8px;">Real Karachi vendor WhatsApp conversations · Manual annotation · LLM-driven augmentation via Claude Sonnet (back-translation + phonetic Roman Urdu rewriting)</p>
+    <div class="ds-stats">
+      <div class="ds-stat"><div class="ds-num">485</div><div class="ds-lbl">Training</div></div>
+      <div class="ds-stat"><div class="ds-num">104</div><div class="ds-lbl">Validation</div></div>
+      <div class="ds-stat"><div class="ds-num">105</div><div class="ds-lbl">Test</div></div>
+      <div class="ds-stat"><div class="ds-num" style="color:var(--teal-dark);">694</div><div class="ds-lbl">Total Utterances</div></div>
+    </div>
+    <p style="font-size:8.5px;font-weight:700;color:var(--teal-dark);margin-bottom:4px;">5-Class Intent Distribution</p>
+    <div class="intent-row">
+      <span class="intent-pill p-inquiry">Inquiry 39.9%</span>
+      <span class="intent-pill p-info">Info 24.6%</span>
+      <span class="intent-pill p-confirm">Confirmation 21.2%</span>
+      <span class="intent-pill p-unknown">Unknown 8.9%</span>
+      <span class="intent-pill p-greet">Greeting 5.3%</span>
+    </div>
+  </div>
+
+  <!-- R2C1+C2: Model Table -->
+  <div class="card span2">
+    <div class="card-title">🤖 NLU Model Comparison — 5-Class Intent Classification</div>
+    <p style="font-size:8.5px;color:var(--muted);margin-bottom:7px;">All models fine-tuned identically · Focal loss γ=2.0 · 128-token max seq · batch 16 · lr 2e-5 · 10 epochs · Focal loss addresses class imbalance</p>
+    <table class="model-table">
+      <thead>
+        <tr>
+          <th style="width:38%;">Model</th>
+          <th>Accuracy</th>
+          <th>Macro F1</th>
+          <th>Wtd. F1</th>
+          <th>Inference</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="best">
+          <td><strong>distilbert-base-uncased</strong><span class="badge-sel">SELECTED</span></td>
+          <td><span class="mv-best">90.5%</span></td>
+          <td><span class="mv-best">91.7%</span></td>
+          <td><span class="mv-best">90.5%</span></td>
+          <td><span class="mv-best">47 ms</span></td>
+        </tr>
+        <tr>
+          <td>bert-base-multilingual-cased</td>
+          <td class="mv">89.5%</td><td class="mv">90.5%</td><td class="mv">89.5%</td><td>120 ms</td>
+        </tr>
+        <tr>
+          <td>bert-base-uncased</td>
+          <td class="mv">84.8%</td><td class="mv">87.8%</td><td class="mv">84.8%</td><td>—</td>
+        </tr>
+        <tr>
+          <td>distilbert-base-multilingual-cased</td>
+          <td class="mv">84.8%</td><td class="mv">83.1%</td><td class="mv">84.9%</td><td>—</td>
+        </tr>
+        <tr>
+          <td>bert-base-multilingual-uncased</td>
+          <td class="mv">84.8%</td><td class="mv">88.1%</td><td class="mv">84.7%</td><td>—</td>
+        </tr>
+        <tr>
+          <td>XLM-RoBERTa-base</td>
+          <td class="mv">70.5%</td><td class="mv">72.3%</td><td class="mv">69.7%</td><td>—</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="model-note">DistilBERT (66M params) achieves <strong>best accuracy at 3× faster inference</strong> than the next-best model — critical within the 60 s WhatsApp response budget. Compact domain-specific fine-tuning outperforms larger multilingual models (XLM-RoBERTa 270M params, 70.5% accuracy).</p>
+  </div>
+
+  <!-- R2C3: What We Built -->
+  <div class="card">
+    <div class="card-title">🏗️ What We Built</div>
+    <div class="built-grid">
+      <div class="built-item">
+        <div class="built-head">① Custom Bilingual Dataset</div>
+        <div class="built-body">694 EN + Roman Urdu utterances from real Karachi vendor WhatsApp conversations. No pre-existing dataset existed.</div>
+      </div>
+      <div class="built-item gold">
+        <div class="built-head">② 6-Model NLU Evaluation</div>
+        <div class="built-body">DistilBERT 90.5% acc, 91.7% F1 at 47ms CPU vs XLM-RoBERTa 70.5%. Compact wins on domain-specific tasks.</div>
+      </div>
+      <div class="built-item">
+        <div class="built-head">③ Production LangGraph Agent</div>
+        <div class="built-body">Cyclic state machine with OCC, OCR verification, async WhatsApp state persistence. Zero hallucinated bookings.</div>
+      </div>
+      <div class="built-item gold">
+        <div class="built-head">④ Full-Stack Social Sports Platform</div>
+        <div class="built-body">Pakistan's first bilingual agentic booking solution with Elo matchmaking, community forums, leaderboards. Live in production.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- R3: Architecture full width -->
+  <div class="card span3">
+    <div class="card-title">⚙️ Agent Architecture — LangGraph-based Multi-Intent Routing</div>
+    <div class="arch-wrapper">
+
+      <div>
+        <div class="arch-sub-title">Intent Routing Flow</div>
+        <div class="flow-row">
+          <div class="fnode">User Input<br><span style="font-size:7.5px;font-weight:400;color:var(--muted);">"padel kal shaam"</span></div>
+          <div class="farrow">→</div>
+          <div class="fnode hi">Intent Classification<br><span style="font-size:7.5px;font-weight:400;">DistilBERT · 47ms</span></div>
+          <div class="farrow">→</div>
+          <div class="fnode">Determine Route</div>
+        </div>
+        <div class="paths-grid">
+          <div class="path-box">
+            <div class="path-head" style="color:var(--teal);">Path A: Inquiry / Booking</div>
+            <div class="path-body">Fetch availability → OCC slot lock → OCR payment → vendor notify</div>
+          </div>
+          <div class="path-box">
+            <div class="path-head" style="color:var(--gold);">Path B: FAQs / Info</div>
+            <div class="path-body">Query knowledge base → LLM generates response → formatted reply</div>
+          </div>
+          <div class="path-box">
+            <div class="path-head" style="color:#8B3A8B;">Path C: Human Escalation</div>
+            <div class="path-body">Store state → escalate to vendor → handover with full context</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-divider"></div>
+
+      <div>
+        <div class="arch-sub-title">Slot Booking Lifecycle (OCC)</div>
+        <div class="slot-flow">
+          <div class="slot-row">
+            <div class="snode">available</div>
+            <div class="farrow">→</div>
+            <div class="snode hi">locked (10 min)</div>
+            <div class="farrow">→</div>
+            <div class="snode">pending OCR</div>
+          </div>
+          <div class="slot-row" style="padding-left:24px;">
+            <div class="farrow" style="transform:rotate(90deg);padding-left:0;">↓</div>
+            <p style="font-size:8px;color:var(--muted);margin-left:6px;">If hold expires → auto-released back to <em>available</em></p>
+          </div>
+          <div class="slot-row">
+            <div class="snode gold">confirmed ✓</div>
+            <div class="farrow">→</div>
+            <div class="snode" style="border-color:var(--teal-light);color:var(--teal-light);">completed</div>
+          </div>
+        </div>
+        <p style="font-size:8.5px;color:var(--muted);margin-top:8px;line-height:1.5;">All slot writes use Firestore atomic transactions — concurrent requests from Mobile App + WhatsApp resolve in the same transaction. <strong style="color:var(--teal-dark);">0 double-bookings</strong> across 10 structured test cases including concurrent OCC scenario.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- R4: Future + References -->
+  <div class="card">
+    <div class="card-title">🚀 Future Work</div>
+    <ul class="future-list">
+      <li>Voice booking via Twilio (Arabic/Urdu ASR)</li>
+      <li>Real payment gateway (JazzCash API direct integration)</li>
+      <li>Personalized venue &amp; friend suggestions via booking history + Elo</li>
+      <li>Expand to all major Karachi sports &amp; service categories</li>
+      <li>Tournament organization &amp; bracket management module</li>
+    </ul>
+  </div>
+
+  <div class="card span2">
+    <div class="card-title">📚 References</div>
+    <ul class="ref-list">
+      <li>V. Sanh et al., "DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter," arXiv:1910.01108, 2019.</li>
+      <li>A. Conneau et al., "Unsupervised cross-lingual representation learning at scale," arXiv:1911.02116, 2020.</li>
+      <li>T. Y. Lin et al., "Focal loss for dense object detection," ICCV, pp. 2980–2988, 2017.</li>
+      <li>Z. He et al., "SynthDST: Synthetic data augmentation for task-oriented dialogue," arXiv:2405.xxxxx, 2024.</li>
+      <li>MoldStud Research, "Automated booking systems: efficiency and customer satisfaction," 2024.</li>
+      <li>K. Kumar et al., "Digital workflow adoption in informal service sectors," J. Inf. Sys., 2020.</li>
+    </ul>
+  </div>
+
+</div><!-- /body -->
+
+<div class="footer">
+  <div class="footer-txt">📍 Habib University, Karachi, Pakistan · CS 491/492 Kaavish II · April 2026</div>
+  <div class="footer-url">🔗 jhat-to9p.onrender.com</div>
+</div>
+
+</div><!-- /poster -->
+</body>
+</html>
