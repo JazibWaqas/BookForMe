@@ -177,7 +177,7 @@ class NLUAgent:
     
     def _create_intent_prompt(self, message: str, context: str) -> str:
         """Create prompt for intent extraction - Enhanced with real conversation patterns"""
-        return f"""You are a booking assistant for sports facilities (padel courts, futsal, cricket) and salons in Karachi, Pakistan.
+        return f"""You are a booking assistant for sports facilities (padel courts, futsal, cricket, and pickleball) in Karachi, Pakistan.
 
 Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
 
@@ -207,7 +207,7 @@ Possible Intents:
 1. **greeting** - ONLY pure greetings with NO booking info: "Hi", "Aoa", "Salam", "Hello"
 2. **booking_request** - Want to book: "book slot", "want to book", "mujhe slot chahiye", "slot karna hai", or any message with sport+time/date/venue
 3. **availability_inquiry** - Check availability: "slot available?", "koi slot hei?", any query about slots
-4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "salon"
+4. **service_selection** - Choose service type: "padel", "futsal", "cricket", "pickleball"
 5. **date_selection** - Provide date: "tomorrow", "Friday", "kal", "next week"
 6. **time_selection** - Provide time: "6-9", "evening", "shaam", "7pm"
 7. **price_inquiry** - Ask about pricing: "how much", "charges", "price", "kitna"
@@ -236,7 +236,7 @@ Common misspellings to handle:
 - "bookng", "bookin" = booking
 
 Extract entities (return null for any not found in the message):
-- service_type: padel, futsal, cricket, salon (handle typos: "paddle"="padel", "padle"="padel")
+- service_type: padel, futsal, cricket, pickleball (handle typos: "paddle"={"padel"}, "padle"={"padel"})
 - date: tomorrow, today, specific date, "kal", "aaj", day names
 - time: specific time like "4 pm", or a RANGE like "5-9", "6 to 9", "from 5 to 9" (extract exactly as said so the system can show all slots in that range). Or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
   Time buckets: morning=07:00-12:00, afternoon=12:00-17:00, evening=17:00-19:00, night=20:00-23:00
@@ -267,7 +267,7 @@ Respond in JSON format:
             Message: "{message}"
 
             Extract:
-            - service_type: futsal, salon, gym, padel, cricket
+            - service_type: futsal, padel, cricket, pickleball
             - date: tomorrow, today, specific date (convert to YYYY-MM-DD if possible)
             - time: 5pm, evening, morning, specific time (convert to HH:MM if possible)
             - customer_name: extract name if mentioned
@@ -1283,7 +1283,7 @@ BOOKING FAILED:
 """
         
         return f"""
-            You are a friendly booking assistant for futsal courts and salons in Karachi.
+            You are a friendly booking assistant for sports courts (padel, futsal, cricket, pickleball) in Karachi.
 
 CRITICAL - NEVER do any of these:
 - Do NOT suggest the user to call, phone, or contact any number (including +92 or any digits).

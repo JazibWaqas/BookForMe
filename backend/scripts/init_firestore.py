@@ -32,12 +32,12 @@ async def init_firestore():
                 'created_at': datetime.now()
             },
             {
-                'name': 'Elite Salon & Spa',
+                'name': 'Ace Padel Club',
                 'phone': '+923001234568',
-                'service_type': 'salon',
+                'service_type': 'padel',
                 'whatsapp_connected': True,
-                'description': 'Luxury salon services',
-                'address': 'Clifton, Karachi',
+                'description': 'Premium padel courts in DHA',
+                'address': 'DHA Phase 6, Karachi',
                 'created_at': datetime.now()
             }
         ]
@@ -55,7 +55,7 @@ async def init_firestore():
         
         print("Firestore initialization completed successfully!")
         print("\nSample data created:")
-        print("- 2 vendors (1 futsal, 1 salon)")
+        print("- 2 vendors (1 futsal, 1 padel)")
         print("- 7 days of availability slots")
         print("- Ready for WhatsApp testing!")
         
@@ -81,17 +81,19 @@ async def create_sample_slots(vendor_id: str, service_type: str):
             {'time': '19:00', 'price': 3000.0},
             {'time': '20:00', 'price': 2500.0},
         ]
-    else:  # salon
+    elif service_type == 'padel':
         time_slots = [
-            {'time': '10:00', 'price': 1500.0},
-            {'time': '11:00', 'price': 1500.0},
-            {'time': '12:00', 'price': 1500.0},
-            {'time': '14:00', 'price': 1500.0},
-            {'time': '15:00', 'price': 1500.0},
-            {'time': '16:00', 'price': 1500.0},
-            {'time': '17:00', 'price': 1500.0},
-            {'time': '18:00', 'price': 1500.0},
+            {'time': '09:00', 'price': 2500.0},
+            {'time': '10:00', 'price': 2500.0},
+            {'time': '16:00', 'price': 3000.0},
+            {'time': '17:00', 'price': 3000.0},
+            {'time': '18:00', 'price': 3500.0},
+            {'time': '19:00', 'price': 3500.0},
+            {'time': '20:00', 'price': 3500.0},
+            {'time': '21:00', 'price': 3000.0},
         ]
+    else:
+        time_slots = []
     
     # Create slots for the next 7 days
     for day_offset in range(7):

@@ -123,7 +123,7 @@ class AIErrorHandler:
         if current_state == 'greeting':
             return "Hello! I'm your BookForMe assistant. What service would you like to book?"
         elif current_state == 'select_service':
-            return "What service are you interested in? I can help you book futsal, salon, or gym services."
+            return "What service are you interested in? I can help you book padel, futsal, cricket, or pickleball courts."
         elif current_state == 'select_date':
             return "What date would you like to book for? I can check availability for any date."
         elif current_state == 'select_time':

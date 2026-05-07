@@ -212,8 +212,8 @@ class ConversationOptimizer:
             if state == 'greeting':
                 suggestions = [
                     "What service would you like to book?",
-                    "Are you looking for futsal, salon, or gym services?",
-                    "I can help you book any of our services."
+                    "Are you looking for padel, futsal, cricket, or pickleball courts?",
+                    "I can help you book any of our sports facilities."
                 ]
             elif state == 'select_service':
                 suggestions = [

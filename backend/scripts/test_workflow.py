@@ -81,7 +81,7 @@ async def test_nlu_processing():
     test_messages = [
         "Hello, I want to book futsal tomorrow 5pm",
         "futsal kal 5 baje book karna hai",
-        "My name is Ahmed, book salon next Friday",
+        "My name is Ahmed, book cricket next Friday",
         "Yes, confirm the booking",
         "Cancel my booking"
     ]

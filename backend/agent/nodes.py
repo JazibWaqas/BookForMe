@@ -1224,11 +1224,11 @@ async def generate_response_node(state: AgentState) -> AgentState:
             if any(word in last_lower for word in ["aoa", "salam", "assalam", "asalam"]):
                 state["response"] = (
                     "AoA! Main aap ki booking mein help kar sakta hoon. "
-                    "Padel, futsal ya cricket—kis cheez ki booking chahiye?"
+                    "Padel, futsal, cricket ya pickleball—kis cheez ki booking chahiye?"
                 )
             else:
                 state["response"] = (
-                    "Hi! I can help you book padel, futsal, or cricket in Karachi. "
+                    "Hi! I can help you book padel, futsal, cricket, or pickleball in Karachi. "
                     "What would you like to book?"
                 )
             return state
