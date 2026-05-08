@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 class AISearchService:
     def __init__(self):
         self.client = OpenAI(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=settings.GROQ_API_KEY
+            base_url="https://api.deepseek.com/v1",
+            api_key=settings.DEEPSEEK_API_KEY
         )
         self.fs = FirestoreV2(firestore_db.db)
 
@@ -69,7 +69,7 @@ class AISearchService:
         """
         logger.info(f"🚀 AI Search Query: {query}")
         
-        selected_model = model or settings.GROQ_MODEL
+        selected_model = model or settings.DEEPSEEK_MODEL
         
         # 1. Try Smart Pattern Match for Date Resolution
         from database.smart_search import SmartSearchCache
@@ -259,6 +259,6 @@ class AISearchService:
         except Exception as e:
             logger.error(f"LLM Parsing error with model {model}: {e}")
             # Fallback to default model if specified model fails
-            if model != settings.GROQ_MODEL:
-                return await self._parse_query(query, settings.GROQ_MODEL)
+            if model != settings.DEEPSEEK_MODEL:
+                return await self._parse_query(query, settings.DEEPSEEK_MODEL)
             return {}

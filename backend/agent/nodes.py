@@ -6,18 +6,28 @@ Uses Pydantic models for type safety
 
 import logging
 import re
+import asyncio
 import difflib
+import random
+import time as _time
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from agent.state import AgentState
 from app.firestore import firestore_db
-from agent.tools import check_availability, get_pricing, get_vendor_info
+from agent.tools import (
+    check_availability,
+    clear_availability_cache,
+    get_pricing,
+    get_vendor_info,
+    warm_common_availability,
+)
 from agent.duration import parse_duration
 from agent.models import (
     AvailableSlot, SelectedSlot, PendingBooking, BookingResult,
     find_matching_slot, slot_from_query_result
 )
 from nlu.agent import NLUAgent
+from app.config import settings
 from better_profanity import profanity
 from datetime import datetime as _dt
 import pytz as _pytz
@@ -25,6 +35,429 @@ import pytz as _pytz
 logger = logging.getLogger(__name__)
 
 nlu_agent = NLUAgent()
+
+_CONCIERGE_SYSTEM = (
+    "You are BookForMe, a booking assistant for sports courts in Karachi "
+    "(padel, futsal, cricket, pickleball). "
+    "Talk like a casual, helpful local friend — short, natural, human. "
+    "Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. "
+    "Never sound like a form or template. Keep it brief like a WhatsApp message. "
+    "Never suggest calling any phone number."
+)
+
+
+_CONVERSE_CACHE: dict = {}  # task prefix -> (response, timestamp)
+
+
+async def _llm_converse(task: str, messages: list, fallback: str) -> str:
+    """Generate a natural conversational response via DeepSeek. Returns fallback on any error."""
+    last_text = ""
+    if messages:
+        last = messages[-1]
+        last_text = last.get("content", "") if isinstance(last, dict) else str(last)
+    cache_key = f"{'ur' if _is_urdu(last_text) else 'en'}:{task[:100]}"
+    cached = _CONVERSE_CACHE.get(cache_key)
+    if cached and (_time.time() - cached[1]) < 300:
+        return cached[0]
+    try:
+        history = [{"role": "system", "content": _CONCIERGE_SYSTEM}]
+        for m in messages[-4:-1]:
+            role = m.get("role", "user") if isinstance(m, dict) else "user"
+            content = m.get("content", "") if isinstance(m, dict) else str(m)
+            if role in ("user", "assistant") and content:
+                history.append({"role": role, "content": content})
+        history.append({"role": "user", "content": task})
+
+        start_time = _time.perf_counter()
+        resp = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: nlu_agent.client.chat.completions.create(
+                model=settings.DEEPSEEK_MODEL,
+                messages=history,
+                temperature=0.7,
+                max_tokens=120,
+            ),
+        )
+        logger.info(f"_llm_converse DeepSeek call took {_time.perf_counter() - start_time:.3f}s")
+        result = resp.choices[0].message.content.strip()
+        result = re.sub(r"<think>.*?</think>", "", result, flags=re.DOTALL).strip()
+        result = result if result else fallback
+        _CONVERSE_CACHE[cache_key] = (result, _time.time())
+        return result
+    except Exception as exc:
+        logger.warning(f"_llm_converse failed, using fallback: {exc}")
+        return fallback
+
+
+# ── Instant response helpers (no API call) ────────────────────────────────────
+
+_ASK_DATE_EN = [
+    "Sure, what date for {sport}?",
+    "Got it — what day works?",
+    "When would you like to play?",
+    "What date were you thinking?",
+    "Great — which day for {sport}?",
+]
+_ASK_DATE_UR = [
+    "{sport} ke liye kaunsi date?",
+    "Theek hai, {sport} kab chahiye?",
+    "Got it — kaunsa din?",
+    "{sport} ke liye kaunsa din chahiye?",
+    "Sure, {sport} kab khelna hai?",
+]
+_ASK_TIME_EN = [
+    "What time works for you?",
+    "Any preferred time?",
+    "What time were you thinking?",
+    "Sure — what time?",
+    "Got it. What time works?",
+]
+_ASK_TIME_UR = [
+    "Kaunsa time chahiye?",
+    "Kab ka slot? Subah ya shaam?",
+    "Time bataiye?",
+    "Theek hai, kaunsa time?",
+    "Got it — kab ka slot?",
+]
+_ASK_SPORT_EN = [
+    "Which sport would you like — padel, futsal, cricket, or pickleball?",
+    "Sure — which sport should I check?",
+    "What are you looking to book: padel, futsal, cricket, or pickleball?",
+]
+_ASK_SPORT_UR = [
+    "Kaunsi sport chahiye — padel, futsal, cricket, ya pickleball?",
+    "Sure — kis sport ka slot dekhun?",
+    "Padel, futsal, cricket, ya pickleball — kis ki booking chahiye?",
+]
+_GREETING_EN = [
+    "Hi! Looking to book a court today?",
+    "Hello! What can I help you book?",
+    "Hi there — padel, futsal, cricket, or pickleball?",
+    "Hey! What can I get booked for you?",
+    "Welcome! What would you like to book?",
+]
+_GREETING_UR = [
+    "Aoa! Kya book karna hai?",
+    "Salam! Padel, futsal, cricket — kis ki booking hai?",
+    "Aoa! Court book karni hai?",
+    "Salam! Kya book karna hai aaj?",
+    "Aoa! Kis sport ki booking chahiye?",
+]
+
+_URDU_MARKERS = {
+    "karna", "chahiye", "hai", "hei", "aaj", "kal", "baje", "shaam",
+    "subah", "raat", "haan", "han", "ji", "mujhe", "meri", "mera",
+    "kaun", "kab", "kahan", "kya", "aur", "bhi", "nahi", "theek",
+}
+
+
+def _is_urdu(msg: str) -> bool:
+    return any(w in msg.lower().split() for w in _URDU_MARKERS)
+
+
+def _instant_ask_date(sport: str, last_msg: str) -> str:
+    pool = _ASK_DATE_UR if _is_urdu(last_msg) else _ASK_DATE_EN
+    return random.choice(pool).format(sport=sport)
+
+
+def _instant_ask_time(sport: str, last_msg: str) -> str:
+    pool = _ASK_TIME_UR if _is_urdu(last_msg) else _ASK_TIME_EN
+    return random.choice(pool).format(sport=sport)
+
+
+def _instant_ask_sport(last_msg: str) -> str:
+    pool = _ASK_SPORT_UR if _is_urdu(last_msg) else _ASK_SPORT_EN
+    return random.choice(pool)
+
+
+def _instant_greeting(last_msg: str) -> str:
+    pool = _GREETING_UR if _is_urdu(last_msg) or last_msg.lower().strip() in {"aoa", "salam", "salaam"} else _GREETING_EN
+    return random.choice(pool)
+
+
+def _extract_fast_sport(message: str) -> Optional[str]:
+    msg = message.lower()
+    sport_aliases = {
+        "padel": ("padel", "padle", "paddle", "padell", "padl", "paddel"),
+        "futsal": ("futsal", "futsall", "futsl", "futssal", "futbal", "futbol"),
+        "cricket": ("cricket", "criket", "crickt", "kricket", "kricet"),
+        "pickleball": ("pickleball", "pickle ball", "pickel ball", "pickelball", "pickle"),
+    }
+    for sport, aliases in sport_aliases.items():
+        if any(re.search(rf"\b{re.escape(alias)}\b", msg) for alias in aliases):
+            return sport
+    return None
+
+
+_TIME_RANGE_RE = re.compile(
+    r"\b(?:between|from)?\s*"
+    r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*"
+    r"(?:-|to|and)\s*"
+    r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b",
+    re.IGNORECASE,
+)
+
+_FLEXIBLE_TIME_RE = re.compile(
+    r"^\s*any\s*$|"
+    r"\b(anytime|any\s+time|any\s+works?|anything\s+works?|whatever|"
+    r"whichever|koi\s+bhi|jo\s+(?:bhi\s+)?available|jo\s+bhi|"
+    r"any\s+slot|any\s+court)\b",
+    re.IGNORECASE,
+)
+
+_SLOT_LIST_INFO_RE = re.compile(
+    r"\b(cheapest|cheap|sasta|sasti|lowest|min|price|rate|kitna|"
+    r"kitne|kitni|cost|charges|kharcha)\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_flexible_time(message: str) -> bool:
+    return bool(_FLEXIBLE_TIME_RE.search((message or "").strip().lower()))
+
+
+def _is_slot_list_info_request(message: str) -> bool:
+    return bool(_SLOT_LIST_INFO_RE.search((message or "").strip().lower()))
+
+
+def _extract_fast_date_text(message: str) -> Optional[str]:
+    msg = message.lower()
+    if "day after tomorrow" in msg:
+        return "day after tomorrow"
+    typo_dates = {
+        "tommorow": "tomorrow",
+        "tommorrow": "tomorrow",
+        "tomorow": "tomorrow",
+        "tomoro": "tomorrow",
+        "tomrw": "tomorrow",
+        "tmrw": "tomorrow",
+    }
+    for typo, normalized in typo_dates.items():
+        if re.search(rf"\b{typo}\b", msg):
+            return normalized
+    # tonight/tonite/this evening/this afternoon/this morning all imply today
+    if re.search(r'\btonite?\b|\btonight\b|\bthis\s+(evening|afternoon|morning|night)\b', msg):
+        return "today"
+    for phrase in ("parson", "parso", "tomorrow", "today", "kal", "aaj"):
+        if re.search(rf"\b{phrase}\b", msg):
+            return "parson" if phrase == "parso" else phrase
+
+    day_match = re.search(
+        r"\b(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        msg,
+    )
+    if day_match:
+        return day_match.group(0)
+
+    date_match = re.search(
+        r"\b\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
+        r"january|february|march|april|june|july|august|september|october|november|december)\b",
+        msg,
+    )
+    if date_match:
+        return date_match.group(0)
+
+    iso_match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", msg)
+    if iso_match:
+        return iso_match.group(0)
+    return None
+
+
+def _extract_fast_time_text(message: str) -> Optional[str]:
+    msg = message.lower()
+    range_match = _TIME_RANGE_RE.search(msg)
+    if range_match:
+        return range_match.group(0)
+
+    # Open-ended modifiers come BEFORE plain clock match so "after 6pm" wins over "6pm"
+    open_match = re.search(
+        r"\bafter\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|"
+        r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:ke\s*baad|onwards|baad)\b|"
+        r"\bbefore\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|"
+        r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:se\s*pehle|tak|pehle)\b",
+        msg,
+    )
+    if open_match:
+        return open_match.group(0).strip()
+
+    if _looks_like_flexible_time(msg):
+        return "anytime"
+
+    clock_match = re.search(r"\b\d{1,2}(:\d{2})?\s*(am|pm)\b", msg)
+    if clock_match:
+        return clock_match.group(0)
+
+    bajay_match = re.search(r"\b\d{1,2}\s*baj(?:ay|e|ey|a)\b", msg)
+    if bajay_match:
+        return bajay_match.group(0)
+
+    # tonight/tonite imply evening time bucket; "this <bucket>" maps to that bucket
+    if re.search(r'\btonite?\b|\btonight\b', msg):
+        return "evening"
+    this_match = re.search(r'\bthis\s+(evening|afternoon|morning|night)\b', msg)
+    if this_match:
+        return this_match.group(1)
+
+    for bucket in ("shaam", "evening", "evenin", "evning", "eve", "subah", "morning", "mrning", "dopahar", "afternoon", "raat", "night", "nite"):
+        if re.search(rf"\b{bucket}\b", msg):
+            if bucket in ("evenin", "evning", "eve"):
+                return "evening"
+            if bucket == "mrning":
+                return "morning"
+            if bucket == "nite":
+                return "night"
+            return bucket
+    return None
+
+
+def _extract_fast_area(message: str) -> Optional[str]:
+    msg = message.lower()
+    if re.search(r"\bd\.?h\.?a\b|\bdefen[cs]e\b", msg):
+        return "DHA"
+    for area in ("clifton", "gulshan", "gulberg", "bahria"):
+        if re.search(rf"\b{area}\b", msg):
+            return area.title()
+    return None
+
+
+def normalize_area(area_text: str) -> str:
+    area_lower = (area_text or "").strip().lower()
+    if re.search(r"\bd\.?h\.?a\b|\bdefen[cs]e\b", area_lower):
+        return "DHA"
+    for area in ("clifton", "gulshan", "gulberg", "bahria"):
+        if area in area_lower:
+            return area.title()
+    return area_text.strip()
+
+
+def _extract_fast_vendor(message: str) -> Optional[str]:
+    msg = message.lower()
+    vendor_aliases = {
+        "Ace Padel Club": ("ace", "ace padel"),
+        "Smash Padel": ("smash", "smash padel"),
+        "Golden Court": ("golden", "golden court"),
+        "Pickle Pod": ("pickle pod",),
+        "Dink Masters": ("dink", "dink masters"),
+        "Pitch Perfect": ("pitch perfect",),
+        "Rally Point": ("rally", "rally point"),
+        "Elite Futsal": ("elite", "elite futsal"),
+        "Goal Zone": ("goal zone",),
+        "Urban Futsal": ("urban", "urban futsal"),
+        "Clifton Cricket Nets": ("clifton cricket", "cricket nets"),
+    }
+    for vendor, aliases in vendor_aliases.items():
+        if any(re.search(rf"\b{re.escape(alias)}\b", msg) for alias in aliases):
+            return vendor
+    return None
+
+
+def _try_fast_inquiry_entities(message: str) -> Optional[Dict[str, str]]:
+    """Extract common demo booking phrases without an LLM call."""
+    msg = message.lower().strip()
+    if any(word in msg for word in ("price", "charges", "rate", "kitna", "cost")):
+        return None
+
+    sport = _extract_fast_sport(message)
+    date_text = _extract_fast_date_text(message)
+    time_text = _extract_fast_time_text(message)
+    area = _extract_fast_area(message)
+    vendor = _extract_fast_vendor(message)
+    has_slot_language = any(w in msg for w in ("slot", "book", "booking", "available", "availability", "chahiye", "karna", "khelna", "court"))
+    is_sport_only = bool(sport and msg in {sport, "padel", "padle", "paddle", "futsal", "cricket", "pickleball", "pickle ball"})
+
+    if not sport and not (date_text or time_text or area or vendor):
+        return None
+
+    if not (date_text or time_text or area or vendor or has_slot_language or is_sport_only):
+        return None
+
+    # If sport is missing, only short-circuit when the message is clearly about
+    # booking/availability. This preserves context like "aaj shaam koi slot hai?"
+    # without turning every stray place name into a booking flow.
+    if not sport and not has_slot_language:
+        return None
+
+    entities: Dict[str, str] = {}
+    if sport:
+        entities["service_type"] = sport
+    if date_text:
+        entities["date"] = date_text
+    if time_text:
+        entities["time"] = time_text
+    if area:
+        entities["area"] = area
+    if vendor:
+        entities["vendor_name"] = vendor
+    return entities
+
+
+# ── Fast-path date/time detection (skips NLU) ─────────────────────────────────
+
+_DATE_FAST_WORDS = {
+    "kal", "aaj", "parson", "today", "tomorrow", "day after tomorrow",
+    "tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+    "somwar", "somvar", "mangal", "budh", "jumeraat", "juma", "jumma", "hafta", "itwar",
+}
+_TIME_FAST_WORDS = {
+    "subah", "morning", "dopahar", "afternoon", "shaam", "evening", "raat", "night",
+    "evenin", "evning", "eve", "mrning", "nite",
+}
+
+
+def _try_fast_date(message: str) -> Optional[str]:
+    """Return raw date text if message contains a clear date marker.
+    Used when user already has sport context (we know they're booking)."""
+    msg = message.strip().lower()
+    # Word-boundary search — handles "kal subah ka slot", "tomorrow morning"
+    for word in _DATE_FAST_WORDS:
+        if re.search(rf"\b{re.escape(word)}\b", msg):
+            if word in {"tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw"}:
+                return "tomorrow"
+            return word
+    if re.search(r'\b\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b', msg):
+        return msg
+    if re.search(r'\b(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', msg):
+        return msg
+    return None
+
+
+def _try_fast_time(message: str) -> Optional[str]:
+    """Return raw time text if message contains a clear time marker.
+    Used when user already has sport context."""
+    msg = message.strip().lower()
+    range_match = _TIME_RANGE_RE.search(msg)
+    if range_match:
+        return range_match.group(0)
+    # Open-ended modifier wins ("after 6pm", "6 ke baad", "before 8")
+    open_match = re.search(
+        r"\bafter\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|"
+        r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:ke\s*baad|se|onwards|baad)\b|"
+        r"\bbefore\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|"
+        r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:se\s*pehle|tak|pehle)\b",
+        msg,
+    )
+    if open_match:
+        return open_match.group(0).strip()
+    if _looks_like_flexible_time(msg):
+        return "anytime"
+    # Word-boundary search for bucket words — handles "shaam mei koi bhi"
+    for word in _TIME_FAST_WORDS:
+        if re.search(rf"\b{re.escape(word)}\b", msg):
+            if word in {"evenin", "evning", "eve"}:
+                return "evening"
+            if word == "mrning":
+                return "morning"
+            if word == "nite":
+                return "night"
+            return word
+    if re.search(r'\b\d{1,2}(:\d{2})?\s*(am|pm)\b', msg):
+        clock = re.search(r'\b\d{1,2}(:\d{2})?\s*(am|pm)\b', msg)
+        return clock.group(0) if clock else None
+    if re.search(r'\b\d{1,2}\s*baj(e|ay|a)\b', msg):
+        bajay = re.search(r'\b\d{1,2}\s*baj(?:e|ay|a)\b', msg)
+        return bajay.group(0) if bajay else None
+    return None
 
 
 def _short_booking_ref(slot_id: str) -> str:
@@ -140,6 +573,9 @@ async def guardrails_node(state: AgentState) -> AgentState:
             state.get("awaiting_payment"),
             state.get("booking_in_progress"),
             state.get("locked_slot_id"),
+            state.get("selected_sport_type"),
+            state.get("selected_date"),
+            state.get("selected_time_range"),
         ])
         block_reason = check_guardrails(last_message, in_booking_context=in_booking_ctx)
 
@@ -163,13 +599,15 @@ async def guardrails_node(state: AgentState) -> AgentState:
 
 def normalize_date(date_text: str) -> str:
     """
-    Normalize date text to YYYY-MM-DD format
-    Handles: "tomorrow", "today", "kal", "Friday", "2025-12-17", "15 jan", "4 feb", etc.
+    Normalize date text to YYYY-MM-DD format (Karachi timezone).
+    Handles: "tomorrow", "today", "kal", "aaj", "Friday", "jumeraat", "weekend",
+    "2025-12-17", "15 jan", "4 feb", etc.
     """
-    today = datetime.now()
+    PKT = _pytz.timezone("Asia/Karachi")
+    today = _dt.now(PKT).replace(tzinfo=None)
     current_year = today.year
     date_lower = date_text.lower().strip()
-    
+
     date_pattern = r'(\d{4}-\d{2}-\d{2})'
     match = re.search(date_pattern, date_text)
     if match:
@@ -179,21 +617,28 @@ def normalize_date(date_text: str) -> str:
             return extracted_date
         except:
             pass
-    
+
     if date_lower in ["today", "aaj"]:
         return today.strftime("%Y-%m-%d")
-    elif date_lower in ["tomorrow", "kal"]:
+    elif date_lower in ["tomorrow", "kal", "tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw"]:
         return (today + timedelta(days=1)).strftime("%Y-%m-%d")
-    elif "day after tomorrow" in date_lower or "parson" in date_lower:
+    elif "day after tomorrow" in date_lower or "parson" in date_lower or "parso" in date_lower:
         return (today + timedelta(days=2)).strftime("%Y-%m-%d")
-    
+
+    if "weekend" in date_lower:
+        # Saturday is weekday() == 5
+        days_ahead = 5 - today.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+
     month_names = {
         "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
         "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6,
         "jul": 7, "july": 7, "aug": 8, "august": 8, "sep": 9, "september": 9,
         "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12
     }
-    
+
     day_month_pattern = r'(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)(?:\s+(\d{4}))?'
     day_month_match = re.search(day_month_pattern, date_lower)
     if day_month_match:
@@ -209,7 +654,7 @@ def normalize_date(date_text: str) -> str:
                 return parsed.strftime("%Y-%m-%d")
             except ValueError:
                 pass
-    
+
     date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d']
     for fmt in date_formats:
         try:
@@ -221,18 +666,25 @@ def normalize_date(date_text: str) -> str:
             return parsed.strftime("%Y-%m-%d")
         except ValueError:
             continue
-    
+
     day_names = {
         "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-        "friday": 4, "saturday": 5, "sunday": 6
+        "friday": 4, "saturday": 5, "sunday": 6,
+        "somwar": 0, "somvar": 0,
+        "mangal": 1,
+        "budh": 2,
+        "jumeraat": 3,
+        "juma": 4, "jumma": 4,
+        "hafta": 5,
+        "itwar": 6, "etwar": 6,
     }
     for day_name, day_num in day_names.items():
-        if day_name in date_lower:
+        if re.search(rf"\b{day_name}\b", date_lower):
             days_ahead = day_num - today.weekday()
             if days_ahead <= 0:
                 days_ahead += 7
             return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-    
+
     logger.warning(f"Could not parse date '{date_text}', defaulting to today")
     return today.strftime("%Y-%m-%d")
 
@@ -245,11 +697,93 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
     """
     time_lower = time_text.lower().strip()
 
+    range_match = _TIME_RANGE_RE.search(time_lower)
+    if range_match:
+        start_hour = int(range_match.group(1))
+        start_minute = int(range_match.group(2) or 0)
+        start_meridiem = range_match.group(3)
+        end_hour = int(range_match.group(4))
+        end_minute = int(range_match.group(5) or 0)
+        end_meridiem = range_match.group(6)
+
+        # "6-11pm" means both endpoints are PM. Same for "6pm to 11".
+        if end_meridiem and not start_meridiem:
+            start_meridiem = end_meridiem
+        if start_meridiem and not end_meridiem:
+            end_meridiem = start_meridiem
+
+        default_pm = (
+            not start_meridiem
+            and not end_meridiem
+            and "am" not in time_lower
+            and 1 <= start_hour <= 12
+            and 1 <= end_hour <= 12
+        )
+
+        def _to_minutes(hour: int, minute: int, meridiem: Optional[str]) -> int:
+            if meridiem == "pm" and hour < 12:
+                hour += 12
+            elif meridiem == "am" and hour == 12:
+                hour = 0
+            elif default_pm and 1 <= hour <= 11:
+                hour += 12
+            return hour * 60 + minute
+
+        start_total = _to_minutes(start_hour, start_minute, start_meridiem)
+        end_total = _to_minutes(end_hour, end_minute, end_meridiem)
+
+        if end_total <= start_total:
+            if end_total + 12 * 60 > start_total:
+                end_total += 12 * 60
+            else:
+                end_total += 24 * 60
+        end_total = min(end_total, 24 * 60)
+
+        def _fmt(total: int) -> str:
+            if total >= 24 * 60:
+                return "24:00"
+            return f"{total // 60:02d}:{total % 60:02d}"
+
+        return {"start": _fmt(start_total), "end": _fmt(end_total)}
+
     hhmm_match = re.match(r'^(\d{1,2}):(\d{2})$', time_lower)
     if hhmm_match:
         hour = int(hhmm_match.group(1))
         minute = int(hhmm_match.group(2))
+        # PM heuristic: bare hour 1-11 with no AM/morning marker → assume PM (booking context)
+        if 1 <= hour <= 11 and "am" not in time_lower and "subah" not in time_lower and "morning" not in time_lower:
+            hour += 12
         return {"start": f"{hour:02d}:{minute:02d}", "end": f"{(hour+1) % 24:02d}:{minute:02d}"}
+
+    # Open-ended: "after 5", "5 ke baad", "5 se", "5 onwards"
+    # This must run before plain pm/am parsing so "anytime after 6pm" is
+    # understood as 18:00 onward, not as either "anytime" or exactly 6-7pm.
+    open_start_match = re.search(
+        r"(?:after\s+(\d{1,2})|(\d{1,2})\s*(?:ke\s*baad|se|onwards|baad))",
+        time_lower,
+    )
+    if open_start_match:
+        hour_str = open_start_match.group(1) or open_start_match.group(2)
+        hour = int(hour_str)
+        # PM heuristic: 1-11 with no AM marker → assume PM (booking context)
+        if 1 <= hour <= 11 and "am" not in time_lower and "subah" not in time_lower and "morning" not in time_lower:
+            hour += 12
+        return {"start": f"{hour:02d}:00", "end": "24:00"}
+
+    # Open-ended end: "before 8", "8 se pehle", "before 8 pm", "8 tak"
+    open_end_match = re.search(
+        r"(?:before\s+(\d{1,2})|(\d{1,2})\s*(?:se\s*pehle|tak|pehle))",
+        time_lower,
+    )
+    if open_end_match:
+        hour_str = open_end_match.group(1) or open_end_match.group(2)
+        hour = int(hour_str)
+        if 1 <= hour <= 11 and "am" not in time_lower and "subah" not in time_lower and "morning" not in time_lower:
+            hour += 12
+        return {"start": "06:00", "end": f"{hour:02d}:00"}
+
+    if _looks_like_flexible_time(time_lower):
+        return {"start": "06:00", "end": "24:00"}
 
     pm_match = re.search(r"(\d{1,2})\s*pm", time_lower)
     am_match = re.search(r"(\d{1,2})\s*am", time_lower)
@@ -271,27 +805,6 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
             hour += 12
         return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
 
-    if "-" in time_lower or " to " in time_lower:
-        match = re.search(r"(\d{1,2})[:\s]?(\d{2})?\s*(?:-|to)\s*(\d{1,2})[:\s]?(\d{2})?", time_lower)
-        if match:
-            start_hour = int(match.group(1))
-            end_hour = int(match.group(3))
-            use_pm = "pm" in time_lower or ("am" not in time_lower and 1 <= start_hour <= 12 and 1 <= end_hour <= 12)
-            if use_pm and start_hour < 12:
-                start_hour += 12
-            if use_pm and end_hour < 12:
-                end_hour += 12
-            end_inclusive = end_hour + 1
-            if end_inclusive > 24:
-                end_inclusive = 24
-            return {"start": f"{start_hour:02d}:00", "end": f"{end_inclusive:02d}:00"}
-
-    if "after" in time_lower:
-        match = re.search(r"after\s+(\d+)", time_lower)
-        if match:
-            hour = int(match.group(1))
-            return {"start": f"{hour:02d}:00"}
-
     around_match = re.search(r"around\s+(\d+)", time_lower)
     if around_match:
         hour = int(around_match.group(1))
@@ -299,13 +812,13 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
             hour += 12
         return {"start": f"{hour:02d}:00", "end": f"{(hour+1) % 24:02d}:00"}
 
-    if "evening" in time_lower or "shaam" in time_lower:
+    if "evening" in time_lower or "evenin" in time_lower or "evning" in time_lower or re.search(r"\beve\b", time_lower) or "shaam" in time_lower:
         return {"start": "17:00", "end": "19:00"}
-    elif "morning" in time_lower or "subah" in time_lower:
+    elif "morning" in time_lower or "mrning" in time_lower or "subah" in time_lower:
         return {"start": "07:00", "end": "12:00"}
     elif "afternoon" in time_lower or "dopahar" in time_lower:
         return {"start": "12:00", "end": "17:00"}
-    elif "night" in time_lower or "raat" in time_lower:
+    elif "night" in time_lower or "nite" in time_lower or "raat" in time_lower:
         return {"start": "20:00", "end": "23:00"}
 
     return None
@@ -392,6 +905,79 @@ def extract_slot_from_message(message: str) -> Optional[Dict[str, str]]:
     return None
 
 
+_ORDINAL_WORDS = {
+    "first": 1, "1st": 1, "pehla": 1, "pehli": 1, "first one": 1, "pehla wala": 1, "pehli wali": 1,
+    "second": 2, "2nd": 2, "doosra": 2, "doosri": 2, "dusra": 2, "second one": 2, "doosra wala": 2,
+    "third": 3, "3rd": 3, "teesra": 3, "teesri": 3, "tesra": 3, "third one": 3, "teesra wala": 3,
+    "fourth": 4, "4th": 4, "chautha": 4, "chauthi": 4, "fourth one": 4,
+    "fifth": 5, "5th": 5, "paanchwa": 5, "fifth one": 5,
+    "last": -1, "akhri": -1, "last one": -1, "akhri wala": -1,
+}
+
+
+def _resolve_ordinal_selection(message: str, n_options: int) -> Optional[int]:
+    """Resolve 'first', 'pehla wala', 'last' etc. to a 1-based slot index."""
+    msg = message.lower().strip()
+    for phrase, idx in _ORDINAL_WORDS.items():
+        if re.search(rf"\b{re.escape(phrase)}\b", msg):
+            if idx == -1:
+                return n_options
+            if 1 <= idx <= n_options:
+                return idx
+    return None
+
+
+def _resolve_time_selection(message: str, slot_options: List[Dict[str, Any]]) -> Optional[int]:
+    """Resolve '6 PM wala' / '6 baje' / '18:00' to a slot index by matching slot_time."""
+    msg = message.lower().strip()
+
+    candidates: List[int] = []
+
+    range_match = _TIME_RANGE_RE.search(msg)
+    if range_match:
+        wanted = normalize_time(range_match.group(0))
+        if wanted and wanted.get("start"):
+            for i, opt in enumerate(slot_options, start=1):
+                if str(opt.get("slot_time", "")) == wanted["start"]:
+                    if not wanted.get("end") or str(opt.get("end_time", "")) == wanted["end"]:
+                        candidates.append(i)
+            if candidates:
+                return candidates[0]
+
+    pm_match = re.search(r"(\d{1,2})(?::(\d{2}))?\s*pm", msg)
+    am_match = re.search(r"(\d{1,2})(?::(\d{2}))?\s*am", msg)
+    bajay_match = re.search(r"(\d{1,2})\s*baj(?:ay|e|ey|a)", msg)
+    hhmm_match = re.search(r"\b(\d{1,2}):(\d{2})\b", msg)
+
+    target_hour: Optional[int] = None
+    if pm_match:
+        target_hour = int(pm_match.group(1))
+        if target_hour < 12:
+            target_hour += 12
+    elif am_match:
+        target_hour = int(am_match.group(1))
+        if target_hour == 12:
+            target_hour = 0
+    elif bajay_match:
+        target_hour = int(bajay_match.group(1))
+        if 1 <= target_hour <= 11 and "subah" not in msg and "morning" not in msg:
+            target_hour += 12
+    elif hhmm_match:
+        target_hour = int(hhmm_match.group(1))
+
+    if target_hour is None:
+        return None
+
+    target = f"{target_hour:02d}:"
+    for i, opt in enumerate(slot_options, start=1):
+        if str(opt.get("slot_time", "")).startswith(target):
+            candidates.append(i)
+
+    if candidates:
+        return candidates[0]
+    return None
+
+
 CONFIRM_WORDS = {
     "yes", "yep", "yup", "ok", "okay", "sure", "confirm", "confirmed",
     "proceed", "done", "book", "book it", "reserve", "go ahead",
@@ -406,13 +992,23 @@ CANCEL_WORDS = {
 def _fast_classify(message: str, state: dict) -> Optional[str]:
     msg = message.strip().lower()
 
-    if re.fullmatch(r'\d{1,2}', msg):
-        num = int(msg)
-        if 1 <= num <= 20:
-            return "transaction"
-
     awaiting_confirm = state.get("awaiting_confirmation") or state.get("awaiting_slot_selection")
     awaiting_payment = state.get("awaiting_payment")
+    has_slot_list = bool(state.get("slot_options"))
+
+    # Bare digit only counts as a slot-pick when there's actually a slot list
+    # or we're awaiting confirmation. Otherwise let it fall to NLU/normalize_time
+    # so "6" can mean "6 PM" when the user is being asked for a time.
+    if re.fullmatch(r'\d{1,2}', msg):
+        num = int(msg)
+        if 1 <= num <= 20 and (has_slot_list or awaiting_confirm or awaiting_payment):
+            return "transaction"
+
+    if has_slot_list and state.get("awaiting_slot_selection") and _looks_like_flexible_time(msg):
+        return "transaction"
+
+    if has_slot_list and state.get("awaiting_slot_selection") and _is_slot_list_info_request(msg):
+        return "info_request"
 
     if awaiting_confirm or awaiting_payment:
         if msg in CONFIRM_WORDS:
@@ -450,6 +1046,7 @@ async def classify_intent_node(state: AgentState) -> AgentState:
             state["selected_date"] = None
             state["selected_sport_type"] = None
             state["selected_area"] = None
+            state["selected_time_range"] = None
             # Do NOT default vendor_id — that caused Ace to leak into all queries.
             return state
 
@@ -460,6 +1057,41 @@ async def classify_intent_node(state: AgentState) -> AgentState:
             if fast_intent == "transaction" and not state.get("entities"):
                 state["entities"] = {}
             return state
+
+        fast_entities = _try_fast_inquiry_entities(last_message)
+        if fast_entities:
+            # Confidence check: only short-circuit NLU when we have actionable info.
+            # If only sport was extracted from a substantive message, defer to NLU —
+            # the user may have used phrasing fast-path doesn't recognize ("tonite",
+            # "this evening", etc.) that DeepSeek can still parse correctly.
+            has_actionable = any(k in fast_entities for k in ("date", "time", "area", "vendor_name"))
+            word_count = len(last_message.split())
+            if has_actionable or word_count <= 3:
+                logger.info(f"Fast-path inquiry entities (confident): {fast_entities}")
+                state["current_intent"] = "inquiry"
+                state["entities"] = {**state.get("entities", {}), **fast_entities}
+                return state
+            logger.info(
+                f"Fast-path got only sport from {word_count}-word message — "
+                f"deferring to NLU for richer extraction"
+            )
+
+        # Fast-path: unambiguous date/time inputs when sport context already known.
+        # Skips the NLU round-trip entirely — normalisation happens in normalize_entities_node.
+        if state.get("selected_sport_type"):
+            date_val = _try_fast_date(last_message)
+            if date_val:
+                logger.info(f"Fast-path date: '{last_message}' -> {date_val}")
+                state["current_intent"] = "inquiry"
+                state["entities"] = {**state.get("entities", {}), "date": date_val}
+                return state
+
+            time_val = _try_fast_time(last_message)
+            if time_val:
+                logger.info(f"Fast-path time: '{last_message}' -> {time_val}")
+                state["current_intent"] = "inquiry"
+                state["entities"] = {**state.get("entities", {}), "time": time_val}
+                return state
 
         # Cap history to last 6 messages to prevent old sport/vendor context from
         # contaminating NLU entity extraction on new turns.
@@ -546,15 +1178,28 @@ async def normalize_entities_node(state: AgentState) -> AgentState:
                         time_range = normalize_time(time_text)
                     if time_range:
                         entities["time_range"] = time_range
+                        state["selected_time_range"] = time_range
                         logger.info(f"Normalized time: {time_range}")
             except Exception as e:
                 logger.warning(f"Time normalization failed: {e}")
+
+        # If we already have a persisted time_range from a previous turn and
+        # the current turn didn't extract one, carry it forward.
+        if not entities.get("time_range") and state.get("selected_time_range"):
+            entities["time_range"] = state.get("selected_time_range")
+            logger.info(f"Carried forward time_range from session: {entities['time_range']}")
         
         area_value = entities.get("area")
         if area_value:
             area_text = area_value.get("text") if isinstance(area_value, dict) else str(area_value)
             if area_text:
-                entities["area"] = area_text.strip()
+                entities["area"] = normalize_area(area_text)
+                state["selected_area"] = entities["area"]
+                logger.info(f"Persisted selected_area: {entities['area']}")
+
+        if not entities.get("area") and state.get("selected_area"):
+            entities["area"] = state.get("selected_area")
+            logger.info(f"Carried forward area from session: {entities['area']}")
 
         duration_text = entities.get("duration")
         if not duration_text:
@@ -616,6 +1261,47 @@ async def extract_slot_node(state: AgentState) -> AgentState:
             else:
                 logger.warning(f"Numeric '{last_message}' out of range (1-{len(slot_options)})")
 
+        if slot_options and _looks_like_flexible_time(last_message):
+            opt = slot_options[0]
+            slot_match = {
+                "slot_id": opt.get("slot_id", ""),
+                "slot_time": opt.get("slot_time", ""),
+                "end_time": opt.get("end_time", ""),
+            }
+            state["selected_slot"] = slot_match
+            state["booking_in_progress"] = True
+            logger.info(f"Resolved flexible selection '{last_message}' to first displayed slot {slot_match.get('slot_id')}")
+            return state
+
+        # Ordinal selection: "first one", "pehla wala", "doosra", etc.
+        if slot_options:
+            ordinal_idx = _resolve_ordinal_selection(last_message, len(slot_options))
+            if ordinal_idx is not None:
+                opt = slot_options[ordinal_idx - 1]
+                slot_match = {
+                    "slot_id": opt.get("slot_id", ""),
+                    "slot_time": opt.get("slot_time", ""),
+                    "end_time": opt.get("end_time", ""),
+                }
+                state["selected_slot"] = slot_match
+                state["booking_in_progress"] = True
+                logger.info(f"Resolved ordinal '{last_message}' to slot {slot_match.get('slot_id')}")
+                return state
+
+            # Time-based selection: "6 PM wala", "6 baje wala"
+            time_idx = _resolve_time_selection(last_message, slot_options)
+            if time_idx is not None:
+                opt = slot_options[time_idx - 1]
+                slot_match = {
+                    "slot_id": opt.get("slot_id", ""),
+                    "slot_time": opt.get("slot_time", ""),
+                    "end_time": opt.get("end_time", ""),
+                }
+                state["selected_slot"] = slot_match
+                state["booking_in_progress"] = True
+                logger.info(f"Resolved time-based '{last_message}' to slot {slot_match.get('slot_id')}")
+                return state
+
         slot_match = extract_slot_from_message(last_message)
 
         if slot_match and slot_match.get("slot_id"):
@@ -651,6 +1337,11 @@ async def validate_state_node(state: AgentState) -> AgentState:
         intent = state.get("current_intent", "")
         entities = state.get("entities", {})
         
+        has_sport = bool(
+            entities.get("service_type")
+            or entities.get("sport_type")
+            or state.get("selected_sport_type")
+        )
         has_date = bool(entities.get("date") or state.get("selected_date"))
         # has_time: ONLY a successfully-normalized time_range counts.
         # Raw NLU tokens like 'chahiye', 'morning' (pre-parse) must NOT be treated as valid time.
@@ -662,9 +1353,11 @@ async def validate_state_node(state: AgentState) -> AgentState:
 
         missing = []
         if intent == "inquiry":
-            if not has_date:
+            if not has_sport:
+                missing.append("sport")
+            if has_sport and not has_date:
                 missing.append("date")
-            if has_date and not has_time:
+            if has_sport and has_date and not has_time:
                 missing.append("time")
 
         state["missing_fields"] = missing if missing else None
@@ -785,7 +1478,10 @@ async def query_availability_node(state: AgentState) -> AgentState:
                 logger.info(f"Using date from slot ID: {date}")
             if not service_type:
                 service_type = infer_sport_from_slot_id(user_selected_for_date.get("slot_id") or user_selected_for_date.get("id") or "")
-        service_type = service_type or "padel"
+        if not service_type:
+            logger.warning("query_availability_node called with no sport in entities or session — skipping query")
+            state["query_result"] = {"success": False, "error": "no_sport", "vendors": []}
+            return state
         time_range = entities.get("time_range")
 
         user_selected = state.get("selected_slot")
@@ -891,15 +1587,18 @@ async def query_availability_node(state: AgentState) -> AgentState:
         )
         
         if should_search_alternatives:
-            logger.info("No vendors found, searching alternative dates...")
+            logger.info("No vendors found, searching alternative dates in parallel...")
             base_date = datetime.strptime(date, "%Y-%m-%d")
+            future_dates = [
+                (base_date + timedelta(days=d)).strftime("%Y-%m-%d")
+                for d in range(1, 8)
+            ]
+            alt_results = await asyncio.gather(*[
+                check_availability(service_type, area, d, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
+                for d in future_dates
+            ])
             next_available_date = None
-            
-            for days_ahead in range(1, 8):
-                check_date = (base_date + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-                logger.info(f"Checking alternative date: {check_date}")
-                alt_result = await check_availability(service_type, area, check_date, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
-                
+            for check_date, alt_result in zip(future_dates, alt_results):
                 if alt_result and alt_result.get("success") and alt_result.get("vendors") and len(alt_result.get("vendors", [])) > 0:
                     query_result = alt_result
                     query_result["requested_date"] = date
@@ -907,7 +1606,7 @@ async def query_availability_node(state: AgentState) -> AgentState:
                     next_available_date = check_date
                     logger.info(f"✅ Found vendors on {check_date}")
                     break
-            
+
             if not next_available_date:
                 logger.info("No vendors found in next 7 days")
         
@@ -1130,6 +1829,7 @@ async def execute_booking_node(state: AgentState) -> AgentState:
             
             if lock_result.get("success"):
                 slot_price = slot.get("price") or pending.get("price") or lock_result.get("price") or 0
+                clear_availability_cache()
                 
                 state["locked_slot_id"] = slot_id
                 state["awaiting_payment"] = True
@@ -1205,32 +1905,32 @@ async def generate_response_node(state: AgentState) -> AgentState:
         last_lower = last_msg.lower()
         
         if confirmation_action == "cancel":
-            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "nahi"])
-            if is_urdu:
-                state["response"] = "Theek hai, cancel kar diya. Kuch aur chahiye?"
-            else:
-                state["response"] = "Cancelled. Anything else you need?"
+            state["response"] = await _llm_converse(
+                "The user's booking has been cancelled. Confirm it briefly and offer to help with anything else.",
+                messages,
+                "Done, booking cancelled. Anything else I can help with?",
+            )
             return state
 
         if confirmation_action == "modify":
-            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
-            if is_urdu:
-                state["response"] = "Kya change karna hai? Date, time, ya koi aur venue?"
-            else:
-                state["response"] = "What would you like to change? Date, time, or venue?"
+            state["response"] = await _llm_converse(
+                "The user wants to modify their booking. Ask what they'd like to change — date, time, or venue?",
+                messages,
+                "Sure! What would you like to change — date, time, or venue?",
+            )
             return state
 
         if intent == "greeting":
-            if any(word in last_lower for word in ["aoa", "salam", "assalam", "asalam"]):
-                state["response"] = (
-                    "AoA! Main aap ki booking mein help kar sakta hoon. "
-                    "Padel, futsal, cricket ya pickleball—kis cheez ki booking chahiye?"
-                )
-            else:
-                state["response"] = (
-                    "Hi! I can help you book padel, futsal, cricket, or pickleball in Karachi. "
-                    "What would you like to book?"
-                )
+            state["response"] = _instant_greeting(last_msg)
+            try:
+                from utils.time import get_tomorrow_karachi
+                tomorrow = get_tomorrow_karachi()
+                for sport in ("padel", "futsal", "cricket", "pickleball"):
+                    asyncio.create_task(
+                        warm_common_availability(sport, None, tomorrow, buckets=["evening"])
+                    )
+            except Exception as e:
+                logger.debug(f"Greeting warm-up skipped: {e}")
             return state
 
         # ── Slot-selection reset: user typed something unrecognised during slot pick ──
@@ -1239,13 +1939,13 @@ async def generate_response_node(state: AgentState) -> AgentState:
             is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
             if is_urdu:
                 state["response"] = (
-                    "Sorry, slot list clear ho gaya. "
-                    "Please dobara sport, date aur time bataein — e.g. 'padel kal shaam'."
+                    "Slot list reset ho gayi — dobara batayein sport, date, time "
+                    "(e.g. 'padel kal shaam')."
                 )
             else:
                 state["response"] = (
-                    "Sorry, your slot selection was reset. "
-                    "Please tell me the sport, date, and time again — e.g. 'padel tomorrow evening'."
+                    "Slot list expired — please share the sport, date, and time again "
+                    "(e.g. 'padel tomorrow evening')."
                 )
             return state
 
@@ -1255,25 +1955,14 @@ async def generate_response_node(state: AgentState) -> AgentState:
             amount = booking_result.get("amount", 0)
             mins = booking_result.get("hold_expires_in_minutes", 10)
             short_ref = _short_booking_ref(slot_id)
-            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye", "han", "haan", "ji"])
-            if is_urdu:
-                state["response"] = (
-                    f"Slot Reserve Ho Gaya\n"
-                    f"Amount: Rs {amount}\n"
-                    f"Booking Ref: {short_ref}\n"
-                    f"\n"
-                    f"Rs {amount} transfer karein aur payment screenshot bhejein. "
-                    f"Slot {mins} minute ke baad release ho jayega."
-                )
-            else:
-                state["response"] = (
-                    f"Slot Reserved\n"
-                    f"Amount: Rs {amount}\n"
-                    f"Booking Ref: {short_ref}\n"
-                    f"\n"
-                    f"Please transfer Rs {amount} and send the payment screenshot. "
-                    f"Slot will be released after {mins} minutes if payment is not received."
-                )
+            state["response"] = (
+                f"Slot reserved.\n"
+                f"Amount: Rs {amount}\n"
+                f"Ref: {short_ref}\n"
+                f"\n"
+                f"Please transfer Rs {amount} and send the payment screenshot here. "
+                f"Slot will release in {mins} min if not received."
+            )
             return state
 
         if state.get("awaiting_confirmation") and state.get("pending_booking"):
@@ -1284,51 +1973,83 @@ async def generate_response_node(state: AgentState) -> AgentState:
             vendor = pending.get("vendor_name") or pending.get("service_type", "venue")
             is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
             if is_urdu:
-                state["response"] = f"Slot {time_disp}, Rs {price} at {vendor}. Reserve ke liye 'yes' likhein (10 min hold) ya 'no' cancel."
+                state["response"] = f"{time_disp} at {vendor}, Rs {price}. Confirm karein? (yes for 10 min hold, no to cancel)"
             else:
-                state["response"] = f"Slot {time_disp}, Rs {price} at {vendor}. Reply 'yes' to reserve (10 min hold) or 'no' to cancel."
+                state["response"] = f"{time_disp} at {vendor}, Rs {price}. Confirm? (reply yes to hold for 10 min, no to cancel)"
             state["awaiting_slot_selection"] = False
             return state
 
         slot_options = state.get("slot_options") or []
         if last_msg.strip().isdigit() and not slot_options:
-            state["response"] = "Slot list nahi mila. Please phir se puchhein: date, time, aur sport (e.g. 'padel kal shaam')."
+            state["response"] = "Slot list expired — please share the sport, date, and time again (e.g. 'padel tomorrow evening')."
             return state
         if last_msg.strip().isdigit() and slot_options:
             num = int(last_msg.strip())
             if num < 1 or num > len(slot_options):
-                state["response"] = f"'{num}' valid nahi hai. 1 se {len(slot_options)} ke beech number likhein."
+                state["response"] = f"{num} isn't on the list — please pick between 1 and {len(slot_options)}."
+                return state
+
+        # ── Mid-flow: user asks about price / cheapest while picking a slot ────
+        # Preserve slot_options + awaiting_slot_selection so they can still pick after.
+        if state.get("awaiting_slot_selection") and slot_options:
+            if _is_slot_list_info_request(last_msg):
+                cheapest = min(slot_options, key=lambda x: x.get("price", 999999))
+                vendor_disp = cheapest.get("vendor_name", "")
+                vendor_part = f" at {vendor_disp}" if vendor_disp else ""
+                time_disp = f"{cheapest.get('slot_time', '')}-{cheapest.get('end_time', '')}"
+                if _is_urdu(last_msg):
+                    state["response"] = (
+                        f"Sab se sasta Rs {cheapest['price']} hai{vendor_part} ({time_disp}). "
+                        f"Kaunsa lena hai? (1-{len(slot_options)})"
+                    )
+                else:
+                    state["response"] = (
+                        f"Cheapest is Rs {cheapest['price']}{vendor_part} ({time_disp}). "
+                        f"Which one would you like? (1-{len(slot_options)})"
+                    )
                 return state
 
         missing = state.get("missing_fields") or []
 
-        # ── Missing date: ask the user which date ──────────────────────────────
+        # ── Missing sport ──────────────────────────────────────────────────────
+        if "sport" in missing and intent == "inquiry":
+            state["response"] = _instant_ask_sport(last_msg)
+            return state
+
+        # ── Missing date ───────────────────────────────────────────────────────
         if "date" in missing and intent == "inquiry":
             sport = entities.get("service_type") or state.get("selected_sport_type") or "sport"
-            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
-            if is_urdu:
-                state["response"] = f"{sport.capitalize()} ke liye kaunsi date chahiye? (e.g. 'aaj', 'kal', '3 march')"
-            else:
-                state["response"] = f"What date would you like to book {sport} for? (e.g. 'today', 'tomorrow', '3 march')"
+            state["response"] = _instant_ask_date(sport, last_msg)
             return state
 
-        # ── Missing time: ask the user what time ──────────────────────────────
+        # ── Missing time ───────────────────────────────────────────────────────
         if "time" in missing and intent == "inquiry":
-            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
-            if is_urdu:
-                state["response"] = "Kaunsa time chahiye? Morning, afternoon, evening, ya night?"
-            else:
-                state["response"] = "What time are you looking for? Morning, afternoon, evening, or night?"
+            sport = entities.get("service_type") or state.get("selected_sport_type") or ""
+            date = entities.get("date") or state.get("selected_date")
+            if sport and date:
+                try:
+                    asyncio.create_task(
+                        warm_common_availability(
+                            sport,
+                            entities.get("area") or state.get("selected_area"),
+                            date,
+                            vendor_name=entities.get("vendor_name") or entities.get("vendor"),
+                            vendor_id=entities.get("vendor_id"),
+                        )
+                    )
+                except Exception as e:
+                    logger.debug(f"Time prompt warm-up skipped: {e}")
+            state["response"] = _instant_ask_time(sport, last_msg)
             return state
 
-        # ── no_date query_result: should not produce 'no slots' message ────────
+        # ── no_date query_result ───────────────────────────────────────────────
         if query_result and query_result.get("error") == "no_date":
             sport = entities.get("service_type") or state.get("selected_sport_type") or "sport"
-            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
-            if is_urdu:
-                state["response"] = f"{sport.capitalize()} ke liye kaunsi date chahiye? (e.g. 'aaj', 'kal', '3 march')"
-            else:
-                state["response"] = f"What date would you like to book {sport} for? (e.g. 'today', 'tomorrow', '3 march')"
+            state["response"] = _instant_ask_date(sport, last_msg)
+            return state
+
+        if query_result and query_result.get("error") == "no_sport":
+            state["response"] = _instant_ask_sport(last_msg)
             return state
 
         if not booking_result and query_result and query_result.get("success") and query_result.get("vendors"):
@@ -1351,58 +2072,60 @@ async def generate_response_node(state: AgentState) -> AgentState:
             date = query_result.get("date", "")
             area = query_result.get("area")
             area_msg = query_result.get("message", "")
+
             if area and "No vendors found" in (area_msg or ""):
                 logger.info("Branch hit: NO_VENDORS (area filter)")
-                state["response"] = (
-                    f"Sorry, {sport} ke liye {area} me koi vendor nahi mila. "
-                    "Different area try karein (e.g. DHA, Clifton) ya sport change karein."
+                state["response"] = await _llm_converse(
+                    f"No {sport} courts found in {area}. Let the user know and suggest trying a nearby area like DHA or Clifton, or a different sport.",
+                    messages,
+                    f"No {sport} venues found in {area} — want to try a nearby area or different sport?",
                 )
             else:
-                missing = state.get("missing_fields") or []
-                # Time-of-day awareness: if the queried date is today and it's already
-                # late (past 9 PM PKT), today's slots are genuinely over. Give a
-                # specific message pointing to tomorrow rather than the generic fallback.
-                
                 _pkt = _pytz.timezone("Asia/Karachi")
                 _now_pkt = _dt.now(_pkt)
                 _today_str = _now_pkt.strftime("%Y-%m-%d")
                 _is_today = (date == _today_str)
                 _is_late_night = (_now_pkt.hour > 23)
+                missing = state.get("missing_fields") or []
+                next_date = query_result.get("next_available_date")
 
                 if "date" in missing or not entities.get("date"):
                     logger.info("Branch hit: NO_SLOTS_NO_DATE_GIVEN")
                     if _is_today and _is_late_night:
                         logger.info("Branch hit: NO_SLOTS_LATE_NIGHT_TODAY")
-                        state["response"] = (
-                            f"Aaj ke {sport} slots khatam ho gaye hain (raat ho gayi hai). "
-                            "Kal ke slots dekhoon?"
+                        state["response"] = await _llm_converse(
+                            f"It's late at night and there are no more {sport} slots today. Suggest checking tomorrow's slots.",
+                            messages,
+                            f"No more {sport} slots tonight — want me to check tomorrow?",
                         )
                     else:
-                        state["response"] = (
-                            f"Aaj ({date}) {area or 'Karachi'} me {sport} ke koi available slot nahi hai. "
-                            "Kaunsi date ke liye dekhoon? (e.g. 'tomorrow', '8 feb', 'kal')"
+                        state["response"] = await _llm_converse(
+                            f"No {sport} slots found. The user hasn't specified a date. Ask what date they'd like.",
+                            messages,
+                            f"No slots found — what date did you want for {sport}?",
                         )
-                else: 
+                else:
                     logger.info("Branch hit: NO_SLOTS_DATE_GIVEN")
-                    next_date = query_result.get("next_available_date")
                     if _is_today and _is_late_night and not next_date:
-                        # User explicitly said "today" but it's too late — point to tomorrow
                         logger.info("Branch hit: NO_SLOTS_DATE_GIVEN_LATE_NIGHT")
                         from datetime import timedelta as _td
                         tomorrow = (_now_pkt + _td(days=1)).strftime("%Y-%m-%d")
-                        state["response"] = (
-                            f"Aaj raat ke {sport} slots available nahi hain. "
-                            f"Kal ({tomorrow}) ke slots dekhoon?"
+                        state["response"] = await _llm_converse(
+                            f"No {sport} slots available tonight. Suggest tomorrow ({tomorrow}) as an alternative.",
+                            messages,
+                            f"No {sport} slots left tonight — want to check tomorrow?",
                         )
                     elif next_date:
-                        state["response"] = (
-                            f"{date} ko {area or 'Karachi'} me {sport} ke slot nahi milay, "
-                            f"lekin {next_date} ko available hain. Dekhoon?"
+                        state["response"] = await _llm_converse(
+                            f"No {sport} slots on {date}, but {next_date} has availability. Ask if the user wants to check that date instead.",
+                            messages,
+                            f"Nothing on {date}, but {next_date} has slots — want me to check that?",
                         )
                     else:
-                        state["response"] = (
-                            f"{date} ko {area or 'Karachi'} me {sport} ke koi slot available nahi. "
-                            "Koi aur date try karein ya area change karein."
+                        state["response"] = await _llm_converse(
+                            f"No {sport} slots available on {date} in {area or 'Karachi'}. Suggest trying a different date or area.",
+                            messages,
+                            f"No {sport} slots on {date} — try a different date or area?",
                         )
             return state
 
@@ -1460,24 +2183,23 @@ def _format_availability_response(
     area = query_result.get("area") or "Karachi"
     slot_options = []
     idx = 1
-    max_total = 12
 
     time_exact_unavailable = query_result.get("time_exact_unavailable", False)
     requested_time = query_result.get("requested_time")
     if time_exact_unavailable and requested_time:
-        header = f"Woh exact slot ({requested_time}) available nahi hai, lekin {date} ko yeh nearby slots hain:\n"
+        header = f"That exact {sport} slot ({requested_time}) isn't available, but here's what's nearby on {date}:\n"
     else:
-        header = f"{date} — {area} — {sport} slots:\n"
+        header = f"Available {sport} slots for {date} in {area}:\n"
 
     parts = [header]
-    for v in vendors[:3]:
+    display_vendors = vendors[:3]
+
+    for v in display_vendors:
         name = v.get("vendor_name", "Vendor")
         address = v.get("vendor_address", "")
         parts.append(f"\n{name} ({address})")
         seen_times = set()
         for slot in v.get("slots", []):
-            if idx > max_total:
-                break
             sid = slot.get("slot_id", "")
             stime = slot.get("slot_time", "")
             if not sid or stime in seen_times:
@@ -1496,9 +2218,7 @@ def _format_availability_response(
             parts.append(f"   {idx}. {time_disp} — Rs {price}")
             idx += 1
         parts.append("")
-        if idx > max_total:
-            break
-    parts.append("Reply with the number to select!")
+    parts.append("Which one? Reply with the number.")
     return "\n".join(parts).strip(), slot_options
 
 
@@ -1572,6 +2292,9 @@ def route_by_intent(state: AgentState) -> str:
 
     tx_type = _detect_tx_input(last_msg)
 
+    if awaiting_slot_sel and has_slot_id:
+        return "query_availability"
+
     if awaiting_slot_sel and tx_type == "slot_select":
         num_match = _SLOT_NUMBER_PLUS.match(last_msg.strip())
         if num_match:
@@ -1584,6 +2307,9 @@ def route_by_intent(state: AgentState) -> str:
         return "check_confirmation"
 
     if awaiting_slot_sel and tx_type is None:
+        if _is_slot_list_info_request(last_msg):
+            return "generate_response"
+
         has_new_booking_entities = any([
             entities.get("service_type"),
             entities.get("date"),
@@ -1598,6 +2324,7 @@ def route_by_intent(state: AgentState) -> str:
             # The old date was valid for the previous slot list, not this new query.
             state["selected_date"] = None
             state["selected_sport_type"] = None
+            state["selected_time_range"] = None
             logger.info("New booking entities during slot selection - cleared stale date/sport, starting fresh query")
         else:
             # Unrecognised free-text during slot selection.
@@ -1639,6 +2366,9 @@ def route_by_intent(state: AgentState) -> str:
     # Only fire query_availability when both are present (or time is optional
     # because the user wants to see all slots for a given date).
     missing = state.get("missing_fields") or []
+
+    if intent == "inquiry" and "sport" in missing:
+        return "generate_response"   # will ask user for sport
 
     if intent == "inquiry" and "date" in missing:
         return "generate_response"   # will ask user for a date

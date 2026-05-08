@@ -25,6 +25,8 @@ class PaymentOCR:
         self.client = OpenAI(
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key,
+            timeout=max(settings.AI_REQUEST_TIMEOUT_SECONDS, 10.0),
+            max_retries=0,
         )
         logger.info(f"PaymentOCR initialized with model: {VISION_MODEL}")
 

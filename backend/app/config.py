@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     
-    # AI/NLU (Groq - Qwen 3 32B for bilingual capabilities)
+    # AI/NLU (DeepSeek V4 Flash — text + vision)
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-v4-flash"
+    AI_REQUEST_TIMEOUT_SECONDS: float = 6.0
+
+    # Legacy Groq (kept for reference, no longer used)
     GROQ_API_KEY: str = "dummy_key_for_dev"
     GROQ_MODEL: str = "qwen/qwen3-32b"
     

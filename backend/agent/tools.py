@@ -2,6 +2,8 @@
 LangGraph Tools - Query Firestore database
 """
 
+import asyncio
+import copy
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
@@ -15,6 +17,81 @@ from database.firestore_v2 import FirestoreV2
 from app.firestore import firestore_db
 
 logger = logging.getLogger(__name__)
+
+_AVAILABILITY_CACHE: Dict[str, Any] = {}
+_AVAILABILITY_CACHE_TTL = 60
+
+
+def _availability_cache_key(
+    sport_type: str,
+    area: Optional[str],
+    date: str,
+    time_range: Optional[Dict[str, str]] = None,
+    vendor_name: Optional[str] = None,
+    vendor_id: Optional[str] = None,
+) -> str:
+    tr = ""
+    if time_range:
+        tr = f"{time_range.get('start', '')}-{time_range.get('end', '')}"
+    return "|".join([
+        (sport_type or "").lower(),
+        (area or "").lower(),
+        date or "",
+        tr,
+        (vendor_name or "").lower(),
+        (vendor_id or "").lower(),
+    ])
+
+
+def _availability_cache_get(key: str) -> Optional[Dict[str, Any]]:
+    import time
+    entry = _AVAILABILITY_CACHE.get(key)
+    if entry and time.time() - entry[1] < _AVAILABILITY_CACHE_TTL:
+        logger.info(f"TIMING: availability cache HIT for {key}")
+        return copy.deepcopy(entry[0])
+    return None
+
+
+def _availability_cache_set(key: str, value: Dict[str, Any]) -> None:
+    import time
+    _AVAILABILITY_CACHE[key] = (copy.deepcopy(value), time.time())
+
+
+def clear_availability_cache() -> None:
+    _AVAILABILITY_CACHE.clear()
+
+
+async def warm_common_availability(
+    sport_type: str,
+    area: Optional[str],
+    date: str,
+    vendor_name: Optional[str] = None,
+    vendor_id: Optional[str] = None,
+    buckets: Optional[List[str]] = None,
+) -> None:
+    """Read-only background warm-up for likely next availability queries."""
+    bucket_ranges = {
+        "morning": {"start": "07:00", "end": "12:00"},
+        "afternoon": {"start": "12:00", "end": "17:00"},
+        "evening": {"start": "17:00", "end": "19:00"},
+        "night": {"start": "20:00", "end": "23:00"},
+    }
+    selected = buckets or ["evening", "night", "morning"]
+    try:
+        await asyncio.gather(*[
+            check_availability(
+                sport_type=sport_type,
+                area=area,
+                date=date,
+                time_range=bucket_ranges[b],
+                vendor_name=vendor_name,
+                vendor_id=vendor_id,
+            )
+            for b in selected
+            if b in bucket_ranges
+        ])
+    except Exception as e:
+        logger.warning(f"Availability warm-up skipped: {e}")
 
 
 # Import general booking rules (agent rules, not vendor-specific)
@@ -84,7 +161,19 @@ async def check_availability(
         logger.info(f"Checking availability: sport={sport_type}, area={area or 'all'}, date={date}, time_range={time_range}, vendor_name={vendor_name}, vendor_id={vendor_id}")
         logger.info(f"INSTANCE PID: {os.getpid()}")
 
+        cache_key = _availability_cache_key(sport_type, area, date, time_range, vendor_name, vendor_id)
+        cached = _availability_cache_get(cache_key)
+        if cached is not None:
+            return cached
+
         fs_client = FirestoreV2(firestore_db.db)
+
+        async def _fs_call(method_name: str, *args):
+            """Run Firestore's sync SDK work off the event loop."""
+            def _runner():
+                local_client = FirestoreV2(firestore_db.db)
+                return asyncio.run(getattr(local_client, method_name)(*args))
+            return await asyncio.to_thread(_runner)
 
         vendors_by_sport = await fs_client.get_vendors_by_sport(sport_type)
         logger.info(f"TIMING: get_vendors_by_sport took {time.time() - start_time:.4f}s - Found {len(vendors_by_sport)}")
@@ -124,26 +213,21 @@ async def check_availability(
                 "message": f"No vendors found offering {sport_type}" + (f" in {area}" if area else "")
             }
 
-        # Step 2: For each matching vendor, get their services and available slots
-        vendors_data = []
-        time_exact_unavailable = False
-
-        for vendor_id in list(matching_vendor_ids)[:7]:
+        # Step 2: Fetch all vendors in parallel
+        async def _process_vendor(vendor_id: str):
             try:
-                # Get vendor details
-                vendor = await fs_client.get_vendor(vendor_id)
+                vendor, services, available_slots = await asyncio.gather(
+                    _fs_call("get_vendor", vendor_id),
+                    _fs_call("get_vendor_services", vendor_id),
+                    _fs_call("get_available_slots", vendor_id, date),
+                )
                 if not vendor:
-                    continue
-
-                # Get vendor's services for this sport
-                services = await fs_client.get_vendor_services(vendor_id)
+                    return None, False
                 service = next((s for s in services if s.get('sport_type') == sport_type), None)
                 if not service:
-                    continue
+                    return None, False
 
-                # Get available slots for this vendor on the date
-                available_slots = await fs_client.get_available_slots(vendor_id, date)
-
+                _time_exact = False
                 if time_range:
                     PKT = pytz.timezone('Asia/Karachi')
                     req_start = time_range.get("start")
@@ -171,9 +255,7 @@ async def check_availability(
                     if filtered_slots:
                         available_slots = filtered_slots
                     elif available_slots:
-                        # Exact time not available but this vendor has other slots today
-                        # Fall back to all slots sorted by proximity to requested time
-                        time_exact_unavailable = True
+                        _time_exact = True
                         req_time = req_start or req_end
                         if req_time:
                             def _time_dist(slot, rt=req_time):
@@ -192,8 +274,8 @@ async def check_availability(
                     else:
                         available_slots = []
 
-                formatted_slots = []
                 PKT = pytz.timezone('Asia/Karachi')
+                formatted_slots = []
                 for slot in available_slots:
                     raw_start = slot.get("start_time") or slot.get("time") or slot.get("slot_time") or ""
                     raw_end = slot.get("end_time") or ""
@@ -228,9 +310,8 @@ async def check_availability(
                         "resource_name": slot.get("resource_name", "")
                     })
 
-                # Add vendor data if they have available slots
                 if formatted_slots:
-                    vendors_data.append({
+                    return {
                         "vendor_id": vendor_id,
                         "vendor_name": vendor.get("name", "Unknown Vendor"),
                         "vendor_address": vendor.get("address", "Address not available"),
@@ -240,11 +321,22 @@ async def check_availability(
                             "currency": "PKR"
                         },
                         "slots": formatted_slots
-                    })
-
+                    }, _time_exact
+                return None, False
             except Exception as e:
                 logger.error(f"Error processing vendor {vendor_id}: {e}")
-                raise
+                return None, False
+
+        vendor_results = await asyncio.gather(*[
+            _process_vendor(vid) for vid in list(matching_vendor_ids)[:7]
+        ])
+        vendors_data = []
+        time_exact_unavailable = False
+        for vendor_dict, exact in vendor_results:
+            if vendor_dict is not None:
+                vendors_data.append(vendor_dict)
+            if exact:
+                time_exact_unavailable = True
 
         res = {
             "success": True,
@@ -256,6 +348,7 @@ async def check_availability(
             "time_exact_unavailable": time_exact_unavailable and bool(vendors_data),
             "requested_time": time_range.get("start") if time_range else None,
         }
+        _availability_cache_set(cache_key, res)
         logger.info(f"TIMING: check_availability total took {time.time() - start_time:.4f}s - returning {len(vendors_data)} vendors")
         return res
 

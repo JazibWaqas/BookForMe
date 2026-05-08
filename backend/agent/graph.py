@@ -145,6 +145,7 @@ class BookingAgent:
                 "awaiting_slot_selection": persisted.get("awaiting_slot_selection", False),
                 "selected_sport_type": persisted.get("selected_sport_type"),
                 "selected_area": persisted.get("selected_area"),
+                "selected_time_range": persisted.get("selected_time_range"),
                 "awaiting_confirmation": persisted.get("awaiting_confirmation", False),
                 "confirmation_type": persisted.get("confirmation_type"),
                 "pending_booking": persisted.get("pending_booking"),

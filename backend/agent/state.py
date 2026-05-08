@@ -36,6 +36,8 @@ class AgentState(TypedDict):
     awaiting_slot_selection: bool
     selected_sport_type: Optional[str]
     selected_area: Optional[str]
+    selected_time_range: Optional[Dict[str, str]]
+    slot_selection_reset: Optional[bool]
     
     # Confirmation Flow State
     awaiting_confirmation: bool

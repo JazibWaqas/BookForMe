@@ -63,22 +63,20 @@ class SessionStore:
             if val is not None:
                 session_data[k] = val
 
-        # Only persist date/sport while actively mid-inquiry.
-        # Once a slot list is shown and user picks, or a fresh query starts,
-        # these should NOT carry over. They ARE needed for padel→kal→night flow.
-        mid_inquiry = bool(
-            state.get("missing_fields")           # still collecting date/time
-            or state.get("awaiting_slot_selection")  # slot list shown, pending pick
-            or state.get("awaiting_confirmation")    # slot selected, pending confirm
-        )
-        if mid_inquiry:
-            for k in ("selected_date", "selected_sport_type"):
-                val = state.get(k)
-                if val is not None:
-                    session_data[k] = val
-            logger.info(f"Persisted date/sport (mid-inquiry): date={state.get('selected_date')}, sport={state.get('selected_sport_type')}")
-        else:
-            logger.info("Not mid-inquiry — skipping selected_date/selected_sport_type persistence")
+        # Always preserve booking context (date/sport/time) when present in state.
+        # Conservative persistence: if we have it, keep it. Don't drop context
+        # just because the latest turn was classified as 'unknown'. Stale context
+        # is cleared on explicit reset paths (greeting detection, confirmation_action,
+        # session expiry). This prevents cascading state loss when NLU has a bad turn.
+        for k in ("selected_date", "selected_sport_type", "selected_time_range"):
+            val = state.get(k)
+            if val is not None:
+                session_data[k] = val
+        if any(state.get(k) is not None for k in ("selected_date", "selected_sport_type", "selected_time_range")):
+            logger.info(
+                f"Preserved booking context: date={state.get('selected_date')}, "
+                f"sport={state.get('selected_sport_type')}, time={state.get('selected_time_range')}"
+            )
 
         # Persist vendor_id, vendor_name and payment_amount ONLY during the
         # locked-slot / awaiting-payment window. These are required by

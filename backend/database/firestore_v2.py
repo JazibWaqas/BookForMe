@@ -15,6 +15,22 @@ from database.schema import (
 
 logger = logging.getLogger(__name__)
 
+import time as _time_mod
+
+_SPORT_VENDORS_CACHE: dict = {}   # sport_type  -> (list, timestamp)
+_VENDOR_DOC_CACHE: dict = {}      # vendor_id   -> (dict, timestamp)
+_SERVICE_CACHE: dict = {}         # vendor_id   -> (list, timestamp)
+_CACHE_TTL = 600                  # 10 minutes — vendor/service data rarely changes
+
+def _c_get(cache: dict, key: str):
+    entry = cache.get(key)
+    if entry and (_time_mod.time() - entry[1]) < _CACHE_TTL:
+        return entry[0]
+    return None
+
+def _c_set(cache: dict, key: str, value) -> None:
+    cache[key] = (value, _time_mod.time())
+
 
 class FirestoreV2:
     def __init__(self, db_client: firestore.Client):
@@ -101,6 +117,9 @@ class FirestoreV2:
     
     
     async def get_vendor(self, vendor_id: str) -> Optional[Dict[str, Any]]:
+        cached = _c_get(_VENDOR_DOC_CACHE, vendor_id)
+        if cached is not None:
+            return cached
         import asyncio
         for attempt in range(3):
             try:
@@ -108,13 +127,14 @@ class FirestoreV2:
                 if doc.exists:
                     data = doc.to_dict()
                     data['id'] = doc.id
+                    _c_set(_VENDOR_DOC_CACHE, vendor_id, data)
                     return data
                 return None
             except Exception as e:
                 logger.error(f"Error getting vendor {vendor_id} (attempt {attempt+1}/3): {e}")
                 if attempt == 2:
                     raise
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
     
     async def get_vendors_by_area(self, area: str) -> List[Dict[str, Any]]:
         try:
@@ -130,6 +150,10 @@ class FirestoreV2:
             return []
     
     async def get_vendors_by_sport(self, sport_type: str) -> List[Dict[str, Any]]:
+        cached = _c_get(_SPORT_VENDORS_CACHE, sport_type)
+        if cached is not None:
+            logger.info(f"Cache HIT: get_vendors_by_sport({sport_type})")
+            return cached
         import asyncio
         for attempt in range(3):
             try:
@@ -137,7 +161,7 @@ class FirestoreV2:
                 vendor_ids = set()
                 for doc in services:
                     vendor_ids.add(doc.to_dict().get('vendor_id'))
-                
+
                 # Check for suspected stale gRPC channel (silently returning 0 results)
                 if not vendor_ids and attempt < 2 and sport_type in ['padel', 'futsal', 'cricket', 'pickleball']:
                     logger.warning(f"No vendors found for '{sport_type}' on attempt {attempt+1}. Suspected stale connection.")
@@ -146,18 +170,19 @@ class FirestoreV2:
                         firestore_db.reconnect()
                         self.db = firestore_db.db  # Update local reference
                     raise RuntimeError(f"Suspected stale gRPC channel: 0 vendors found for {sport_type}")
-                
+
                 vendors = []
                 for vid in vendor_ids:
                     vendor = await self.get_vendor(vid)
                     if vendor:
                         vendors.append(vendor)
+                _c_set(_SPORT_VENDORS_CACHE, sport_type, vendors)
                 return vendors
             except Exception as e:
                 logger.error(f"Error getting vendors by sport (attempt {attempt+1}/3): {e}")
                 if attempt == 2:
                     raise
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
     
     async def get_all_vendors(self) -> List[Dict[str, Any]]:
         try:
@@ -231,6 +256,9 @@ class FirestoreV2:
     
     
     async def get_vendor_services(self, vendor_id: str) -> List[Dict[str, Any]]:
+        cached = _c_get(_SERVICE_CACHE, vendor_id)
+        if cached is not None:
+            return cached
         import asyncio
         for attempt in range(3):
             try:
@@ -244,12 +272,13 @@ class FirestoreV2:
                     data = doc.to_dict()
                     data['id'] = doc.id
                     services.append(data)
+                _c_set(_SERVICE_CACHE, vendor_id, services)
                 return services
             except Exception as e:
                 logger.error(f"Error getting services for vendor {vendor_id} (attempt {attempt+1}/3): {e}")
                 if attempt == 2:
                     raise
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
     
     async def get_service(self, service_id: str) -> Optional[Dict[str, Any]]:
         try:
@@ -324,7 +353,7 @@ class FirestoreV2:
                     if hasattr(firestore_db, 'reconnect'):
                         firestore_db.reconnect()
                         self.db = firestore_db.db
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     continue
 
                 # Sort by start_time, handling timezone-aware datetimes
@@ -334,7 +363,7 @@ class FirestoreV2:
                 logger.error(f"Error getting available slots (attempt {attempt+1}/3): {e}")
                 if attempt == 2:
                     raise
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.2)
         # All attempts exhausted with 0 slots and no exception
         logger.warning(f"get_available_slots: All 3 attempts returned 0 slots for vendor='{vendor_id}' date='{date}'")
         return []

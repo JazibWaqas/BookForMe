@@ -6,6 +6,7 @@ Supports text messages and payment screenshot images
 
 import logging
 import os
+import asyncio
 from pathlib import Path
 from typing import Dict, Any, Optional
 from app.config import settings
@@ -26,7 +27,26 @@ class WhatsAppAgent:
         self.booking_agent = BookingAgent()
         self.state_manager = StateManager()
         self.payment_ocr = PaymentOCR()
+        try:
+            asyncio.get_running_loop().create_task(self._warm_demo_availability())
+        except RuntimeError:
+            pass
         logger.info("WhatsApp Agent initialized with LangGraph")
+
+    async def _warm_demo_availability(self) -> None:
+        """Read-only warm-up for common demo availability queries."""
+        try:
+            from agent.tools import warm_common_availability
+            from utils.time import get_tomorrow_karachi
+
+            tomorrow = get_tomorrow_karachi()
+            await asyncio.gather(*[
+                warm_common_availability(sport, None, tomorrow, buckets=["evening"])
+                for sport in ("padel", "futsal", "cricket", "pickleball")
+            ])
+            logger.info("Demo availability cache warm-up complete")
+        except Exception as e:
+            logger.warning(f"Demo availability warm-up skipped: {e}")
     
     async def process_message(self, phone_number: str, message: str) -> str:
         """
@@ -42,7 +62,7 @@ class WhatsAppAgent:
         try:
             logger.info(f"Processing message from {phone_number}: {message}")
             
-            session = await self.state_manager.get_session(phone_number)
+            session = await self.state_manager.get_session_fast(phone_number)
             history = session.get('history', [])
             
             conversation_history = []
@@ -57,20 +77,39 @@ class WhatsAppAgent:
                 message=message,
                 conversation_history=conversation_history
             )
-            
-            await self.state_manager.add_message_to_history(phone_number, 'user', message)
-            await self.state_manager.add_message_to_history(phone_number, 'assistant', response)
-            
+
+            updated_history = history + [
+                {
+                    'role': 'user',
+                    'content': message,
+                    'timestamp': self.state_manager._get_timestamp()
+                },
+                {
+                    'role': 'assistant',
+                    'content': response,
+                    'timestamp': self.state_manager._get_timestamp()
+                }
+            ]
+            if len(updated_history) > 10:
+                updated_history = updated_history[-10:]
+
             in_memory_session = session_store.get_session(phone_number)
+            booking_context = None
             if in_memory_session and in_memory_session.get('locked_slot_id'):
-                await self.state_manager.set_booking_context(phone_number, {
+                booking_context = {
                     'locked_slot_id': in_memory_session.get('locked_slot_id'),
                     'payment_amount': in_memory_session.get('payment_amount'),
                     'vendor_id': in_memory_session.get('vendor_id'),
                     'awaiting_payment': True
-                })
-                logger.info(f"Persisted booking context to Firestore for {phone_number}")
-            
+                }
+
+            asyncio.create_task(self._persist_turn(
+                phone_number=phone_number,
+                history=updated_history,
+                booking_context=booking_context,
+                existing_context=session.get('context', {})
+            ))
+
             logger.info(f"Generated response: {response[:100]}...")
             return response
             
@@ -79,6 +118,31 @@ class WhatsAppAgent:
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return "Sorry, I encountered an error. Please try again later."
+
+    async def _persist_turn(
+        self,
+        phone_number: str,
+        history: list,
+        booking_context: Optional[Dict[str, Any]] = None,
+        existing_context: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Persist non-critical chat history after the response has been returned."""
+        try:
+            tasks = [
+                self.state_manager.save_history_direct(phone_number, history)
+            ]
+            if booking_context:
+                tasks.append(
+                    self.state_manager.merge_booking_context_direct(
+                        phone_number,
+                        booking_context,
+                        existing_context=existing_context,
+                    )
+                )
+            await asyncio.gather(*tasks)
+            logger.info(f"Background persistence complete for {phone_number}")
+        except Exception as e:
+            logger.warning(f"Background persistence failed for {phone_number}: {e}")
     
     async def process_payment_image(self, phone_number: str, image_bytes: bytes, caption: str = "") -> str:
         """

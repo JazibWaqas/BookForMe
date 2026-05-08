@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\OMNIBOOK\\\\Documents\\\\GitHub\\\\JHAT\" -Directory)",
+      "Bash(Select-Object Name)",
+      "WebSearch",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\OMNIBOOK\\\\Documents\\\\GitHub\\\\JHAT\\\\backend\" -Recurse -Name)",
+      "WebFetch(domain:api-docs.deepseek.com)",
+      "WebFetch(domain:deepinfra.com)",
+      "WebFetch(domain:www.mindstudio.ai)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:codersera.com)",
+      "WebFetch(domain:console.groq.com)"
+    ]
+  }
+}

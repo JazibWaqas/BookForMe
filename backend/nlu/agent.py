@@ -7,6 +7,7 @@ Uses Pydantic for structured LLM response parsing
 import logging
 import json
 import re
+import time
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from openai import OpenAI
@@ -21,31 +22,31 @@ usage_tracker = UsageTracker()
 
 
 class NLUAgent:
-    """Natural Language Understanding agent using Groq (Qwen 3 32B)"""
-    
+    """Natural Language Understanding agent using DeepSeek V4"""
+
     def __init__(self):
-        """Initialize NLU agent with Groq"""
+        """Initialize NLU agent with DeepSeek"""
         try:
-            # Check if API key is set
-            api_key = settings.GROQ_API_KEY
-            if not api_key or api_key == "dummy_key_for_dev" or api_key == "your_groq_api_key_here":
+            api_key = settings.DEEPSEEK_API_KEY
+            if not api_key:
                 error_msg = (
-                    "GROQ_API_KEY is not configured!\n"
-                    "Please set your Groq API key in the .env file:\n"
-                    "1. Get your API key from https://console.groq.com/\n"
+                    "DEEPSEEK_API_KEY is not configured!\n"
+                    "Please set your DeepSeek API key in the .env file:\n"
+                    "1. Get your API key from https://platform.deepseek.com/\n"
                     "2. Add this line to backend/.env:\n"
-                    "   GROQ_API_KEY=your_actual_api_key_here\n"
+                    "   DEEPSEEK_API_KEY=your_actual_api_key_here\n"
                     "3. Restart the application"
                 )
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            
-            # Configure Groq API (OpenAI-compatible)
+
             self.client = OpenAI(
-                base_url="https://api.groq.com/openai/v1",
-                api_key=api_key
+                base_url="https://api.deepseek.com/v1",
+                api_key=api_key,
+                timeout=settings.AI_REQUEST_TIMEOUT_SECONDS,
+                max_retries=0,
             )
-            logger.info(f"NLU Agent initialized with Groq model: {settings.GROQ_MODEL}")
+            logger.info(f"NLU Agent initialized with DeepSeek model: {settings.DEEPSEEK_MODEL}")
         except ValueError:
             raise
         except Exception as e:
@@ -289,20 +290,20 @@ Respond in JSON format:
             """
     
     async def _call_groq(self, prompt: str, json_format: bool = False) -> str:
-        """Call Groq API with prompt"""
-        logger.info(f"[_call_groq] Calling Groq API...")
-        logger.info(f"   Model: {settings.GROQ_MODEL}")
+        """Call DeepSeek API with prompt"""
+        logger.info(f"[_call_groq] Calling DeepSeek API...")
+        logger.info(f"   Model: {settings.DEEPSEEK_MODEL}")
         logger.info(f"   Prompt length: {len(prompt)} characters")
         try:
             import asyncio
-            # Run the synchronous Groq call in a thread pool
-            logger.info(f"   Sending request to Groq...")
-            
-            # Build request params
+            logger.info(f"   Sending request to DeepSeek...")
+            start_time = time.perf_counter()
+
             request_params = {
-                "model": settings.GROQ_MODEL,
+                "model": settings.DEEPSEEK_MODEL,
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3
+                "temperature": 0.3,
+                "max_tokens": 350 if json_format else 220,
             }
             
             # Only use json_object format if requested and prompt contains "json"
@@ -313,6 +314,7 @@ Respond in JSON format:
                 None,
                 lambda: self.client.chat.completions.create(**request_params)
             )
+            logger.info(f"   DeepSeek API call took {time.perf_counter() - start_time:.3f}s")
             response_text = response.choices[0].message.content
             
             # Track token usage
@@ -1282,13 +1284,12 @@ BOOKING FAILED:
 - Apologize and ask customer to try again or select a different slot
 """
         
-        return f"""
-            You are a friendly booking assistant for sports courts (padel, futsal, cricket, pickleball) in Karachi.
+        return f"""You are BookForMe, a booking assistant for sports courts in Karachi (padel, futsal, cricket, pickleball).
 
-CRITICAL - NEVER do any of these:
-- Do NOT suggest the user to call, phone, or contact any number (including +92 or any digits).
-- Do NOT mention "contact directly", "call us", "phone number", or "reach out" for booking.
-- All booking is done in this chat only. Tell the user to type "Confirm [Slot ID]" to book a slot, or to send a payment screenshot here after locking a slot.
+Talk like a casual, helpful local friend — short, natural, human. Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. Never sound like a form or a template. Reference what they already said. Keep it brief like a WhatsApp message from a real person.
+
+NEVER suggest calling or contacting any phone number. All booking happens in this chat only.
+NO emojis for booking confirmations or payment messages — keep those clean like a receipt.
 
 Intent: {intent}
 Entities: {entities}
@@ -1296,32 +1297,11 @@ Context: {context}
 {availability_info if availability_info else ""}
 {booking_info if booking_info else ""}
 
-Generate a helpful, friendly response that:
-1. Matches the user's language style (Roman Urdu if they use "Aoa", "kal", "shaam" / English otherwise)
-2. Addresses the {intent} intent directly
-3. Uses the extracted entities naturally: {entities}
-4. {"Presents the REAL availability data from database clearly. End by asking them to type Confirm [Slot ID] to book." if availability_info else "Guides the user to provide missing information (date/time) or to type Confirm [Slot ID] to book."}
-5. {"If SLOT LOCKED: Tell user the slot is held, provide payment amount, and ask them to send payment screenshot here in chat." if booking_info and "LOCKED" in booking_info else ""}
-6. {"If BOOKING CONFIRMED: Confirm the booking with the booking ID and thank the customer" if booking_info and "CONFIRMED" in booking_info else ""}
-7. {"If booking failed: Apologize and suggest trying again or selecting a different slot" if booking_info and "FAILED" in booking_info else ""}
+{"If slots are available: present them clearly with times and prices, then ask which one they want." if availability_info and availability_data.get("total_available", 0) > 0 else ""}
+{"If no slots: let them know naturally and suggest alternatives (different date or area)." if availability_info and availability_data.get("total_available", 0) == 0 else ""}
+{"If SLOT LOCKED: tell user the slot is held, give them the payment amount, ask them to send the payment screenshot here in chat." if booking_info and "LOCKED" in booking_info else ""}
+{"If BOOKING CONFIRMED: confirm it naturally with the booking ID and thank them." if booking_info and "CONFIRMED" in booking_info else ""}
+{"If booking failed: apologize briefly and suggest trying again or picking a different slot." if booking_info and "FAILED" in booking_info else ""}
 
-Response Guidelines:
-- Tone: Friendly, professional, helpful
-- Length: 2-4 sentences (be concise)
-- Format: NO emojis for booking confirmations. Clean, simple text like a receipt.
-- Language: Match user's style exactly
-- NEVER suggest calling or contacting any phone number. Booking is only in this chat.
-- CRITICAL - Urdu Language Requirement: When responding in Roman Urdu, use ONLY Urdu vocabulary and grammar. Strictly avoid Hindi words. Examples:
-  * Use "hai" (Urdu) NOT "hain" (Hindi)
-  * Use "mujhe" (Urdu) NOT "mujhko" (Hindi) 
-  * Use "aap" (Urdu) NOT "aapko" (Hindi)
-  * Use "kya" (Urdu) NOT "kyaa" (Hindi)
-  * Use "main" (Urdu) NOT "main" with Hindi grammar patterns
-  * Use Urdu verb forms: "karna hai", "chahiye", "mil jayega" (Urdu) NOT Hindi equivalents
-  * Use Urdu prepositions and conjunctions: "se", "ko", "ka", "ki" (Urdu) NOT Hindi variants
-  * Maintain Urdu sentence structure and word order, not Hindi patterns
-- {"If slots are available: List them clearly with times and prices" if availability_info and availability_data.get("total_available", 0) > 0 else ""}
-- {"If no slots available: Apologize and suggest alternatives" if availability_info and availability_data.get("total_available", 0) == 0 else ""}
-
-Generate the response now:
+Respond now:
 """

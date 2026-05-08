@@ -4,10 +4,16 @@ Handles conversation state for WhatsApp interactions
 """
 
 import logging
+import asyncio
+import time
 from typing import Dict, List, Any, Optional
 from app.firestore import firestore_db
 
 logger = logging.getLogger(__name__)
+
+_CHAT_SESSION_CACHE: Dict[str, tuple] = {}
+_CHAT_SESSION_CACHE_TTL = 300
+_CHAT_SESSION_READ_TIMEOUT = 0.25
 
 
 class StateManager:
@@ -52,6 +58,53 @@ class StateManager:
                 'context': {},
                 'history': []
             }
+
+    async def get_session_fast(self, phone_number: str) -> Dict[str, Any]:
+        """
+        Fast path for text chat turns.
+
+        Conversation history improves wording, but it is not required for the
+        booking transaction state. Avoid letting a slow Firestore history read
+        delay the user's WhatsApp response.
+        """
+        now = time.time()
+        cached = _CHAT_SESSION_CACHE.get(phone_number)
+        if cached and now - cached[1] < _CHAT_SESSION_CACHE_TTL:
+            return cached[0]
+
+        try:
+            doc_ref = self.db.db.collection('conversation_states').document(phone_number)
+            doc = await asyncio.wait_for(
+                asyncio.to_thread(doc_ref.get),
+                timeout=_CHAT_SESSION_READ_TIMEOUT,
+            )
+            if doc.exists:
+                session = doc.to_dict()
+            else:
+                session = {
+                    'phone_number': phone_number,
+                    'state': 'greeting',
+                    'context': {},
+                    'history': []
+                }
+        except Exception as e:
+            logger.warning(f"Fast session read skipped for {phone_number}: {e}")
+            session = {
+                'phone_number': phone_number,
+                'state': 'greeting',
+                'context': {},
+                'history': []
+            }
+
+        if 'state' not in session:
+            session['state'] = 'greeting'
+        if 'context' not in session:
+            session['context'] = {}
+        if 'history' not in session:
+            session['history'] = []
+
+        _CHAT_SESSION_CACHE[phone_number] = (session, now)
+        return session
     
     async def update_session(self, phone_number: str, data: Dict[str, Any]) -> bool:
         """
@@ -122,6 +175,60 @@ class StateManager:
         except Exception as e:
             logger.error(f"Error adding message to history: {e}")
             return False
+
+    async def save_history_direct(self, phone_number: str, history: List[Dict[str, Any]]) -> bool:
+        """Persist a prepared history list in one Firestore write."""
+        try:
+            trimmed = history[-10:] if len(history) > 10 else history
+            payload = {
+                'phone_number': phone_number,
+                'history': trimmed,
+            }
+            doc_ref = self.db.db.collection('conversation_states').document(phone_number)
+            await asyncio.to_thread(doc_ref.set, payload, merge=True)
+            cached = _CHAT_SESSION_CACHE.get(phone_number)
+            session = dict(cached[0]) if cached else {
+                'phone_number': phone_number,
+                'state': 'greeting',
+                'context': {},
+            }
+            session['history'] = trimmed
+            _CHAT_SESSION_CACHE[phone_number] = (session, time.time())
+            logger.info(f"Saved conversation history for {phone_number} in one write")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving direct history: {e}")
+            return False
+
+    async def merge_booking_context_direct(
+        self,
+        phone_number: str,
+        booking_data: Dict[str, Any],
+        existing_context: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Merge booking context without extra Firestore reads."""
+        try:
+            context = dict(existing_context or {})
+            context.update(booking_data)
+            payload = {
+                'phone_number': phone_number,
+                'context': context,
+            }
+            doc_ref = self.db.db.collection('conversation_states').document(phone_number)
+            await asyncio.to_thread(doc_ref.set, payload, merge=True)
+            cached = _CHAT_SESSION_CACHE.get(phone_number)
+            session = dict(cached[0]) if cached else {
+                'phone_number': phone_number,
+                'state': 'greeting',
+                'history': [],
+            }
+            session['context'] = context
+            _CHAT_SESSION_CACHE[phone_number] = (session, time.time())
+            logger.info(f"Saved booking context for {phone_number} in one write")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving direct booking context: {e}")
+            return False
     
     async def clear_session(self, phone_number: str) -> bool:
         """
@@ -135,6 +242,7 @@ class StateManager:
         """
         try:
             logger.info(f"Clearing session for {phone_number}")
+            _CHAT_SESSION_CACHE.pop(phone_number, None)
             
             return await self.update_session(phone_number, {
                 'state': 'greeting',
