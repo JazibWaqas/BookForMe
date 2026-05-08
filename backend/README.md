@@ -2,7 +2,7 @@
 
 FastAPI backend for the BookForMe sports court booking system.
 
-The active product is a WhatsApp-first booking agent plus supporting app/vendor
+The active product is a Web-first AI Chat booking agent plus supporting app/vendor
 APIs for Karachi sports venues. Supported sports are:
 
 - padel
@@ -17,7 +17,7 @@ current system.
 ## Current Architecture
 
 ```text
-WhatsApp / dev chat
+Web Chat / API clients
 -> LangGraph booking agent
 -> Firestore canonical inventory
 -> slot transaction/payment flow
@@ -35,7 +35,7 @@ available -> locked -> pending -> confirmed -> completed
 - `agent/` - LangGraph booking flow, entity normalization, slot selection.
 - `database/` - Firestore access, REST API, slot transactions.
 - `nlu/` - DeepSeek-backed NLU and Groq-backed payment OCR.
-- `whatsapp/` - WhatsApp webhook/service integration.
+- `whatsapp/` - Core AI Agent logic (shared brain for Web and WhatsApp).
 - `app/` - FastAPI app, config, Firestore bootstrap.
 - `scripts/` - local testing helpers.
 

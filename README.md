@@ -2,7 +2,7 @@
 
 **Current Status**: 🟢 **Production Live & Actively Developing** (v2.0)  
 **Last Updated**: February 20, 2026  
-**Deployment**: [https://jhat-to9p.onrender.com](https://jhat-to9p.onrender.com)
+**Deployment**: [https://bookforme-ie34.onrender.com](https://bookforme-ie34.onrender.com)
 
 ---
 
@@ -11,7 +11,7 @@
 BookForMe is a **unified two-sided marketplace** solving the "informal booking chaos" in Karachi's sports scene. We seamlessly connect:
 
 1. **Mobile App Users** (React Native) - Browse, search, and book
-2. **WhatsApp Users** (AI Receptionist) - Natural language booking  
+2. **Web Chat Users** (AI Receptionist) - Natural language booking via [deployed chat](https://bookforme-ie34.onrender.com/chat/index.html)
 3. **Sports Vendors** (Web Dashboard) - Manage venues and revenue
 
 All three interface with a **single, structurally rigorous Firestore database** with **zero double-bookings**.
@@ -61,9 +61,9 @@ python backend/database/seed/smart_reseed.py
 ```
 
 ### For Users
-- **Customers**: Download mobile app (coming soon to Play Store)
-- **Vendors**: Use WhatsApp at +92-XXX-XXXXXXX or web dashboard
-- **Browse Available Courts**: Visit [Live Demo](https://jhat-to9p.onrender.com/docs)
+- **Customers**: Use the [AI Chat](https://bookforme-ie34.onrender.com/chat/index.html) to book via natural language
+- **Vendors**: Manage bookings via the [web dashboard](https://bookforme-ie34.onrender.com)
+- **Browse Available Courts**: Visit [Live Demo](https://bookforme-ie34.onrender.com/docs)
 
 ---
 
@@ -98,11 +98,11 @@ not override the current docs above.
 ### 🔒 **Zero Double-Bookings Guarantee**
 - **Optimistic Concurrency Control**: Firestore transactions
 - **10-Minute Slot Locks**: Prevent race conditions
-- **Real-Time Sync**: App, WhatsApp, and Dashboard see same data
+- **Real-Time Sync**: App, AI Chat, and Dashboard see same data
 - **Tested Under Load**: 100+ concurrent booking attempts
 
 ### 📱 **Dual Interface Strategy**
-- **WhatsApp**: 80% of Pakistani users prefer WhatsApp
+- **AI Chat**: Frictionless natural language booking via the web
 - **Mobile App**: Rich UI for browsing and discovery
 - **Vendor Dashboard**: Professional venue management
 - **Shared Inventory**: Single source prevents overbooking
@@ -133,7 +133,7 @@ not override the current docs above.
 
 ### ✅ **Fully Functional**
 - **Complete Booking Flow**: Browse → Select → Lock → Pay → Confirm
-- **WhatsApp AI Agent**: Natural language booking with Roman Urdu
+- **AI Chat Agent**: Natural language booking with Roman Urdu support
 - **Mobile App**: Vendor browsing, search, booking, profile
 - **Payment System**: Screenshot upload and OCR verification
 - **Vendor Dashboard**: Basic booking management and analytics
@@ -154,7 +154,7 @@ Home → Search/Browse → Vendor Detail → Select Date/Time
 → Lock Slot (10 min) → Upload Payment → Booking Confirmed
 ```
 
-### Customer Booking via WhatsApp
+### Customer Booking via AI Chat
 ```
 Send Message → AI Understands → Check Availability 
 → Confirm Details → Share Payment Info → Receive Screenshot 

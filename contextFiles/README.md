@@ -16,7 +16,7 @@ For fresh sessions, read these current docs instead:
 
 Current product scope:
 
-- WhatsApp-first sports court booking agent.
+- Web-first AI Chat sports court booking agent.
 - Karachi vendors.
 - Supported sports: padel, futsal, cricket, pickleball.
 - Firestore canonical collections: `vendors`, `resources`, `services`,
