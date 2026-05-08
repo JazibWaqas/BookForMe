@@ -39,9 +39,10 @@ nlu_agent = NLUAgent()
 _CONCIERGE_SYSTEM = (
     "You are BookForMe, a booking assistant for sports courts in Karachi "
     "(padel, futsal, cricket, pickleball). "
-    "Talk like a casual, helpful local friend — short, natural, human. "
+    "Talk like a casual, helpful local friend. Keep replies short, natural, and human. "
     "Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. "
     "Never sound like a form or template. Keep it brief like a WhatsApp message. "
+    "Do not use em dashes (—) or en dashes (–). Use commas, periods, or short sentences instead. "
     "Never suggest calling any phone number."
 )
 
@@ -93,15 +94,15 @@ async def _llm_converse(task: str, messages: list, fallback: str) -> str:
 
 _ASK_DATE_EN = [
     "Sure, what date for {sport}?",
-    "Got it — what day works?",
+    "Got it. What day works?",
     "When would you like to play?",
     "What date were you thinking?",
-    "Great — which day for {sport}?",
+    "Cool, which day for {sport}?",
 ]
 _ASK_DATE_UR = [
     "{sport} ke liye kaunsi date?",
     "Theek hai, {sport} kab chahiye?",
-    "Got it — kaunsa din?",
+    "Got it. Kaunsa din?",
     "{sport} ke liye kaunsa din chahiye?",
     "Sure, {sport} kab khelna hai?",
 ]
@@ -109,7 +110,7 @@ _ASK_TIME_EN = [
     "What time works for you?",
     "Any preferred time?",
     "What time were you thinking?",
-    "Sure — what time?",
+    "Sure, what time?",
     "Got it. What time works?",
 ]
 _ASK_TIME_UR = [
@@ -117,31 +118,31 @@ _ASK_TIME_UR = [
     "Kab ka slot? Subah ya shaam?",
     "Time bataiye?",
     "Theek hai, kaunsa time?",
-    "Got it — kab ka slot?",
+    "Got it. Kab ka slot?",
 ]
 _ASK_SPORT_EN = [
-    "Which sport would you like — padel, futsal, cricket, or pickleball?",
-    "Sure — which sport should I check?",
+    "Which sport: padel, futsal, cricket, or pickleball?",
+    "Sure, which sport should I check?",
     "What are you looking to book: padel, futsal, cricket, or pickleball?",
 ]
 _ASK_SPORT_UR = [
-    "Kaunsi sport chahiye — padel, futsal, cricket, ya pickleball?",
-    "Sure — kis sport ka slot dekhun?",
-    "Padel, futsal, cricket, ya pickleball — kis ki booking chahiye?",
+    "Kaunsi sport chahiye? Padel, futsal, cricket, ya pickleball?",
+    "Sure, kis sport ka slot dekhun?",
+    "Padel, futsal, cricket, ya pickleball, kis ki booking chahiye?",
 ]
 _GREETING_EN = [
-    "Hi! Looking to book a court today?",
-    "Hello! What can I help you book?",
-    "Hi there — padel, futsal, cricket, or pickleball?",
-    "Hey! What can I get booked for you?",
-    "Welcome! What would you like to book?",
+    "Hi! I'm BookForMe, your booking agent. I can book padel, futsal, cricket, or pickleball for you. What would you like to book?",
+    "Hello! I'm BookForMe, here to help you book sports slots. Padel, futsal, cricket, or pickleball, what can I get for you?",
+    "Hi there! I'm BookForMe, your booking assistant for padel, futsal, cricket, and pickleball. What can I book for you?",
+    "Hey! I'm BookForMe. I handle bookings for padel, futsal, cricket, and pickleball. What would you like to book today?",
+    "Welcome! I'm BookForMe, your booking agent. Just tell me the sport (padel, futsal, cricket, or pickleball) and I'll get you booked.",
 ]
 _GREETING_UR = [
-    "Aoa! Kya book karna hai?",
-    "Salam! Padel, futsal, cricket — kis ki booking hai?",
-    "Aoa! Court book karni hai?",
-    "Salam! Kya book karna hai aaj?",
-    "Aoa! Kis sport ki booking chahiye?",
+    "Aoa! Mein BookForMe hoon, aap ka booking agent. Padel, futsal, cricket ya pickleball book kar sakta hoon. Kya book karna hai?",
+    "Salam! Mein BookForMe hoon, sports slots book karne mein madad karta hoon. Padel, futsal, cricket, ya pickleball, kis ki booking chahiye?",
+    "Aoa! Mein BookForMe hoon, aap ka booking assistant. Bataiye kya book karun, padel, futsal, cricket, ya pickleball?",
+    "Salam! Mein BookForMe hoon. Padel, futsal, cricket aur pickleball ki booking karwata hoon. Aaj kya book karna hai?",
+    "Aoa! Mein BookForMe hoon, aap ka booking agent. Sport bataiye (padel, futsal, cricket, ya pickleball) aur mein slot book kar dunga.",
 ]
 
 _URDU_MARKERS = {
@@ -1914,9 +1915,9 @@ async def generate_response_node(state: AgentState) -> AgentState:
 
         if confirmation_action == "modify":
             state["response"] = await _llm_converse(
-                "The user wants to modify their booking. Ask what they'd like to change — date, time, or venue?",
+                "The user wants to modify their booking. Ask what they'd like to change: date, time, or venue?",
                 messages,
-                "Sure! What would you like to change — date, time, or venue?",
+                "Sure, what would you like to change? Date, time, or venue?",
             )
             return state
 
@@ -1939,12 +1940,12 @@ async def generate_response_node(state: AgentState) -> AgentState:
             is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
             if is_urdu:
                 state["response"] = (
-                    "Slot list reset ho gayi — dobara batayein sport, date, time "
+                    "Slot list reset ho gayi. Dobara batayein sport, date, time "
                     "(e.g. 'padel kal shaam')."
                 )
             else:
                 state["response"] = (
-                    "Slot list expired — please share the sport, date, and time again "
+                    "Slot list expired. Please share the sport, date, and time again "
                     "(e.g. 'padel tomorrow evening')."
                 )
             return state
@@ -1981,12 +1982,12 @@ async def generate_response_node(state: AgentState) -> AgentState:
 
         slot_options = state.get("slot_options") or []
         if last_msg.strip().isdigit() and not slot_options:
-            state["response"] = "Slot list expired — please share the sport, date, and time again (e.g. 'padel tomorrow evening')."
+            state["response"] = "Slot list expired. Please share the sport, date, and time again (e.g. 'padel tomorrow evening')."
             return state
         if last_msg.strip().isdigit() and slot_options:
             num = int(last_msg.strip())
             if num < 1 or num > len(slot_options):
-                state["response"] = f"{num} isn't on the list — please pick between 1 and {len(slot_options)}."
+                state["response"] = f"{num} isn't on the list. Please pick between 1 and {len(slot_options)}."
                 return state
 
         # ── Mid-flow: user asks about price / cheapest while picking a slot ────
@@ -2078,7 +2079,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 state["response"] = await _llm_converse(
                     f"No {sport} courts found in {area}. Let the user know and suggest trying a nearby area like DHA or Clifton, or a different sport.",
                     messages,
-                    f"No {sport} venues found in {area} — want to try a nearby area or different sport?",
+                    f"No {sport} venues found in {area}. Want to try a nearby area or different sport?",
                 )
             else:
                 _pkt = _pytz.timezone("Asia/Karachi")
@@ -2096,13 +2097,13 @@ async def generate_response_node(state: AgentState) -> AgentState:
                         state["response"] = await _llm_converse(
                             f"It's late at night and there are no more {sport} slots today. Suggest checking tomorrow's slots.",
                             messages,
-                            f"No more {sport} slots tonight — want me to check tomorrow?",
+                            f"No more {sport} slots tonight. Want me to check tomorrow?",
                         )
                     else:
                         state["response"] = await _llm_converse(
                             f"No {sport} slots found. The user hasn't specified a date. Ask what date they'd like.",
                             messages,
-                            f"No slots found — what date did you want for {sport}?",
+                            f"No slots found. What date did you want for {sport}?",
                         )
                 else:
                     logger.info("Branch hit: NO_SLOTS_DATE_GIVEN")
@@ -2113,19 +2114,19 @@ async def generate_response_node(state: AgentState) -> AgentState:
                         state["response"] = await _llm_converse(
                             f"No {sport} slots available tonight. Suggest tomorrow ({tomorrow}) as an alternative.",
                             messages,
-                            f"No {sport} slots left tonight — want to check tomorrow?",
+                            f"No {sport} slots left tonight. Want to check tomorrow?",
                         )
                     elif next_date:
                         state["response"] = await _llm_converse(
                             f"No {sport} slots on {date}, but {next_date} has availability. Ask if the user wants to check that date instead.",
                             messages,
-                            f"Nothing on {date}, but {next_date} has slots — want me to check that?",
+                            f"Nothing on {date}, but {next_date} has slots. Want me to check that?",
                         )
                     else:
                         state["response"] = await _llm_converse(
                             f"No {sport} slots available on {date} in {area or 'Karachi'}. Suggest trying a different date or area.",
                             messages,
-                            f"No {sport} slots on {date} — try a different date or area?",
+                            f"No {sport} slots on {date}. Try a different date or area?",
                         )
             return state
 
@@ -2215,7 +2216,7 @@ def _format_availability_response(
                 "price": price,
                 "vendor_name": name,
             })
-            parts.append(f"   {idx}. {time_disp} — Rs {price}")
+            parts.append(f"   {idx}. {time_disp} | Rs {price}")
             idx += 1
         parts.append("")
     parts.append("Which one? Reply with the number.")
