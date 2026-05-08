@@ -1,9 +1,7 @@
 """
-Seed data package for populating Firestore collections
+Firestore seed utilities.
 
-Usage:
-    python -m database.seed.seed_all
-    
-    or with options:
-    python -m database.seed.seed_all --days 14 --clear
+Read backend/database/seed/README.md before running anything in this package.
+The canonical slot maintenance path is smart_reseed.py, which is additive and
+uses the same slot ID format as the live admin/vendor APIs.
 """

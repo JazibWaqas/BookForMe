@@ -1078,3 +1078,11 @@ python backend/scripts/master_forensic_verification
 Any architectural change must first update this document.  
 Last Updated: February 20, 2026  
 Next Review: March 1, 2026
+# Historical Archive Notice
+
+This document is historical and may mention outdated providers or prototype
+ideas. For current implementation truth, read `README.md`,
+`backend/README.md`, `backend/agent/README.md`, `backend/database/README.md`,
+and `backend/database/seed/README.md`.
+
+---

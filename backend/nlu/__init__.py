@@ -1,4 +1,4 @@
 """
 NLU (Natural Language Understanding) Module
-Handles intent extraction and entity recognition using Gemini API
+Handles intent extraction and entity recognition using DeepSeek.
 """

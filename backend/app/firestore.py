@@ -586,26 +586,17 @@ class FirestoreDB:
     # ============================================================================
     
     async def create_availability_slots(self, vendor_id: str, date: str, slots: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Create availability slots for vendor"""
-        try:
-            created_count = 0
-            for slot_data in slots:
-                slot_doc = {
-                    'vendor_id': vendor_id,
-                    'slot_date': date,
-                    'slot_time': slot_data['time'],
-                    'price': slot_data.get('price', 0.0),
-                    'status': 'available',
-                    'created_at': firestore.SERVER_TIMESTAMP
-                }
-                self.db.collection('availability_slots').add(slot_doc)
-                created_count += 1
-            
-            logger.info(f"Created {created_count} slots for vendor {vendor_id}")
-            return {'success': True, 'created_count': created_count}
-        except Exception as e:
-            logger.error(f"Error creating slots: {e}")
-            return {'success': False, 'error': str(e)}
+        """Deprecated old-schema helper. Use database.seed.smart_reseed."""
+        logger.warning(
+            "Deprecated create_availability_slots called for vendor=%s date=%s; "
+            "not writing old availability_slots data.",
+            vendor_id,
+            date,
+        )
+        return {
+            "success": False,
+            "error": "Deprecated helper. Use smart_reseed for canonical slot creation.",
+        }
 
 
 # Global Firestore instance

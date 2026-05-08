@@ -5,7 +5,7 @@ Creates missing slot documents for the next DAYS_AHEAD days.
 NEVER deletes or overwrites existing documents — any slot that already
 exists in Firestore (regardless of status) is silently skipped.
 
-HOW SLOT IDs ARE CONSTRUCTED (must match safe_slot_seed.py exactly):
+HOW SLOT IDs ARE CONSTRUCTED (canonical current format):
     {YYYYMMDD}_{HH}_{vendor_id}_{resource_id}
     e.g.  20260226_07_ace_padel_dha_ace_court_1
 
@@ -21,8 +21,11 @@ TIMESTAMPS: stored as UTC datetime objects → Firestore Timestamp type.
     start_time for hour H (PKT) = PKT.localize(date H:00) → astimezone(UTC)
     end_time   = start_time + 1 hour
 
-Run from the backend/ directory:
+Dry-run from the backend/ directory:
     python database/seed/smart_reseed.py
+
+Actually create missing slots:
+    python database/seed/smart_reseed.py --write
 """
 
 import os
@@ -98,10 +101,10 @@ def get_firestore_client():
 # core logic
 # ---------------------------------------------------------------------------
 
-def generate_needed_slots_from_schema() -> list[dict]:
+def generate_needed_slots_from_schema(days_ahead: int = DAYS_AHEAD) -> list[dict]:
     """
     Build the complete list of slot dicts that *should* exist for the next
-    DAYS_AHEAD days, using VENDORS_DATA, RESOURCES_DATA, SERVICES_DATA and
+    days_ahead days, using VENDORS_DATA, RESOURCES_DATA, SERVICES_DATA and
     the operating_hours defined in schema.py (DEFAULT_OPERATING_HOURS, etc.)
     as the authoritative source of truth for hour ranges.
     """
@@ -120,7 +123,7 @@ def generate_needed_slots_from_schema() -> list[dict]:
     needed: list[dict] = []
     today_pkt = datetime.now(PKT).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    for day_offset in range(DAYS_AHEAD):
+    for day_offset in range(days_ahead):
         current_date = today_pkt + timedelta(days=day_offset)
         date_str     = current_date.strftime("%Y-%m-%d")  # "2026-02-26"
         date_compact = current_date.strftime("%Y%m%d")    # "20260226"
@@ -147,7 +150,7 @@ def generate_needed_slots_from_schema() -> list[dict]:
 
             for resource in vendor_resources:
                 for hour in hours:
-                    # Slot document ID — identical formula to safe_slot_seed.py
+                    # Canonical slot document ID.
                     slot_id = f"{date_compact}_{hour:02d}_{vendor_id}_{resource['id']}"
 
                     # Timestamps: PKT → UTC (stored as Firestore Timestamp)
@@ -177,16 +180,16 @@ def generate_needed_slots_from_schema() -> list[dict]:
                         # ── no extra fields — keeps schema identical ────────────
                     })
 
-    logger.info(f"Generated {len(needed)} candidate slots spanning {DAYS_AHEAD} days")
+    logger.info(f"Generated {len(needed)} candidate slots spanning {days_ahead} days")
     return needed
 
 
-def smart_reseed(db: firestore.Client) -> int:
+def smart_reseed(db: firestore.Client, days_ahead: int = DAYS_AHEAD, dry_run: bool = False) -> int:
     """
     Additive reseed: check which slots already exist, create only the missing ones.
-    Returns the count of newly created slots.
+    Returns the count of newly created slots, or missing slots in dry-run mode.
     """
-    needed = generate_needed_slots_from_schema()
+    needed = generate_needed_slots_from_schema(days_ahead=days_ahead)
     all_ids = [s["_doc_id"] for s in needed]
 
     # ── Check existence in batches of 30 (Firestore client lib limit per get_all) ──
@@ -203,21 +206,27 @@ def smart_reseed(db: firestore.Client) -> int:
     to_create = [s for s in needed if s["_doc_id"] not in existing_ids]
 
     logger.info(f"Already in Firestore : {len(existing_ids):>5} slots  (SKIPPED — not touched)")
-    logger.info(f"Missing from Firestore: {len(to_create):>5} slots  (WILL CREATE)")
+    action = "DRY RUN — would create" if dry_run else "WILL CREATE"
+    logger.info(f"Missing from Firestore: {len(to_create):>5} slots  ({action})")
 
     if not to_create:
         logger.info("✅ Nothing to do — all slots already exist.")
         return 0
+
+    if dry_run:
+        logger.info("Dry run only — no Firestore writes were made.")
+        return len(to_create)
 
     # ── Write in Firestore batch commits of 500 (hard limit) ──
     batch = db.batch()
     count = 0
 
     for slot in to_create:
-        doc_id = slot.pop("_doc_id")
-        # batch.set() creates the doc if absent, overwrites if present.
-        # Since we already filtered out existing docs, this is effectively a create.
-        batch.set(db.collection("slots").document(doc_id), slot)
+        doc_id = slot["_doc_id"]
+        slot_doc = {k: v for k, v in slot.items() if k != "_doc_id"}
+        # Use create(), not set(), so an unexpected race can never overwrite an
+        # existing live slot document.
+        batch.create(db.collection("slots").document(doc_id), slot_doc)
         count += 1
 
         if count % 500 == 0:
@@ -254,16 +263,41 @@ def verify(db: firestore.Client):
 # ---------------------------------------------------------------------------
 
 def main():
-    logger.info("🚀 SMART RESEED — safe, additive, schema-correct")
-    logger.info(f"   Will ensure slots exist for the next {DAYS_AHEAD} days")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Additive canonical slot maintenance")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Actually create missing slot documents. Without this, runs read-only dry-run.",
+    )
+    parser.add_argument(
+        "--days-ahead",
+        type=int,
+        default=DAYS_AHEAD,
+        help=f"How many days ahead to ensure. Default: {DAYS_AHEAD}.",
+    )
+    args = parser.parse_args()
+
+    if args.days_ahead <= 0:
+        logger.error("--days-ahead must be a positive integer")
+        sys.exit(2)
+
+    mode = "WRITE" if args.write else "DRY RUN"
+    logger.info(f"🚀 SMART RESEED — {mode}, additive, schema-correct")
+    logger.info(f"   Will ensure slots exist for the next {args.days_ahead} days")
     logger.info(f"   Hour ranges derived from schema.py operating_hours")
     logger.info(f"   Slot ID format: YYYYMMDD_HH_vendorId_resourceId")
 
     db = get_firestore_client()
-    created = smart_reseed(db)
-    verify(db)
+    created = smart_reseed(db, days_ahead=args.days_ahead, dry_run=not args.write)
+    if args.write:
+        verify(db)
 
-    logger.info(f"🎉 DONE — {created} new slots written to Firestore")
+    if args.write:
+        logger.info(f"🎉 DONE — {created} new slots written to Firestore")
+    else:
+        logger.info(f"🎉 DRY RUN DONE — {created} missing slots would be created with --write")
 
 
 if __name__ == "__main__":

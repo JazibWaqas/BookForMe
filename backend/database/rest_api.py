@@ -210,7 +210,7 @@ async def get_categories():
 @router.get("/sport-courts")
 async def get_sport_courts():
     """
-    Get all sport courts (padel, tennis, pickleball, table_tennis, futsal)
+    Get all supported sports court vendors.
     
     Returns:
         List of sport court vendors
@@ -219,11 +219,11 @@ async def get_sport_courts():
         if not firestore_db.db:
             raise HTTPException(status_code=500, detail="Firestore not initialized")
         
-        sport_types = ['padel', 'tennis', 'pickleball', 'table_tennis', 'futsal']
+        sport_types = ['padel', 'futsal', 'cricket', 'pickleball']
         all_sport_courts = []
         
         for sport_type in sport_types:
-            vendors = await firestore_db.get_vendors_by_service(sport_type)
+            vendors = await firestore_v2.get_vendors_by_sport(sport_type)
             all_sport_courts.extend(vendors)
         
         logger.info(f"Retrieved {len(all_sport_courts)} sport courts from Firestore")
@@ -443,29 +443,18 @@ async def create_vendor(vendor_data: dict):
 @router.post("/vendors/{vendor_id}/slots")
 async def create_availability_slots(vendor_id: str, date: str, slots: List[Dict[str, Any]]):
     """
-    Create availability slots for a vendor
-    
-    Args:
-        vendor_id: Vendor ID
-        date: Date in YYYY-MM-DD format
-        slots: List of slot data
-        
-    Returns:
-        Creation result
+    Deprecated old-schema slot creation endpoint.
+
+    Current slot creation must go through smart_reseed/admin generation so slot
+    IDs, resources, services, and booking state stay canonical.
     """
-    try:
-        logger.info(f"Creating slots for vendor {vendor_id} on {date}")
-        
-        # Create slots
-        result = await availability_service.create_availability_slots(
-            vendor_id, date, slots
-        )
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error creating slots: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create slots")
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Deprecated endpoint. Use /api/vendors/{vendor_id}/smart-reseed "
+            "or /api/admin/slots/generate for canonical additive slot creation."
+        ),
+    )
 
 
 @router.post("/slots/{slot_id}/lock")

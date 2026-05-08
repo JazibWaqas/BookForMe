@@ -1,6 +1,8 @@
 """
-Clear all slots from Firestore
-Deletes all documents in the slots collection
+Destructive legacy helper: deletes every document in the slots collection.
+
+For normal slot maintenance, use smart_reseed.py. This file is kept only for a
+deliberate dev reset and refuses to run without an explicit confirmation flag.
 """
 
 import sys
@@ -45,4 +47,21 @@ def clear_all_slots():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Delete every slot document")
+    parser.add_argument(
+        "--confirm-delete-slots",
+        action="store_true",
+        help="Required. Confirms you intend to delete all slot documents.",
+    )
+    args = parser.parse_args()
+
+    if not args.confirm_delete_slots:
+        logger.error(
+            "Refusing to delete slots without --confirm-delete-slots. "
+            "Use smart_reseed.py for safe additive slot creation."
+        )
+        sys.exit(2)
+
     clear_all_slots()

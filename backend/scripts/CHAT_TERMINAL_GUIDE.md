@@ -70,15 +70,15 @@ I want to book for Friday
 ## ⚙️ Requirements
 
 The script requires:
-1. **Gemini API Key** - Set in `.env` as `GEMINI_API_KEY`
+1. **DeepSeek API Key** - Set in `.env` as `DEEPSEEK_API_KEY`
 2. **Firestore (Optional)** - For conversation history persistence
    - If not configured, it will still work but won't persist history
    - The StateManager has error handling to work without Firestore
 
 ## 🔧 Troubleshooting
 
-### Error: "Failed to initialize Gemini"
-- Check that `GEMINI_API_KEY` is set in your `.env` file
+### Error: "DEEPSEEK_API_KEY is not configured"
+- Check that `DEEPSEEK_API_KEY` is set in your `.env` file
 - Verify the API key is valid
 
 ### Error: "Firestore connection failed"
@@ -127,7 +127,7 @@ Agent: [Response asking for date/time]
 
 1. **Input**: You type a message
 2. **Processing**: Message goes through the full LangGraph workflow:
-   - `classify_intent_node` → Uses NLUAgent with Gemini to classify intent
+   - `classify_intent_node` → Uses fast-path extraction plus DeepSeek fallback
    - `query_node` → Calls tools (check_availability, get_pricing, etc.)
    - `generate_response_node` → Generates natural language response
 3. **Output**: Agent response is printed
@@ -141,7 +141,8 @@ If you want to test just the NLU (intent classification) without the full agent:
 python scripts/chat.py
 ```
 
-This only tests the NLU agent, not the full booking workflow.
+The current recommended deeper test is `booking_conversation_tests.py`, which
+runs multi-turn booking scenarios through the full agent and records reports.
 
 ## 🚀 Next Steps
 

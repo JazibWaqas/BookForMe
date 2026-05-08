@@ -219,7 +219,7 @@ class AISearchService:
         Query: "{query}"
 
         Instructions:
-        1. Identify the sport (padel, futsal, cricket, tennis, pickleball).
+        1. Identify the sport (padel, futsal, cricket, pickleball).
         2. Identify the area (DHA, Gulberg, Bahria, North Nazimabad, KDA, PECHS, Clifton, Gulshan).
         3. DATE HANDLING:
            - The date has ALREADY been resolved to: {resolved_date or "today's date"}.

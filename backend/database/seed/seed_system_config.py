@@ -38,6 +38,20 @@ def seed_system_config():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Seed system_config/global")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Required safety flag. This writes system_config/global.",
+    )
+    args = parser.parse_args()
+
+    if not args.write:
+        logger.error("Refusing to run without --write. This script mutates Firestore.")
+        sys.exit(2)
+
     logger.info("🌱 Seeding system configuration...")
     success = seed_system_config()
     

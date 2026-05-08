@@ -1,6 +1,9 @@
 """
-Slot generation logic for Firestore
-Generates slots based on vendor operating hours for a specified date range
+Legacy slot generation logic.
+
+Do not use this for current slot maintenance. It generates the older compact
+slot ID format, while the live booking system and admin/vendor APIs use
+smart_reseed.py with IDs like YYYYMMDD_HH_vendor_id_resource_id.
 """
 
 import sys

@@ -312,3 +312,10 @@ BookForMe is a **dual-interface sports booking platform** serving Karachi, Pakis
 ---
 
 *This report reflects the current actual state of the project as of February 20, 2026. All dates and percentages are based on real progress, not projections.*
+# Historical Archive Notice
+
+This status report is historical and may not reflect the current backend,
+agent, AI providers, or database scripts. For current status, prefer the root
+README and the focused backend README files.
+
+---

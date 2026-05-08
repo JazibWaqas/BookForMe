@@ -1,6 +1,8 @@
 """
-Seed script to populate Firestore with realistic demo data for JHAT app.
-Run this script to add users, matches, conversations, and leaderboard data.
+Legacy social/demo seed script.
+
+This writes old broad demo data (Dubai locations, non-current sports, social
+content). It is not part of the canonical booking inventory setup.
 """
 import asyncio
 from datetime import datetime, timedelta
@@ -264,4 +266,21 @@ async def main():
         traceback.print_exc()
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Legacy social/demo data seed")
+    parser.add_argument(
+        "--legacy-write",
+        action="store_true",
+        help="Required. Confirms you intentionally want to write legacy demo data.",
+    )
+    args = parser.parse_args()
+
+    if not args.legacy_write:
+        print(
+            "Refusing to run legacy demo seed without --legacy-write.\n"
+            "Use backend/database/seed/README.md to choose the current seed path."
+        )
+        sys.exit(2)
+
     asyncio.run(main())

@@ -1,6 +1,9 @@
 """
-Master seed script for populating all Firestore collections
-Run this script to populate the database with test data
+Master seed script for populating the canonical Firestore demo/dev dataset.
+
+This script writes core collections. It is for intentional empty/dev rebuilds,
+not routine slot maintenance. For normal additive slot creation, use
+database.seed.smart_reseed.
 """
 
 import os
@@ -189,59 +192,20 @@ def seed_payment_accounts(db):
 
 
 def seed_slots(db, days=14):
-    from database.seed.slot_generator import generate_all_slots, apply_test_states, get_slot_statistics
-    from database.seed.users_data import USERS_DATA
-    from database.schema import Collections
-    
-    logger.info(f"Generating slots for {days} days...")
-    
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    slots = generate_all_slots(start_date=start_date, days=days)
-    
-    logger.info(f"Generated {len(slots)} slots, applying test states...")
-    slots = apply_test_states(slots, USERS_DATA)
-    
-    stats = get_slot_statistics(slots)
-    logger.info(f"Slot statistics: {stats['by_status']}")
-    
-    logger.info("Seeding slots collection (this may take a while)...")
-    
-    batch_size = 500
-    batch = db.batch()
-    count = 0
-    
-    for i, slot in enumerate(slots):
-        slot_doc = {
-            "vendor_id": slot["vendor_id"],
-            "service_id": slot["service_id"],
-            "resource_id": slot["resource_id"],
-            "date": slot["date"],
-            "start_time": slot["start_time"],
-            "end_time": slot["end_time"],
-            "price": slot["price"],
-            "status": slot["status"],
-            "user_id": slot["user_id"],
-            "payment_id": slot["payment_id"],
-            "hold_expires_at": slot["hold_expires_at"],
-            "created_at": firestore.SERVER_TIMESTAMP,
-            "updated_at": firestore.SERVER_TIMESTAMP
-        }
-        
-        doc_ref = db.collection(Collections.SLOTS).document(slot["id"])
-        batch.set(doc_ref, slot_doc)
-        count += 1
-        
-        if count >= batch_size:
-            batch.commit()
-            logger.info(f"  Committed batch of {count} slots ({i + 1}/{len(slots)})")
-            batch = db.batch()
-            count = 0
-    
-    if count > 0:
-        batch.commit()
-        logger.info(f"  Committed final batch of {count} slots")
-    
-    logger.info(f"Seeded {len(slots)} slots total")
+    """Create missing canonical slots using the same additive flow as the app."""
+    from database.seed.smart_reseed import DAYS_AHEAD, smart_reseed
+
+    if days != DAYS_AHEAD:
+        logger.warning(
+            "seed_all --days=%s was requested, but canonical smart_reseed "
+            "currently uses DAYS_AHEAD=%s. Keeping one slot source of truth.",
+            days,
+            DAYS_AHEAD,
+        )
+
+    logger.info("Ensuring canonical slot documents exist via smart_reseed...")
+    created = smart_reseed(db)
+    logger.info("smart_reseed created %s missing slots", created)
 
 
 def seed_payments(db):
@@ -329,8 +293,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed Firestore database")
     parser.add_argument("--days", type=int, default=14, help="Number of days to generate slots for")
     parser.add_argument("--clear", action="store_true", help="Clear existing data before seeding")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Required safety flag. This script writes to Firestore.",
+    )
     
     args = parser.parse_args()
+
+    if not args.write:
+        logger.error(
+            "Refusing to run without --write. This script mutates Firestore. "
+            "For routine slot maintenance, use database/seed/smart_reseed.py."
+        )
+        sys.exit(2)
     
     if args.clear:
         db = get_firestore_client()

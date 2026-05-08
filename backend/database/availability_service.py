@@ -87,34 +87,20 @@ class AvailabilityService:
     
     async def create_availability_slots(self, vendor_id: str, date: str, slots: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Create availability slots for a vendor on a specific date
-        
-        Args:
-            vendor_id: Vendor ID
-            date: Date in YYYY-MM-DD format
-            slots: List of slot dictionaries with time and price
-            
-        Returns:
-            Creation result
+        Deprecated old-schema helper.
+
+        Current slot creation is handled by database.seed.smart_reseed.
         """
-        try:
-            logger.info(f"Creating {len(slots)} slots for vendor {vendor_id} on {date}")
-            
-            result = await self.db.create_availability_slots(vendor_id, date, slots)
-            
-            if result['success']:
-                logger.info(f"Created {result['created_count']} availability slots")
-            else:
-                logger.error(f"Failed to create slots: {result['error']}")
-            
-            return result
-                
-        except Exception as e:
-            logger.error(f"Error creating availability slots: {e}")
-            return {
-                'success': False,
-                'error': f'Failed to create slots: {str(e)}'
-            }
+        logger.warning(
+            "Deprecated create_availability_slots called for vendor=%s date=%s; "
+            "use smart_reseed instead.",
+            vendor_id,
+            date,
+        )
+        return {
+            "success": False,
+            "error": "Deprecated helper. Use smart_reseed for canonical slot creation.",
+        }
     
     async def get_vendor_schedule(self, vendor_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
         """

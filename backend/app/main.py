@@ -219,7 +219,7 @@ async def health_check():
     return {
         "status": "healthy",
         "database": "firestore",  # TODO: Check actual Firestore connection
-        "ai": "gemini",           # TODO: Check Gemini API connection
+        "ai": "deepseek_text_groq_vision",
         "whatsapp": "meta"        # Updated to reflect Meta API
     }
 

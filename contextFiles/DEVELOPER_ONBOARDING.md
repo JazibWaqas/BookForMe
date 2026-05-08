@@ -502,3 +502,10 @@ eas submit --platform android
 
 *Last Updated: February 20, 2026*  
 *Questions? Check ARCHITECTURE_MASTER_SPEC.md first, then ask the team.*
+# Historical Archive Notice
+
+This onboarding document is historical. For current setup and safe database
+maintenance, read `README.md`, `backend/README.md`, and
+`backend/database/seed/README.md`.
+
+---

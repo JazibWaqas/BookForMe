@@ -1,6 +1,8 @@
 """
-Seed script for social features
-Run after seed_all.py to populate social collections
+Seed script for social/demo features.
+
+This writes Firestore documents and should only be used for an intentional dev
+dataset rebuild.
 """
 
 import os
@@ -308,4 +310,18 @@ def seed_social_all():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Seed social/demo Firestore collections")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Required safety flag. This script writes social/demo collections.",
+    )
+    args = parser.parse_args()
+
+    if not args.write:
+        logger.error("Refusing to run without --write. This script mutates Firestore.")
+        sys.exit(2)
+
     seed_social_all()

@@ -1,6 +1,8 @@
 """
-Initialize Firestore database with sample data
-Run this script to set up your Firestore database with test vendors and slots
+Legacy prototype Firestore initializer.
+
+This creates old-schema sample vendors and `availability_slots`. It is not part
+of the current booking system. Keep it only for historical reference.
 """
 
 import asyncio
@@ -135,6 +137,24 @@ async def test_connection():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Legacy prototype Firestore initializer")
+    parser.add_argument(
+        "--legacy-write",
+        action="store_true",
+        help="Required. Confirms you intentionally want to write old-schema sample data.",
+    )
+    args = parser.parse_args()
+
+    if not args.legacy_write:
+        print(
+            "Refusing to run legacy initializer without --legacy-write.\n"
+            "Current setup uses backend/database/seed/seed_all.py for a dev rebuild "
+            "and backend/database/seed/smart_reseed.py for additive slots."
+        )
+        sys.exit(2)
+
     print("BookForMe Firestore Initialization")
     print("=" * 50)
     

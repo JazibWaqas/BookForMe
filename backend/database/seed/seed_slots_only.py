@@ -1,6 +1,8 @@
 """
-Seed only the slots collection (does not touch other collections)
-Use this after manually deleting the slots collection
+Ensure canonical slots exist without touching other collections.
+
+This is now a compatibility wrapper around smart_reseed.py. It creates missing
+slot documents only and does not delete or overwrite existing slots.
 """
 
 import sys
@@ -8,7 +10,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import logging
-from database.seed.seed_all import get_firestore_client, seed_slots
+from database.seed.seed_all import get_firestore_client
+from database.seed.smart_reseed import smart_reseed
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -17,23 +20,31 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Seed only the slots collection")
-    parser.add_argument("--days", type=int, default=14, help="Number of days to generate slots for")
+    parser = argparse.ArgumentParser(description="Ensure canonical slot documents exist")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Required safety flag. This creates missing slot documents.",
+    )
     
     args = parser.parse_args()
+
+    if not args.write:
+        logger.error("Refusing to run without --write. This script mutates Firestore.")
+        sys.exit(2)
     
     logger.info("=" * 60)
-    logger.info("Seeding SLOTS collection only")
+    logger.info("Ensuring SLOTS collection via smart_reseed")
     logger.info("=" * 60)
     
     try:
         db = get_firestore_client()
         logger.info("Firestore client initialized")
         
-        seed_slots(db, days=args.days)
+        created = smart_reseed(db)
         
         logger.info("=" * 60)
-        logger.info("Slots seeding completed successfully")
+        logger.info(f"Slot maintenance completed successfully ({created} created)")
         logger.info("=" * 60)
         
     except Exception as e:

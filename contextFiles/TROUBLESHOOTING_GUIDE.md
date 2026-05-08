@@ -426,3 +426,10 @@ python backend/scripts/master_forensic_verification
 
 *Last Updated: February 20, 2026*  
 *Contributions welcome: Add new issues and solutions as you discover them*
+# Historical Archive Notice
+
+This troubleshooting guide is historical. Check current docs first, especially
+`backend/README.md`, `backend/app/README.md`, and
+`backend/database/seed/README.md`.
+
+---

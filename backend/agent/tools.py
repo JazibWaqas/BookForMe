@@ -144,7 +144,7 @@ async def check_availability(
     Check availability of slots for sport type on specific date.
 
     Args:
-        sport_type: Type of sport (e.g., "padel", "tennis")
+        sport_type: Supported sport (padel, futsal, cricket, pickleball)
         area: Area/location to search in. If None/empty, returns ALL vendors for the sport.
         date: Date in YYYY-MM-DD format
         time_range: Optional dict with "start" and "end" times (HH:MM format)

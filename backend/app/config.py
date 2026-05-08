@@ -22,18 +22,14 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     
-    # AI/NLU (DeepSeek V4 Flash — text + vision)
+    # AI/NLU (DeepSeek text)
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_MODEL: str = "deepseek-v4-flash"
     AI_REQUEST_TIMEOUT_SECONDS: float = 6.0
 
-    # Legacy Groq (kept for reference, no longer used)
+    # Groq vision is still used for payment screenshot OCR.
     GROQ_API_KEY: str = "dummy_key_for_dev"
     GROQ_MODEL: str = "qwen/qwen3-32b"
-    
-    # Legacy Gemini support (optional, deprecated)
-    GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-2.5-flash"
     
     # WhatsApp (Meta Business API)
     WHATSAPP_ACCESS_TOKEN: str = "dummy_token"

@@ -1,7 +1,9 @@
 """
-SAFE SLOT SEEDING SCRIPT
-Deletes ONLY slots collection and repopulates with guaranteed correct timestamps
-Populates ALL vendors for the NEXT 14 DAYS
+LEGACY DESTRUCTIVE SLOT SEEDING SCRIPT.
+
+Despite the old name, this script deletes the entire slots collection before
+repopulating it. The current canonical path is smart_reseed.py, which is
+additive and never resets live slot state.
 """
 
 import os
@@ -165,8 +167,15 @@ def verify(db):
 # ---------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------
-def main():
-    logger.info("🚀 SAFE SLOT SEEDING STARTED")
+def main(confirm_reset_slots: bool = False):
+    if not confirm_reset_slots:
+        logger.error(
+            "Refusing to reset slots without --confirm-reset-slots. "
+            "Use smart_reseed.py for safe additive slot creation."
+        )
+        sys.exit(2)
+
+    logger.info("🚀 LEGACY SLOT RESET STARTED")
     db = get_firestore_client()
     delete_slots_collection(db)
     seed_slots(db)
@@ -174,4 +183,14 @@ def main():
     logger.info("🎉 SLOT SEEDING COMPLETE")
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Legacy destructive slot reset")
+    parser.add_argument(
+        "--confirm-reset-slots",
+        action="store_true",
+        help="Required. Confirms you intend to delete and recreate all slots.",
+    )
+    args = parser.parse_args()
+
+    main(confirm_reset_slots=args.confirm_reset_slots)

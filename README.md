@@ -53,9 +53,11 @@ cd App
 npm install
 npm start
 
-# 3. Database Setup (if needed)
-python backend/scripts/init_firestore.py
-python backend/scripts/seed_all.py
+# 3. Database Setup
+# Do not run seed scripts casually against the live project.
+# Read backend/database/seed/README.md first.
+# Routine slot maintenance uses the additive smart reseed path:
+python backend/database/seed/smart_reseed.py
 ```
 
 ### For Users
@@ -65,23 +67,19 @@ python backend/scripts/seed_all.py
 
 ---
 
-## 📚 Core Documentation
+## 📚 Current Documentation
 
-### 🎯 **Project Entrance** (Start Here)
-👉 **[contextFiles/README.md](./contextFiles/README.md)**  
-*Complete documentation hub with navigation guide*
+Start with these files. They describe the current system.
 
-### 🧠 **System Architecture** (Must Read First)
-👉 **[contextFiles/ARCHITECTURE_MASTER_SPEC.md](./contextFiles/ARCHITECTURE_MASTER_SPEC.md)**  
-*Complete technical foundation - database schema, AI system, API design, security model*
+- [backend/README.md](./backend/README.md) - active backend overview.
+- [backend/agent/README.md](./backend/agent/README.md) - current LangGraph booking agent.
+- [backend/database/README.md](./backend/database/README.md) - current Firestore shape.
+- [backend/database/seed/README.md](./backend/database/seed/README.md) - safe slot maintenance.
+- [backend/scripts/README.md](./backend/scripts/README.md) - local testing scripts.
 
-### 🚦 **Current Project Status**  
-👉 **[contextFiles/PROJECT_STATUS_REPORT.md](./contextFiles/PROJECT_STATUS_REPORT.md)**  
-*Real-time progress, completion metrics, current blockers, roadmap*
-
-### 🎯 **Active Development Focus**
-👉 **[contextFiles/VENDOR_DASHBOARD_PLAN.md](./contextFiles/VENDOR_DASHBOARD_PLAN.md)**  
-*Vendor dashboard PRD, technical requirements, implementation strategy*
+`contextFiles/` and `backend/conversations/` contain historical planning and
+prompt research. They may mention older providers or prototype ideas and should
+not override the current docs above.
 
 ### 📄 **Kaavish / FYP LaTeX report**
 👉 **[Final Report/README.md](./Final Report/README.md)**  
@@ -110,7 +108,7 @@ python backend/scripts/seed_all.py
 - **Shared Inventory**: Single source prevents overbooking
 
 ### 📸 **Screenshot-Based Payments**
-- **OCR Verification**: Gemini Vision validates payment screenshots
+- **OCR Verification**: Groq vision validates payment screenshot amounts
 - **Multiple Methods**: JazzCash, EasyPaisa, Bank Transfer
 - **Auto-Approval**: High-confidence matches processed instantly
 - **Manual Review**: Edge cases handled by vendors
@@ -123,8 +121,8 @@ python backend/scripts/seed_all.py
 |------------|-------------|---------|
 | **Backend** | Python FastAPI | High-performance async API |
 | **Database** | Google Cloud Firestore | Real-time, scalable NoSQL |
-| **AI Engine** | LangGraph + Groq (Qwen 3) | Stateful conversations |
-| **OCR** | Google Gemini Vision | Payment verification |
+| **AI Engine** | LangGraph + DeepSeek text model | Stateful conversations |
+| **OCR** | Groq vision model | Payment verification |
 | **Mobile** | React Native (Expo) | Cross-platform mobile app |
 | **Frontend** | React + TypeScript | Vendor dashboard |
 | **Authentication** | Firebase Auth + JWT | Secure user management |
@@ -143,8 +141,7 @@ python backend/scripts/seed_all.py
 
 ### 🚧 **In Development**
 - **Advanced Vendor Analytics**: Revenue trends and customer insights
-- **Payment OCR Automation**: Higher accuracy and auto-approval
-- **Social Features**: Matchmaking, leaderboards, chat
+- **Payment OCR Robustness**: More screenshot formats and clearer failure handling
 - **Push Notifications**: Booking reminders and updates
 
 ---
@@ -283,27 +280,7 @@ python backend/scripts/master_forensic_verification
 - **Discussions**: [GitHub Discussions](https://github.com/JazibWaqas/JHAT/discussions)
 - **Status**: Check PROJECT_STATUS_REPORT.md for latest progress
 
-### Contact Information
-- **Business Inquiries**: [Contact details]
-- **Technical Support**: [Contact details]
-- **Partnerships**: [Contact details]
 
----
-
-## 🎉 Success Stories
-
-### Early Adopters
-- **Capital Padel**: 50+ bookings per week, 95% payment verification success
-- **DHA Sports Complex**: Reduced phone calls by 80%, automated 70% of bookings
-- **Karachi Cricket Club**: Streamlined weekend bookings, increased revenue 25%
-
-### Key Metrics
-- **Booking Success Rate**: 95% (automated verification)
-- **Customer Satisfaction**: 4.8/5 (WhatsApp interactions)
-- **Vendor Time Savings**: 10+ hours/week (automated responses)
-- **Double-Booking Incidents**: 0 (OCC working perfectly)
-
----
 
 ## � What's Next?
 
@@ -327,6 +304,26 @@ python backend/scripts/master_forensic_verification
 **BookForMe is transforming how Pakistan books sports facilities - one conversation at a time.**
 
 ---
+
+
+How to run the database population
+The CLI now defaults to dry-run. Running this does not write:
+python backend/database/seed/smart_reseed.py
+To actually create missing slots, you must explicitly run:
+python backend/database/seed/smart_reseed.py --write
+If you need more future days:
+python backend/database/seed/smart_reseed.py --days-ahead 45 --write
+I also verified the generated slot shape in memory, without touching Firestore:
+
+Required fields present: yes
+Bad resource references: 0
+Bad statuses: 0
+Bad IDs: 0
+Slot ID format sample: 20260508_07_ace_padel_dha_ace_court_1
+Firestore batch supports create: yes
+So yes: if you need to generate more slots, smart_reseed.py --write is the script to use. It generates the fields your system actually reads: vendor_id, service_id, resource_id, date, start_time, end_time, price, status=available, user_id=None, payment_id=None, hold_expires_at=None.
+
+The big rule: do not use seed_all.py, safe_slot_seed.py, or clear_slots.py for adding future slots. Those are now guarded, but conceptually they’re rebuild/reset tools. For your real need, use only smart_reseed.py, dry-run first, then --write.
 
 *Last Updated: February 20, 2026*  
 *Next Status Review: March 20, 2026*  

@@ -502,7 +502,7 @@ BOOKING_KEYWORDS = {
     "availability", "price", "cancel", "time", "date", "tomorrow", "today", "morning",
     "evening", "afternoon", "night", "kal", "aaj", "shaam", "subah", "raat", "dopahar",
     "reserve", "confirm", "yes", "no", "ok", "done", "schedule", "payment", "pay",
-    "transfer", "screenshot", "receipt", "salon", "sports", "venue", "dha", "clifton",
+    "transfer", "screenshot", "receipt", "sports", "venue", "dha", "clifton",
     "gulshan", "defense", "karachi", "pitch", "net", "smash", "ace", "golden",
     "match", "game", "play", "ground", "field", "hour", "ghanta", "minute",
     "discount", "charges", "rate", "kitna", "price", "cost", "rupee", "rs",
@@ -825,7 +825,7 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
 
 
 BOOKING_SIGNALS = {
-    "padel", "futsal", "cricket", "salon", "book", "booking", "slot", "available",
+    "padel", "futsal", "cricket", "pickleball", "book", "booking", "slot", "available",
     "availability", "price", "time", "date", "tomorrow", "today", "morning",
     "evening", "afternoon", "night", "kal", "aaj", "shaam", "subah", "raat",
     "pm", "am", "bajay", "baje", "court", "pitch", "reserve", "want",

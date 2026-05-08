@@ -1,5 +1,5 @@
 """
-NLU Agent - Natural Language Understanding using Groq (Qwen 3 32B)
+NLU Agent - Natural Language Understanding using DeepSeek
 Handles intent extraction and entity recognition for Roman Urdu/English mixed language
 Uses Pydantic for structured LLM response parsing
 """

@@ -77,3 +77,9 @@ To build a **"Mission Control"** for sports venue owners in Karachi. Currently, 
 3.  **Phase 3: Insights & Analytics**: Aggregating the data into beautiful, actionable graphs.
 
 > **Note to Developer**: You are the architect. If you see a way to make the UX simpler for a venue receptionist who is busy/stressed, do it. The technical context is your boundary, but the UI is your canvas.
+# Historical Archive Notice
+
+This dashboard plan is historical planning context. It should not override the
+current sports booking agent/backend documentation.
+
+---

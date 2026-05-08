@@ -630,3 +630,10 @@ TEST_CASES = [
 
 *Last Updated: February 20, 2026*  
 *Next Review: March 20, 2026*
+# Historical Archive Notice
+
+This document is historical prompt/conversation planning. The current runtime
+agent is in `backend/agent/` and `backend/nlu/`. The active scope is sports
+court booking only: padel, futsal, cricket, pickleball.
+
+---
