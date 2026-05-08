@@ -1078,20 +1078,21 @@ async def classify_intent_node(state: AgentState) -> AgentState:
             )
 
         # Fast-path: unambiguous date/time inputs when sport context already known.
-        # Skips the NLU round-trip entirely — normalisation happens in normalize_entities_node.
+        # Skips the NLU round-trip entirely. Normalisation happens in normalize_entities_node.
+        # Extract date AND time from the same message so we don't re-ask for context the
+        # user already gave (e.g. "sunday 8 to 9 pm" must capture both, not just the date).
         if state.get("selected_sport_type"):
             date_val = _try_fast_date(last_message)
-            if date_val:
-                logger.info(f"Fast-path date: '{last_message}' -> {date_val}")
-                state["current_intent"] = "inquiry"
-                state["entities"] = {**state.get("entities", {}), "date": date_val}
-                return state
-
             time_val = _try_fast_time(last_message)
-            if time_val:
-                logger.info(f"Fast-path time: '{last_message}' -> {time_val}")
+            if date_val or time_val:
+                new_entities: Dict[str, str] = {}
+                if date_val:
+                    new_entities["date"] = date_val
+                if time_val:
+                    new_entities["time"] = time_val
+                logger.info(f"Fast-path date/time: '{last_message}' -> {new_entities}")
                 state["current_intent"] = "inquiry"
-                state["entities"] = {**state.get("entities", {}), "time": time_val}
+                state["entities"] = {**state.get("entities", {}), **new_entities}
                 return state
 
         # Cap history to last 6 messages to prevent old sport/vendor context from
@@ -1903,8 +1904,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
         confirmation_action = state.get("confirmation_action")
         messages = state.get("messages", [])
         last_msg = messages[-1].get("content", "") if messages else ""
-        last_lower = last_msg.lower()
-        
+
         if confirmation_action == "cancel":
             state["response"] = await _llm_converse(
                 "The user's booking has been cancelled. Confirm it briefly and offer to help with anything else.",
@@ -1937,8 +1937,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
         # ── Slot-selection reset: user typed something unrecognised during slot pick ──
         if state.get("slot_selection_reset"):
             state["slot_selection_reset"] = False  # consume the flag
-            is_urdu = any(w in last_lower for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam", "chahiye"])
-            if is_urdu:
+            if _is_urdu(last_msg):
                 state["response"] = (
                     "Slot list reset ho gayi. Dobara batayein sport, date, time "
                     "(e.g. 'padel kal shaam')."
@@ -1972,8 +1971,7 @@ async def generate_response_node(state: AgentState) -> AgentState:
             time_disp = f"{slot.get('slot_time', '')}-{slot.get('end_time', '')}"
             price = pending.get("price", 0)
             vendor = pending.get("vendor_name") or pending.get("service_type", "venue")
-            is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
-            if is_urdu:
+            if _is_urdu(last_msg):
                 state["response"] = f"{time_disp} at {vendor}, Rs {price}. Confirm karein? (yes for 10 min hold, no to cancel)"
             else:
                 state["response"] = f"{time_disp} at {vendor}, Rs {price}. Confirm? (reply yes to hold for 10 min, no to cancel)"
@@ -2163,9 +2161,8 @@ async def generate_response_node(state: AgentState) -> AgentState:
         
         messages = state.get("messages", [])
         last_msg = messages[-1].get("content", "") if messages else ""
-        is_urdu = any(w in last_msg.lower() for w in ["aoa", "salam", "koi", "hei", "hai", "kal", "aaj", "shaam"])
-        
-        if is_urdu:
+
+        if _is_urdu(last_msg):
             state["response"] = "Sorry, error aaya. Dobara try karein?"
         else:
             state["response"] = "Sorry, I encountered an error. Please try again."
@@ -2241,7 +2238,7 @@ def generate_fallback_response(state: AgentState) -> str:
     elif state.get("awaiting_confirmation"):
         return "Would you like to confirm this booking? Reply 'yes' to confirm or 'no' to cancel."
     else:
-        return "I understand. How can I help you with your booking?"
+        return "What would you like to book? Padel, futsal, cricket, or pickleball?"
 
 
 # =============================================================================
