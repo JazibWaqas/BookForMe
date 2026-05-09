@@ -8,7 +8,7 @@ import logging
 import sys
 import os
 
-AGENT_RESPONSE_DELAY_S = 0.75
+AGENT_RESPONSE_DELAY_S = 0.25
 
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
