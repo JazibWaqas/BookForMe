@@ -11,12 +11,17 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from app.config import settings
 
-from agent.graph import BookingAgent
+from agent.graph import AGENT_RESPONSE_DELAY_S, BookingAgent
 from agent.session_store import session_store
 from nlu.state_manager import StateManager
 from nlu.ocr import PaymentOCR
 
 logger = logging.getLogger(__name__)
+
+
+async def _reply_after_delay(text: str) -> str:
+    await asyncio.sleep(AGENT_RESPONSE_DELAY_S)
+    return text
 
 
 class WhatsAppAgent:
@@ -117,6 +122,7 @@ class WhatsAppAgent:
             logger.error(f"Error processing message: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+            await asyncio.sleep(AGENT_RESPONSE_DELAY_S)
             return "Sorry, I encountered an error. Please try again later."
 
     async def _persist_turn(
@@ -176,7 +182,9 @@ class WhatsAppAgent:
             
             if not user_session:
                 logger.info(f"No active session for {phone_number}")
-                return "You don't have an active booking. Please start by selecting a slot first."
+                return await _reply_after_delay(
+                    "You don't have an active booking. Please start by selecting a slot first."
+                )
             
             locked_slot_id = user_session.get('locked_slot_id')
             expected_amount = user_session.get('payment_amount')
@@ -184,7 +192,9 @@ class WhatsAppAgent:
             
             if not locked_slot_id:
                 logger.info(f"No locked slot for {phone_number}")
-                return "You don't have a pending payment. Please book a slot first and I'll send you payment details."
+                return await _reply_after_delay(
+                    "You don't have a pending payment. Please book a slot first and I'll send you payment details."
+                )
             
             logger.info(f"Found locked slot: {locked_slot_id}, expected amount: {expected_amount}")
 
@@ -213,13 +223,13 @@ class WhatsAppAgent:
             if not ocr_result["verified"]:
                 extracted = ocr_result.get("extracted_amount")
                 if extracted is not None:
-                    return (
+                    return await _reply_after_delay(
                         f"Payment screenshot received, but the amount doesn't match.\n"
                         f"Expected: Rs {expected_amount}. Found: Rs {int(extracted)}\n"
                         "Please send the correct payment screenshot. Your slot is still held for a few more minutes."
                     )
                 logger.warning(f"OCR could not verify payment for {phone_number}. Error: {ocr_result.get('error')}")
-                return (
+                return await _reply_after_delay(
                     "I couldn't read the payment amount from that image. "
                     "Please send a clear screenshot of your payment confirmation showing the transferred amount."
                 )
@@ -240,7 +250,9 @@ class WhatsAppAgent:
 
             if not payment_result.get('success'):
                 logger.error(f"Failed to submit payment: {payment_result.get('error')}")
-                return "Sorry, there was an error processing your payment. Please try again or contact support."
+                return await _reply_after_delay(
+                    "Sorry, there was an error processing your payment. Please try again or contact support."
+                )
             
             logger.info(f"Payment submitted and OCR verified for slot {locked_slot_id}")
             
@@ -276,13 +288,15 @@ class WhatsAppAgent:
                     phone_number, 'assistant', f'Payment received and booking confirmed! ID: {short_id}'
                 )
                 
-                return f"""Payment Received
+                return await _reply_after_delay(
+                    f"""Payment Received
 
 Booking Confirmed
 Booking ID: {short_id}
 Amount: {amount_str}
 
 Thank you for booking with us. See you soon."""
+                )
             
             else:
                 slot_parts = locked_slot_id.split('_') if '_' in locked_slot_id else []
@@ -293,15 +307,19 @@ Thank you for booking with us. See you soon."""
                     short_id = f"{vendor_code}-{time_part}"
                 else:
                     short_id = locked_slot_id[:8]
-                return f"""Payment Screenshot Received
+                return await _reply_after_delay(
+                    f"""Payment Screenshot Received
 
 Your payment is being verified. You will receive a confirmation shortly.
 
 Booking ID: {short_id}
 Status: Pending Verification"""
+                )
             
         except Exception as e:
             logger.error(f"Error processing payment image: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return "Sorry, there was an error processing your payment screenshot. Please try again or contact support."
+            return await _reply_after_delay(
+                "Sorry, there was an error processing your payment screenshot. Please try again or contact support."
+            )
