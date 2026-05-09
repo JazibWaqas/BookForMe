@@ -3,9 +3,12 @@ LangGraph StateGraph Definition - Industry Standard Workflow
 Refactored with conditional routing, confirmation flow, and session persistence
 """
 
+import asyncio
 import logging
 import sys
 import os
+
+AGENT_RESPONSE_DELAY_S = 0.75
 
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
@@ -181,10 +184,12 @@ class BookingAgent:
             response = final_state.get("response", "Sorry, I couldn't process that.")
             logger.info(f"Agent response: {response[:100]}...")
             
+            await asyncio.sleep(AGENT_RESPONSE_DELAY_S)
             return response
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+            await asyncio.sleep(AGENT_RESPONSE_DELAY_S)
             return "Sorry, I encountered an error. Please try again."
