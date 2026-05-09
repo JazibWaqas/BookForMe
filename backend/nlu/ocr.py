@@ -12,9 +12,13 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 AMOUNT_TOLERANCE = 10
 
 PROMPT = (
-    "This is a Pakistani payment screenshot (JazzCash / EasyPaisa / bank transfer). "
-    "Find the total amount transferred in PKR and return ONLY that number. "
-    "No text, no units, no currency symbol. If you cannot find a clear amount, return 0."
+    "You are reading ONE image. It must be a clear Pakistani mobile money or bank PAYMENT CONFIRMATION screen "
+    "(JazzCash, EasyPaisa, or bank app) showing a completed transfer—NOT a selfie, shop photo, product, chat, or random scene.\n"
+    "If the image is NOT clearly such a screen, or you cannot see one unambiguous transferred/total amount in PKR, respond with exactly: 0\n"
+    "If it IS a valid confirmation screen, find the main amount that was transferred or debited (the transaction total in PKR), "
+    "not fees, not airtime, not unrelated numbers on clothing or background.\n"
+    "Reply with NOTHING else: only that one number using digits and optional decimal point (e.g. 2000 or 2000.50). "
+    "No currency symbol, no words, no units, no explanation."
 )
 
 
