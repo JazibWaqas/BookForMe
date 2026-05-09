@@ -1,14 +1,14 @@
 # BookForMe Mobile App - React Native + Expo
 
-**Last Updated**: January 15, 2025  
-**Status**: Core Features Complete, Social Features In Progress  
-**Progress**: ~70% Complete
+**Last Updated**: May 9, 2026  
+**Status**: Final App Polish on Expo Go; Stable Android Demo Build Next  
+**Progress**: Launch QA phase
 
 ---
 
 ## 🎯 Core Vision
 
-The mobile app provides a **centralized marketplace** for users to browse, search, and book sports courts and services in Karachi. It shares the same Firestore database as the WhatsApp AI agent, ensuring real-time availability synchronization.
+The mobile app provides a **centralized marketplace** for users to browse, search, and book sports courts and services in Karachi. It shares the same Firestore database as the completed WhatsApp/Web Chat AI agent, ensuring real-time availability synchronization.
 
 **Key Features**:
 - Browse vendors by category (Padel, Futsal, Cricket, Pickleball)
@@ -19,7 +19,7 @@ The mobile app provides a **centralized marketplace** for users to browse, searc
 
 ---
 
-## ✅ What's Done (As of January 15, 2025)
+## ✅ What's Done
 
 ### Core Booking Flow ✅
 - ✅ Vendor browsing with React Query caching
@@ -48,25 +48,45 @@ The mobile app provides a **centralized marketplace** for users to browse, searc
 
 ---
 
-## 🚧 What Needs to Be Done
+### AI Agent Integration ✅
+- ✅ Booking agent regression/manual testing is passing
+- ✅ App/backend share the deployed Render API
+- ✅ Agent work is no longer the active focus for this launch session
+- ⚠️ OCR amount extraction has a provider/model accuracy caveat; Gemini may be tested as an alternate OCR model
+
+---
+
+## 🚧 Current Launch Focus
 
 ### High Priority
-1. **Social Features Backend Integration** (Target: January 25, 2025)
-   - Connect forum posts to backend API
-   - Implement match creation/joining
-   - Connect leaderboard to backend
-   - Real-time chat messaging
+1. **Customer App QA**
+   - Home/search/category browsing
+   - Vendor detail and slot selection
+   - Booking lock and payment upload
+   - My Bookings and Profile
 
-2. **Push Notifications** (Target: January 30, 2025)
-   - Expo Notifications setup
-   - Booking reminders
-   - Payment status updates
-   - Match invitations
+2. **Vendor Dashboard QA**
+   - Dashboard today metrics
+   - Booking list and booking detail
+   - Calendar/grid operations
+   - Approve/reject payment flows
+   - Resource, service, and payment account edits
+
+3. **Admin Side QA**
+   - Overview
+   - Vendor approval/moderation
+   - Slot generation
+   - Pending payment oversight
+
+4. **Stable Android Demo Build**
+   - Keep Expo Go for fast iteration
+   - Build an installable Android APK/internal build before the university demo
+   - Point the build at `https://bookforme-ie34.onrender.com` so it does not depend on a laptop IP or local Wi-Fi
 
 ### Medium Priority
-1. **Image Upload** - Vendor photos and payment screenshots
-2. **Offline Support** - AsyncStorage caching
-3. **Analytics** - User behavior tracking
+1. **Push Notifications** - booking reminders and payment status updates
+2. **Offline/poor-network resilience** - clearer retry states and cached read-only screens
+3. **OCR Provider Comparison** - Groq vision vs Gemini on real JazzCash/EasyPaisa/bank screenshots
 
 ---
 
@@ -133,9 +153,10 @@ npm start
 - **Android**: Press `a` in terminal or scan QR with Expo Go
 
 ### Environment
-- **API Base URL**: Configured in `config/api.ts`
-- **Backend**: `https://jhat-production.up.railway.app` (production)
-- **Local**: `http://localhost:8000` (development)
+- **API Base URL**: Configured by `EXPO_PUBLIC_API_URL` in `.env`, with fallback logic in `config/api.ts`
+- **Current deployed backend**: `https://bookforme-ie34.onrender.com`
+- **Local**: `http://localhost:8000` or your computer's LAN IP for physical-device testing
+- **Demo recommendation**: use the deployed backend for APK/internal builds to avoid local network surprises
 
 ---
 
@@ -220,9 +241,9 @@ const tokenCache = {
 
 ## 🐛 Known Issues
 
-1. **Profile Page**: Slow on first load (partially fixed with async loading)
-2. **Bookings Page**: Takes 5-10 seconds to update after payment upload
-3. **Slot Selection**: UI state sometimes out of sync with backend
+1. **Payment OCR**: amount extraction can fail depending on model/screenshot quality; consider Gemini comparison.
+2. **Bookings Page**: may take several seconds to reflect payment/upload changes depending on refetch timing.
+3. **Slot Selection**: verify UI state stays aligned with backend after lock/payment/cancel paths during final QA.
 
 ---
 
@@ -252,5 +273,5 @@ const tokenCache = {
 
 ---
 
-**Last Updated**: January 15, 2025  
+**Last Updated**: May 9, 2026  
 **Maintained By**: Mobile App Team

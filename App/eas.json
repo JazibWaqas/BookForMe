@@ -1,0 +1,34 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_ENV": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_ENV": "production"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
+        "EXPO_PUBLIC_ENV": "production"
+      }
+    }
+  }
+}
