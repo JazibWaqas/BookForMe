@@ -7,6 +7,14 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "442894314871-3or3bim1a2l81erelk7t40j3ndp85702.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCjXAhFzzrmcUNyniFYiAhVtNWS6FWQ9aE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "bookforme-c93a6.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "bookforme-c93a6",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "bookforme-c93a6.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "442894314871",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:442894314871:web:9fe5d5140ff4ec50e30572",
+        "EXPO_PUBLIC_PROJECT_ID": "bookforme-c93a6",
         "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_ENV": "development"
@@ -18,6 +26,14 @@
         "buildType": "apk"
       },
       "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "442894314871-3or3bim1a2l81erelk7t40j3ndp85702.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCjXAhFzzrmcUNyniFYiAhVtNWS6FWQ9aE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "bookforme-c93a6.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "bookforme-c93a6",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "bookforme-c93a6.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "442894314871",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:442894314871:web:9fe5d5140ff4ec50e30572",
+        "EXPO_PUBLIC_PROJECT_ID": "bookforme-c93a6",
         "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_ENV": "production"
@@ -25,6 +41,14 @@
     },
     "production": {
       "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "442894314871-3or3bim1a2l81erelk7t40j3ndp85702.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCjXAhFzzrmcUNyniFYiAhVtNWS6FWQ9aE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "bookforme-c93a6.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "bookforme-c93a6",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "bookforme-c93a6.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "442894314871",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:442894314871:web:9fe5d5140ff4ec50e30572",
+        "EXPO_PUBLIC_PROJECT_ID": "bookforme-c93a6",
         "EXPO_PUBLIC_API_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_RENDER_URL": "https://bookforme-ie34.onrender.com",
         "EXPO_PUBLIC_ENV": "production"
