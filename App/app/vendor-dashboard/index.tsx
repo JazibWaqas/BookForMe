@@ -83,6 +83,7 @@ function holdCountdownLabel(iso?: string | null): string | null {
 export default function VendorDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 20);
 
   const [vendorName, setVendorName] = useState('Vendor Dashboard');
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -404,7 +405,7 @@ export default function VendorDashboardScreen() {
         </View>
       </Animated.ScrollView>
 
-      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+      <View style={[styles.bottomNav, { paddingBottom: bottomInset }]}>
         <TouchableOpacity style={styles.navItem} activeOpacity={0.7}>
           <Ionicons name="grid" size={24} color={COLORS.primary} />
           <Text style={[styles.navText, styles.navTextActive]}>Dashboard</Text>

@@ -72,6 +72,7 @@ class AuthService {
         await this.setToken(response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('userRole', response.data.user.role || role);
+        updateTokenCache(response.data.token);
 
         return {
           success: true,

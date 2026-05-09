@@ -156,10 +156,11 @@ const getCachedToken = async (): Promise<string | null> => {
     return tokenCache.token;
   }
 
-  // Fetch from AsyncStorage and cache it
+  // Fetch from AsyncStorage and cache real tokens only. Caching null can leave
+  // authenticated actions without headers right after login/register.
   try {
     const token = await AsyncStorage.getItem('authToken');
-    tokenCache = { token, timestamp: now };
+    tokenCache = token ? { token, timestamp: now } : null;
     return token;
   } catch (error) {
     console.error('Error getting token:', error);

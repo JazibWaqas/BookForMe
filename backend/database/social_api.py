@@ -1282,14 +1282,19 @@ async def get_friends(user_id: str = Query(...)):
 @router.get("/friends/requests")
 async def get_friend_requests(user_id: str = Query(...)):
     """Get pending friend requests for current user"""
-    # Get incoming requests
     incoming_docs = await asyncio.to_thread(
         lambda: list(db.collection('friend_requests')
                      .where('to_user_id', '==', user_id)
                      .where('status', '==', 'pending')
                      .stream())
     )
-    
+    outgoing_docs = await asyncio.to_thread(
+        lambda: list(db.collection('friend_requests')
+                     .where('from_user_id', '==', user_id)
+                     .where('status', '==', 'pending')
+                     .stream())
+    )
+
     requests = []
     for doc in incoming_docs:
         data = doc.to_dict()
@@ -1300,8 +1305,19 @@ async def get_friend_requests(user_id: str = Query(...)):
             "status": data.get('status'),
             "created_at": data.get('created_at')
         })
+
+    outgoing = []
+    for doc in outgoing_docs:
+        data = doc.to_dict()
+        to_user = await get_user_profile_social(data.get('to_user_id'))
+        outgoing.append({
+            "id": doc.id,
+            "to_user": to_user.dict(),
+            "status": data.get('status'),
+            "created_at": data.get('created_at')
+        })
     
-    return {"requests": requests}
+    return {"requests": requests, "outgoing": outgoing}
 
 
 @router.post("/friends/request")
@@ -1309,32 +1325,60 @@ async def send_friend_request(
     to_user_id: str = Query(...),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Add a friend directly (no acceptance required for demo)"""
+    """Create a pending friend request. Recipient can accept or reject."""
     if user_id == to_user_id:
         raise HTTPException(status_code=400, detail="Cannot add yourself as a friend")
+
+    to_user_doc = await asyncio.to_thread(db.collection('users').document(to_user_id).get)
+    if not to_user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
     
     # Check if already friends
     user_doc = await asyncio.to_thread(db.collection('users').document(user_id).get)
-    user_data = user_doc.to_dict()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_data = user_doc.to_dict() or {}
     
     if to_user_id in user_data.get('friends', []):
         raise HTTPException(status_code=400, detail="Already friends with this user")
-    
-    # Add each user to the other's friends array directly
-    from_user_ref = db.collection('users').document(user_id)
-    to_user_ref = db.collection('users').document(to_user_id)
-    
-    await asyncio.to_thread(
-        lambda: from_user_ref.update({'friends': firestore.ArrayUnion([to_user_id])})
+
+    existing_outgoing = await asyncio.to_thread(
+        lambda: list(db.collection('friend_requests')
+                     .where('from_user_id', '==', user_id)
+                     .where('to_user_id', '==', to_user_id)
+                     .where('status', '==', 'pending')
+                     .limit(1)
+                     .stream())
     )
-    await asyncio.to_thread(
-        lambda: to_user_ref.update({'friends': firestore.ArrayUnion([user_id])})
+    if existing_outgoing:
+        return {"success": True, "message": "Friend request already sent", "status": "pending"}
+
+    existing_incoming = await asyncio.to_thread(
+        lambda: list(db.collection('friend_requests')
+                     .where('from_user_id', '==', to_user_id)
+                     .where('to_user_id', '==', user_id)
+                     .where('status', '==', 'pending')
+                     .limit(1)
+                     .stream())
+    )
+    if existing_incoming:
+        raise HTTPException(status_code=400, detail="This user already sent you a request")
+
+    request_doc = {
+        'from_user_id': user_id,
+        'to_user_id': to_user_id,
+        'status': 'pending',
+        'created_at': firestore.SERVER_TIMESTAMP,
+        'updated_at': firestore.SERVER_TIMESTAMP,
+    }
+    _, request_ref = await asyncio.to_thread(
+        lambda: db.collection('friend_requests').add(request_doc)
     )
     
     # Clear cache
     cache.clear()
     
-    return {"success": True, "message": "Friend added!"}
+    return {"success": True, "message": "Friend request sent", "status": "pending", "request_id": request_ref.id}
 
 
 @router.post("/friends/accept")

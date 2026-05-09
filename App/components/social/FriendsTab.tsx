@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import FriendCard from './FriendCard';
 import { COLORS } from '../../constants/colors';
@@ -17,6 +18,13 @@ interface User {
     vendor_id?: string | null;
 }
 
+interface FriendRequest {
+    id: string;
+    from_user?: User;
+    to_user?: User;
+    status?: string;
+}
+
 const isVendorUser = (u: User): boolean => {
     const role = u.role != null ? String(u.role).trim().toLowerCase() : '';
     if (role === 'vendor' || role === 'admin') return true;
@@ -24,8 +32,8 @@ const isVendorUser = (u: User): boolean => {
     return vid !== '' && vid !== 'none' && vid !== 'null';
 };
 
-const isSocialPlayer = (u: User): boolean => {
-    if (isVendorUser(u)) return false;
+const isSocialPlayer = (u?: User): u is User => {
+    if (!u || isVendorUser(u)) return false;
     const n = (u.name || '').trim().toLowerCase();
     if (!n) return false;
     if (n === 'unknown' || n === 'unknown user') return false;
@@ -45,6 +53,8 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
     const [friends, setFriends] = useState<User[]>([]);
     const [suggestions, setSuggestions] = useState<User[]>([]);
     const [knownFriendIds, setKnownFriendIds] = useState<Set<string>>(new Set());
+    const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+    const [outgoingRequestIds, setOutgoingRequestIds] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
@@ -54,25 +64,69 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         loadData();
     }, [activeSection]);
 
+    const authedConfig = async (params?: Record<string, string>) => {
+        const token = await AsyncStorage.getItem('authToken');
+        return {
+            params,
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        };
+    };
+
+    const syncFriendRequests = (requestData: any) => {
+        const incoming = Array.isArray(requestData?.requests) ? requestData.requests : [];
+        const outgoing = Array.isArray(requestData?.outgoing) ? requestData.outgoing : [];
+        setIncomingRequests(
+            incoming.filter((request: FriendRequest) => isSocialPlayer(request.from_user))
+        );
+        setOutgoingRequestIds(new Set<string>(
+            outgoing
+                .map((request: FriendRequest) => request.to_user?.id)
+                .filter((id: string | undefined): id is string => Boolean(id))
+        ));
+    };
+
     const loadData = async () => {
         setLoading(true);
         try {
+            const requestsPromise = apiClient
+                .get(API_ENDPOINTS.social.friendRequests, { params: { user_id: currentUserId } })
+                .catch(() => ({ data: { requests: [], outgoing: [] } }));
+
             if (activeSection === 'friends') {
-                const res = await apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } });
-                const friendRows = (res.data.friends || []).filter((u: User) => isSocialPlayer(u));
+                const [friendsRes, requestsRes] = await Promise.all([
+                    apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } }),
+                    requestsPromise,
+                ]);
+                const friendRows = (friendsRes.data.friends || []).filter((u: User) => isSocialPlayer(u));
                 setFriends(friendRows);
                 setKnownFriendIds(new Set<string>(friendRows.map((u: User) => u.id)));
+                syncFriendRequests(requestsRes.data);
             } else if (activeSection === 'find') {
-                const [usersRes, friendsRes] = await Promise.all([
+                const [usersRes, friendsRes, requestsRes] = await Promise.all([
                     apiClient.get(API_ENDPOINTS.social.users),
                     apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } }).catch(() => ({ data: { friends: [] } })),
+                    requestsPromise,
                 ]);
                 const friendRows = (friendsRes.data.friends || []).filter((u: User) => isSocialPlayer(u));
                 const friendIds = new Set<string>(friendRows.map((u: User) => u.id));
+                const outgoingIds = new Set<string>(
+                    (requestsRes.data?.outgoing || [])
+                        .map((request: FriendRequest) => request.to_user?.id)
+                        .filter((id: string | undefined): id is string => Boolean(id))
+                );
+
                 setKnownFriendIds(friendIds);
+                syncFriendRequests(requestsRes.data);
+
                 const allUsers = usersRes.data || [];
                 setSuggestions(
-                    allUsers.filter((u: User) => u.id !== currentUserId && isSocialPlayer(u) && !friendIds.has(u.id))
+                    allUsers.filter(
+                        (u: User) =>
+                            u.id !== currentUserId &&
+                            isSocialPlayer(u) &&
+                            !friendIds.has(u.id) &&
+                            !outgoingIds.has(u.id)
+                    )
                 );
             }
         } catch (error) {
@@ -88,7 +142,11 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
             try {
                 const res = await apiClient.get(API_ENDPOINTS.social.users, { params: { search: query } });
                 const results = (res.data || []).filter(
-                    (u: User) => u.id !== currentUserId && isSocialPlayer(u) && !knownFriendIds.has(u.id)
+                    (u: User) =>
+                        u.id !== currentUserId &&
+                        isSocialPlayer(u) &&
+                        !knownFriendIds.has(u.id) &&
+                        !outgoingRequestIds.has(u.id)
                 );
                 setSearchResults(results);
             } catch (error) {
@@ -101,23 +159,66 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
 
     const handleAddFriend = async (userId: string) => {
         try {
-            await apiClient.post(API_ENDPOINTS.social.sendFriendRequest, null, { params: { to_user_id: userId } });
-            showSuccess('Friend added', 'You are now connected.');
+            await apiClient.post(
+                API_ENDPOINTS.social.sendFriendRequest,
+                null,
+                await authedConfig({ to_user_id: userId })
+            );
+            showSuccess('Request sent', 'They can accept or reject it.');
             setSuggestions(prev => prev.filter(u => u.id !== userId));
             setSearchResults(prev => prev.filter(u => u.id !== userId));
-            setKnownFriendIds(prev => new Set([...prev, userId]));
-            // Refresh friends list
-            loadData();
+            setOutgoingRequestIds(prev => new Set([...prev, userId]));
         } catch (error: any) {
-            const msg = error.response?.data?.detail || 'Failed to add friend';
-            if (String(msg).toLowerCase().includes('already')) {
+            const msg = error.response?.data?.detail || 'Failed to send friend request';
+            const lower = String(msg).toLowerCase();
+            if (lower.includes('already friends')) {
                 showInfo('Already friends', 'Removed from suggestions.');
                 setSuggestions(prev => prev.filter(u => u.id !== userId));
                 setSearchResults(prev => prev.filter(u => u.id !== userId));
                 setKnownFriendIds(prev => new Set([...prev, userId]));
+            } else if (lower.includes('already sent')) {
+                showInfo('Request already sent', 'Waiting for them to respond.');
+                setSuggestions(prev => prev.filter(u => u.id !== userId));
+                setSearchResults(prev => prev.filter(u => u.id !== userId));
+                setOutgoingRequestIds(prev => new Set([...prev, userId]));
+            } else if (lower.includes('sent you a request')) {
+                showInfo('Request waiting', 'Open My Friends to accept or reject it.');
+                setActiveSection('friends');
+            } else if (lower.includes('authorization') || lower.includes('authentication')) {
+                showError('Sign in required', 'Please sign in again before adding friends.');
             } else {
-                showError('Could not add friend', msg);
+                showError('Could not send request', msg);
             }
+        }
+    };
+
+    const handleAcceptRequest = async (requestId: string) => {
+        try {
+            await apiClient.post(
+                API_ENDPOINTS.social.acceptFriendRequest,
+                null,
+                await authedConfig({ request_id: requestId })
+            );
+            showSuccess('Friend added', 'You are now connected.');
+            await loadData();
+        } catch (error: any) {
+            const msg = error.response?.data?.detail || 'Please try again.';
+            showError('Could not accept request', msg);
+        }
+    };
+
+    const handleRejectRequest = async (requestId: string) => {
+        try {
+            await apiClient.post(
+                API_ENDPOINTS.social.rejectFriendRequest,
+                null,
+                await authedConfig({ request_id: requestId })
+            );
+            setIncomingRequests(prev => prev.filter(request => request.id !== requestId));
+            showInfo('Request declined', 'No changes were made.');
+        } catch (error: any) {
+            const msg = error.response?.data?.detail || 'Please try again.';
+            showError('Could not decline request', msg);
         }
     };
 
@@ -130,7 +231,11 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         const friendId = removeTarget.id;
         setRemoveTarget(null);
         try {
-            await apiClient.post(API_ENDPOINTS.social.removeFriend, null, { params: { friend_id: friendId } });
+            await apiClient.post(
+                API_ENDPOINTS.social.removeFriend,
+                null,
+                await authedConfig({ friend_id: friendId })
+            );
             setFriends(prev => prev.filter(f => f.id !== friendId));
             setKnownFriendIds(prev => {
                 const next = new Set(prev);
@@ -177,7 +282,6 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         <View style={styles.container}>
             {renderSectionTabs()}
 
-            {/* Search (for Find Friends) */}
             {activeSection === 'find' && (
                 <View style={styles.searchContainer}>
                     <Ionicons name="search" size={18} color={COLORS.textMuted} />
@@ -195,10 +299,29 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
                 <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
             ) : (
                 <View>
-                    {/* Friends List - Using View.map instead of FlatList */}
                     {activeSection === 'friends' && (
-                        friends.length > 0 ? (
+                        incomingRequests.length > 0 || friends.length > 0 ? (
                             <View>
+                                {incomingRequests.length > 0 && (
+                                    <View>
+                                        <Text style={styles.sectionTitle}>Friend Requests</Text>
+                                        {incomingRequests.map((request) => (
+                                            request.from_user ? (
+                                                <FriendCard
+                                                    key={request.id}
+                                                    user={request.from_user}
+                                                    status="incoming"
+                                                    onAccept={() => handleAcceptRequest(request.id)}
+                                                    onReject={() => handleRejectRequest(request.id)}
+                                                />
+                                            ) : null
+                                        ))}
+                                    </View>
+                                )}
+
+                                {friends.length > 0 && (
+                                    <Text style={styles.sectionTitle}>My Friends</Text>
+                                )}
                                 {friends.map((item) => (
                                     <FriendCard
                                         key={item.id}
@@ -212,7 +335,6 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
                         ) : renderEmptyState('No friends yet. Start connecting!', 'people-outline')
                     )}
 
-                    {/* Find Friends / Suggestions */}
                     {activeSection === 'find' && (
                         <View>
                             {searchQuery.length >= 2 && searchResults.length > 0 && (
@@ -310,9 +432,6 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         fontSize: 15,
         color: COLORS.text,
-    },
-    listContent: {
-        paddingBottom: 20,
     },
     sectionTitle: {
         fontSize: 14,
