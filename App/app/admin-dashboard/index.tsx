@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +22,8 @@ import {
   AdminVendor,
   PendingPayment,
 } from '../../services/admin';
+import { showError, showSuccess } from '../../utils/feedback';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 const EMPTY_METRICS: AdminOverviewMetrics = {
   pending_vendors: 0,
@@ -44,6 +45,13 @@ export default function AdminDashboardScreen() {
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [userQuery, setUserQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    destructive?: boolean;
+    run: () => Promise<void>;
+  } | null>(null);
 
   const loadAdminData = useCallback(async (query?: string) => {
     const [overview, vendorRows, paymentRows, userRows, logs] = await Promise.all([
@@ -81,7 +89,7 @@ export default function AdminDashboardScreen() {
         await loadAdminData();
       } catch (e) {
         console.error('Failed to load admin dashboard', e);
-        Alert.alert('Error', 'Failed to load admin dashboard');
+        showError('Admin dashboard failed', 'Could not load admin data.');
       } finally {
         setLoading(false);
       }
@@ -105,17 +113,20 @@ export default function AdminDashboardScreen() {
       await loadAdminData(userQuery);
     } catch (e: any) {
       const message = e?.response?.data?.detail || e?.message || 'Request failed';
-      Alert.alert('Error', String(message));
+      showError('Admin action failed', String(message));
     } finally {
       setActionLoading(null);
     }
   };
 
   const confirmAndRun = (title: string, message: string, key: string, task: () => Promise<void>) => {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', style: 'destructive', onPress: () => withAction(key, task) },
-    ]);
+    setConfirmAction({
+      title,
+      message,
+      confirmLabel: 'Confirm',
+      destructive: true,
+      run: () => withAction(key, task),
+    });
   };
 
   const onSearchUsers = async () => {
@@ -126,22 +137,21 @@ export default function AdminDashboardScreen() {
   };
 
   const onLogout = () => {
-    Alert.alert('Logout', 'Do you want to logout from admin?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await authService.logout();
-            router.replace('/(auth)/login');
-          } catch (e) {
-            console.error('Admin logout failed', e);
-            Alert.alert('Error', 'Failed to logout');
-          }
-        },
+    setConfirmAction({
+      title: 'Logout',
+      message: 'Do you want to logout from admin?',
+      confirmLabel: 'Logout',
+      destructive: true,
+      run: async () => {
+        try {
+          await authService.logout();
+          router.replace('/(auth)/login');
+        } catch (e) {
+          console.error('Admin logout failed', e);
+          showError('Logout failed', 'Please try again.');
+        }
       },
-    ]);
+    });
   };
 
   if (loading) {
@@ -185,7 +195,7 @@ export default function AdminDashboardScreen() {
               onPress={() =>
                 withAction('generate-slots', async () => {
                   const res = await adminService.generateSlots(undefined, 14);
-                  Alert.alert('Done', `Created ${res.created ?? 0} slot documents.`);
+                  showSuccess('Slots generated', `Created ${res.created ?? 0} slot documents.`);
                 })
               }
             />
@@ -196,7 +206,7 @@ export default function AdminDashboardScreen() {
               onPress={() =>
                 withAction('release-locks', async () => {
                   const res = await adminService.releaseStaleLocks();
-                  Alert.alert('Done', `Released ${res.released_count ?? 0} expired holds.`);
+                  showSuccess('Locks released', `Released ${res.released_count ?? 0} expired holds.`);
                 })
               }
             />
@@ -345,6 +355,19 @@ export default function AdminDashboardScreen() {
           {auditLogs.length === 0 && <Text style={styles.emptyText}>No admin actions logged yet.</Text>}
         </SectionCard>
       </ScrollView>
+      <ConfirmDialog
+        visible={!!confirmAction}
+        title={confirmAction?.title || ''}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel || 'Confirm'}
+        destructive={confirmAction?.destructive}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => {
+          const action = confirmAction;
+          setConfirmAction(null);
+          action?.run();
+        }}
+      />
     </View>
   );
 }

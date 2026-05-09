@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ import { useCurrentUser, useUserBookings } from '../../hooks/useQueries';
 
 import EditProfileModal from '../../components/EditProfileModal';
 import { apiClient } from '../../config/api';
+import { showError, showInfo } from '../../utils/feedback';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 interface UserProfile {
   id: string;
@@ -26,6 +28,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<'customer' | 'vendor' | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [signOutVisible, setSignOutVisible] = useState(false);
 
   // Use React Query hooks for data fetching with caching
   const { data: user, isLoading: userLoading, refetch: refetchUser } = useCurrentUser();
@@ -124,42 +127,28 @@ export default function ProfileScreen() {
         setEditModalVisible(true);
         break;
       case 'support':
-        Alert.alert(
-          'Help & Support',
-          'Need help? Contact us:\n\nEmail: support@bookforme.pk\nPhone: +92 300 1234567\n\nWe\'re here to help!'
-        );
+        showInfo('Help & Support', 'support@bookforme.pk | +92 300 1234567');
         break;
       case 'about':
-        Alert.alert(
-          'About & Debug',
-          `Version 1.0.0\n\nAPI URL:\n${apiClient.defaults.baseURL}\n\nUser ID:\n${user?.id || 'Not logged in'}\n\n© 2025 BookForMe`
-        );
+        showInfo('BookForMe v1.0.0', `API: ${apiClient.defaults.baseURL}`);
         break;
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await authService.logout();
-              await AsyncStorage.removeItem('userRole');
-              router.replace('/(auth)/login');
-            } catch (error) {
-              console.error('Error signing out:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          }
-        }
-      ]
-    );
+    setSignOutVisible(true);
+  };
+
+  const confirmSignOut = async () => {
+    setSignOutVisible(false);
+    try {
+      await authService.logout();
+      await AsyncStorage.removeItem('userRole');
+      router.replace('/(auth)/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      showError('Sign out failed', 'Please try again.');
+    }
   };
 
   return (
@@ -177,15 +166,7 @@ export default function ProfileScreen() {
         <Text style={styles.title}>Your Profile</Text>
         <TouchableOpacity
           style={styles.settingsButton}
-          onPress={() => Alert.alert(
-            'Settings',
-            'Choose an option',
-            [
-              { text: 'Edit Profile', onPress: () => handleMenuAction('edit') },
-              { text: 'About & Debug', onPress: () => handleMenuAction('about') },
-              { text: 'Cancel', style: 'cancel' }
-            ]
-          )}
+          onPress={() => setEditModalVisible(true)}
         >
           <Ionicons name="settings-outline" size={24} color={COLORS.text} />
         </TouchableOpacity>
@@ -207,7 +188,7 @@ export default function ProfileScreen() {
               </LinearGradient>
               <TouchableOpacity
                 style={styles.editAvatarButton}
-                onPress={() => Alert.alert('Change Photo', 'Profile photo upload feature coming soon!')}
+                onPress={() => showInfo('Change photo', 'Profile photo upload is coming soon.')}
               >
                 <Ionicons name="camera" size={14} color="#FFF" />
               </TouchableOpacity>
@@ -340,6 +321,15 @@ export default function ProfileScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      <ConfirmDialog
+        visible={signOutVisible}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign Out"
+        destructive
+        onCancel={() => setSignOutVisible(false)}
+        onConfirm={confirmSignOut}
+      />
     </View>
   );
 }

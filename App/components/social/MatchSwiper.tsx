@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MatchCard from './MatchCard';
 import { COLORS } from '../../constants/colors';
+import { showError } from '../../utils/feedback';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -47,7 +48,7 @@ export default function MatchSwiper({ matches, onJoinMatch, onSkipMatch, onRefre
         // Perform async action
         onJoinMatch(match.id).catch(error => {
             console.error('Join match failed:', error);
-            Alert.alert('Error', 'Failed to join match');
+            showError('Could not join match', 'This match may no longer be available.');
             // We could optionally revert the swipe here if needed
         });
     }, [currentIndex, matches, onJoinMatch]);

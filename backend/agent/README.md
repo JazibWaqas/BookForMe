@@ -1,6 +1,17 @@
 # LangGraph Booking Agent
 
-This package contains the WhatsApp booking conversation graph.
+This package contains the WhatsApp/Web Chat booking conversation graph.
+
+## Current Status
+
+The booking agent is considered complete for launch polish. The latest
+regression/manual testing passes the required booking flows: incomplete query
+handling, Roman Urdu/English code switching, slot selection, confirmation, and
+transaction-backed booking progression.
+
+Remaining payment-proof issues are OCR provider/model accuracy concerns, not
+agent state-machine blockers, unless a test shows the upload or slot transition
+pipeline itself failing.
 
 ## Current Architecture
 
@@ -12,7 +23,7 @@ The agent is a hybrid flow:
 
 The priority is booking correctness: collect sport, date, time/range, and
 optional area/vendor, show real available slots, resolve the user's selected
-slot, then ask for confirmation.
+slot, then ask for confirmation and move into the payment flow.
 
 ## Key Files
 

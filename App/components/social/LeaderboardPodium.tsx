@@ -22,11 +22,12 @@ export default function LeaderboardPodium({ topThree }: LeaderboardPodiumProps) 
     const [first, second, third] = topThree;
 
     const renderPodiumSpot = (user: LeaderUser, position: 1 | 2 | 3) => {
-        const config = {
+        const configs = {
             1: { height: 110, color: '#FFB800', icon: 'trophy', size: 76 },
             2: { height: 85, color: '#A0B2C6', icon: 'medal', size: 60 },
             3: { height: 65, color: '#CD7F32', icon: 'medal', size: 60 },
-        }[position] as const;
+        } as const;
+        const config = configs[position];
 
         return (
             <View style={[styles.podiumSpot, position === 1 && styles.firstPlace]}>

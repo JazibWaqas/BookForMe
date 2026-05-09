@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -10,6 +10,7 @@ import { COLORS } from '../../constants/colors';
 import { CATEGORIES } from '../../constants/categories';
 import { authService } from '../../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showError, showSuccess } from '../../utils/feedback';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -87,7 +88,7 @@ export default function RegisterScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant location permissions');
+        showError('Permission needed', 'Please grant location permissions.');
         setLocationLoading(false);
         return;
       }
@@ -110,9 +111,9 @@ export default function RegisterScreen() {
           setAddress(formattedAddress);
         }
       }
-      Alert.alert('Success', 'Location captured successfully');
+      showSuccess('Location captured', 'Address filled from GPS.');
     } catch (error) {
-      Alert.alert('Error', 'Failed to get location');
+      showError('Could not get location', 'Please try again.');
     }
     setLocationLoading(false);
   };
@@ -148,30 +149,21 @@ export default function RegisterScreen() {
           await authService.createVendorProfile(vendorData, result.user.id);
         }
 
-        Alert.alert(
-          'Success!',
-          role === 'vendor'
-            ? 'Vendor account created successfully! Your account is pending verification.'
-            : 'Account created successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                if (role === 'vendor') {
-                  router.replace('/vendor-dashboard');
-                } else {
-                  router.replace('/(tabs)/home');
-                }
-              },
-            },
-          ]
+        showSuccess(
+          role === 'vendor' ? 'Vendor account created' : 'Account created',
+          role === 'vendor' ? 'Your account is pending verification.' : 'Welcome to BookForMe.'
         );
+        if (role === 'vendor') {
+          router.replace('/vendor-dashboard');
+        } else {
+          router.replace('/(tabs)/home');
+        }
       } else {
-        Alert.alert('Registration Failed', result.error || 'Failed to create account. Please try again.');
+        showError('Registration failed', result.error || 'Failed to create account. Please try again.');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      Alert.alert('Error', error.message || 'Registration failed. Please try again.');
+      showError('Registration failed', error.message || 'Please try again.');
     } finally {
       setLoading(false);
     }

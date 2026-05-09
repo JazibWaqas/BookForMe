@@ -201,6 +201,9 @@ class AISearchService:
             results = []
         
         logger.info(f"✅ Found {len(results)} vendors with slots")
+
+        if self._is_cheapest_query(query) and results:
+            results = self._cheapest_results(results)
         
         return {
             "success": True,
@@ -209,6 +212,42 @@ class AISearchService:
             "model_used": selected_model,
             "results": results[:10]
         }
+
+    def _is_cheapest_query(self, query: str) -> bool:
+        q = (query or "").lower()
+        return bool(re.search(r"\b(cheapest|lowest|least expensive|sab se sasta|sasta|sasti)\b", q))
+
+    def _cheapest_results(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        cheapest_price = None
+        for result in results:
+            for slot in result.get("available_slots") or []:
+                try:
+                    price = float(slot.get("price"))
+                except (TypeError, ValueError):
+                    continue
+                if cheapest_price is None or price < cheapest_price:
+                    cheapest_price = price
+
+        if cheapest_price is None:
+            return results
+
+        filtered = []
+        for result in results:
+            cheap_slots = []
+            for slot in result.get("available_slots") or []:
+                try:
+                    if float(slot.get("price")) == cheapest_price:
+                        cheap_slots.append(slot)
+                except (TypeError, ValueError):
+                    continue
+            if cheap_slots:
+                filtered.append({
+                    **result,
+                    "available_slots": cheap_slots[:3],
+                    "total_slots": len(cheap_slots),
+                    "cheapest_match": True,
+                })
+        return filtered or results
 
     async def _parse_query(self, query: str, model: str, resolved_date: Optional[str] = None) -> Dict[str, Any]:
         """Use LLM to extract search parameters with Roman Urdu support"""

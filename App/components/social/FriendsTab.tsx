@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FriendCard from './FriendCard';
 import { COLORS } from '../../constants/colors';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { showError, showInfo, showSuccess } from '../../utils/feedback';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface User {
     id: string;
@@ -42,9 +44,11 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
     const [activeSection, setActiveSection] = useState<'friends' | 'find'>('friends');
     const [friends, setFriends] = useState<User[]>([]);
     const [suggestions, setSuggestions] = useState<User[]>([]);
+    const [knownFriendIds, setKnownFriendIds] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
+    const [removeTarget, setRemoveTarget] = useState<User | null>(null);
 
     useEffect(() => {
         loadData();
@@ -55,12 +59,20 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
         try {
             if (activeSection === 'friends') {
                 const res = await apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } });
-                setFriends((res.data.friends || []).filter((u: User) => isSocialPlayer(u)));
+                const friendRows = (res.data.friends || []).filter((u: User) => isSocialPlayer(u));
+                setFriends(friendRows);
+                setKnownFriendIds(new Set<string>(friendRows.map((u: User) => u.id)));
             } else if (activeSection === 'find') {
-                const res = await apiClient.get(API_ENDPOINTS.social.users);
-                const allUsers = res.data || [];
+                const [usersRes, friendsRes] = await Promise.all([
+                    apiClient.get(API_ENDPOINTS.social.users),
+                    apiClient.get(API_ENDPOINTS.social.friends, { params: { user_id: currentUserId } }).catch(() => ({ data: { friends: [] } })),
+                ]);
+                const friendRows = (friendsRes.data.friends || []).filter((u: User) => isSocialPlayer(u));
+                const friendIds = new Set<string>(friendRows.map((u: User) => u.id));
+                setKnownFriendIds(friendIds);
+                const allUsers = usersRes.data || [];
                 setSuggestions(
-                    allUsers.filter((u: User) => u.id !== currentUserId && isSocialPlayer(u))
+                    allUsers.filter((u: User) => u.id !== currentUserId && isSocialPlayer(u) && !friendIds.has(u.id))
                 );
             }
         } catch (error) {
@@ -76,7 +88,7 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
             try {
                 const res = await apiClient.get(API_ENDPOINTS.social.users, { params: { search: query } });
                 const results = (res.data || []).filter(
-                    (u: User) => u.id !== currentUserId && isSocialPlayer(u)
+                    (u: User) => u.id !== currentUserId && isSocialPlayer(u) && !knownFriendIds.has(u.id)
                 );
                 setSearchResults(results);
             } catch (error) {
@@ -90,33 +102,44 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
     const handleAddFriend = async (userId: string) => {
         try {
             await apiClient.post(API_ENDPOINTS.social.sendFriendRequest, null, { params: { to_user_id: userId } });
-            Alert.alert('Friend Added!', 'You are now friends.');
+            showSuccess('Friend added', 'You are now connected.');
             setSuggestions(prev => prev.filter(u => u.id !== userId));
             setSearchResults(prev => prev.filter(u => u.id !== userId));
+            setKnownFriendIds(prev => new Set([...prev, userId]));
             // Refresh friends list
             loadData();
         } catch (error: any) {
             const msg = error.response?.data?.detail || 'Failed to add friend';
-            Alert.alert('Error', msg);
+            if (String(msg).toLowerCase().includes('already')) {
+                showInfo('Already friends', 'Removed from suggestions.');
+                setSuggestions(prev => prev.filter(u => u.id !== userId));
+                setSearchResults(prev => prev.filter(u => u.id !== userId));
+                setKnownFriendIds(prev => new Set([...prev, userId]));
+            } else {
+                showError('Could not add friend', msg);
+            }
         }
     };
 
     const handleRemoveFriend = async (friendId: string, friendName: string) => {
-        Alert.alert('Remove Friend?', `Are you sure you want to remove ${friendName}?`, [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-                text: 'Remove', 
-                style: 'destructive', 
-                onPress: async () => {
-                    try {
-                        await apiClient.post(API_ENDPOINTS.social.removeFriend, null, { params: { friend_id: friendId } });
-                        setFriends(prev => prev.filter(f => f.id !== friendId));
-                    } catch (error: any) {
-                        Alert.alert('Error', 'Failed to remove friend');
-                    }
-                }
-            },
-        ]);
+        setRemoveTarget({ id: friendId, name: friendName });
+    };
+
+    const confirmRemoveFriend = async () => {
+        if (!removeTarget) return;
+        const friendId = removeTarget.id;
+        setRemoveTarget(null);
+        try {
+            await apiClient.post(API_ENDPOINTS.social.removeFriend, null, { params: { friend_id: friendId } });
+            setFriends(prev => prev.filter(f => f.id !== friendId));
+            setKnownFriendIds(prev => {
+                const next = new Set(prev);
+                next.delete(friendId);
+                return next;
+            });
+        } catch (error: any) {
+            showError('Could not remove friend', 'Please try again.');
+        }
     };
 
     const renderSectionTabs = () => (
@@ -223,6 +246,15 @@ export default function FriendsTab({ currentUserId, onChatWithFriend }: FriendsT
                     )}
                 </View>
             )}
+            <ConfirmDialog
+                visible={!!removeTarget}
+                title="Remove Friend?"
+                message={removeTarget ? `Remove ${removeTarget.name} from your friends?` : undefined}
+                confirmLabel="Remove"
+                destructive
+                onCancel={() => setRemoveTarget(null)}
+                onConfirm={confirmRemoveFriend}
+            />
         </View>
     );
 }

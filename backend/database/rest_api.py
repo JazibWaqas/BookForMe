@@ -7,7 +7,7 @@ import logging
 import asyncio
 import json
 from typing import Dict, List, Any, Optional, AsyncGenerator
-from fastapi import APIRouter, HTTPException, Depends, Header, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, Depends, Header, File, UploadFile, Form, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from google.cloud import firestore
@@ -70,6 +70,13 @@ async def require_vendor_owner(user_id: str, vendor_id: str) -> None:
         return
     if data.get("vendor_id") != vendor_id:
         raise HTTPException(status_code=403, detail="Not authorized for this vendor")
+
+
+class ReviewCreate(BaseModel):
+    rating: int
+    title: Optional[str] = None
+    content: Optional[str] = None
+    slot_id: Optional[str] = None
 
 
 @router.get("/vendors")
@@ -165,6 +172,112 @@ async def get_vendor(vendor_id: str):
     except Exception as e:
         logger.error(f"Error getting vendor: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get vendor: {str(e)}")
+
+
+@router.get("/vendors/{vendor_id}/reviews")
+async def get_vendor_reviews(vendor_id: str, limit: int = Query(20, ge=1, le=100)):
+    """Return published reviews for a vendor, with lightweight author hydration."""
+    try:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        def load_reviews():
+            q = firestore_db.db.collection('reviews').where(
+                filter=FieldFilter('vendor_id', '==', vendor_id)
+            )
+            return list(q.stream())
+
+        docs = await asyncio.to_thread(load_reviews)
+        rows = []
+        user_ids = set()
+        for doc in docs:
+            data = doc.to_dict() or {}
+            status = str(data.get('status') or 'published').lower()
+            if status not in {'published', 'approved'}:
+                continue
+            data['id'] = doc.id
+            uid = data.get('user_id')
+            if uid:
+                user_ids.add(uid)
+            rows.append(data)
+
+        def batch_users(ids: set):
+            if not ids:
+                return {}
+            refs = [firestore_db.db.collection('users').document(uid) for uid in ids]
+            return {snap.id: snap.to_dict() or {} for snap in firestore_db.db.get_all(refs) if snap.exists}
+
+        users = await asyncio.to_thread(batch_users, user_ids)
+
+        out = []
+        for row in rows:
+            created = row.get('created_at')
+            created_s = created.isoformat() if hasattr(created, 'isoformat') else (created if isinstance(created, str) else None)
+            user = users.get(row.get('user_id')) or {}
+            out.append({
+                'id': row.get('id'),
+                'vendor_id': row.get('vendor_id'),
+                'user_id': row.get('user_id'),
+                'user_name': user.get('name') or user.get('display_name') or user.get('email') or 'Customer',
+                'rating': int(row.get('rating') or 0),
+                'title': row.get('title') or '',
+                'content': row.get('content') or '',
+                'created_at': created_s,
+            })
+
+        out.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+        return {'success': True, 'reviews': out[:limit]}
+    except Exception as e:
+        logger.error(f"Error getting vendor reviews: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to get reviews")
+
+
+@router.post("/vendors/{vendor_id}/reviews")
+async def create_vendor_review(
+    vendor_id: str,
+    review: ReviewCreate,
+    user_id: str = Depends(get_current_user_id),
+):
+    """Create a customer review for a vendor."""
+    try:
+        rating = max(1, min(5, int(review.rating)))
+        vendor_ref = firestore_db.db.collection('vendors').document(vendor_id)
+        if not await asyncio.to_thread(lambda: vendor_ref.get().exists):
+            raise HTTPException(status_code=404, detail="Vendor not found")
+
+        doc = {
+            'vendor_id': vendor_id,
+            'user_id': user_id,
+            'slot_id': review.slot_id,
+            'rating': rating,
+            'title': (review.title or '').strip(),
+            'content': (review.content or '').strip(),
+            'status': 'published',
+            'created_at': firestore.SERVER_TIMESTAMP,
+        }
+
+        def write_review():
+            _, ref = firestore_db.db.collection('reviews').add(doc)
+            vendor_snapshot = vendor_ref.get()
+            vendor_data = vendor_snapshot.to_dict() or {}
+            old_sum = int(vendor_data.get('rating_sum') or 0)
+            old_count = int(vendor_data.get('rating_count') or 0)
+            new_sum = old_sum + rating
+            new_count = old_count + 1
+            vendor_ref.update({
+                'rating_sum': new_sum,
+                'rating_count': new_count,
+                'average_rating': round(new_sum / new_count, 2),
+                'review_count': new_count,
+            })
+            return ref.id
+
+        review_id = await asyncio.to_thread(write_review)
+        return {'success': True, 'review_id': review_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating vendor review: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to create review")
 
 
 @router.get("/categories")

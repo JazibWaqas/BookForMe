@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Modal,
-    TextInput, ScrollView, Alert, ActivityIndicator,
+    TextInput, ScrollView, ActivityIndicator,
     KeyboardAvoidingView, Platform, RefreshControl, Pressable, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from '../../constants/colors';
 import { SocialService, Match } from '../../services/social';
 import { UserData } from '../../services/auth';
 import Avatar from '../ui/Avatar';
+import { showError, showInfo, showSuccess } from '../../utils/feedback';
 
 // ─── Sport config ─────────────────────────────────────────────────────────────
 
@@ -698,18 +699,18 @@ export default function MatchesTab({ currentUser }: Props) {
         : matches.filter(m => m.sport_type.toLowerCase() === activeSport.toLowerCase());
 
     const handleJoin = async (matchId: string) => {
-        if (!currentUser?.id) { Alert.alert('Sign in required'); return; }
+        if (!currentUser?.id) { showInfo('Sign in required', 'Log in to join matches.'); return; }
         setJoining(matchId);
         try {
             await SocialService.joinMatch(matchId, currentUser.id);
             await load(true);
-        } catch { Alert.alert('Could not join', 'This match may no longer be available.'); }
+        } catch { showError('Could not join', 'This match may no longer be available.'); }
         finally { setJoining(null); }
     };
 
     const handleCreate = async (form: CreateForm) => {
         if (!form.date || !form.time || !form.location) {
-            Alert.alert('Missing details', 'Please set the date, time, and venue.'); return;
+            showError('Missing details', 'Please set the date, time, and venue.'); return;
         }
         setCreating(true);
         try {
@@ -725,7 +726,7 @@ export default function MatchesTab({ currentUser }: Props) {
             setShowCreate(false);
             setActiveView('mine');
             load(true);
-        } catch { Alert.alert('Error', 'Could not post match. Please try again.'); }
+        } catch { showError('Could not post match', 'Please try again.'); }
         finally { setCreating(false); }
     };
 
@@ -734,9 +735,9 @@ export default function MatchesTab({ currentUser }: Props) {
         const losers = (resultMatch.participants ?? []).map(p => p.id).filter(id => !winners.includes(id));
         try {
             await SocialService.submitMatchResult(resultMatch.id, currentUser.id, winners, losers);
-            Alert.alert('Done', 'Result submitted and ratings updated.');
+            showSuccess('Result submitted', 'Ratings updated.');
             setResultMatch(null); setDetailMatch(null); load(true);
-        } catch { Alert.alert('Error', 'Could not submit result.'); }
+        } catch { showError('Could not submit result', 'Please try again.'); }
     };
 
     const display = activeView === 'open' ? filtered : myMatches;

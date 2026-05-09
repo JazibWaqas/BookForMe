@@ -34,6 +34,30 @@ def _write_notification(db, user_id: str, notif_type: str, title: str, message: 
         logger.warning(f"Failed to write notification for {user_id}: {e}")
 
 
+def _vendor_owner_user_ids(db, vendor_id: str) -> list:
+    """Find app user IDs that own a vendor account."""
+    if not vendor_id:
+        return []
+    ids = set()
+    try:
+        vendor_doc = db.collection('vendors').document(vendor_id).get()
+        if vendor_doc.exists:
+            vendor = vendor_doc.to_dict() or {}
+            for key in ('owner_id', 'user_id', 'created_by'):
+                if vendor.get(key):
+                    ids.add(str(vendor[key]))
+    except Exception as e:
+        logger.warning(f"Failed to inspect vendor owner fields for {vendor_id}: {e}")
+
+    try:
+        docs = db.collection('users').where('vendor_id', '==', vendor_id).limit(10).stream()
+        for doc in docs:
+            ids.add(doc.id)
+    except Exception as e:
+        logger.warning(f"Failed to query vendor owner users for {vendor_id}: {e}")
+    return list(ids)
+
+
 class SlotService:
     def __init__(self, db_client: firestore.Client):
         self.db = db_client
@@ -187,6 +211,7 @@ class SlotService:
                     'success': True,
                     'slot_id': slot_id,
                     'payment_id': payment_id,
+                    'vendor_id': slot_data.get('vendor_id'),
                     'status': SlotStatus.PENDING.value
                 }
             
@@ -201,6 +226,13 @@ class SlotService:
                     f'Payment screenshot received for slot {slot_id[:8]}. Awaiting vendor confirmation.',
                     {'slot_id': slot_id, 'payment_id': payment_id},
                 )
+                for owner_uid in _vendor_owner_user_ids(self.db, result.get('vendor_id')):
+                    _write_notification(
+                        self.db, owner_uid,
+                        'vendor_payment_pending', 'Payment Needs Review',
+                        f'Payment proof received for slot {slot_id[:8]}. Review it in the vendor dashboard.',
+                        {'slot_id': slot_id, 'payment_id': payment_id, 'vendor_id': result.get('vendor_id')},
+                    )
             
             return result
             

@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../providers/QueryProvider';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { setupNotificationListeners, getExpoPushToken } from '../services/notifications';
 import { authService } from '../services/auth';
 import { runIntegrationTest } from '../services/database-integration';
@@ -81,6 +82,7 @@ export default function RootLayout() {
           <Stack.Screen name="vendor-dashboard/bookings" />
           <Stack.Screen name="admin-dashboard/index" />
         </Stack>
+        <Toast />
       </QueryProvider>
     </SafeAreaProvider>
   );

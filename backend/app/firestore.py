@@ -429,7 +429,10 @@ class FirestoreDB:
             user_ids = set()
             payment_ids = set()
             for b in raw:
-                if not b.get('customer_name') and b.get('user_id'):
+                if (
+                    b.get('user_id') and
+                    (not b.get('customer_name') or not b.get('customer_phone') or not b.get('customer_email'))
+                ):
                     user_ids.add(b['user_id'])
                 pid = b.get('payment_id')
                 if pid:
@@ -452,14 +455,22 @@ class FirestoreDB:
 
             bookings = []
             for booking_data in raw:
-                if not booking_data.get('customer_name'):
-                    uid = booking_data.get('user_id')
-                    if uid and uid in users_map:
-                        u = users_map[uid]
+                uid = booking_data.get('user_id')
+                if uid and uid in users_map:
+                    u = users_map[uid]
+                    if not booking_data.get('customer_name'):
                         booking_data['customer_name'] = (
                             u.get('name') or u.get('full_name') or
                             u.get('display_name') or u.get('phone_number') or
                             'Customer'
+                        )
+                    if not booking_data.get('customer_phone'):
+                        booking_data['customer_phone'] = (
+                            u.get('phone') or u.get('phone_number') or ''
+                        )
+                    if not booking_data.get('customer_email'):
+                        booking_data['customer_email'] = (
+                            u.get('email') or ''
                         )
 
                 pid = booking_data.get('payment_id')
@@ -519,18 +530,27 @@ class FirestoreDB:
                 booking_data['time'] = start_time
             
             # Get customer name if not present
-            if not booking_data.get('customer_name'):
+            if not booking_data.get('customer_name') or not booking_data.get('customer_phone') or not booking_data.get('customer_email'):
                 user_id = booking_data.get('user_id')
                 if user_id:
                     try:
                         user_doc = self.db.collection('users').document(user_id).get()
                         if user_doc.exists:
-                            u = user_doc.to_dict()
-                            booking_data['customer_name'] = (
-                                u.get('name') or u.get('full_name') or
-                                u.get('display_name') or u.get('phone_number') or
-                                'Customer'
-                            )
+                            u = user_doc.to_dict() or {}
+                            if not booking_data.get('customer_name'):
+                                booking_data['customer_name'] = (
+                                    u.get('name') or u.get('full_name') or
+                                    u.get('display_name') or u.get('phone_number') or
+                                    'Customer'
+                                )
+                            if not booking_data.get('customer_phone'):
+                                booking_data['customer_phone'] = (
+                                    u.get('phone') or u.get('phone_number') or ''
+                                )
+                            if not booking_data.get('customer_email'):
+                                booking_data['customer_email'] = (
+                                    u.get('email') or ''
+                                )
                     except Exception:
                         pass
             

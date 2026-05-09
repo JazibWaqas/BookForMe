@@ -13,6 +13,7 @@ export interface UserData {
   phone?: string;
   vendor_id?: string | null;
   avatar_url?: string;
+  created_at?: string;
   // Social Fields
   bio?: string;
   points?: number;

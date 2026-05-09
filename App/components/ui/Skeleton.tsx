@@ -4,7 +4,7 @@ import { COLORS, RADIUS } from '../../constants/colors';
 
 interface SkeletonProps {
   /** Width of the skeleton block. Number = px, string = percentage. */
-  width?: number | string;
+  width?: ViewStyle['width'];
   /** Height of the skeleton block in px. */
   height?: number;
   /** Border radius — defaults to RADIUS.sm. */
@@ -49,10 +49,10 @@ export default function Skeleton({
 
   return (
     <Animated.View
-      // @ts-ignore RN allows numeric or % width
       style={[
         styles.base,
-        { width, height, borderRadius, opacity: animated ? opacity : 0.6 },
+        { width, height, borderRadius } as ViewStyle,
+        { opacity: animated ? opacity : 0.6 },
         style,
       ]}
       accessibilityElementsHidden

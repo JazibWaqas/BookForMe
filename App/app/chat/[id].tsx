@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { storage } from '../../services/firebase';
 import { COLORS } from '../../constants/colors';
 import { SocialService } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
+import { showError } from '../../utils/feedback';
 
 export default function ChatDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -56,7 +57,7 @@ export default function ChatDetailScreen() {
     const handleImagePick = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission Required', 'Please allow access to your photos.');
+            showError('Permission required', 'Please allow access to your photos.');
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -76,13 +77,12 @@ export default function ChatDetailScreen() {
             const msg = await SocialService.sendMessage({
                 conversation_id: chatId!,
                 sender_id: currentUser.id!,
-                content: null,
                 media_url: url,
                 media_type: 'image',
             });
             setMessages(prev => [...prev, msg]);
         } catch (e) {
-            Alert.alert('Upload failed', 'Could not send the image. Please try again.');
+            showError('Upload failed', 'Could not send the image. Please try again.');
         } finally {
             setSending(false);
         }

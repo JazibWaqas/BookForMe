@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,6 +12,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { queryClient } from '../../providers/QueryProvider';
 import { COLORS } from '../../constants/colors';
+import { showError, showInfo } from '../../utils/feedback';
 
 type VerificationStatus = 'idle' | 'uploading' | 'verified' | 'rejected';
 
@@ -45,6 +46,7 @@ export default function BookingScreen() {
   const [countdown, setCountdown] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const expiredRef = useRef(false);
 
   const priceVal = Array.isArray(price) ? price[0] : price;
   const priceNum = parseFloat(priceVal || '0');
@@ -73,18 +75,17 @@ export default function BookingScreen() {
   }, [holdExpiresAt, bookingConfirmed]);
 
   const handleExpiry = () => {
-    Alert.alert(
-      'Reservation Expired',
-      'Your slot reservation has expired. Please select a slot again.',
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
+    if (expiredRef.current) return;
+    expiredRef.current = true;
+    showInfo('Reservation expired', 'Please select a slot again.');
+    router.back();
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photos to upload payment proof.');
+      showError('Permission required', 'Please allow photo access to upload payment proof.');
       return;
     }
 
@@ -103,12 +104,12 @@ export default function BookingScreen() {
 
   const handleUploadPayment = async () => {
     if (!screenshot) {
-      Alert.alert('No Image', 'Please select a payment screenshot first.');
+      showError('No image selected', 'Please select a payment screenshot first.');
       return;
     }
 
     if (!slotId) {
-      Alert.alert('Error', 'Slot ID is missing');
+      showError('Missing slot', 'Slot ID is missing.');
       return;
     }
 
@@ -118,7 +119,7 @@ export default function BookingScreen() {
     try {
       const user = await authService.getCurrentUser();
       if (!user || !user.id) {
-        Alert.alert('Error', 'Please login to continue');
+        showError('Login required', 'Please login to continue.');
         router.replace('/(auth)/login');
         return;
       }
@@ -164,15 +165,12 @@ export default function BookingScreen() {
         await queryClient.refetchQueries({ queryKey: ['bookings'] });
       } else {
         setVerificationStatus('rejected');
-        Alert.alert('Error', paymentResponse.data.error || 'Failed to submit payment. Please try again.');
+        showError('Payment upload failed', paymentResponse.data.error || 'Please try again.');
       }
     } catch (error: any) {
       console.error('Error uploading payment:', error);
       setVerificationStatus('rejected');
-      Alert.alert(
-        'Error',
-        error.response?.data?.detail || error.message || 'Failed to upload payment. Please try again.'
-      );
+      showError('Payment upload failed', error.response?.data?.detail || error.message || 'Please try again.');
     } finally {
       setLoading(false);
     }

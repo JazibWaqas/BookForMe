@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   Dimensions,
@@ -27,6 +26,7 @@ import { authService, UserData } from '../../services/auth';
 import { useSocialFeed } from '../../hooks/useQueries';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { showError, showInfo } from '../../utils/feedback';
 
 const POST_MENU_WIDTH = 184;
 
@@ -91,7 +91,7 @@ export default function SocialScreen() {
     } catch (err) {
       console.error(err);
       const detail = axios.isAxiosError(err) ? (err.response?.data as any)?.detail : null;
-      Alert.alert('Error', typeof detail === 'string' ? detail : 'Could not load conversations.');
+      showError('Could not load chats', typeof detail === 'string' ? detail : 'Please try again.');
     } finally {
       setChatsLoading(false);
     }
@@ -108,7 +108,7 @@ export default function SocialScreen() {
 
   const requireUser = (): UserData | null => {
     if (!currentUser?.id) {
-      Alert.alert('Sign in required', 'Log in to use Social features.');
+      showInfo('Sign in required', 'Log in to use Social features.');
       router.push('/(auth)/login');
       return null;
     }
@@ -133,7 +133,7 @@ export default function SocialScreen() {
       setNewPostContent('');
       fetchData();
     } catch (error: unknown) {
-      Alert.alert('Error', `Failed to create post: ${apiErrMessage(error)}`);
+      showError('Could not create post', apiErrMessage(error));
     } finally {
       setSendingPost(false);
     }
@@ -167,7 +167,7 @@ export default function SocialScreen() {
       await SocialService.deletePost(id);
       setPosts(prev => prev.filter(p => p.id !== id));
     } catch (error: unknown) {
-      Alert.alert('Error', apiErrMessage(error));
+      showError('Could not delete post', apiErrMessage(error));
     }
   };
 
@@ -189,7 +189,7 @@ export default function SocialScreen() {
       await SocialService.toggleLike(post.id);
     } catch (error: unknown) {
       await refetchFeed();
-      Alert.alert('Error', apiErrMessage(error));
+      showError('Could not update like', apiErrMessage(error));
     }
   };
 
@@ -425,7 +425,7 @@ export default function SocialScreen() {
                   const conv = await SocialService.startConversation(currentUser.id!, friendId);
                   router.push(`/chat/${conv.id}`);
                 } catch (error) {
-                  Alert.alert('Error', 'Failed to start chat');
+                  showError('Could not start chat', 'Please try again.');
                 }
               }}
             />

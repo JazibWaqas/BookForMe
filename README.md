@@ -1,7 +1,7 @@
 # 🎾 BookForMe – AI-Powered Sports Booking Platform
 
-**Current Status**: 🟢 **Production Live & Actively Developing** (v2.0)  
-**Last Updated**: February 20, 2026  
+**Current Status**: 🟢 **Production Live & Final App Polish** (v2.1)  
+**Last Updated**: May 9, 2026  
 **Deployment**: [https://bookforme-ie34.onrender.com](https://bookforme-ie34.onrender.com)
 
 ---
@@ -122,7 +122,7 @@ not override the current docs above.
 | **Backend** | Python FastAPI | High-performance async API |
 | **Database** | Google Cloud Firestore | Real-time, scalable NoSQL |
 | **AI Engine** | LangGraph + DeepSeek text model | Stateful conversations |
-| **OCR** | Groq vision model | Payment verification |
+| **OCR** | Groq vision model, Gemini candidate | Payment screenshot amount extraction |
 | **Mobile** | React Native (Expo) | Cross-platform mobile app |
 | **Frontend** | React + TypeScript | Vendor dashboard |
 | **Authentication** | Firebase Auth + JWT | Secure user management |
@@ -133,16 +133,16 @@ not override the current docs above.
 
 ### ✅ **Fully Functional**
 - **Complete Booking Flow**: Browse → Select → Lock → Pay → Confirm
-- **AI Chat Agent**: Natural language booking with Roman Urdu support
-- **Mobile App**: Vendor browsing, search, booking, profile
-- **Payment System**: Screenshot upload and OCR verification
-- **Vendor Dashboard**: Basic booking management and analytics
+- **AI Chat Agent**: Natural language booking with Roman Urdu support; latest regression tests pass
+- **Mobile App**: Customer, vendor, and admin flows running in Expo Go
+- **Payment System**: Screenshot upload and OCR processing pipeline
+- **Vendor Dashboard**: Booking management, calendar operations, today analytics, and payment review
 - **Real-Time Sync**: All interfaces share same inventory
 
 ### 🚧 **In Development**
-- **Advanced Vendor Analytics**: Revenue trends and customer insights
-- **Payment OCR Robustness**: More screenshot formats and clearer failure handling
-- **Push Notifications**: Booking reminders and updates
+- **Final App Polish**: Customer, vendor dashboard, and admin dashboard QA before stable build
+- **Payment OCR Model Tuning**: Current issue is provider/model accuracy, not core booking architecture
+- **Stable Android Demo Build**: Move from Expo Go to an installable APK/internal build for lower-risk demos
 
 ---
 
@@ -228,7 +228,7 @@ JHAT/
 ### Slot Cleanup (Cron)
 Expired slot locks are released by hitting the cleanup endpoint. **Use an external cron service** (e.g. [cron-job.org](https://cron-job.org)) to call it **every 10 minutes**.
 
-1. **URL**: `https://jhat-to9p.onrender.com/internal/cleanup-expired-locks`
+1. **URL**: `https://bookforme-ie34.onrender.com/internal/cleanup-expired-locks`
 2. **Method**: GET
 3. **Schedule**: Every 10 minutes (cron: `*/10 * * * *`)
 4. **Optional auth**: Set `CLEANUP_CRON_SECRET` in Render env vars, then add header `X-Cron-Secret: <your-secret>` in the cron job.
@@ -285,9 +285,9 @@ python backend/scripts/master_forensic_verification
 ## � What's Next?
 
 ### Immediate Priorities (Next 30 Days)
-1. **Complete Vendor Dashboard** - Advanced analytics and bulk operations
-2. **Payment OCR Enhancement** - 90%+ accuracy, auto-approval
-3. **Mobile App Polish** - Push notifications, offline support
+1. **Complete Final App QA** - customer, vendor, and admin flows on the deployed backend
+2. **Create Stable Android Build** - installable APK/internal build for university demo
+3. **Payment OCR Provider Check** - compare Groq vision and Gemini on real screenshots
 
 ### Medium Term (Next 90 Days)
 1. **Social Features Launch** - Matchmaking, leaderboards, chat
@@ -325,6 +325,6 @@ So yes: if you need to generate more slots, smart_reseed.py --write is the scrip
 
 The big rule: do not use seed_all.py, safe_slot_seed.py, or clear_slots.py for adding future slots. Those are now guarded, but conceptually they’re rebuild/reset tools. For your real need, use only smart_reseed.py, dry-run first, then --write.
 
-*Last Updated: February 20, 2026*  
-*Next Status Review: March 20, 2026*  
+*Last Updated: May 9, 2026*  
+*Current focus: final app polish and stable demo build*  
 *For technical details: See [ARCHITECTURE_MASTER_SPEC.md](./ARCHITECTURE_MASTER_SPEC.md)*

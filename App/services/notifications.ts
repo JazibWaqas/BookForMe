@@ -10,16 +10,20 @@ import Constants from 'expo-constants';
 import { buildApiUrl } from '../config/api';
 import axios from 'axios';
 
+const isExpoGo = Constants.appOwnership === 'expo';
+
 // Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (!isExpoGo && Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 const NOTIFICATION_TOKEN_KEY = 'expo_push_token';
 
@@ -33,7 +37,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   }
 
   // Disable push notifications in Expo Go to prevent crashes in SDK 53+
-  if (Constants.appOwnership === 'expo') {
+  if (isExpoGo) {
     console.log('Skipping push notification setup in Expo Go.');
     return false;
   }
@@ -116,6 +120,10 @@ export function setupNotificationListeners(
   onNotificationReceived?: (notification: Notifications.Notification) => void,
   onNotificationTapped?: (response: Notifications.NotificationResponse) => void
 ) {
+  if (Platform.OS === 'web' || isExpoGo) {
+    return () => {};
+  }
+
   // Listener for notifications received while app is foregrounded
   const receivedListener = Notifications.addNotificationReceivedListener(
     (notification) => {
@@ -183,4 +191,3 @@ export async function cancelAllNotifications(): Promise<void> {
 export async function getAllScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
   return await Notifications.getAllScheduledNotificationsAsync();
 }
-

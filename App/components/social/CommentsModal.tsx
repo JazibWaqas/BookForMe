@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, Modal, StyleSheet, TouchableOpacity, TextInput,
-    FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Keyboard
+    FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
@@ -9,6 +9,8 @@ import { SocialService } from '../../services/social';
 import { authService, UserData } from '../../services/auth';
 import { getMediaUrl } from '../../config/api';
 import Avatar from '../ui/Avatar';
+import { showError } from '../../utils/feedback';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface CommentsModalProps {
     visible: boolean;
@@ -23,6 +25,7 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
     const [newComment, setNewComment] = useState('');
     const [sending, setSending] = useState(false);
     const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     useEffect(() => {
         if (visible && postId) {
@@ -48,21 +51,19 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
 
     const handleDeleteComment = (commentId: string, commentAuthorId: string) => {
         if (!currentUser) return;
-        Alert.alert('Delete Comment', 'Delete this comment?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await SocialService.deleteComment(postId, commentId);
-                        setComments(prev => prev.filter(c => c.id !== commentId));
-                    } catch (error) {
-                        Alert.alert('Error', 'Failed to delete comment');
-                    }
-                },
-            },
-        ]);
+        setDeleteTarget(commentId);
+    };
+
+    const confirmDeleteComment = async () => {
+        if (!deleteTarget) return;
+        const commentId = deleteTarget;
+        setDeleteTarget(null);
+        try {
+            await SocialService.deleteComment(postId, commentId);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+        } catch (error) {
+            showError('Could not delete comment', 'Please try again.');
+        }
     };
 
     const handleSend = async () => {
@@ -101,7 +102,7 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
             await loadData();
         } catch (error) {
             console.error('Error posting comment:', error);
-            Alert.alert('Error', 'Failed to post comment');
+            showError('Could not post comment', 'Please try again.');
             // Remove temp comment on error
             setComments(comments);
         } finally {
@@ -143,63 +144,74 @@ export default function CommentsModal({ visible, postId, onClose, onCommentPoste
     };
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Comments</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Ionicons name="close" size={24} color={COLORS.text} />
-                    </TouchableOpacity>
-                </View>
-
-                {loading ? (
-                    <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
-                ) : (
-                    <FlatList
-                        data={comments}
-                        renderItem={renderComment}
-                        keyExtractor={item => item.id}
-                        contentContainerStyle={styles.list}
-                        ListEmptyComponent={
-                            <Text style={styles.emptyText}>No comments yet. Be the first!</Text>
-                        }
-                    />
-                )}
-
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-                >
-                    <View style={styles.inputContainer}>
-                        <Avatar
-                            uri={avatarUri(currentUser?.avatar_url)}
-                            name={currentUser?.name || 'You'}
-                            size={36}
-                            style={styles.inputAvatar}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Add a comment..."
-                            placeholderTextColor={COLORS.textMuted}
-                            value={newComment}
-                            onChangeText={setNewComment}
-                            multiline
-                        />
-                        <TouchableOpacity
-                            onPress={handleSend}
-                            disabled={!newComment.trim() || sending}
-                            style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
-                        >
-                            {sending ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Ionicons name="send" size={20} color="#fff" />
-                            )}
+        <>
+            <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+                <View style={styles.container}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Comments</Text>
+                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                            <Ionicons name="close" size={24} color={COLORS.text} />
                         </TouchableOpacity>
                     </View>
-                </KeyboardAvoidingView>
-            </View>
-        </Modal>
+
+                    {loading ? (
+                        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
+                    ) : (
+                        <FlatList
+                            data={comments}
+                            renderItem={renderComment}
+                            keyExtractor={item => item.id}
+                            contentContainerStyle={styles.list}
+                            ListEmptyComponent={
+                                <Text style={styles.emptyText}>No comments yet. Be the first!</Text>
+                            }
+                        />
+                    )}
+
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+                    >
+                        <View style={styles.inputContainer}>
+                            <Avatar
+                                uri={avatarUri(currentUser?.avatar_url)}
+                                name={currentUser?.name || 'You'}
+                                size={36}
+                                style={styles.inputAvatar}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Add a comment..."
+                                placeholderTextColor={COLORS.textMuted}
+                                value={newComment}
+                                onChangeText={setNewComment}
+                                multiline
+                            />
+                            <TouchableOpacity
+                                onPress={handleSend}
+                                disabled={!newComment.trim() || sending}
+                                style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
+                            >
+                                {sending ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Ionicons name="send" size={20} color="#fff" />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </KeyboardAvoidingView>
+                </View>
+            </Modal>
+            <ConfirmDialog
+                visible={!!deleteTarget}
+                title="Delete Comment"
+                message="Delete this comment?"
+                confirmLabel="Delete"
+                destructive
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={confirmDeleteComment}
+            />
+        </>
     );
 }
 

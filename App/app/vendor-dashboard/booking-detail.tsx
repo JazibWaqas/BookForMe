@@ -16,6 +16,12 @@ const resolveScreenshotUrl = (url?: string): string | null => {
     return `${API_BASE_URL}${url}`;
 };
 
+const looksLikePhone = (value?: string | null): boolean => {
+    if (!value) return false;
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+};
+
 export default function BookingDetailScreen() {
     const router = useRouter();
     const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
@@ -155,11 +161,13 @@ export default function BookingDetailScreen() {
                         </View>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Phone:</Text>
-                            <Text style={styles.infoValue}>{booking.customer_phone || booking.user_id || 'N/A'}</Text>
+                            <Text style={styles.infoValue}>
+                                {looksLikePhone(booking.customer_phone) ? booking.customer_phone : 'Not provided'}
+                            </Text>
                         </View>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Email:</Text>
-                            <Text style={styles.infoValue}>N/A</Text>
+                            <Text style={styles.infoValue}>{booking.customer_email || 'Not provided'}</Text>
                         </View>
                     </View>
 

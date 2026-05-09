@@ -13,7 +13,9 @@ client bootstrap, and shared storage helpers.
 ## Current Environment Variables
 
 - `DEEPSEEK_API_KEY` - text/NLU/conversation model.
-- `GROQ_API_KEY` - payment screenshot OCR vision model.
+- `GROQ_API_KEY` - current payment screenshot OCR vision model.
+- `GEMINI_API_KEY` - optional OCR provider candidate if testing Gemini for
+  local payment screenshot extraction accuracy.
 - `GOOGLE_APPLICATION_CREDENTIALS` - Firestore service-account JSON or path.
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
@@ -24,6 +26,10 @@ Model names are kept in code/config defaults:
 
 - DeepSeek text: `deepseek-v4-flash`
 - Groq OCR: `meta-llama/llama-4-scout-17b-16e-instruct`
+
+Production deployment is currently:
+
+- Backend/API/Web Chat: `https://bookforme-ie34.onrender.com`
 
 ## Run Locally
 

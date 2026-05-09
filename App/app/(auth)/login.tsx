@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/typography';
 import { authService } from '../../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showError } from '../../utils/feedback';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -37,7 +38,7 @@ export default function LoginScreen() {
       handleGoogleCallback(id_token);
     } else if (response.type === 'error') {
       setGoogleLoading(false);
-      Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.');
+      showError('Google sign-in failed', response.error?.message || 'Please try again.');
     } else if (response.type === 'cancel' || response.type === 'dismiss') {
       setGoogleLoading(false);
     }
@@ -81,10 +82,10 @@ export default function LoginScreen() {
           router.replace('/vendor-dashboard');
         }
       } else {
-        Alert.alert('Login Failed', result.error || 'Please check your credentials and try again.');
+        showError('Login failed', result.error || 'Please check your credentials and try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+      showError('Something went wrong', error.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,10 +112,10 @@ export default function LoginScreen() {
           router.replace('/(tabs)/home');
         }
       } else {
-        Alert.alert('Sign-In Failed', result.error || 'Please try again.');
+        showError('Sign-in failed', result.error || 'Please try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Google Sign-In failed.');
+      showError('Google sign-in failed', error.message || 'Please try again.');
     } finally {
       setGoogleLoading(false);
     }

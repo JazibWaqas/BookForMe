@@ -1,7 +1,13 @@
 # NLU Module
 
 Current NLU is DeepSeek-backed text understanding for the sports booking agent.
-Payment screenshot OCR is separate and uses Groq vision in `ocr.py`.
+Payment screenshot OCR is separate and currently uses Groq vision in `ocr.py`;
+Gemini can be evaluated as an alternate OCR model if screenshot amount
+extraction quality is the only failing piece.
+
+The booking agent is complete for the current launch phase. Do not treat OCR
+model misses as conversation-state failures unless the system fails to upload,
+persist, or transition the payment/slot state correctly.
 
 ## Scope
 

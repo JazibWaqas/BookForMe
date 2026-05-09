@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, TextInput, Switch, ActivityIndicator,
+  TextInput, Switch, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SHADOWS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { showError, showSuccess } from '../../utils/feedback';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 const DAYS: { key: string; label: string }[] = [
   { key: 'mon', label: 'Mon' },
@@ -132,6 +134,7 @@ export default function VendorProfileScreen() {
   const [serviceSaving, setServiceSaving] = useState<Record<string, boolean>>({});
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountSaving, setAccountSaving] = useState<Record<string, boolean>>({});
+  const [signOutVisible, setSignOutVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -191,7 +194,7 @@ export default function VendorProfileScreen() {
 
   const saveVenue = async () => {
     if (!vendorId || !businessName.trim() || !phone.trim() || !address.trim()) {
-      Alert.alert('Required fields', 'Business name, phone, and address cannot be empty.');
+      showError('Required fields', 'Business name, phone, and address cannot be empty.');
       return;
     }
     setSaving(true);
@@ -204,8 +207,8 @@ export default function VendorProfileScreen() {
       if (lat != null && lng != null) { body.lat = lat; body.lng = lng; }
       await apiClient.patch(API_ENDPOINTS.vendors.patch(vendorId), body);
       await AsyncStorage.removeItem('vendorProfile');
-      Alert.alert('Saved', 'Venue info updated.');
-    } catch { Alert.alert('Error', 'Could not save. Try again.'); }
+      showSuccess('Saved', 'Venue info updated.');
+    } catch { showError('Could not save', 'Try again.'); }
     finally { setSaving(false); }
   };
 
@@ -216,7 +219,7 @@ export default function VendorProfileScreen() {
       await apiClient.patch(API_ENDPOINTS.vendors.updateResource(vendorId, r.id), {
         name: r.name.trim(), capacity: r.capacity, active: r.active,
       });
-    } catch { Alert.alert('Error', 'Could not update court.'); }
+    } catch { showError('Could not update court', 'Try again.'); }
     finally { setResourceSaving((p) => ({ ...p, [r.id]: false })); }
   };
 
@@ -227,7 +230,7 @@ export default function VendorProfileScreen() {
       await apiClient.patch(API_ENDPOINTS.vendors.updateService(vendorId, s.id), {
         name: s.name.trim(), base_price: s.pricing.base, duration_min: s.duration_min,
       });
-    } catch { Alert.alert('Error', 'Could not update pricing.'); }
+    } catch { showError('Could not update pricing', 'Try again.'); }
     finally { setServiceSaving((p) => ({ ...p, [s.id]: false })); }
   };
 
@@ -239,7 +242,7 @@ export default function VendorProfileScreen() {
         type: a.type, account_number: a.account_number.trim(),
         account_title: a.account_title.trim(), bank_name: a.bank_name || null, is_default: a.is_default,
       });
-    } catch { Alert.alert('Error', 'Could not update payment account.'); }
+    } catch { showError('Could not update payment account', 'Try again.'); }
     finally { setAccountSaving((p) => ({ ...p, [a.id]: false })); }
   };
 
@@ -247,7 +250,7 @@ export default function VendorProfileScreen() {
     setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Permission needed', 'Allow location to pin your venue.'); return; }
+      if (status !== 'granted') { showError('Permission needed', 'Allow location to pin your venue.'); return; }
       const loc = await Location.getCurrentPositionAsync({});
       setLat(loc.coords.latitude);
       setLng(loc.coords.longitude);
@@ -256,15 +259,18 @@ export default function VendorProfileScreen() {
         const formatted = [res.street, res.city, res.region].filter(Boolean).join(', ');
         if (formatted) setAddress(formatted);
       }
-    } catch { Alert.alert('Error', 'Could not get GPS location.'); }
+    } catch { showError('Could not get GPS location', 'Try again.'); }
     finally { setLocating(false); }
   };
 
   const handleSignOut = async () => {
-    Alert.alert('Sign out', 'You will be signed out.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: async () => { await authService.logout(); router.replace('/(auth)/login'); } },
-    ]);
+    setSignOutVisible(true);
+  };
+
+  const confirmSignOut = async () => {
+    setSignOutVisible(false);
+    await authService.logout();
+    router.replace('/(auth)/login');
   };
 
   if (initializing) {
@@ -497,7 +503,7 @@ export default function VendorProfileScreen() {
                   ))}
                 </View>
 
-                <FieldLabel label="Account number / IBAN" />
+                <FieldLabel label={a.type === 'bank' ? 'IBAN / account number' : `${a.type === 'easypaisa' ? 'EasyPaisa' : 'JazzCash'} number`} />
                 <StyledInput
                   value={a.account_number}
                   onChangeText={(t) => setAccounts((prev) => prev.map((x) => x.id === a.id ? { ...x, account_number: t } : x))}
@@ -505,7 +511,7 @@ export default function VendorProfileScreen() {
                   keyboardType="default"
                 />
 
-                <FieldLabel label="Account title" />
+                <FieldLabel label="Account holder name" />
                 <StyledInput
                   value={a.account_title}
                   onChangeText={(t) => setAccounts((prev) => prev.map((x) => x.id === a.id ? { ...x, account_title: t } : x))}
@@ -549,6 +555,15 @@ export default function VendorProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <ConfirmDialog
+        visible={signOutVisible}
+        title="Sign out"
+        message="You will be signed out."
+        confirmLabel="Sign out"
+        destructive
+        onCancel={() => setSignOutVisible(false)}
+        onConfirm={confirmSignOut}
+      />
     </View>
   );
 }

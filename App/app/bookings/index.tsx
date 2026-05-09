@@ -112,12 +112,49 @@ export default function MyBookingsScreen() {
         }
     };
 
+    const getBookingDateTime = (booking: any): Date | null => {
+        try {
+            const datePart = booking.date;
+            const timePart = booking.time || booking.start_time || '';
+            if (!datePart) return null;
+
+            if (typeof timePart === 'string' && timePart.includes('T')) {
+                const parsed = new Date(timePart);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            let hhmm = '23:59';
+            if (typeof timePart === 'string' && timePart.includes(':')) {
+                const match = timePart.match(/(\d{1,2}):(\d{2})/);
+                if (match) {
+                    let hour = parseInt(match[1], 10);
+                    const minute = match[2];
+                    const upper = timePart.toUpperCase();
+                    if (upper.includes('PM') && hour < 12) hour += 12;
+                    if (upper.includes('AM') && hour === 12) hour = 0;
+                    hhmm = `${hour.toString().padStart(2, '0')}:${minute}`;
+                }
+            }
+
+            const parsed = new Date(`${datePart}T${hhmm}:00`);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        } catch {
+            return null;
+        }
+    };
+
+    const isBookingPast = (booking: any): boolean => {
+        if (booking.status === 'completed' || booking.status === 'cancelled') return true;
+        const dateTime = getBookingDateTime(booking);
+        return dateTime ? dateTime.getTime() < Date.now() : false;
+    };
+
     const upcomingBookings = bookings.filter(b =>
-        b.status === 'pending' || b.status === 'confirmed'
+        ['locked', 'pending', 'confirmed'].includes(b.status) && !isBookingPast(b)
     );
 
     const pastBookings = bookings.filter(b =>
-        b.status === 'completed' || b.status === 'cancelled'
+        isBookingPast(b)
     );
 
     const displayBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
@@ -139,7 +176,7 @@ export default function MyBookingsScreen() {
                     onPress={() => setActiveTab('upcoming')}
                 >
                     <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-                        Confirmed ({upcomingBookings.length})
+                        Upcoming ({upcomingBookings.length})
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

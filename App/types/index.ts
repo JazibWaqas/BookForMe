@@ -100,6 +100,16 @@ export interface User {
   role: 'customer' | 'vendor' | 'admin';
   vendor_id?: string;
   created_at: string;
+  avatar_url?: string;
+  bio?: string;
+  points?: number;
+  level?: number;
+  stats?: {
+    matches_played: number;
+    wins: number;
+    losses: number;
+    win_rate: number;
+  };
 }
 
 export interface Category {

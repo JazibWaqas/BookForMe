@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { format } from 'date-fns';
 import QRCode from 'react-native-qrcode-svg';
+import { showInfo } from '../../utils/feedback';
 
 export default function BookingDetailsScreen() {
     const router = useRouter();
@@ -74,7 +75,7 @@ export default function BookingDetailsScreen() {
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Ticket Details</Text>
-                <TouchableOpacity style={styles.shareButton} onPress={() => Alert.alert('Share', 'Sharing ticket...')}>
+                <TouchableOpacity style={styles.shareButton} onPress={() => showInfo('Share', 'Ticket sharing is coming soon.')}>
                     <Ionicons name="share-outline" size={24} color={COLORS.text} />
                 </TouchableOpacity>
             </View>
@@ -149,14 +150,14 @@ export default function BookingDetailsScreen() {
                     <Button
                         title="Get Directions"
                         variant="secondary"
-                        onPress={() => Alert.alert('Maps', 'Opening maps...')}
+                        onPress={() => showInfo('Directions', 'Maps integration is coming soon.')}
                         icon={<Ionicons name="map-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />}
                     />
                     {booking.status === 'confirmed' && (
                         <Button
                             title="Cancel Booking"
                             variant="outline"
-                            onPress={() => Alert.alert('Cancel', 'Cancellation policy applies. Contact support.')}
+                            onPress={() => showInfo('Cancellation', 'Please contact support for cancellation.')}
                             style={{ marginTop: 12, borderColor: COLORS.error }}
                             textStyle={{ color: COLORS.error }}
                         />

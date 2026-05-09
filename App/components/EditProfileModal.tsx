@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import Button from './ui/Button';
 import { authService } from '../services/auth';
+import { showError, showSuccess } from '../utils/feedback';
 
 interface EditProfileModalProps {
     visible: boolean;
@@ -30,7 +31,7 @@ export default function EditProfileModal({ visible, onClose, onSuccess, currentU
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Name is required');
+            showError('Name required', 'Please enter your name.');
             return;
         }
 
@@ -42,15 +43,15 @@ export default function EditProfileModal({ visible, onClose, onSuccess, currentU
             });
 
             if (response.success) {
-                Alert.alert('Success', 'Profile updated successfully');
+                showSuccess('Profile updated', 'Your changes were saved.');
                 onSuccess();
                 onClose();
             } else {
-                Alert.alert('Error', response.error || 'Failed to update profile');
+                showError('Could not update profile', response.error || 'Please try again.');
             }
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'An unexpected error occurred');
+            showError('Could not update profile', 'Please try again.');
         } finally {
             setLoading(false);
         }

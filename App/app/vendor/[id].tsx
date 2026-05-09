@@ -7,8 +7,9 @@ import {
   StyleSheet,
   Image,
   Dimensions,
-  Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal,
+  TextInput
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { format, addDays } from 'date-fns';
@@ -21,13 +22,39 @@ import {
 } from '../../services/bookings';
 import { ResourceGroup, SlotDetails } from '../../types/booking';
 import Button from '../../components/ui/Button';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Skeleton, { SkeletonGroup } from '../../components/ui/Skeleton';
 import { COLORS, RADIUS, SPACING } from '../../constants/colors';
 import { getVendorImage } from '../../constants/vendorImages';
 import { getCourtImage } from '../../constants/images';
 import { useVendor, useAvailableSlotsOptimized } from '../../hooks/useQueries';
+import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { showError, showSuccess, showInfo } from '../../utils/feedback';
+import { authService } from '../../services/auth';
+import { db } from '../../services/firebase';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type Review = {
+  id: string;
+  user_name?: string;
+  rating: number;
+  title?: string;
+  content?: string;
+  created_at?: string | null;
+};
 
 export default function VendorDetailScreen() {
   const router = useRouter();
@@ -43,6 +70,14 @@ export default function VendorDetailScreen() {
   const [activeTab, setActiveTab] = useState<'amenities' | 'reviews' | 'location'>('amenities');
   const [lockingSlot, setLockingSlot] = useState<string | null>(null);
   const [expandedResources, setExpandedResources] = useState<Set<string>>(new Set());
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewContent, setReviewContent] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [slotChangeTarget, setSlotChangeTarget] = useState<SlotDetails | null>(null);
 
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lockedSlotIdRef = useRef<string | null>(lockedSlotId);
@@ -62,6 +97,80 @@ export default function VendorDetailScreen() {
   );
 
   const loading = vendorLoading;
+
+  const normalizeReviewDate = (value: any): string | null => {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (typeof value.toDate === 'function') return value.toDate().toISOString();
+    if (typeof value.seconds === 'number') return new Date(value.seconds * 1000).toISOString();
+    return null;
+  };
+
+  const loadReviewsFromFirestore = useCallback(async (vendorId: string) => {
+    const snap = await getDocs(query(collection(db, 'reviews'), where('vendor_id', '==', vendorId)));
+    const rows: any[] = [];
+    const userIds = new Set<string>();
+
+    snap.forEach((reviewDoc) => {
+      const data = reviewDoc.data() || {};
+      const status = String(data.status || 'published').toLowerCase();
+      if (status !== 'published' && status !== 'approved') return;
+      if (data.user_id) userIds.add(String(data.user_id));
+      rows.push({ id: reviewDoc.id, ...data });
+    });
+
+    const users = new Map<string, any>();
+    await Promise.all(
+      Array.from(userIds).map(async (uid) => {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', uid));
+          if (userSnap.exists()) users.set(uid, userSnap.data());
+        } catch {
+          // Ignore user hydration failures; the review itself is still useful.
+        }
+      })
+    );
+
+    const normalized = rows
+      .map((row) => {
+        const user = users.get(row.user_id) || {};
+        return {
+          id: row.id,
+          user_name: user.name || user.display_name || user.email || 'Customer',
+          rating: Number(row.rating) || 0,
+          title: row.title || '',
+          content: row.content || '',
+          created_at: normalizeReviewDate(row.created_at),
+        };
+      })
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+    setReviews(normalized);
+  }, []);
+
+  const loadReviews = useCallback(async () => {
+    if (!id) return;
+    setReviewsLoading(true);
+    try {
+      const res = await apiClient.get(API_ENDPOINTS.vendors.reviews(id as string));
+      if (res.data?.success) {
+        setReviews(Array.isArray(res.data.reviews) ? res.data.reviews : []);
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      try {
+        await loadReviewsFromFirestore(id as string);
+      } catch (fallbackError) {
+        console.error('Firestore reviews fallback failed:', fallbackError);
+      }
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [id, loadReviewsFromFirestore]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -152,18 +261,7 @@ export default function VendorDetailScreen() {
 
     // If another slot is already locked, confirm before changing
     if (lockedSlotId && lockedSlotId !== slot.id) {
-      Alert.alert(
-        'Change Selection?',
-        'You already have a slot reserved. Selecting a new slot will release your current reservation.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Change Slot',
-            onPress: () => lockNewSlot(slot),
-            style: 'destructive'
-          }
-        ]
-      );
+      setSlotChangeTarget(slot);
       return;
     }
 
@@ -185,31 +283,24 @@ export default function VendorDetailScreen() {
         // React Query will auto-refetch in background (45s interval)
         // No need to manually refetch - let it happen naturally
       } else {
-        Alert.alert('Slot Unavailable', result.error || 'This slot is no longer available. Please select another.');
+        showError('Slot unavailable', result.error || 'This slot is no longer available. Please select another.');
         refetchSlots(); // Only refetch on error
       }
     } catch (error) {
       console.error('Error locking slot:', error);
-      Alert.alert('Error', 'Failed to reserve slot. Please try again.');
+      showError('Could not reserve slot', 'Please try again.');
     } finally {
       setLockingSlot(null);
     }
   };
 
   const handleLockExpired = () => {
-    Alert.alert(
-      'Reservation Expired',
-      'Your slot reservation has expired. Please select a slot again.',
-      [{
-        text: 'OK', onPress: () => {
-          setSelectedSlot(null);
-          setLockedSlotId(null);
-          setLockExpiry(null);
-          setCountdown(0);
-          refetchSlots();
-        }
-      }]
-    );
+    showInfo('Reservation expired', 'Please select a slot again.');
+    setSelectedSlot(null);
+    setLockedSlotId(null);
+    setLockExpiry(null);
+    setCountdown(0);
+    refetchSlots();
   };
 
   const handleConfirmBooking = () => {
@@ -229,6 +320,99 @@ export default function VendorDetailScreen() {
         holdExpiresAt: lockExpiry?.toISOString() || '',
       },
     });
+  };
+
+  const submitReview = async () => {
+    if (!vendor) return;
+    const content = reviewContent.trim();
+    const title = reviewTitle.trim();
+    if (!content) {
+      showError('Review is empty', 'Share a quick note about your experience.');
+      return;
+    }
+    setReviewSubmitting(true);
+    const resetReviewForm = () => {
+      setReviewModalVisible(false);
+      setReviewRating(5);
+      setReviewTitle('');
+      setReviewContent('');
+    };
+    const postViaFirestore = async () => {
+      const user = await authService.getCurrentUser();
+      if (!user?.id) {
+        throw new Error('Please log in before writing a review.');
+      }
+      const ref = await addDoc(collection(db, 'reviews'), {
+        vendor_id: vendor.id,
+        user_id: user.id,
+        slot_id: null,
+        rating: reviewRating,
+        title,
+        content,
+        status: 'published',
+        created_at: serverTimestamp(),
+      });
+      setReviews((prev) => [
+        {
+          id: ref.id,
+          user_name: user.name || 'You',
+          rating: reviewRating,
+          title,
+          content,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      try {
+        await updateDoc(doc(db, 'vendors', vendor.id), {
+          rating_sum: increment(reviewRating),
+          rating_count: increment(1),
+          review_count: increment(1),
+        });
+      } catch {
+        // Review is posted even if aggregate counters are backend-owned.
+      }
+    };
+
+    try {
+      const res = await apiClient.post(API_ENDPOINTS.vendors.reviews(vendor.id), {
+        rating: reviewRating,
+        title,
+        content,
+      });
+      if (res.data?.success) {
+        showSuccess('Review posted', 'Thanks for helping other players choose.');
+        resetReviewForm();
+        loadReviews();
+      }
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        try {
+          await postViaFirestore();
+          showSuccess('Review posted', 'Thanks for helping other players choose.');
+          resetReviewForm();
+          return;
+        } catch (fallbackError: any) {
+          showError('Review failed', fallbackError?.message || 'Could not post your review.');
+          return;
+        }
+      }
+      const message = error?.response?.status === 401
+        ? 'Please log in before writing a review.'
+        : error?.response?.data?.detail || 'Could not post your review.';
+      showError('Review failed', message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const formatReviewDate = (value?: string | null) => {
+    if (!value) return '';
+    try {
+      return format(new Date(value), 'MMM d');
+    } catch {
+      return '';
+    }
   };
 
   const toggleResourceExpanded = (resourceId: string) => {
@@ -305,7 +489,9 @@ export default function VendorDetailScreen() {
         {/* Venue Info */}
         <View style={styles.card}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoText}>★ {vendor.rating || 4.9} (201 reviews)</Text>
+            <Text style={styles.infoText}>
+              ★ {vendor.rating || (vendor as any).average_rating || 4.9} ({vendor.review_count || reviews.length || 0} reviews)
+            </Text>
             <Text style={styles.infoText}>5.2 km away</Text>
           </View>
           <Text style={styles.description}>
@@ -485,7 +671,40 @@ export default function VendorDetailScreen() {
               </View>
             )}
             {activeTab === 'reviews' && (
-              <Text style={styles.placeholderText}>Reviews coming soon...</Text>
+              <View style={styles.reviewsWrap}>
+                <TouchableOpacity
+                  style={styles.writeReviewButton}
+                  onPress={() => setReviewModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.writeReviewText}>Write a review</Text>
+                </TouchableOpacity>
+
+                {reviewsLoading ? (
+                  <View style={styles.reviewsLoading}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.placeholderText}>Loading reviews...</Text>
+                  </View>
+                ) : reviews.length === 0 ? (
+                  <Text style={styles.placeholderText}>No reviews yet. Be the first to review this venue.</Text>
+                ) : (
+                  reviews.map((review) => (
+                    <View key={review.id} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <Text style={styles.reviewAuthor}>{review.user_name || 'Customer'}</Text>
+                        <Text style={styles.reviewRating}>{'★'.repeat(Math.max(1, Math.min(5, review.rating || 0)))}</Text>
+                      </View>
+                      <View style={styles.reviewMetaRow}>
+                        {!!review.title && <Text style={styles.reviewTitle}>{review.title}</Text>}
+                        {!!formatReviewDate(review.created_at) && (
+                          <Text style={styles.reviewDate}>{formatReviewDate(review.created_at)}</Text>
+                        )}
+                      </View>
+                      {!!review.content && <Text style={styles.reviewContent}>{review.content}</Text>}
+                    </View>
+                  ))
+                )}
+              </View>
             )}
             {activeTab === 'location' && (
               <Text style={styles.addressText}>{vendor.address}</Text>
@@ -495,6 +714,68 @@ export default function VendorDetailScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      <Modal visible={reviewModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.reviewModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Write a Review</Text>
+              <TouchableOpacity onPress={() => setReviewModalVisible(false)}>
+                <Text style={styles.modalClose}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Rating</Text>
+            <View style={styles.ratingPicker}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <TouchableOpacity key={value} onPress={() => setReviewRating(value)} style={styles.starButton}>
+                  <Text style={[styles.starText, value <= reviewRating && styles.starTextActive]}>★</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.modalLabel}>Title</Text>
+            <TextInput
+              value={reviewTitle}
+              onChangeText={setReviewTitle}
+              placeholder="Short summary"
+              placeholderTextColor={COLORS.textMuted}
+              style={styles.reviewInput}
+            />
+
+            <Text style={styles.modalLabel}>Review</Text>
+            <TextInput
+              value={reviewContent}
+              onChangeText={setReviewContent}
+              placeholder="How was the court, staff, and booking experience?"
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              numberOfLines={4}
+              style={[styles.reviewInput, styles.reviewTextArea]}
+            />
+
+            <Button
+              title="Post Review"
+              onPress={submitReview}
+              loading={reviewSubmitting}
+              variant="secondary"
+            />
+          </View>
+        </View>
+      </Modal>
+      <ConfirmDialog
+        visible={!!slotChangeTarget}
+        title="Change Selection?"
+        message="You already have a slot reserved. Selecting a new slot will release your current reservation."
+        confirmLabel="Change Slot"
+        destructive
+        onCancel={() => setSlotChangeTarget(null)}
+        onConfirm={() => {
+          const target = slotChangeTarget;
+          setSlotChangeTarget(null);
+          if (target) lockNewSlot(target);
+        }}
+      />
     </View>
   );
 }
@@ -854,6 +1135,139 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 14,
     color: COLORS.textMuted,
+  },
+  reviewsWrap: {
+    gap: 12,
+  },
+  writeReviewButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+  },
+  writeReviewText: {
+    color: COLORS.textDark,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  reviewsLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reviewCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: COLORS.backgroundLight,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reviewAuthor: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  reviewRating: {
+    fontSize: 12,
+    color: '#F59E0B',
+    letterSpacing: 1,
+  },
+  reviewMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 6,
+  },
+  reviewTitle: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  reviewContent: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  reviewModal: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    gap: 10,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  modalClose: {
+    fontSize: 28,
+    color: COLORS.textMuted,
+    lineHeight: 30,
+  },
+  modalLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginTop: 4,
+  },
+  ratingPicker: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  starButton: {
+    paddingRight: 8,
+    paddingVertical: 2,
+  },
+  starText: {
+    fontSize: 30,
+    color: COLORS.border,
+  },
+  starTextActive: {
+    color: '#F59E0B',
+  },
+  reviewInput: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: COLORS.text,
+    fontSize: 14,
+  },
+  reviewTextArea: {
+    minHeight: 96,
+    textAlignVertical: 'top',
   },
   addressText: {
     fontSize: 14,

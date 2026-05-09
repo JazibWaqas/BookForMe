@@ -8,7 +8,6 @@ import {
   Modal,
   FlatList,
   Animated,
-  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { showError, showSuccess } from '../../utils/feedback';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 type DashboardMetrics = {
   revenue_today: number;
@@ -99,16 +100,19 @@ export default function VendorDashboardScreen() {
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [notifications, setNotifications] = useState<NotifRow[]>([]);
   const [reseedLoading, setReseedLoading] = useState(false);
+  const [reseedConfirmVisible, setReseedConfirmVisible] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  const fetchNotifications = useCallback(async (uid: string) => {
+  const fetchNotifications = useCallback(async (uid: string, vId?: string | null) => {
     try {
-      const res = await apiClient.get(API_ENDPOINTS.social.notifications, {
-        params: { user_id: uid, limit: 40 },
-      });
-      const raw = Array.isArray(res.data) ? res.data : [];
+      const res = vId
+        ? await apiClient.get(API_ENDPOINTS.vendors.notifications(vId), { params: { limit: 40 } })
+        : await apiClient.get(API_ENDPOINTS.social.notifications, {
+          params: { user_id: uid, limit: 40 },
+        });
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.notifications || []);
       setNotifications(
         raw.map((n: any) => ({
           id: n.id,
@@ -133,7 +137,7 @@ export default function VendorDashboardScreen() {
     const requests: Promise<any>[] = [
       apiClient.get(API_ENDPOINTS.vendors.analyticsToday(vId)).catch(e => { console.error('analytics fetch', e); return null; }),
       apiClient.get(API_ENDPOINTS.vendors.get(vId)).catch(e => { console.error('vendor fetch', e); return null; }),
-      uid ? fetchNotifications(uid).catch(e => { console.error('notifications fetch', e); }) : Promise.resolve(),
+      uid ? fetchNotifications(uid, vId).catch(e => { console.error('notifications fetch', e); }) : Promise.resolve(),
     ];
 
     const [analyticsRes, vendorRes] = await Promise.all(requests);
@@ -190,10 +194,21 @@ export default function VendorDashboardScreen() {
   );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const displayedNotifications = notifications.length > 0
+    ? notifications
+    : pendingItems.map((item) => ({
+      id: `pending-${item.id}`,
+      type: item.status,
+      title: item.status === 'pending' ? 'Payment Needs Review' : 'Active Slot Hold',
+      message: `${item.customer_name || 'Customer'} - ${item.time} - ${item.resource_name || 'Court'} - PKR ${Math.round(item.amount || 0)}`,
+      read: false,
+      created_at: item.date || null,
+    }));
+  const bellCount = unreadCount || pendingItems.length;
 
   const openNotifications = () => {
     setNotificationsVisible(true);
-    if (userId) fetchNotifications(userId);
+    if (userId) fetchNotifications(userId, vendorId);
   };
 
   const markRead = async (nid: string) => {
@@ -207,30 +222,24 @@ export default function VendorDashboardScreen() {
 
   const runSmartReseed = () => {
     if (!vendorId) return;
-    Alert.alert(
-      'Generate missing slots',
-      'Creates only missing slot documents for your schedule. Nothing is deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Run',
-          onPress: async () => {
-            setReseedLoading(true);
-            try {
-              const res = await apiClient.post(API_ENDPOINTS.vendors.smartReseed(vendorId));
-              const created = res.data?.created ?? 0;
-              Alert.alert('Done', res.data?.message || `Created ${created} new slot documents.`);
-              await fetchDashboardData(vendorId, userId);
-            } catch (e: any) {
-              const msg = e?.response?.data?.detail || e?.message || 'Request failed';
-              Alert.alert('Error', String(msg));
-            } finally {
-              setReseedLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    setReseedConfirmVisible(true);
+  };
+
+  const confirmSmartReseed = async () => {
+    if (!vendorId) return;
+    setReseedConfirmVisible(false);
+    setReseedLoading(true);
+    try {
+      const res = await apiClient.post(API_ENDPOINTS.vendors.smartReseed(vendorId));
+      const created = res.data?.created ?? 0;
+      showSuccess('Done', res.data?.message || `Created ${created} new slot documents.`);
+      await fetchDashboardData(vendorId, userId);
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail || e?.message || 'Request failed';
+      showError('Slot generation failed', String(msg));
+    } finally {
+      setReseedLoading(false);
+    }
   };
 
   if (loading) {
@@ -255,9 +264,9 @@ export default function VendorDashboardScreen() {
             </View>
             <TouchableOpacity onPress={openNotifications} style={styles.notificationButton}>
               <Ionicons name="notifications" size={24} color="#FFF" />
-              {unreadCount > 0 && (
+              {bellCount > 0 && (
                 <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                  <Text style={styles.notificationBadgeText}>{bellCount > 99 ? '99+' : bellCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -424,7 +433,7 @@ export default function VendorDashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            {notifications.length === 0 ? (
+            {displayedNotifications.length === 0 ? (
               <View style={styles.emptyNotifications}>
                 <Ionicons name="notifications-off-outline" size={48} color={COLORS.textMuted} />
                 <Text style={styles.emptyText}>No notifications</Text>
@@ -434,13 +443,13 @@ export default function VendorDashboardScreen() {
               </View>
             ) : (
               <FlatList
-                data={notifications}
+                data={displayedNotifications}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={[styles.notificationItem, !item.read && styles.notificationUnread]}
                     onPress={() => {
-                      if (!item.read) markRead(item.id);
+                      if (!item.read && !item.id.startsWith('pending-')) markRead(item.id);
                     }}
                   >
                     <View style={styles.notificationIcon}>
@@ -460,6 +469,14 @@ export default function VendorDashboardScreen() {
           </View>
         </View>
       </Modal>
+      <ConfirmDialog
+        visible={reseedConfirmVisible}
+        title="Generate missing slots"
+        message="Creates only missing slot documents for your schedule. Nothing is deleted."
+        confirmLabel="Run"
+        onCancel={() => setReseedConfirmVisible(false)}
+        onConfirm={confirmSmartReseed}
+      />
     </View>
   );
 }

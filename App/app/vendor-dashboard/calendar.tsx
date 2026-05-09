@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Alert, Switch, Dimensions, Animated, AppState } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, Switch, Dimensions, Animated, AppState } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/auth';
 import { apiClient, API_ENDPOINTS } from '../../config/api';
+import { showError, showInfo, showSuccess } from '../../utils/feedback';
 
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
@@ -201,17 +202,17 @@ export default function VendorCalendarScreen() {
       setWalkInPaid(true);
     } else if (!slot) {
       // No document at all (outside seeded range) — do nothing, just inform
-      Alert.alert("Unavailable", "This time slot has not been generated yet. Re-seed slots from the dashboard to add it.");
+      showInfo("Unavailable", "This time slot has not been generated yet. Re-seed slots from the dashboard.");
     } else if (slot.status === 'confirmed' || slot.status === 'pending' || slot.status === 'locked') {
       router.push(`/vendor-dashboard/booking-detail?bookingId=${slot.id}`);
     } else if (slot.status === 'blocked') {
-      Alert.alert("Blocked", "This slot is blocked for maintenance.");
+      showInfo("Blocked", "This slot is blocked for maintenance.");
     }
   };
 
   const submitWalkIn = async () => {
     if (!selectedSlot || !vendorId || !walkInName) {
-      Alert.alert("Error", "Please provide at least a customer name.");
+      showError("Missing details", "Please provide at least a customer name.");
       return;
     }
     setSubmitting(true);
@@ -231,15 +232,15 @@ export default function VendorCalendarScreen() {
       });
 
       if (res.data.success) {
-        Alert.alert("Success", "Walk-in booked successfully!");
+        showSuccess("Walk-in booked", "Calendar updated.");
         setSelectedSlot(null);
         fetchGridData(vendorId, formatDate(currentDate)); // refresh
       } else {
-        Alert.alert("Error", res.data.error || "Could not book walk-in.");
+        showError("Could not book walk-in", res.data.error || "Please try again.");
       }
     } catch (e: any) {
       const errMsg = e?.response?.data?.detail || "An error occurred creating the walk-in.";
-      Alert.alert("Error", errMsg);
+      showError("Could not book walk-in", errMsg);
     } finally {
       setSubmitting(false);
     }

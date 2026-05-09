@@ -15,6 +15,8 @@ type Options = {
   enabled?: boolean;
 };
 
+type VendorStreamEvent = 'connected' | 'slot_change';
+
 /**
  * Opens a persistent SSE connection to the backend for a vendor.
  * Uses react-native-sse which works correctly on iOS and Android.
@@ -23,7 +25,7 @@ type Options = {
  */
 export function useVendorStream(vendorId: string | null, options: Options) {
   const { onSlotChange, onConnected, enabled = true } = options;
-  const esRef = useRef<InstanceType<typeof EventSource> | null>(null);
+  const esRef = useRef<EventSource<VendorStreamEvent> | null>(null);
   const mountedRef = useRef(true);
 
   const onSlotChangeRef = useRef(onSlotChange);
@@ -45,7 +47,7 @@ export function useVendorStream(vendorId: string | null, options: Options) {
 
     const url = `${API_BASE_URL}${API_ENDPOINTS.vendors.stream(vendorId)}`;
 
-    const es = new EventSource(url, {
+    const es = new EventSource<VendorStreamEvent>(url, {
       headers: { Authorization: `Bearer ${token}` },
       // Automatically reconnect on drop
       withCredentials: false,
