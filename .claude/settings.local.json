@@ -10,7 +10,9 @@
       "WebFetch(domain:www.mindstudio.ai)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:codersera.com)",
-      "WebFetch(domain:console.groq.com)"
+      "WebFetch(domain:console.groq.com)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\OMNIBOOK\\\\Documents\\\\GitHub\\\\JHAT\\\\App\\\\app\\\\\\(auth\\)\" -Recurse -File)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

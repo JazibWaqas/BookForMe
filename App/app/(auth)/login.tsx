@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
+  TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../services/firebase';
-import Input from '../../components/ui/Input';
-import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/typography';
 import { authService } from '../../services/auth';
@@ -16,6 +18,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showError } from '../../utils/feedback';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const GoogleIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 48 48">
+    <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+  </Svg>
+);
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,6 +37,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '330764738815-dq8dstvtsruk6rd25tpmm32632lm1igo.apps.googleusercontent.com',
@@ -59,21 +71,13 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!validate()) {
-      return;
-    }
-
+    if (!validate()) return;
     setLoading(true);
-
     try {
       const result = await authService.login(email, password);
-
       if (result.success && result.user && result.token) {
         const userRole = result.user.role || 'customer';
-
-        // Store user role for session persistence
         await AsyncStorage.setItem('userRole', userRole);
-
         if (userRole === 'customer') {
           router.replace('/(tabs)/home');
         } else if (userRole === 'admin') {
@@ -95,13 +99,11 @@ export default function LoginScreen() {
     try {
       const credential = GoogleAuthProvider.credential(idToken);
       const { user: firebaseUser } = await signInWithCredential(auth, credential);
-
       const result = await authService.loginWithGoogleToken({
         email: firebaseUser.email!,
         name: firebaseUser.displayName || 'Google User',
         uid: firebaseUser.uid,
       });
-
       if (result.success && result.user) {
         const userRole = result.user.role || 'customer';
         if (userRole === 'admin') {
@@ -127,10 +129,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[COLORS.background, COLORS.backgroundLight]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      {/* Decorative concentric arcs — court-line inspired */}
+      <View style={styles.decorArc1} />
+      <View style={styles.decorArc2} />
+      <View style={styles.decorArcBottomRight} />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -141,28 +145,32 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Brand Header ── */}
           <View style={styles.header}>
-            <View style={styles.logoGlow} />
-            <Text style={styles.logoMark}>⚡</Text>
+            <Ionicons name="flash" size={22} color={COLORS.primary} style={styles.logoMark} />
             <Text style={styles.logo}>BookForMe</Text>
-            <Text style={styles.tagline}>Karachi's Sports Booking Platform</Text>
+            <Text style={styles.tagline}>Karachi's Premier Sports Booking</Text>
           </View>
 
-          <View style={styles.content}>
+          {/* ── Form Card ── */}
+          <View style={styles.card}>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Choose your role and login</Text>
+            <Text style={styles.subtitle}>Choose your role and sign in</Text>
 
+            {/* Role Toggle */}
             <View style={styles.roleToggle}>
               <TouchableOpacity
-                activeOpacity={0.6}
+                activeOpacity={0.8}
                 style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
                 onPress={() => setRole('customer')}
               >
-                <Ionicons
-                  name="person"
-                  size={24}
-                  color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
-                />
+                <View style={[styles.roleIconWrap, role === 'customer' && styles.roleIconWrapActive]}>
+                  <Ionicons
+                    name="person"
+                    size={20}
+                    color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
+                  />
+                </View>
                 <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
                   Customer
                 </Text>
@@ -170,16 +178,19 @@ export default function LoginScreen() {
                   Book venues
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                activeOpacity={0.6}
+                activeOpacity={0.8}
                 style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
                 onPress={() => setRole('vendor')}
               >
-                <Ionicons
-                  name="business"
-                  size={24}
-                  color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
-                />
+                <View style={[styles.roleIconWrap, role === 'vendor' && styles.roleIconWrapActive]}>
+                  <Ionicons
+                    name="business"
+                    size={20}
+                    color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+                  />
+                </View>
                 <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
                   Vendor
                 </Text>
@@ -189,11 +200,21 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Form Fields */}
             <View style={styles.form}>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
-                <View style={[styles.inputWrapper, !!errors.email && styles.inputWrapperError]}>
-                  <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'email' && styles.inputWrapperFocused,
+                  !!errors.email && styles.inputWrapperError,
+                ]}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={18}
+                    color={focusedField === 'email' ? COLORS.primary : COLORS.textMuted}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.textInput}
                     placeholder="your@email.com"
@@ -203,6 +224,8 @@ export default function LoginScreen() {
                       setEmail(t);
                       if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
                     }}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -218,9 +241,23 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={[styles.inputWrapper, !!errors.password && styles.inputWrapperError]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Password</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.forgotText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'password' && styles.inputWrapperFocused,
+                  !!errors.password && styles.inputWrapperError,
+                ]}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color={focusedField === 'password' ? COLORS.primary : COLORS.textMuted}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter password"
@@ -230,6 +267,8 @@ export default function LoginScreen() {
                       setPassword(t);
                       if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
                     }}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -242,8 +281,8 @@ export default function LoginScreen() {
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
-                      name={showPassword ? "eye-outline" : "eye-off-outline"}
-                      size={20}
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
                       color={COLORS.textMuted}
                     />
                   </TouchableOpacity>
@@ -254,193 +293,264 @@ export default function LoginScreen() {
                   </Text>
                 )}
               </View>
-
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </TouchableOpacity>
             </View>
 
-            <Button
-              title="Login"
+            {/* Login Button */}
+            <TouchableOpacity
               onPress={handleLogin}
-              loading={loading}
-              variant="secondary"
-            />
+              disabled={loading}
+              activeOpacity={0.85}
+              style={styles.loginButtonWrap}
+            >
+              <LinearGradient
+                colors={loading ? ['#007A4D', '#005C3A'] : ['#00D084', '#00A866']}
+                style={styles.loginButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </Text>
+                {!loading && (
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.loginArrow} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
+            {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
+              <Text style={styles.dividerText}>or continue with</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            <View style={styles.socialButtons}>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={handleGoogleLogin}
-                disabled={googleLoading || loading}
-              >
-                <Text style={styles.socialButtonText}>
-                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {/* Google Button */}
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              activeOpacity={0.8}
+            >
+              <GoogleIcon size={20} />
+              <Text style={styles.googleButtonText}>
+                {googleLoading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
+            </TouchableOpacity>
 
+            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
                 <Text style={styles.linkText}>Sign up</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={{ height: 40 }} />
           </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0B0F1A',
   },
+
+  // ── Decorative background arcs (court-line inspired) ──
+  decorArc1: {
+    position: 'absolute',
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.055)',
+    top: -100,
+    alignSelf: 'center',
+  },
+  decorArc2: {
+    position: 'absolute',
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.09)',
+    top: -35,
+    alignSelf: 'center',
+  },
+  decorArcBottomRight: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.04)',
+    bottom: 50,
+    right: -90,
+  },
+
+  // ── Scroll ──
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
   },
+
+  // ── Brand Header ──
   header: {
-    paddingTop: 50,
-    paddingBottom: 24,
+    paddingTop: 64,
+    paddingBottom: 28,
     alignItems: 'center',
-    position: 'relative',
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(0, 208, 132, 0.07)',
-    top: 20,
-    alignSelf: 'center',
   },
   logoMark: {
-    fontSize: 38,
     marginBottom: 10,
   },
   logo: {
-    fontSize: 34,
+    fontSize: 32,
     fontFamily: FONTS.extrabold,
-    color: COLORS.primary,
-    letterSpacing: -0.5,
+    color: COLORS.text,
+    letterSpacing: -1,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 12,
     fontFamily: FONTS.medium,
     color: COLORS.textMuted,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  content: {
-    flex: 1,
+
+  // ── Form Card ──
+  card: {
+    marginHorizontal: 20,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingTop: 28,
+    paddingBottom: 32,
+    backgroundColor: '#111827',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 10,
   },
   title: {
-    fontSize: 32,
+    fontSize: 26,
     fontFamily: FONTS.extrabold,
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: -1,
+    color: COLORS.text,
+    letterSpacing: -0.8,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     fontFamily: FONTS.regular,
     color: COLORS.textMuted,
-    marginBottom: 20,
+    marginBottom: 24,
+    textAlign: 'center',
   },
+
+  // ── Role Toggle ──
   roleToggle: {
     flexDirection: 'row',
-    gap: 16,
-    marginTop: 12,
-    marginBottom: 32,
+    gap: 12,
+    marginBottom: 28,
   },
   roleButton: {
     flex: 1,
-    paddingVertical: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 18,
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    overflow: 'hidden',
   },
   roleButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(0, 208, 132, 0.05)',
-    shadowColor: COLORS.primary,
+    borderColor: 'rgba(0, 208, 132, 0.4)',
+    backgroundColor: 'rgba(0, 208, 132, 0.1)',
+    shadowColor: '#00D084',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.16,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 0,
+  },
+  roleIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    marginBottom: 10,
+  },
+  roleIconWrapActive: {
+    backgroundColor: 'rgba(0, 208, 132, 0.14)',
   },
   roleText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: FONTS.semibold,
     color: COLORS.textSecondary,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   roleTextActive: {
     color: COLORS.primary,
     fontFamily: FONTS.bold,
   },
   roleSubtext: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: FONTS.regular,
     color: COLORS.textMuted,
   },
   roleSubtextActive: {
-    color: COLORS.primary,
-    opacity: 0.7,
+    color: 'rgba(0, 208, 132, 0.7)',
   },
+  // ── Form ──
   form: {
-    marginBottom: 20,
+    marginBottom: 24,
     gap: 16,
   },
   inputContainer: {
     gap: 8,
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   label: {
     fontSize: 13,
     fontFamily: FONTS.semibold,
     color: COLORS.textSecondary,
-    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 58,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 54,
+  },
+  inputWrapperFocused: {
+    borderColor: 'rgba(0, 208, 132, 0.5)',
+    backgroundColor: 'rgba(0, 208, 132, 0.03)',
   },
   inputWrapperError: {
     borderColor: COLORS.error,
-    backgroundColor: 'rgba(255, 69, 58, 0.06)',
-  },
-  fieldError: {
-    marginTop: 6,
-    fontSize: 12,
-    color: COLORS.error,
-    fontWeight: '500',
+    backgroundColor: 'rgba(255, 69, 58, 0.05)',
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   textInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: FONTS.regular,
     color: COLORS.text,
     height: '100%',
   },
@@ -448,73 +558,95 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 8,
   },
-  input: {
-    marginBottom: 0,
+  fieldError: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.error,
   },
   forgotText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: FONTS.semibold,
     color: COLORS.primary,
-    opacity: 0.8,
-    textAlign: 'right',
-    fontWeight: '600',
+    opacity: 0.9,
   },
-  footer: {
+
+  // ── Login Button ──
+  loginButtonWrap: {
+    shadowColor: '#00D084',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  loginButton: {
+    height: 54,
+    borderRadius: 14,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
   },
-  footerText: {
-    fontSize: 15,
-    color: COLORS.textMuted,
+  loginButtonText: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
-  linkText: {
-    fontSize: 15,
-    color: COLORS.primary,
-    fontWeight: '700',
+  loginArrow: {
+    marginLeft: 8,
   },
+
+  // ── Divider ──
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
+    marginHorizontal: 12,
+    fontSize: 11,
+    fontFamily: FONTS.medium,
     color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
-  socialButtons: {
-    gap: 12,
-    marginBottom: 12,
-  },
-  socialButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
+
+  // ── Google Button ──
   googleButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    height: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
   },
-  facebookButton: {
-    backgroundColor: '#1877F2',
-    borderColor: '#1877F2',
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  googleButtonText: {
+    fontSize: 15,
+    fontFamily: FONTS.semibold,
     color: COLORS.text,
   },
-  facebookButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+
+  // ── Footer ──
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 22,
+  },
+  footerText: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: COLORS.textMuted,
+  },
+  linkText: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
   },
 });
