@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from app.firestore import firestore_db
 from database.auth_service import AuthService
+from database.firestore_v2 import clear_vendor_caches
 from database.schema import Collections
 from database.slot_service import SlotService
 
@@ -206,6 +207,7 @@ async def admin_update_vendor_status(
             "updated_at": firestore.SERVER_TIMESTAMP,
         }
         await asyncio.to_thread(lambda: vendor_ref.update(update_doc))
+        clear_vendor_caches(vendor_id)
 
         user_id = before.get("user_id")
         if user_id:
@@ -271,6 +273,7 @@ async def admin_delete_vendor(
             action = "vendor_soft_delete"
             after_doc = await asyncio.to_thread(vendor_ref.get)
             after = after_doc.to_dict() or {}
+        clear_vendor_caches(vendor_id)
 
         user_id = before.get("user_id")
         if user_id:

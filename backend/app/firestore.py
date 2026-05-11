@@ -13,6 +13,15 @@ import os
 
 logger = logging.getLogger(__name__)
 
+BOOKABLE_VENDOR_STATUSES = {"active", "approved"}
+
+
+def _vendor_is_bookable(vendor_data: Optional[Dict[str, Any]]) -> bool:
+    if not vendor_data:
+        return False
+    status = str(vendor_data.get("status", "active") or "active").lower()
+    return status in BOOKABLE_VENDOR_STATUSES
+
 
 def _slot_date_to_str(val: Any) -> Optional[str]:
     if val is None:
@@ -317,6 +326,11 @@ class FirestoreDB:
                 if current_status != 'available':
                     logger.warning(f"❌ Slot {matching_slot.id} is not available (status: {current_status})")
                     return {'success': False, 'error': f'Slot is no longer available (current status: {current_status})'}
+
+                vendor_ref = self.db.collection('vendors').document(vendor_id)
+                vendor_doc = vendor_ref.get(transaction=transaction)
+                if not vendor_doc.exists or not _vendor_is_bookable(vendor_doc.to_dict() or {}):
+                    return {'success': False, 'error': 'Vendor is not available for booking'}
                 
                 # Update slot to confirmed status with customer info
                 # No separate bookings collection - the slot IS the booking
@@ -563,6 +577,19 @@ class FirestoreDB:
                         booking_data['payment'] = payment_doc.to_dict()
                 except Exception:
                     pass
+
+            if booking_data.get('screenshot_url') and not booking_data.get('payment'):
+                booking_data['payment'] = {
+                    'slot_id': booking_data.get('id'),
+                    'vendor_id': booking_data.get('vendor_id'),
+                    'user_id': booking_data.get('user_id'),
+                    'screenshot_url': booking_data.get('screenshot_url'),
+                    'amount_claimed': booking_data.get('price') or booking_data.get('amount'),
+                    'status': 'verified',
+                    'method': 'wallet',
+                }
+            elif booking_data.get('screenshot_url') and not booking_data.get('payment', {}).get('screenshot_url'):
+                booking_data['payment']['screenshot_url'] = booking_data.get('screenshot_url')
             
             return booking_data
             

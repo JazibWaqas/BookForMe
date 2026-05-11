@@ -21,6 +21,7 @@ _SPORT_VENDORS_CACHE: dict = {}   # sport_type  -> (list, timestamp)
 _VENDOR_DOC_CACHE: dict = {}      # vendor_id   -> (dict, timestamp)
 _SERVICE_CACHE: dict = {}         # vendor_id   -> (list, timestamp)
 _CACHE_TTL = 600                  # 10 minutes — vendor/service data rarely changes
+PUBLIC_VENDOR_STATUSES = {"active", "approved"}
 
 def _c_get(cache: dict, key: str):
     entry = cache.get(key)
@@ -30,6 +31,22 @@ def _c_get(cache: dict, key: str):
 
 def _c_set(cache: dict, key: str, value) -> None:
     cache[key] = (value, _time_mod.time())
+
+
+def _is_public_vendor(vendor_data: Optional[Dict[str, Any]]) -> bool:
+    if not vendor_data:
+        return False
+    status = str(vendor_data.get("status", "active") or "active").lower()
+    return status in PUBLIC_VENDOR_STATUSES
+
+
+def clear_vendor_caches(vendor_id: Optional[str] = None) -> None:
+    _SPORT_VENDORS_CACHE.clear()
+    _SERVICE_CACHE.clear()
+    if vendor_id:
+        _VENDOR_DOC_CACHE.pop(vendor_id, None)
+    else:
+        _VENDOR_DOC_CACHE.clear()
 
 
 class FirestoreV2:
@@ -143,7 +160,8 @@ class FirestoreV2:
             for doc in docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
-                vendors.append(data)
+                if _is_public_vendor(data):
+                    vendors.append(data)
             return vendors
         except Exception as e:
             logger.error(f"Error getting vendors by area: {e}")
@@ -174,7 +192,7 @@ class FirestoreV2:
                 vendors = []
                 for vid in vendor_ids:
                     vendor = await self.get_vendor(vid)
-                    if vendor:
+                    if vendor and _is_public_vendor(vendor):
                         vendors.append(vendor)
                 _c_set(_SPORT_VENDORS_CACHE, sport_type, vendors)
                 return vendors
@@ -191,7 +209,8 @@ class FirestoreV2:
             for doc in docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
-                vendors.append(data)
+                if _is_public_vendor(data):
+                    vendors.append(data)
             return vendors
         except Exception as e:
             logger.error(f"Error getting all vendors: {e}")
@@ -235,7 +254,8 @@ class FirestoreV2:
                 if vendor_doc.exists:
                     v_data = vendor_doc.to_dict()
                     v_data['id'] = vendor_doc.id
-                    vendors.append(v_data)
+                    if _is_public_vendor(v_data):
+                        vendors.append(v_data)
                     
             return vendors
         except Exception as e:

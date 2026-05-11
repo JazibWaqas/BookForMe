@@ -15,6 +15,15 @@ from database.schema import (
 
 logger = logging.getLogger(__name__)
 
+BOOKABLE_VENDOR_STATUSES = {"active", "approved"}
+
+
+def _vendor_is_bookable(vendor_data: Optional[Dict[str, Any]]) -> bool:
+    if not vendor_data:
+        return False
+    status = str(vendor_data.get("status", "active") or "active").lower()
+    return status in BOOKABLE_VENDOR_STATUSES
+
 
 def _write_notification(db, user_id: str, notif_type: str, title: str, message: str, data: dict = None):
     """Write a notification doc to Firestore. Fire-and-forget — never raises."""
@@ -89,6 +98,14 @@ class SlotService:
                 if slot_data.get('status') != SlotStatus.AVAILABLE.value:
                     current_status = slot_data.get('status')
                     return {'success': False, 'error': f'Slot is not available (current: {current_status})'}
+
+                vendor_id = slot_data.get('vendor_id')
+                if not vendor_id:
+                    return {'success': False, 'error': 'Slot has no vendor_id'}
+                vendor_ref = self.db.collection(Collections.VENDORS).document(vendor_id)
+                vendor_doc = vendor_ref.get(transaction=transaction)
+                if not vendor_doc.exists or not _vendor_is_bookable(vendor_doc.to_dict() or {}):
+                    return {'success': False, 'error': 'Vendor is not available for booking'}
                 
                 hold_expires = datetime.now(timezone.utc) + timedelta(minutes=HOLD_EXPIRY_MINUTES)
                 
@@ -189,6 +206,14 @@ class SlotService:
                 
                 if slot_data.get('user_id') != user_id:
                     return {'success': False, 'error': 'Slot is locked by another user'}
+
+                vendor_id = slot_data.get('vendor_id')
+                if not vendor_id:
+                    return {'success': False, 'error': 'Slot has no vendor_id'}
+                vendor_ref = self.db.collection(Collections.VENDORS).document(vendor_id)
+                vendor_doc = vendor_ref.get(transaction=transaction)
+                if not vendor_doc.exists or not _vendor_is_bookable(vendor_doc.to_dict() or {}):
+                    return {'success': False, 'error': 'Vendor is not available for booking'}
                 
                 hold_expires = slot_data.get('hold_expires_at')
                 if hold_expires and datetime.now(timezone.utc) > hold_expires:

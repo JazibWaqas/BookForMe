@@ -17,9 +17,9 @@ from database.firestore_v2 import FirestoreV2
 from database.auth_service import AuthService
 from app.firestore import firestore_db
 from app.cache import DataCache, cached
+from app.storage import upload_bytes
 import os
 import uuid
-from pathlib import Path
 from datetime import timedelta
 from database.ai_search_service import AISearchService
 from nlu.ocr import PaymentOCR
@@ -38,9 +38,36 @@ firestore_v2 = FirestoreV2(firestore_db.db)
 auth_service = AuthService(firestore_db.db)
 ai_search_service = AISearchService()
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("../uploads/payments")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+PUBLIC_VENDOR_STATUSES = {"active", "approved"}
+
+
+def _is_public_vendor(vendor_data: Optional[Dict[str, Any]]) -> bool:
+    if not vendor_data:
+        return False
+    status = str(vendor_data.get("status", "active") or "active").lower()
+    return status in PUBLIC_VENDOR_STATUSES
+
+
+async def _get_public_vendor(vendor_id: str) -> Optional[Dict[str, Any]]:
+    if not vendor_id:
+        return None
+    doc = await asyncio.to_thread(
+        lambda: firestore_db.db.collection("vendors").document(vendor_id).get()
+    )
+    if not doc.exists:
+        return None
+    vendor = doc.to_dict() or {}
+    if not _is_public_vendor(vendor):
+        return None
+    vendor["id"] = doc.id
+    return vendor
+
+
+async def _require_public_vendor(vendor_id: str) -> Dict[str, Any]:
+    vendor = await _get_public_vendor(vendor_id)
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not available")
+    return vendor
 
 
 def get_current_user_id(authorization: str = Header(None)) -> str:
@@ -117,7 +144,8 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
                 for doc in vendor_docs:
                     vendor_data = doc.to_dict()
                     vendor_data['id'] = doc.id
-                    vendors.append(vendor_data)
+                    if _is_public_vendor(vendor_data):
+                        vendors.append(vendor_data)
             
             logger.info(f"Returning {len(vendors)} vendors")
         else:
@@ -127,7 +155,8 @@ async def get_vendors(service_type: Optional[str] = None, category: Optional[str
             for doc in docs:
                 vendor_data = doc.to_dict()
                 vendor_data['id'] = doc.id
-                vendors.append(vendor_data)
+                if _is_public_vendor(vendor_data):
+                    vendors.append(vendor_data)
         
         return {
             "success": True,
@@ -155,12 +184,10 @@ async def get_vendor(vendor_id: str):
         if not firestore_db.db:
             raise HTTPException(status_code=500, detail="Firestore not initialized")
         
-        vendor = await firestore_db.get_vendor(vendor_id)
+        vendor = await _get_public_vendor(vendor_id)
         
         if not vendor:
-            raise HTTPException(status_code=404, detail="Vendor not found")
-        
-        vendor['id'] = vendor_id
+            raise HTTPException(status_code=404, detail="Vendor not available")
         
         return {
             "success": True,
@@ -303,7 +330,11 @@ async def get_categories():
             vendor_ids = set()
             for doc in services:
                 vendor_ids.add(doc.to_dict().get('vendor_id'))
-            category['count'] = len(vendor_ids)
+            active_count = 0
+            for vendor_id in vendor_ids:
+                if vendor_id and await _get_public_vendor(vendor_id):
+                    active_count += 1
+            category['count'] = active_count
         
         return {
             "success": True,
@@ -332,7 +363,7 @@ async def get_sport_courts():
         
         for sport_type in sport_types:
             vendors = await firestore_v2.get_vendors_by_sport(sport_type)
-            all_sport_courts.extend(vendors)
+            all_sport_courts.extend([vendor for vendor in vendors if _is_public_vendor(vendor)])
         
         logger.info(f"Retrieved {len(all_sport_courts)} sport courts from Firestore")
         
@@ -361,6 +392,7 @@ async def get_vendor_availability(vendor_id: str, date: str):
     """
     try:
         logger.info(f"Getting availability for vendor {vendor_id} on {date}")
+        await _require_public_vendor(vendor_id)
         
         # Get available slots
         slots = await availability_service.get_available_slots(vendor_id, date)
@@ -395,6 +427,9 @@ async def create_booking(booking_data: dict):
         vendor_id = booking_data.get('vendor_id')
         date = booking_data.get('date')
         time = booking_data.get('time')
+        if not vendor_id:
+            raise HTTPException(status_code=400, detail="vendor_id is required")
+        await _require_public_vendor(vendor_id)
         customer_info = {
             'name': booking_data.get('customer_name', ''),
             'phone': booking_data.get('customer_phone', '')
@@ -648,26 +683,19 @@ async def upload_payment_screenshot(
         vendor_id = slot.get('vendor_id')
         if not vendor_id:
             raise HTTPException(status_code=400, detail="Slot has no vendor_id")
+        await _require_public_vendor(vendor_id)
         
         file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
         unique_filename = f"{slot_id}_{uuid.uuid4()}{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-        
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
-        
-        print(f"[PAYMENT UPLOAD] File saved: {file_path}, size={len(content)} bytes")
-        screenshot_url = f"/uploads/payments/{unique_filename}"
+        content = await file.read()
+        print(f"[PAYMENT UPLOAD] File received: {unique_filename}, size={len(content)} bytes")
 
         print(f"[PAYMENT UPLOAD] Starting OCR verification...")
         ocr_result = await payment_ocr.verify_payment(content, amount_claimed)
         print(f"[PAYMENT UPLOAD] OCR result: {ocr_result}")
 
         if not ocr_result["verified"]:
-            print(f"[PAYMENT UPLOAD] OCR REJECTED - cleaning up file")
-            if file_path.exists():
-                file_path.unlink()
+            print(f"[PAYMENT UPLOAD] OCR REJECTED")
             extracted = ocr_result.get("extracted_amount")
             if extracted is not None:
                 detail = f"Payment amount doesn't match. Expected PKR {int(amount_claimed)}, found PKR {int(extracted)} in screenshot."
@@ -676,6 +704,15 @@ async def upload_payment_screenshot(
             detail = "Couldn't read a payment amount from the screenshot. Please upload a clear payment confirmation image."
             print(f"[PAYMENT UPLOAD] Returning 400: {detail}")
             raise HTTPException(status_code=400, detail=detail)
+
+        ext_for_type = file_extension.lstrip('.').lower() or 'jpeg'
+        if ext_for_type == 'jpg':
+            ext_for_type = 'jpeg'
+        content_type = file.content_type or f"image/{ext_for_type}"
+        storage_path = f"payments/{unique_filename}"
+        screenshot_url = upload_bytes(content, storage_path, content_type)
+        if not screenshot_url:
+            raise HTTPException(status_code=500, detail="Failed to store payment screenshot")
 
         print(f"[PAYMENT UPLOAD] OCR PASSED - proceeding to create payment record")
         # Create payment record
@@ -696,9 +733,6 @@ async def upload_payment_screenshot(
         payment_result = slot_service.submit_payment(slot_id, user_id, payment_id)
         
         if not payment_result['success']:
-            # Clean up uploaded file if payment submission fails
-            if file_path.exists():
-                file_path.unlink()
             raise HTTPException(status_code=400, detail=payment_result.get('error', 'Failed to submit payment'))
         
         # Confirm booking
@@ -720,9 +754,6 @@ async def upload_payment_screenshot(
         raise
     except Exception as e:
         logger.error(f"Error uploading payment screenshot: {e}")
-        # Clean up file if it was created
-        if 'file_path' in locals() and file_path.exists():
-            file_path.unlink()
         raise HTTPException(status_code=500, detail=f"Failed to upload payment: {str(e)}")
 
 
