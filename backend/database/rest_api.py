@@ -18,8 +18,10 @@ from database.auth_service import AuthService
 from app.firestore import firestore_db
 from app.cache import DataCache, cached
 from app.storage import upload_bytes
+from app.config import settings
 import os
 import uuid
+from pathlib import Path
 from datetime import timedelta
 from database.ai_search_service import AISearchService
 from nlu.ocr import PaymentOCR
@@ -712,7 +714,15 @@ async def upload_payment_screenshot(
         storage_path = f"payments/{unique_filename}"
         screenshot_url = upload_bytes(content, storage_path, content_type)
         if not screenshot_url:
-            raise HTTPException(status_code=500, detail="Failed to store payment screenshot")
+            fallback_dir = Path(settings.UPLOADS_DIR) / "payments"
+            fallback_dir.mkdir(parents=True, exist_ok=True)
+            fallback_path = fallback_dir / unique_filename
+            fallback_path.write_bytes(content)
+            screenshot_url = f"/uploads/payments/{unique_filename}"
+            logger.warning(
+                "Firebase Storage upload failed; saved payment screenshot locally at %s",
+                fallback_path,
+            )
 
         print(f"[PAYMENT UPLOAD] OCR PASSED - proceeding to create payment record")
         # Create payment record

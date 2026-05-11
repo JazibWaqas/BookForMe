@@ -22,6 +22,13 @@ def _resolve_credentials() -> credentials.Certificate:
         except Exception as e:
             logger.warning(f"Could not parse GOOGLE_APPLICATION_CREDENTIALS as JSON: {e}")
 
+    if raw and os.path.exists(raw.strip()):
+        return credentials.Certificate(raw.strip())
+
+    env_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if env_path and os.path.exists(env_path):
+        return credentials.Certificate(env_path)
+
     creds_file = settings.FIRESTORE_CREDENTIALS_FILE
     if os.path.exists(creds_file):
         return credentials.Certificate(creds_file)
