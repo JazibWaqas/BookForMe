@@ -41,6 +41,8 @@ _CONCIERGE_SYSTEM = (
     "(padel, futsal, cricket, pickleball). "
     "Talk like a casual, helpful local friend. Keep replies short, natural, and human. "
     "Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. "
+    "Stay strictly within sports court booking, availability, pricing, payment, and booking changes. "
+    "Politely refuse unrelated questions, math, jokes, romantic requests, or inappropriate banter. "
     "Never sound like a form or template. Keep it brief like a WhatsApp message. "
     "Do not use em dashes (—) or en dashes (–). Use commas, periods, or short sentences instead. "
     "Never suggest calling any phone number."
@@ -76,7 +78,7 @@ async def _llm_converse(task: str, messages: list, fallback: str) -> str:
                 model=settings.DEEPSEEK_MODEL,
                 messages=history,
                 temperature=0.7,
-                max_tokens=120,
+                max_tokens=240,
             ),
         )
         logger.info(f"_llm_converse DeepSeek call took {_time.perf_counter() - start_time:.3f}s")
@@ -219,6 +221,38 @@ def _looks_like_flexible_time(message: str) -> bool:
 
 def _is_slot_list_info_request(message: str) -> bool:
     return bool(_SLOT_LIST_INFO_RE.search((message or "").strip().lower()))
+
+
+_SLOT_SELECTION_PHRASE_RE = re.compile(
+    r"\b(?:book|select|choose|pick|reserve|confirm)\s+"
+    r"(?:slot\s+|option\s+|number\s+|num\s+|no\.?\s*|#)?(\d{1,2})\b|"
+    r"\b(?:slot|option|number|num|no)\.?\s*#?\s*(\d{1,2})\b",
+    re.IGNORECASE,
+)
+_SLOT_SELECTION_SHORT_RE = re.compile(
+    r"^\s*(?:#|no\.?\s*|number\s+|num\s+|option\s+|slot\s+)?"
+    r"(\d{1,2})"
+    r"(?:\s*(?:yes|ok|confirm|book|han|haan|ji|done|sure|wala|wali))?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _extract_slot_selection_number(message: str) -> Optional[int]:
+    """Resolve flexible slot picks like 'book no.7' without treating times as slots."""
+    msg = (message or "").strip()
+    if not msg:
+        return None
+
+    short_match = _SLOT_SELECTION_SHORT_RE.match(msg)
+    if short_match:
+        return int(short_match.group(1))
+
+    phrase_match = _SLOT_SELECTION_PHRASE_RE.search(msg)
+    if phrase_match:
+        raw = phrase_match.group(1) or phrase_match.group(2)
+        return int(raw) if raw else None
+
+    return None
 
 
 def _extract_fast_date_text(message: str) -> Optional[str]:
@@ -498,6 +532,21 @@ def _short_booking_ref(slot_id: str) -> str:
 
 profanity.load_censor_words()
 
+_EXTRA_PROFANITY_WORDS = {
+    "bc", "bhenchod", "behnchod", "behnchode", "madarchod", "maderchod",
+    "bhosri", "bhosdike", "chutiya", "chutya", "gandu", "harami",
+}
+try:
+    profanity.add_censor_words(list(_EXTRA_PROFANITY_WORDS))
+except Exception:
+    pass
+
+_CUSTOM_PROFANITY_RE = re.compile(
+    r"\b(?:bc|bhenchod|behnchod|behnchode|madarchod|maderchod|"
+    r"bhosri|bhosdike|chutiya|chutya|gandu|harami)\b",
+    re.IGNORECASE,
+)
+
 BOOKING_KEYWORDS = {
     "padel", "futsal", "cricket", "court", "slot", "book", "booking", "available",
     "availability", "price", "cancel", "time", "date", "tomorrow", "today", "morning",
@@ -519,9 +568,52 @@ BOOKING_KEYWORDS = {
     "ideally", "prefer", "preferred", "suitable",
 }
 
+_WEAK_BOOKING_KEYWORDS = {
+    *(str(i) for i in range(1, 13)),
+    "yes", "no", "ok", "okay", "done", "sure", "proceed", "haan", "han",
+    "ji", "theek", "bilkul", "nahi", "nope", "stop", "ruko", "mat",
+    "want", "need", "mujhe", "chahiye", "karna", "hai", "hei",
+    "match", "game", "play", "show", "list", "change", "modify",
+    "different", "other", "ideally", "prefer", "preferred", "suitable",
+    "around", "after", "before",
+}
+_STRONG_BOOKING_KEYWORDS = BOOKING_KEYWORDS - _WEAK_BOOKING_KEYWORDS
 
-def _fuzzy_has_keyword(words: set) -> bool:
-    keyword_list = list(BOOKING_KEYWORDS)
+_STANDALONE_CONTEXT_REPLY_RE = re.compile(
+    r"^\s*(?:"
+    r"\d{1,2}|yes|yep|yup|ok|okay|k|done|sure|confirm|book|proceed|"
+    r"no|nope|nah|nahi|cancel|stop|ruko|mat|"
+    r"han|haan|ji|theek|bilkul|"
+    r"hi|hello|hey|aoa|salam|salaam|assalamualaikum|walaikum"
+    r")\s*$",
+    re.IGNORECASE,
+)
+_CONVERSATION_REPAIR_RE = re.compile(
+    r"^\s*(?:(?:excuse me|sorry|what|huh|hmm|repeat|again|"
+    r"what do you mean|samajh nahi aya|samajh nahin aya|kya matlab|"
+    r"thanks?|thank you|shukriya)[\?!.]*|\?+)\s*$",
+    re.IGNORECASE,
+)
+_MATH_QUERY_RE = re.compile(
+    r"\d+\s*(?:\+|\-|\*|/|x|times|plus|minus|divided\s+by|multiplied\s+by)\s*\d+|"
+    r"\b(?:solve|calculate)\b.*\b\d+\b|"
+    r"\bwhat(?:'s|\s+is)?\s+\d+\s*(?:\+|\-|\*|/|x|times|plus|minus)\s*\d+\b",
+    re.IGNORECASE,
+)
+_CLEAR_OFF_TOPIC_RE = re.compile(
+    r"\b(?:tell\s+me\s+(?:a\s+)?joke|joke\s+suna|make\s+me\s+laugh|"
+    r"weather|recipe|movie|song\s+lyrics|sing\s+(?:me\s+)?(?:a\s+)?song|"
+    r"write\s+(?:me\s+)?(?:a\s+)?(?:python\s+)?(?:script|code|essay)|"
+    r"python\s+script|president|prime\s+minister|meaning\s+of\s+life|"
+    r"how\s+old\s+are\s+you|your\s+age|virtual\s+kiss|kiss\s+me|"
+    r"give\s+me\s+(?:a\s+)?kiss|i\s+love\s+you|love\s+you|marry\s+me|"
+    r"date\s+me|flirt|romantic|girlfriend|boyfriend)\b",
+    re.IGNORECASE,
+)
+
+
+def _fuzzy_has_keyword(words: set, keywords: Optional[set] = None) -> bool:
+    keyword_list = list(keywords or BOOKING_KEYWORDS)
     for word in words:
         if len(word) < 3:
             continue
@@ -530,23 +622,75 @@ def _fuzzy_has_keyword(words: set) -> bool:
     return False
 
 
+def _has_booking_signal(msg_lower: str, words: set) -> bool:
+    if words.intersection(_STRONG_BOOKING_KEYWORDS):
+        return True
+    if _extract_slot_selection_number(msg_lower) is not None:
+        return True
+    if any([
+        _extract_fast_sport(msg_lower),
+        _extract_fast_date_text(msg_lower),
+        _extract_fast_time_text(msg_lower),
+        _extract_fast_area(msg_lower),
+        _extract_fast_vendor(msg_lower),
+    ]):
+        return True
+    return _fuzzy_has_keyword(words, _STRONG_BOOKING_KEYWORDS)
+
+
+def _is_contextual_booking_reply(msg_lower: str, words: set) -> bool:
+    if _CONVERSATION_REPAIR_RE.match(msg_lower):
+        return True
+    if _STANDALONE_CONTEXT_REPLY_RE.match(msg_lower):
+        return True
+    if _extract_slot_selection_number(msg_lower) is not None:
+        return True
+    return _has_booking_signal(msg_lower, words)
+
+
+def _is_clear_off_topic_request(msg_lower: str) -> bool:
+    if _MATH_QUERY_RE.search(msg_lower):
+        looks_like_booking_time = bool(
+            _TIME_RANGE_RE.search(msg_lower)
+            and re.search(
+                r"\b(slot|slots|book|booking|available|availability|court|"
+                r"padel|futsal|cricket|pickleball|am|pm|baje|bajay)\b",
+                msg_lower,
+            )
+        )
+        if not looks_like_booking_time:
+            return True
+    return bool(_CLEAR_OFF_TOPIC_RE.search(msg_lower))
+
+
 def check_guardrails(message: str, in_booking_context: bool = False) -> Optional[str]:
     msg = message.strip()
     if not msg:
         return None
 
-    if profanity.contains_profanity(msg):
+    msg_lower = msg.lower()
+
+    if profanity.contains_profanity(msg) or _CUSTOM_PROFANITY_RE.search(msg_lower):
         return "vulgar"
 
+    if _is_clear_off_topic_request(msg_lower):
+        return "off_topic"
+
+    words = set(re.findall(r"[a-z0-9]+", msg_lower))
+
     if in_booking_context:
+        if _is_contextual_booking_reply(msg_lower, words):
+            return None
+        if len(msg) > 2:
+            return "off_topic"
         return None
 
-    msg_lower = msg.lower()
-    words = set(re.findall(r"[a-z0-9]+", msg_lower))
-    if words and not words.intersection(BOOKING_KEYWORDS):
-        if not _fuzzy_has_keyword(words):
-            if len(msg) > 2:
-                return "off_topic"
+    if _STANDALONE_CONTEXT_REPLY_RE.match(msg_lower):
+        return None
+
+    if words and not _has_booking_signal(msg_lower, words):
+        if len(msg) > 2:
+            return "off_topic"
 
     return None
 
@@ -585,7 +729,7 @@ async def guardrails_node(state: AgentState) -> AgentState:
             if block_reason == "vulgar":
                 state["response"] = "Please keep the conversation respectful. I can only help with sports court availability and booking."
             else:
-                state["response"] = "I can only help with sports court availability and booking. Please ask about padel, futsal, or cricket slots."
+                state["response"] = "I can only help with sports court availability and booking. Please ask about padel, futsal, cricket, or pickleball slots."
             logger.info(f"Guardrail triggered: {block_reason} for message: '{last_message[:50]}'")
         else:
             state["guardrail_block"] = None
@@ -1000,8 +1144,9 @@ def _fast_classify(message: str, state: dict) -> Optional[str]:
     # Bare digit only counts as a slot-pick when there's actually a slot list
     # or we're awaiting confirmation. Otherwise let it fall to NLU/normalize_time
     # so "6" can mean "6 PM" when the user is being asked for a time.
-    if re.fullmatch(r'\d{1,2}', msg):
-        num = int(msg)
+    selected_num = _extract_slot_selection_number(msg)
+    if selected_num is not None:
+        num = selected_num
         if 1 <= num <= 20 and (has_slot_list or awaiting_confirm or awaiting_payment):
             return "transaction"
 
@@ -1246,9 +1391,10 @@ async def extract_slot_node(state: AgentState) -> AgentState:
         messages = state.get("messages", [])
         last_message = (messages[-1].get("content", "") if messages else "").strip()
         slot_options = state.get("slot_options") or []
+        selection_num = _extract_slot_selection_number(last_message)
 
-        if slot_options and last_message.isdigit():
-            idx = int(last_message)
+        if slot_options and selection_num is not None:
+            idx = selection_num
             if 1 <= idx <= len(slot_options):
                 opt = slot_options[idx - 1]
                 slot_match = {
@@ -2249,7 +2395,7 @@ _CONFIRM_WORDS = re.compile(
     r'\b(yes|ok|okay|confirm|book|done|sure|proceed|han|haan|ji|theek|bilkul)\b', re.IGNORECASE
 )
 _CANCEL_WORDS = re.compile(
-    r'\b(no|nahi|nope|cancel|stop|ruko|mat)\b', re.IGNORECASE
+    r'\b(?:nahi|nope|cancel|stop|ruko|mat)\b|\bno\b(?!\s*[\.\#]?\s*\d)', re.IGNORECASE
 )
 _MODIFY_WORDS = re.compile(
     r'\b(change|modify|actually|instead|different|wait)\b', re.IGNORECASE
@@ -2262,6 +2408,8 @@ def _detect_tx_input(msg: str) -> Optional[str]:
     """Detect transactional input type from raw message text.
     Returns: 'slot_select', 'confirm', 'cancel', 'modify', or None."""
     msg = msg.strip()
+    if _extract_slot_selection_number(msg) is not None:
+        return "slot_select"
     if _SLOT_NUMBER.match(msg):
         return "slot_select"
     if _SLOT_NUMBER_PLUS.match(msg):
@@ -2294,9 +2442,9 @@ def route_by_intent(state: AgentState) -> str:
         return "query_availability"
 
     if awaiting_slot_sel and tx_type == "slot_select":
-        num_match = _SLOT_NUMBER_PLUS.match(last_msg.strip())
-        if num_match:
-            state["messages"][-1]["content"] = num_match.group(1)
+        selected_num = _extract_slot_selection_number(last_msg.strip())
+        if selected_num is not None:
+            state["messages"][-1]["content"] = str(selected_num)
         return "query_availability"
 
     if awaiting_slot_sel and tx_type in ("confirm", "cancel", "modify"):

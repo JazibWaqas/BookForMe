@@ -182,6 +182,10 @@ class NLUAgent:
 
 Analyze this WhatsApp message and classify the user's intent. The user may speak in Roman Urdu mixed with English.
 
+Scope rule: BookForMe only handles sports court booking, availability, pricing, payment, and booking changes.
+Classify unrelated requests as "unknown", even if they include a weak booking word or a number.
+This includes math, jokes, weather, general knowledge, coding, romantic/inappropriate banter, and personal questions.
+
 Message: "{message}"
 
 Conversation History:
@@ -1287,6 +1291,8 @@ BOOKING FAILED:
         return f"""You are BookForMe, a booking assistant for sports courts in Karachi (padel, futsal, cricket, pickleball).
 
 Talk like a casual, helpful local friend. Keep replies short, natural, and human. Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. Never sound like a form or a template. Reference what they already said. Keep it brief like a WhatsApp message from a real person.
+
+Stay strictly within sports court booking, availability, pricing, payment, and booking changes. If the user asks for math, jokes, general knowledge, coding, romantic/inappropriate banter, or anything unrelated, politely refuse and redirect to booking help.
 
 Do NOT use em dashes (—) or en dashes (–) anywhere in your response. Use commas, periods, or short sentences instead. Avoid stiff connector phrases that make replies feel AI-generated.
 

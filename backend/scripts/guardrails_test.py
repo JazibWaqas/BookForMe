@@ -23,7 +23,7 @@ if backend_dir not in sys.path:
 
 os.environ.setdefault("LOG_LEVEL", "ERROR")
 
-from agent.nodes import check_guardrails
+from agent.nodes import check_guardrails, _detect_tx_input, _extract_slot_selection_number
 from agent.session_store import session_store
 from agent.graph import BookingAgent
 
@@ -70,12 +70,17 @@ def part1_unit_tests():
         ("Gibberish", "asdfghjkl qwerty"),
         ("President", "who is the president of USA"),
         ("Math", "solve x squared plus five"),
+        ("Math digits", "what's 9+5"),
+        ("Math words", "what is 9 plus 5"),
         ("Movie", "recommend a good movie"),
         ("Personal", "how old are you"),
         ("Code", "write me a python script"),
         ("Philosophy", "what is the meaning of life"),
         ("Song lyrics", "never gonna give you up"),
         ("Random sentence", "the quick brown fox jumps over"),
+        ("Romantic despite booking word", "give me a virtual kiss after my padel game"),
+        ("Joke despite booking word", "tell me a joke after padel"),
+        ("Code despite booking word", "write me a python script to book padel"),
     ]
     for name, msg in offtopic:
         result = check_guardrails(msg)
@@ -100,6 +105,9 @@ def part1_unit_tests():
         ("Date", "15 feb ko padel"),
         ("Time", "3 pm slot"),
         ("Mixed", "kal evening padel book karna hai"),
+        ("Book no dot", "please book no.7"),
+        ("Book number", "book 7"),
+        ("Slot number phrase", "slot 7"),
         ("Number 1", "1"),
         ("Number 10", "10"),
         ("Generic", "koi slot hei?"),
@@ -126,6 +134,37 @@ def part1_unit_tests():
     for name, msg, expected in edges:
         result = check_guardrails(msg)
         record(name, result == expected, f"'{msg}' -> {result} (expected {expected})")
+
+    print("\n--- 1E: Mid-booking guardrail nuance ---\n")
+    mid_flow = [
+        ("Mid-flow slot number", "7", None),
+        ("Mid-flow book no.7", "please book no.7", None),
+        ("Mid-flow repair", "Excuse me?", None),
+        ("Mid-flow math", "what's 9+5", "off_topic"),
+        ("Mid-flow joke", "tell me a joke instead", "off_topic"),
+        ("Mid-flow romantic", "give me a virtual kiss after padel", "off_topic"),
+    ]
+    for name, msg, expected in mid_flow:
+        result = check_guardrails(msg, in_booking_context=True)
+        record(name, result == expected, f"'{msg}' -> {result} (expected {expected})")
+
+    print("\n--- 1F: Transaction parsing ---\n")
+    tx_cases = [
+        ("Bare slot", "7", "slot_select", 7),
+        ("Book number", "book 7", "slot_select", 7),
+        ("Book no dot", "please book no.7", "slot_select", 7),
+        ("No space number", "no 7", "slot_select", 7),
+        ("Slot phrase", "slot 7", "slot_select", 7),
+        ("Option hash", "option #7", "slot_select", 7),
+        ("Plain cancel", "no", "cancel", None),
+        ("Cancel word", "cancel", "cancel", None),
+        ("Time should not be slot", "7 pm", None, None),
+    ]
+    for name, msg, expected_tx, expected_num in tx_cases:
+        tx = _detect_tx_input(msg)
+        num = _extract_slot_selection_number(msg)
+        passed = tx == expected_tx and num == expected_num
+        record(name, passed, f"'{msg}' -> tx={tx}, num={num} (expected {expected_tx}, {expected_num})")
 
 
 async def part2_live_tests():
