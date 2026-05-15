@@ -2847,6 +2847,36 @@ def route_by_intent(state: AgentState) -> str:
         if _is_slot_list_info_request(last_msg):
             return "generate_response"
 
+        # Auto-map if user typed a time matching a slot instead of the list number
+        extracted_start = entities.get("time_range", {}).get("start")
+        slot_opts = state.get("slot_options") or []
+        if extracted_start and slot_opts:
+            matching_opts = [opt for opt in slot_opts if opt.get("slot_time") == extracted_start]
+            
+            # If multiple slots match the time, but the user also specified the vendor, filter by vendor
+            ent_vendor = entities.get("vendor_name") or entities.get("vendor_id")
+            if ent_vendor and len(matching_opts) > 1:
+                ent_vendor_lower = ent_vendor.lower()
+                vendor_matched = [
+                    opt for opt in matching_opts 
+                    if ent_vendor_lower in opt.get("vendor_name", "").lower() 
+                    or ent_vendor_lower in opt.get("vendor_id", "").lower()
+                ]
+                if len(vendor_matched) == 1:
+                    matching_opts = vendor_matched
+
+            if len(matching_opts) == 1:
+                opt = matching_opts[0]
+                state["messages"][-1]["content"] = str(opt["index"])
+                state["selected_slot"] = {
+                    "slot_id": opt.get("slot_id", ""),
+                    "slot_time": opt.get("slot_time", ""),
+                    "end_time": opt.get("end_time", ""),
+                }
+                state["booking_in_progress"] = True
+                logger.info(f"User typed time '{extracted_start}', auto-mapped to option {opt['index']}")
+                return "query_availability"
+
         has_new_booking_entities = any([
             entities.get("service_type"),
             entities.get("date"),
