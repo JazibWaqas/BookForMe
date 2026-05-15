@@ -225,8 +225,9 @@ class WhatsAppAgent:
                 if extracted is not None:
                     return await _reply_after_delay(
                         f"Payment screenshot received, but the amount doesn't match.\n"
-                        f"Expected: Rs {expected_amount}. Found: Rs {int(extracted)}\n"
-                        "Please send the correct payment screenshot. Your slot is still held for a few more minutes."
+                        f"Expected: Rs {expected_amount}. Screenshot shows: Rs {int(extracted)}\n\n"
+                        f"Please send the exact amount of Rs {expected_amount} and share the updated screenshot. "
+                        f"Once confirmed, we'll sort out any transfer details with you directly. Your slot is still held."
                     )
                 logger.warning(f"OCR could not verify payment for {phone_number}. Error: {ocr_result.get('error')}")
                 return await _reply_after_delay(

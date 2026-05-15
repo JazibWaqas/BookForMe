@@ -900,7 +900,10 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
     if profanity.contains_profanity(msg) or _CUSTOM_PROFANITY_RE.search(msg_lower):
         return "vulgar"
 
-    if _is_clear_off_topic_request(msg_lower):
+    # Only hard-block clear off-topic (jokes, weather, code) before any booking
+    # context exists. Once mid-flow, the LLM system prompt handles it naturally
+    # and can still redirect while maintaining the conversational thread.
+    if _is_clear_off_topic_request(msg_lower) and not in_booking_context:
         return "off_topic"
 
     words = set(re.findall(r"[a-z0-9]+", msg_lower))
@@ -915,18 +918,14 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
     if in_booking_context:
         if _is_booking_adjacent_unclear(msg_lower):
             return "booking_clarify"
-        if _is_contextual_booking_reply(msg_lower, words):
-            return None
-        if len(msg) > 2:
-            return "off_topic"
+        # Let the LLM handle anything else in booking context gracefully.
+        # The system prompt enforces topic discipline so there's no need for
+        # an aggressive catch-all that blocks valid contextual follow-ups.
         return None
 
+    # Outside booking context: only block if there's no booking signal at all.
     if _STANDALONE_CONTEXT_REPLY_RE.match(msg_lower):
         return None
-
-    if words and not _has_booking_signal(msg_lower, words):
-        if len(msg) > 2:
-            return "off_topic"
 
     return None
 
@@ -2672,13 +2671,17 @@ def _format_availability_response(
     if not vendors:
         return None, []
     date = query_result.get("date", "")
+    requested_date = query_result.get("requested_date", date)
     sport = query_result.get("sport_type", "padel")
     area = query_result.get("area") or "Karachi"
     slot_options = []
 
     time_exact_unavailable = query_result.get("time_exact_unavailable", False)
     requested_time = query_result.get("requested_time")
-    if time_exact_unavailable and requested_time:
+    
+    if requested_date and date != requested_date:
+        header = f"No slots available on {requested_date}. Available {sport} slots for next available date ({date}) in {area}:\n"
+    elif time_exact_unavailable and requested_time:
         header = f"That exact {sport} slot ({requested_time}) isn't available, but here's what's nearby on {date}:\n"
     else:
         header = f"Available {sport} slots for {date} in {area}:\n"
