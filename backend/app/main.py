@@ -67,7 +67,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ============================================================================
 # DEV-CHAT API (your index.html calls /dev-api/chat and /dev-api/upload-image)
 # ============================================================================
@@ -313,6 +312,16 @@ async def whatsapp_webhook(request: Request):
 
 # REST API endpoints are now handled by the database.rest_api module
 # See database/rest_api.py for all API endpoints
+
+
+# ============================================================================
+# STATIC FILES (Expo Web App) — must be last so API routes take priority
+# ============================================================================
+_app_dist_path = os.path.join(settings.BASE_DIR, "static", "app_dist")
+if os.path.exists(_app_dist_path):
+    app.mount("/", StaticFiles(directory=_app_dist_path, html=True), name="app_dist")
+else:
+    logger.warning(f"Frontend dist folder not found at {_app_dist_path}")
 
 
 # ============================================================================
