@@ -193,24 +193,6 @@ async def shutdown_event():
 # HEALTH CHECK & INFO ENDPOINTS
 # ============================================================================
 
-@app.api_route("/", methods=["GET", "HEAD"])
-async def root():
-    """Root endpoint - API information"""
-    return {
-        "service": settings.APP_NAME,
-        "version": "0.1.0",
-        "status": "running",
-        "description": "WhatsApp booking bot with Firestore backend",
-        "endpoints": {
-            "whatsapp_webhook": "/webhook/whatsapp",
-            "health": "/health",
-            "api_docs": "/docs",
-            "dev_chat": "/chat",
-            "dev_api": "/dev-api/chat",
-            "cleanup_cron": "/internal/cleanup-expired-locks"
-        }
-    }
-
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
