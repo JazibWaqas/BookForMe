@@ -186,6 +186,13 @@ Scope rule: BookForMe only handles sports court booking, availability, pricing, 
 Classify unrelated requests as "unknown", even if they include a weak booking word or a number.
 This includes math, jokes, weather, general knowledge, coding, romantic/inappropriate banter, and personal questions.
 
+Coverage source of truth:
+- Padel: Ace Padel Club and Golden Court in DHA, Smash Padel in Clifton.
+- Futsal: Elite Futsal in Clifton, Goal Zone in Gulshan, Urban Futsal in Bahria.
+- Cricket: Clifton Cricket Nets in Clifton, Pitch Perfect in DHA.
+- Pickleball: The Pickle Pod in DHA, Dink Masters in Clifton, Rally Point in Gulshan.
+- BookForMe is Karachi-based. Do not treat other cities or unknown venues as supported.
+
 Message: "{message}"
 
 Conversation History:
@@ -245,7 +252,7 @@ Extract entities (return null for any not found in the message):
 - date: tomorrow, today, specific date, "kal", "aaj", day names
 - time: specific time like "4 pm", or a RANGE like "5-9", "6 to 9", "from 5 to 9" (extract exactly as said so the system can show all slots in that range). Or bucket like "evening"/"shaam". If both bucket and clock time given (e.g. "evening 4 pm"), extract the specific clock time "16:00".
   Time buckets: morning=07:00-12:00, afternoon=12:00-17:00, evening=17:00-19:00, night=20:00-23:00
-- area: DHA, Clifton, Gulshan, Gulberg, Bahria, etc.
+- area: DHA, Clifton, Gulshan, Gulberg, Bahria, etc. Extract unsupported areas/cities as said too, so the system can explain coverage.
 - vendor_name: venue/facility name if mentioned. Extract the name as the user said it. Known venues in Karachi: "Ace Padel Club" (DHA), "Smash Padel" (Clifton), "Golden Court" (DHA), "Pickle Pod" (DHA), "Dink Masters" (Clifton), "Pitch Perfect" (DHA), "Rally Point" (Gulshan), "Elite Futsal" (Clifton), "Goal Zone" (Gulshan), "Urban Futsal" (Bahria), "Clifton Cricket Nets" (Clifton). Common short aliases: "ace"="Ace Padel Club", "golden"="Golden Court", "smash"="Smash Padel", "pickle"="Pickle Pod", "dink"="Dink Masters", "rally"="Rally Point", "pitch perfect"="Pitch Perfect", "elite"="Elite Futsal", "goal zone"="Goal Zone", "urban"="Urban Futsal".
 - customer_name: ONLY if explicitly stated in THIS message ("My name is X", "I am X"). null otherwise.
 
@@ -1294,6 +1301,14 @@ Talk like a casual, helpful local friend. Keep replies short, natural, and human
 
 Stay strictly within sports court booking, availability, pricing, payment, and booking changes. If the user asks for math, jokes, general knowledge, coding, romantic/inappropriate banter, or anything unrelated, politely refuse and redirect to booking help.
 
+Coverage source of truth:
+- Padel: Ace Padel Club and Golden Court in DHA, Smash Padel in Clifton.
+- Futsal: Elite Futsal in Clifton, Goal Zone in Gulshan, Urban Futsal in Bahria.
+- Cricket: Clifton Cricket Nets in Clifton, Pitch Perfect in DHA.
+- Pickleball: The Pickle Pod in DHA, Dink Masters in Clifton, Rally Point in Gulshan.
+- BookForMe is Karachi-based. Do not invent or suggest unsupported venues, cities, or areas.
+- If the user asks for an unsupported venue/area/city, say you do not have that option and offer the supported venues/areas for that sport.
+
 Do NOT use em dashes (—) or en dashes (–) anywhere in your response. Use commas, periods, or short sentences instead. Avoid stiff connector phrases that make replies feel AI-generated.
 
 NEVER suggest calling or contacting any phone number. All booking happens in this chat only.
@@ -1306,7 +1321,7 @@ Context: {context}
 {booking_info if booking_info else ""}
 
 {"If slots are available: present them clearly with times and prices, then ask which one they want." if availability_info and availability_data.get("total_available", 0) > 0 else ""}
-{"If no slots: let them know naturally and suggest alternatives (different date or area)." if availability_info and availability_data.get("total_available", 0) == 0 else ""}
+{"If no slots: let them know naturally and suggest only supported alternatives for that sport from the coverage source of truth." if availability_info and availability_data.get("total_available", 0) == 0 else ""}
 {"If SLOT LOCKED: tell user the slot is held, give them the payment amount, ask them to send the payment screenshot here in chat." if booking_info and "LOCKED" in booking_info else ""}
 {"If BOOKING CONFIRMED: confirm it naturally with the booking ID and thank them." if booking_info and "CONFIRMED" in booking_info else ""}
 {"If booking failed: apologize briefly and suggest trying again or picking a different slot." if booking_info and "FAILED" in booking_info else ""}

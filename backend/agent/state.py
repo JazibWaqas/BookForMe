@@ -57,6 +57,7 @@ class AgentState(TypedDict):
     # Validation
     missing_fields: Optional[List[str]]
     requires_clarification: bool
+    policy_error: Optional[Dict[str, Any]]
     
     # Guardrails
     guardrail_block: Optional[str]

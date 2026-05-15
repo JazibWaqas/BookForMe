@@ -31,10 +31,15 @@ from app.config import settings
 from better_profanity import profanity
 from datetime import datetime as _dt
 import pytz as _pytz
+from database.schema import SLOT_GENERATION_DAYS
 
 logger = logging.getLogger(__name__)
 
 nlu_agent = NLUAgent()
+
+BOOKING_WINDOW_DAYS = SLOT_GENERATION_DAYS
+STANDARD_OPEN_MINUTES = 7 * 60
+LATE_NIGHT_CLOSE_MINUTES = 2 * 60
 
 _CONCIERGE_SYSTEM = (
     "You are BookForMe, a booking assistant for sports courts in Karachi "
@@ -42,6 +47,11 @@ _CONCIERGE_SYSTEM = (
     "Talk like a casual, helpful local friend. Keep replies short, natural, and human. "
     "Match the user's language exactly: English for English, Roman Urdu for Roman Urdu, mix if they mix. "
     "Stay strictly within sports court booking, availability, pricing, payment, and booking changes. "
+    "Coverage: padel only at Ace Padel Club and Golden Court in DHA, plus Smash Padel in Clifton; "
+    "futsal at Elite Futsal in Clifton, Goal Zone in Gulshan, Urban Futsal in Bahria; "
+    "cricket at Clifton Cricket Nets in Clifton and Pitch Perfect in DHA; "
+    "pickleball at The Pickle Pod in DHA, Dink Masters in Clifton, Rally Point in Gulshan. "
+    "Do not invent other venues, cities, or areas. "
     "Politely refuse unrelated questions, math, jokes, romantic requests, or inappropriate banter. "
     "Never sound like a form or template. Keep it brief like a WhatsApp message. "
     "Do not use em dashes (—) or en dashes (–). Use commas, periods, or short sentences instead. "
@@ -266,6 +276,8 @@ def _extract_fast_date_text(message: str) -> Optional[str]:
         "tomoro": "tomorrow",
         "tomrw": "tomorrow",
         "tmrw": "tomorrow",
+        "yestarday": "yesterday",
+        "yesturday": "yesterday",
     }
     for typo, normalized in typo_dates.items():
         if re.search(rf"\b{typo}\b", msg):
@@ -273,7 +285,7 @@ def _extract_fast_date_text(message: str) -> Optional[str]:
     # tonight/tonite/this evening/this afternoon/this morning all imply today
     if re.search(r'\btonite?\b|\btonight\b|\bthis\s+(evening|afternoon|morning|night)\b', msg):
         return "today"
-    for phrase in ("parson", "parso", "tomorrow", "today", "kal", "aaj"):
+    for phrase in ("parson", "parso", "tomorrow", "today", "yesterday", "kal", "aaj"):
         if re.search(rf"\b{phrase}\b", msg):
             return "parson" if phrase == "parso" else phrase
 
@@ -431,6 +443,7 @@ def _try_fast_inquiry_entities(message: str) -> Optional[Dict[str, str]]:
 _DATE_FAST_WORDS = {
     "kal", "aaj", "parson", "today", "tomorrow", "day after tomorrow",
     "tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw",
+    "yesterday", "yestarday", "yesturday",
     "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
     "somwar", "somvar", "mangal", "budh", "jumeraat", "juma", "jumma", "hafta", "itwar",
 }
@@ -449,6 +462,8 @@ def _try_fast_date(message: str) -> Optional[str]:
         if re.search(rf"\b{re.escape(word)}\b", msg):
             if word in {"tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw"}:
                 return "tomorrow"
+            if word in {"yestarday", "yesturday"}:
+                return "yesterday"
             return word
     if re.search(r'\b\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b', msg):
         return msg
@@ -610,6 +625,83 @@ _CLEAR_OFF_TOPIC_RE = re.compile(
     r"date\s+me|flirt|romantic|girlfriend|boyfriend)\b",
     re.IGNORECASE,
 )
+_UNSUPPORTED_ACTION_RE = re.compile(
+    r"\b(?:call|phone|contact|message|whatsapp|dm|text)\s+(?:them|venue|vendor|court|club|him|her)|"
+    r"\b(?:give|share|send)\s+(?:me\s+)?(?:their\s+)?(?:phone|number|contact)\b",
+    re.IGNORECASE,
+)
+_UNSUPPORTED_SERVICE_RE = re.compile(
+    r"\b(?:salon|spa|haircut|restaurant|hotel|cinema|movie\s+ticket|"
+    r"tennis|badminton|basketball|football|swimming|gym|snooker|bowling)\b",
+    re.IGNORECASE,
+)
+_UNSUPPORTED_LOCATION_RE = re.compile(
+    r"\b(?:hyderabad|lahore|islamabad|rawalpindi|multan|quetta|peshawar|"
+    r"north\s+nazimabad|nazimabad|saddar|malir|korangi|jauhar|gulistan\s+e\s+jauhar|"
+    r"pechs|bahadurabad|tariq\s+road|north\s+karachi|new\s+karachi|scheme\s+33)\b",
+    re.IGNORECASE,
+)
+_SPORT_VENUE_SUMMARY = {
+    "padel": "Ace Padel Club and Golden Court in DHA, plus Smash Padel in Clifton",
+    "futsal": "Elite Futsal in Clifton, Goal Zone in Gulshan, and Urban Futsal in Bahria",
+    "cricket": "Clifton Cricket Nets in Clifton and Pitch Perfect in DHA",
+    "pickleball": "The Pickle Pod in DHA, Dink Masters in Clifton, and Rally Point in Gulshan",
+}
+_SPORT_AREA_SUMMARY = {
+    "padel": "DHA or Clifton",
+    "futsal": "Clifton, Gulshan, or Bahria",
+    "cricket": "Clifton or DHA",
+    "pickleball": "DHA, Clifton, or Gulshan",
+}
+_SUPPORTED_AREA_ALIASES = {
+    "dha": "DHA",
+    "d.h.a": "DHA",
+    "defence": "DHA",
+    "defense": "DHA",
+    "clifton": "Clifton",
+    "gulshan": "Gulshan",
+    "gulberg": "Gulberg",
+    "bahria": "Bahria",
+}
+_SPORT_AREAS = {
+    "padel": {"DHA", "Clifton"},
+    "futsal": {"Clifton", "Gulshan", "Bahria"},
+    "cricket": {"DHA", "Clifton"},
+    "pickleball": {"DHA", "Clifton", "Gulshan"},
+}
+_KNOWN_VENDOR_ALIASES = {
+    "ace", "ace padel", "ace padel club",
+    "smash", "smash padel",
+    "golden", "golden court",
+    "pickle pod", "the pickle pod",
+    "dink", "dink masters",
+    "pitch perfect",
+    "rally", "rally point",
+    "elite", "elite futsal", "elite futsal arena",
+    "goal zone",
+    "urban", "urban futsal",
+    "clifton cricket", "clifton cricket nets", "cricket nets",
+}
+_NON_VENDOR_WORDS = {
+    "book", "reserve", "check", "want", "need", "please", "pls", "slot",
+    "slots", "court", "courts", "available", "availability", "at", "in",
+    "for", "to", "a", "an", "the", "me", "my", "i", "can", "you",
+    "do", "have", "is", "there", "tomorrow", "today", "kal", "aaj",
+    "morning", "evening", "shaam", "night", "raat", "ko",
+    "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep",
+    "oct", "nov", "dec", "january", "february", "march", "april",
+    "june", "july", "august", "september", "october", "november", "december",
+}
+_BOOKING_ADJACENT_UNCLEAR_RE = re.compile(
+    r"\b(?:too\s+late|too\s+early|late\s+hai|bohat\s+late|earlier|later|"
+    r"early|late|not\s+that|not\s+this|that\s+doesn'?t\s+work|"
+    r"doesn'?t\s+work|no\s+slots?|nothing\s+else|anything\s+else|"
+    r"any\s+other|other\s+options?|different\s+one|another\s+one|"
+    r"same\s+time|too\s+expensive|expensive|mehnga|sasta|cheaper|"
+    r"aur\s+(?:dikhao|hai|slot)|koi\s+aur|pehle|baad\s+mein|"
+    r"samajh\s+nahi|samajh\s+nahin|confused)\b",
+    re.IGNORECASE,
+)
 
 
 def _fuzzy_has_keyword(words: set, keywords: Optional[set] = None) -> bool:
@@ -663,6 +755,141 @@ def _is_clear_off_topic_request(msg_lower: str) -> bool:
     return bool(_CLEAR_OFF_TOPIC_RE.search(msg_lower))
 
 
+def _is_booking_adjacent_unclear(msg_lower: str) -> bool:
+    return bool(_BOOKING_ADJACENT_UNCLEAR_RE.search(msg_lower))
+
+
+def _unsupported_service_name(msg_lower: str) -> Optional[str]:
+    match = _UNSUPPORTED_SERVICE_RE.search(msg_lower)
+    return match.group(0) if match else None
+
+
+def _requested_location_name(msg_lower: str) -> Optional[str]:
+    match = _UNSUPPORTED_LOCATION_RE.search(msg_lower)
+    if match:
+        return " ".join(match.group(0).split()).title()
+    for alias, display in _SUPPORTED_AREA_ALIASES.items():
+        if re.search(rf"\b{re.escape(alias)}\b", msg_lower):
+            return display
+    return None
+
+
+def _coverage_issue(msg_lower: str) -> Optional[Dict[str, str]]:
+    sport = _extract_fast_sport(msg_lower)
+    location = _requested_location_name(msg_lower)
+    if not location:
+        return None
+
+    if location not in {"DHA", "Clifton", "Gulshan", "Gulberg", "Bahria"}:
+        return {"reason": "unsupported_location", "sport": sport or "", "location": location}
+
+    if sport and location not in _SPORT_AREAS.get(sport, set()):
+        return {"reason": "unsupported_sport_area", "sport": sport, "location": location}
+
+    return None
+
+
+def _unknown_vendor_name(msg_lower: str) -> Optional[str]:
+    if any(re.search(rf"\b{re.escape(alias)}\b", msg_lower) for alias in _KNOWN_VENDOR_ALIASES):
+        return None
+
+    if "padel" not in msg_lower:
+        return None
+
+    candidates = []
+    for match in re.finditer(r"\b([a-z][a-z0-9]*(?:\s+[a-z][a-z0-9]*){0,2})\s+padel\b", msg_lower):
+        candidates.append(match.group(1))
+    for match in re.finditer(r"\bpadel\s+(?:at|in)\s+([a-z][a-z0-9]*(?:\s+[a-z][a-z0-9]*){0,2})\b", msg_lower):
+        candidates.append(match.group(1))
+
+    for candidate in candidates:
+        words = [w for w in re.findall(r"[a-z0-9]+", candidate) if not w.isdigit() and w not in _NON_VENDOR_WORDS]
+        words = [w for w in words if w not in {"dha", "defence", "defense", "clifton", "karachi"}]
+        if words:
+            name = " ".join(words).title()
+            return name if "padel" in name.lower() else f"{name} Padel"
+
+    return None
+
+
+def _guardrail_response(block_reason: str, message: str, state: AgentState) -> str:
+    msg = (message or "").strip()
+    msg_lower = msg.lower()
+    in_slot_pick = bool(state.get("awaiting_slot_selection") or state.get("slot_options"))
+    awaiting_confirm = bool(state.get("awaiting_confirmation"))
+    awaiting_payment = bool(state.get("awaiting_payment"))
+    sport = state.get("selected_sport_type") or state.get("entities", {}).get("service_type") or "slots"
+
+    if block_reason == "vulgar":
+        if in_slot_pick or awaiting_confirm or awaiting_payment or state.get("booking_in_progress"):
+            return "I get the frustration, but please keep it respectful. I can still help you find or manage the booking."
+        return "Please keep it respectful. I can help with sports court availability and bookings."
+
+    if block_reason == "booking_clarify":
+        if awaiting_payment:
+            return "I can help with this booking. Send the payment screenshot here, or say cancel if you want to stop."
+        if awaiting_confirm:
+            return "I may have missed that. Reply yes to hold this slot, no to cancel, or tell me what you want to change."
+        if in_slot_pick:
+            if re.search(r"\bno\s+slots?\b", msg_lower):
+                return "The slots above are available. Pick a number, or tell me a different time/date to check."
+            if re.search(r"\b(anything\s+else|any\s+other|other\s+options?|different\s+one|another\s+one|koi\s+aur)\b", msg_lower):
+                return "Sure. Tell me another time, date, or area, and I'll check again."
+            if re.search(r"\bsame\s+time\b", msg_lower):
+                return "Which time do you mean? Pick a number from the list, or type the exact time like 7pm."
+            if re.search(r"\b(earlier|too\s+late|late\s+hai|pehle)\b", msg_lower):
+                return "Got it, that time may be late. Tell me an earlier time, or pick another number from the list."
+            if re.search(r"\b(later|too\s+early|baad)\b", msg_lower):
+                return "No problem. Tell me a later time, or pick another number from the list."
+            if re.search(r"\b(expensive|mehnga|cheaper|sasta)\b", msg_lower):
+                return "Want a cheaper option? Ask for the cheapest one, or pick another number from the list."
+            return "I didn't catch which slot you meant. Pick a number from the list, or tell me another time."
+        return f"I may have missed that. Tell me the sport, date, and time you want, and I'll check {sport}."
+
+    if block_reason == "unsupported_service":
+        service = _unsupported_service_name(msg_lower) or "that"
+        if service in {"football"}:
+            return "For football-style bookings I can check futsal slots. Tell me the date and time."
+        return f"I don't handle {service} bookings here. I can help with padel, futsal, cricket, or pickleball slots."
+
+    if block_reason in {"unsupported_location", "unsupported_sport_area"}:
+        issue = _coverage_issue(msg_lower) or {}
+        service = issue.get("sport") or _extract_fast_sport(msg_lower)
+        location = issue.get("location") or _requested_location_name(msg_lower) or "that area"
+        if service:
+            venues = _SPORT_VENUE_SUMMARY.get(service, "our Karachi partner venues")
+            areas = _SPORT_AREA_SUMMARY.get(service, "Karachi")
+            if block_reason == "unsupported_location":
+                return f"We're Karachi-based, so I don't have {service} slots in {location}. For {service}, I can book {venues}. Want {areas}?"
+            return f"I don't have {service} slots in {location}. For {service}, I can book {venues}. Want {areas}?"
+        return "We're Karachi-based. I can help with padel, futsal, cricket, or pickleball slots in our Karachi partner venues."
+
+    if block_reason == "unknown_vendor":
+        vendor = _unknown_vendor_name(msg_lower) or "that venue"
+        return f"I don't have {vendor} on BookForMe. For padel, I can book Ace Padel Club and Golden Court in DHA, or Smash Padel in Clifton."
+
+    if _UNSUPPORTED_ACTION_RE.search(msg_lower):
+        return "I can't call or contact venues, but I can check slots and help reserve one here."
+
+    if _MATH_QUERY_RE.search(msg_lower):
+        return "I have to stay on bookings here. Tell me the sport, date, and time, and I'll check slots."
+
+    if re.search(r"\b(kiss|love|marry|date\s+me|flirt|romantic|girlfriend|boyfriend)\b", msg_lower):
+        return "Haha, I have to keep it to bookings. Want me to check padel, futsal, cricket, or pickleball slots?"
+
+    if re.search(r"\b(joke|make\s+me\s+laugh)\b", msg_lower):
+        return "I have to stay focused on bookings. Want me to check a sports slot instead?"
+
+    if awaiting_confirm:
+        return "I can help with this booking. Reply yes to hold it, no to cancel, or tell me what to change."
+    if awaiting_payment:
+        return "I can help with the payment step. Send the screenshot here, or say cancel if you want to stop."
+    if in_slot_pick:
+        return "I can help with the slots shown here. Pick a number from the list, or tell me a different time."
+
+    return "I can help with sports bookings here. Tell me padel, futsal, cricket, or pickleball, plus the date and time."
+
+
 def check_guardrails(message: str, in_booking_context: bool = False) -> Optional[str]:
     msg = message.strip()
     if not msg:
@@ -677,8 +904,17 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
         return "off_topic"
 
     words = set(re.findall(r"[a-z0-9]+", msg_lower))
+    coverage_issue = _coverage_issue(msg_lower)
+    if coverage_issue:
+        return coverage_issue["reason"]
+    if _unknown_vendor_name(msg_lower):
+        return "unknown_vendor"
+    if _unsupported_service_name(msg_lower) and not words.intersection({"padel", "futsal", "cricket", "pickleball"}):
+        return "unsupported_service"
 
     if in_booking_context:
+        if _is_booking_adjacent_unclear(msg_lower):
+            return "booking_clarify"
         if _is_contextual_booking_reply(msg_lower, words):
             return None
         if len(msg) > 2:
@@ -726,10 +962,7 @@ async def guardrails_node(state: AgentState) -> AgentState:
 
         if block_reason:
             state["guardrail_block"] = block_reason
-            if block_reason == "vulgar":
-                state["response"] = "Please keep the conversation respectful. I can only help with sports court availability and booking."
-            else:
-                state["response"] = "I can only help with sports court availability and booking. Please ask about padel, futsal, cricket, or pickleball slots."
+            state["response"] = _guardrail_response(block_reason, last_message, state)
             logger.info(f"Guardrail triggered: {block_reason} for message: '{last_message[:50]}'")
         else:
             state["guardrail_block"] = None
@@ -763,6 +996,8 @@ def normalize_date(date_text: str) -> str:
         except:
             pass
 
+    if date_lower in ["yesterday", "yestarday", "yesturday", "kal guzra", "guzra kal"]:
+        return (today - timedelta(days=1)).strftime("%Y-%m-%d")
     if date_lower in ["today", "aaj"]:
         return today.strftime("%Y-%m-%d")
     elif date_lower in ["tomorrow", "kal", "tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw"]:
@@ -967,6 +1202,104 @@ def normalize_time(time_text: str) -> Optional[Dict[str, str]]:
         return {"start": "20:00", "end": "23:00"}
 
     return None
+
+
+def _karachi_today_date():
+    return _dt.now(_pytz.timezone("Asia/Karachi")).date()
+
+
+def _parse_iso_date(date_text: Optional[str]):
+    if not date_text:
+        return None
+    try:
+        return datetime.strptime(str(date_text), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _time_to_minutes(value: Optional[str]) -> Optional[int]:
+    if not value or ":" not in str(value):
+        return None
+    try:
+        hour_s, minute_s = str(value)[:5].split(":")
+        hour = int(hour_s)
+        minute = int(minute_s)
+        if hour == 24 and minute == 0:
+            return 24 * 60
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return hour * 60 + minute
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+def _booking_policy_error(date_text: Optional[str], time_range: Optional[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+    """Return a user-facing policy error before querying impossible slots."""
+    parsed_date = _parse_iso_date(date_text)
+    today = _karachi_today_date()
+
+    if parsed_date:
+        if parsed_date < today:
+            return {
+                "type": "past_date",
+                "date": parsed_date.strftime("%Y-%m-%d"),
+                "max_date": (today + timedelta(days=BOOKING_WINDOW_DAYS)).strftime("%Y-%m-%d"),
+            }
+        max_date = today + timedelta(days=BOOKING_WINDOW_DAYS)
+        if parsed_date > max_date:
+            return {
+                "type": "too_far",
+                "date": parsed_date.strftime("%Y-%m-%d"),
+                "max_date": max_date.strftime("%Y-%m-%d"),
+            }
+
+    if time_range:
+        start_m = _time_to_minutes(time_range.get("start"))
+        end_m = _time_to_minutes(time_range.get("end"))
+        if start_m is not None and end_m is not None:
+            # 00:00-02:00 can exist for some weekend venues. 02:00-07:00 does not.
+            entirely_before_open = end_m <= STANDARD_OPEN_MINUTES and not (
+                start_m < LATE_NIGHT_CLOSE_MINUTES and end_m <= LATE_NIGHT_CLOSE_MINUTES
+            )
+            if entirely_before_open:
+                return {
+                    "type": "outside_hours",
+                    "start": time_range.get("start"),
+                    "end": time_range.get("end"),
+                }
+
+    return None
+
+
+def _booking_policy_response(policy_error: Dict[str, Any], state: AgentState) -> str:
+    messages = state.get("messages", [])
+    last_msg = messages[-1].get("content", "") if messages else ""
+    urdu = _is_urdu(last_msg)
+    sport = (
+        state.get("entities", {}).get("service_type")
+        or state.get("selected_sport_type")
+        or "sports"
+    )
+    max_date = policy_error.get("max_date")
+
+    if policy_error.get("type") == "past_date":
+        if urdu:
+            return f"Past date book nahi ho sakti. Aaj ya next {BOOKING_WINDOW_DAYS} days mein koi date bata dein."
+        return f"I can't book past dates. Send today or a future date up to {max_date}."
+
+    if policy_error.get("type") == "too_far":
+        if urdu:
+            return f"Main abhi next {BOOKING_WINDOW_DAYS} days tak ke slots check kar sakta hoon. {max_date} tak ki date bata dein."
+        return f"I can only check slots for the next {BOOKING_WINDOW_DAYS} days, up to {max_date}. Which date in that range?"
+
+    if policy_error.get("type") == "outside_hours":
+        start = policy_error.get("start")
+        end = policy_error.get("end")
+        if urdu:
+            return f"{start}-{end} ke liye slots nahi hotay. Usually {sport} slots 07:00 se midnight tak hotay hain, kuch venues weekend par 02:00 tak. Is range mein time bata dein."
+        return f"I don't have {sport} slots for {start}-{end}. Slots usually run 07:00 to midnight, with some weekend venues up to 02:00. Tell me a time in that range."
+
+    return "That date or time won't work. Tell me a supported date and time and I'll check slots."
 
 
 BOOKING_SIGNALS = {
@@ -1508,6 +1841,17 @@ async def validate_state_node(state: AgentState) -> AgentState:
             if has_sport and has_date and not has_time:
                 missing.append("time")
 
+        state["policy_error"] = None
+        if has_date:
+            policy_error = _booking_policy_error(
+                entities.get("date") or state.get("selected_date"),
+                entities.get("time_range"),
+            )
+            if policy_error:
+                state["policy_error"] = policy_error
+                missing = []
+                logger.info(f"Booking policy blocked request: {policy_error}")
+
         state["missing_fields"] = missing if missing else None
         state["requires_clarification"] = bool(missing)
         
@@ -2041,6 +2385,10 @@ async def generate_response_node(state: AgentState) -> AgentState:
         if state.get("guardrail_block"):
             logger.info(f"Guardrail block active: {state['guardrail_block']}")
             return state
+
+        if state.get("policy_error"):
+            state["response"] = _booking_policy_response(state["policy_error"], state)
+            return state
         
         intent = state.get("current_intent", "")
         entities = state.get("entities", {})
@@ -2220,10 +2568,11 @@ async def generate_response_node(state: AgentState) -> AgentState:
 
             if area and "No vendors found" in (area_msg or ""):
                 logger.info("Branch hit: NO_VENDORS (area filter)")
+                supported = _SPORT_AREA_SUMMARY.get(sport, "a supported Karachi area")
                 state["response"] = await _llm_converse(
-                    f"No {sport} courts found in {area}. Let the user know and suggest trying a nearby area like DHA or Clifton, or a different sport.",
+                    f"No {sport} courts found in {area}. Let the user know and suggest only supported {sport} areas: {supported}. Do not suggest unsupported areas.",
                     messages,
-                    f"No {sport} venues found in {area}. Want to try a nearby area or different sport?",
+                    f"No {sport} venues found in {area}. Want to try {supported}?",
                 )
             else:
                 _pkt = _pytz.timezone("Asia/Karachi")
@@ -2326,7 +2675,6 @@ def _format_availability_response(
     sport = query_result.get("sport_type", "padel")
     area = query_result.get("area") or "Karachi"
     slot_options = []
-    idx = 1
 
     time_exact_unavailable = query_result.get("time_exact_unavailable", False)
     requested_time = query_result.get("requested_time")
@@ -2336,14 +2684,31 @@ def _format_availability_response(
         header = f"Available {sport} slots for {date} in {area}:\n"
 
     parts = [header]
-    display_vendors = vendors[:3]
+    display_entries = []
+
+    def _slot_minutes(slot: Dict[str, Any]) -> int:
+        raw = str(slot.get("slot_time") or slot.get("time") or "").strip()[:5]
+        try:
+            hour, minute = raw.split(":")
+            return int(hour) * 60 + int(minute)
+        except Exception:
+            return 99999
+
+    def _vendor_first_minutes(vendor: Dict[str, Any]) -> int:
+        slots = vendor.get("slots") or []
+        return min((_slot_minutes(slot) for slot in slots), default=99999)
+
+    requested_minutes = _time_to_minutes(requested_time) if requested_time else None
+
+    display_vendors = sorted(
+        vendors,
+        key=lambda v: (_vendor_first_minutes(v), str(v.get("vendor_name", "")).lower()),
+    )[:3]
 
     for v in display_vendors:
         name = v.get("vendor_name", "Vendor")
-        address = v.get("vendor_address", "")
-        parts.append(f"\n{name} ({address})")
         seen_times = set()
-        for slot in v.get("slots", []):
+        for slot in sorted(v.get("slots", []), key=lambda s: (_slot_minutes(s), int(s.get("price", 0) or 0))):
             sid = slot.get("slot_id", "")
             stime = slot.get("slot_time", "")
             if not sid or stime in seen_times:
@@ -2351,17 +2716,40 @@ def _format_availability_response(
             seen_times.add(stime)
             time_disp = slot.get("time_display") or f"{stime}-{slot.get('end_time', '')}"
             price = slot.get("price", 0)
-            slot_options.append({
-                "index": idx,
+            display_entries.append({
+                "sort_time": _slot_minutes(slot),
                 "slot_id": sid,
                 "slot_time": stime,
                 "end_time": slot.get("end_time", ""),
                 "price": price,
                 "vendor_name": name,
+                "time_display": time_disp,
             })
-            parts.append(f"   {idx}. {time_disp} | Rs {price}")
-            idx += 1
-        parts.append("")
+
+    if time_exact_unavailable and requested_minutes is not None:
+        display_entries.sort(
+            key=lambda item: (
+                abs(item["sort_time"] - requested_minutes),
+                item["sort_time"],
+                int(item.get("price", 0) or 0),
+                item["vendor_name"].lower(),
+            )
+        )
+        display_entries = display_entries[:12]
+    else:
+        display_entries.sort(key=lambda item: (item["sort_time"], int(item.get("price", 0) or 0), item["vendor_name"].lower()))
+
+    for idx, item in enumerate(display_entries, start=1):
+        slot_options.append({
+            "index": idx,
+            "slot_id": item["slot_id"],
+            "slot_time": item["slot_time"],
+            "end_time": item["end_time"],
+            "price": item["price"],
+            "vendor_name": item["vendor_name"],
+        })
+        parts.append(f"   {idx}. {item['time_display']} | {item['vendor_name']} | Rs {item['price']}")
+
     parts.append("Which one? Reply with the number.")
     return "\n".join(parts).strip(), slot_options
 
@@ -2437,6 +2825,9 @@ def route_by_intent(state: AgentState) -> str:
     last_msg = (messages[-1].get("content", "") if messages else "").strip()
 
     tx_type = _detect_tx_input(last_msg)
+
+    if state.get("policy_error"):
+        return "generate_response"
 
     if awaiting_slot_sel and has_slot_id:
         return "query_availability"

@@ -161,6 +161,7 @@ class BookingAgent:
                 "missing_fields": None,
                 "requires_clarification": False,
                 "guardrail_block": None,
+                "policy_error": None,
                 "error": None,
                 "response": ""
             }

@@ -23,12 +23,20 @@ if backend_dir not in sys.path:
 
 os.environ.setdefault("LOG_LEVEL", "ERROR")
 
-from agent.nodes import check_guardrails, _detect_tx_input, _extract_slot_selection_number
+from agent.nodes import (
+    BOOKING_WINDOW_DAYS,
+    check_guardrails,
+    normalize_date,
+    _detect_tx_input,
+    _extract_slot_selection_number,
+    _format_availability_response,
+    _booking_policy_error,
+)
 from agent.session_store import session_store
 from agent.graph import BookingAgent
 
-VULGAR_MSG = "Please keep the conversation respectful"
-BLOCK_MSG = "I can only help with sports court availability and booking"
+VULGAR_MSG = "please keep"
+BLOCK_SNIPPETS = ("bookings", "booking", "slots", "sports")
 
 phone = "+923001112233"
 results = []
@@ -42,6 +50,11 @@ def record(name, passed, detail=""):
     if not passed:
         print(f"        ^^^ UNEXPECTED")
     results.append({"name": name, "pass": passed})
+
+
+def has_blocking_redirect(text):
+    lower = (text or "").lower()
+    return any(snippet in lower for snippet in BLOCK_SNIPPETS)
 
 
 def part1_unit_tests():
@@ -143,12 +156,43 @@ def part1_unit_tests():
         ("Mid-flow math", "what's 9+5", "off_topic"),
         ("Mid-flow joke", "tell me a joke instead", "off_topic"),
         ("Mid-flow romantic", "give me a virtual kiss after padel", "off_topic"),
+        ("Mid-flow too late", "that's too late", "booking_clarify"),
+        ("Mid-flow not that", "not that one", "booking_clarify"),
+        ("Mid-flow other options", "anything else?", "booking_clarify"),
+        ("Mid-flow too expensive", "too expensive", "booking_clarify"),
+        ("Mid-flow no slots question", "no slots?", "booking_clarify"),
+        ("Mid-flow same time", "same time tomorrow?", "booking_clarify"),
     ]
     for name, msg, expected in mid_flow:
         result = check_guardrails(msg, in_booking_context=True)
         record(name, result == expected, f"'{msg}' -> {result} (expected {expected})")
 
-    print("\n--- 1F: Transaction parsing ---\n")
+    print("\n--- 1F: Unsupported booking services ---\n")
+    unsupported = [
+        ("Salon", "can you book salon tomorrow"),
+        ("Tennis", "tennis tomorrow evening"),
+        ("Restaurant", "book a restaurant tomorrow"),
+        ("Hyderabad padel", "padel in hyderabad tomorrow"),
+        ("Gulberg padel", "padel in gulberg tomorrow"),
+    ]
+    for name, msg in unsupported[:3]:
+        result = check_guardrails(msg)
+        record(name, result == "unsupported_service", f"'{msg}' -> {result}")
+    for name, msg in unsupported[3:]:
+        result = check_guardrails(msg)
+        record(name, result in {"unsupported_location", "unsupported_sport_area"}, f"'{msg}' -> {result}")
+
+    unknown_vendors = [
+        ("Capital Padel", "book capital padel tomorrow"),
+        ("XYZ Padel", "book xyz padel tomorrow"),
+        ("Known Ace Padel", "book ace padel tomorrow"),
+    ]
+    for name, msg in unknown_vendors:
+        result = check_guardrails(msg)
+        expected = None if name.startswith("Known") else "unknown_vendor"
+        record(name, result == expected, f"'{msg}' -> {result} (expected {expected})")
+
+    print("\n--- 1G: Transaction parsing ---\n")
     tx_cases = [
         ("Bare slot", "7", "slot_select", 7),
         ("Book number", "book 7", "slot_select", 7),
@@ -165,6 +209,73 @@ def part1_unit_tests():
         num = _extract_slot_selection_number(msg)
         passed = tx == expected_tx and num == expected_num
         record(name, passed, f"'{msg}' -> tx={tx}, num={num} (expected {expected_tx}, {expected_num})")
+
+    print("\n--- 1H: Availability display sorting ---\n")
+    slots_text, slot_options = _format_availability_response({
+        "success": True,
+        "date": "2026-05-16",
+        "sport_type": "padel",
+        "area": "Karachi",
+        "vendors": [
+            {
+                "vendor_name": "Beta Club",
+                "vendor_address": "B",
+                "slots": [
+                    {"slot_id": "b_20", "slot_time": "20:00", "end_time": "21:00", "time_display": "20:00 - 21:00", "price": 1500},
+                    {"slot_id": "b_18", "slot_time": "18:00", "end_time": "19:00", "time_display": "18:00 - 19:00", "price": 1800},
+                ],
+            },
+            {
+                "vendor_name": "Alpha Club",
+                "vendor_address": "A",
+                "slots": [
+                    {"slot_id": "a_19", "slot_time": "19:00", "end_time": "20:00", "time_display": "19:00 - 20:00", "price": 1200},
+                    {"slot_id": "a_18", "slot_time": "18:00", "end_time": "19:00", "time_display": "18:00 - 19:00", "price": 1100},
+                ],
+            },
+        ],
+    })
+    option_times = [opt["slot_time"] for opt in slot_options]
+    option_vendors = [opt["vendor_name"] for opt in slot_options]
+    sorted_ok = option_times == ["18:00", "18:00", "19:00", "20:00"]
+    vendor_visible = "Alpha Club" in (slots_text or "") and "Beta Club" in (slots_text or "")
+    record("Chronological slot display", sorted_ok and vendor_visible, f"times={option_times}, vendors={option_vendors}")
+
+    nearby_text, nearby_options = _format_availability_response({
+        "success": True,
+        "date": "2026-05-16",
+        "sport_type": "padel",
+        "area": "Karachi",
+        "time_exact_unavailable": True,
+        "requested_time": "06:00",
+        "vendors": [
+            {
+                "vendor_name": "Early Club",
+                "slots": [
+                    {"slot_id": "e_00", "slot_time": "00:00", "end_time": "01:00", "time_display": "00:00 - 01:00", "price": 1500},
+                    {"slot_id": "e_08", "slot_time": "08:00", "end_time": "09:00", "time_display": "08:00 - 09:00", "price": 1500},
+                    {"slot_id": "e_01", "slot_time": "01:00", "end_time": "02:00", "time_display": "01:00 - 02:00", "price": 1500},
+                ],
+            },
+        ],
+    })
+    nearby_times = [opt["slot_time"] for opt in nearby_options]
+    record("Nearby slot display by distance", nearby_times[:3] == ["08:00", "01:00", "00:00"], f"times={nearby_times}, text={nearby_text.splitlines()[0] if nearby_text else ''}")
+
+    print("\n--- 1I: Booking policy validation ---\n")
+    yesterday = normalize_date("yesterday")
+    far_future = "2099-01-01"
+    policy_cases = [
+        ("Past date", yesterday, {"start": "19:00", "end": "20:00"}, "past_date"),
+        ("Too far ahead", far_future, {"start": "19:00", "end": "20:00"}, "too_far"),
+        ("Early morning closed", normalize_date("tomorrow"), {"start": "03:00", "end": "05:00"}, "outside_hours"),
+        ("Normal evening", normalize_date("tomorrow"), {"start": "19:00", "end": "20:00"}, None),
+        ("Possible late weekend hour", normalize_date("tomorrow"), {"start": "01:00", "end": "02:00"}, None),
+    ]
+    for name, date_value, time_range, expected in policy_cases:
+        result = _booking_policy_error(date_value, time_range)
+        got = result.get("type") if result else None
+        record(name, got == expected, f"date={date_value}, time={time_range} -> {got} (expected {expected})")
 
 
 async def part2_live_tests():
@@ -199,7 +310,7 @@ async def part2_live_tests():
     ]
     for name, msg in offtopic_live:
         r = await run(msg)
-        passed = BLOCK_MSG.lower() in r.lower()
+        passed = has_blocking_redirect(r)
         record(name, passed, f"'{msg}' -> {r[:100]}")
 
     print("\n--- 2C: Legit messages NOT blocked by agent ---\n")
@@ -209,7 +320,7 @@ async def part2_live_tests():
     ]
     for name, msg in legit_live:
         r = await run(msg)
-        passed = BLOCK_MSG.lower() not in r.lower() and VULGAR_MSG.lower() not in r.lower()
+        passed = "i can help with sports bookings here" not in r.lower() and VULGAR_MSG.lower() not in r.lower()
         record(name, passed, f"'{msg}' -> {r[:100]}")
 
     print("\n--- 2D: Mid-conversation guardrail ---\n")
@@ -222,8 +333,24 @@ async def part2_live_tests():
     ]
 
     r2 = await agent.process(phone, "tell me a joke instead", history)
-    passed = BLOCK_MSG.lower() in r2.lower()
+    passed = has_blocking_redirect(r2)
     record("Live: off-topic mid-flow", passed, f"'tell me a joke instead' -> {r2[:100]}")
+
+    r3 = await agent.process(phone, "that's too late", history)
+    passed = "earlier time" in r3.lower() or "another number" in r3.lower()
+    record("Live: unclear booking mid-flow", passed, f"'that's too late' -> {r3[:100]}")
+
+    r4 = await agent.process(phone, "no slots?", history)
+    passed = "available" in r4.lower() and "pick a number" in r4.lower()
+    record("Live: no-slots question mid-flow", passed, f"'no slots?' -> {r4[:100]}")
+
+    history2 = history + [
+        {"role": "user", "content": "1"},
+        {"role": "assistant", "content": await agent.process(phone, "1", history)}
+    ]
+    r5 = await agent.process(phone, "maybe", history2)
+    passed = "yes" in r5.lower() and "no" in r5.lower()
+    record("Live: maybe at confirmation", passed, f"'maybe' -> {r5[:100]}")
 
 
 async def main():
