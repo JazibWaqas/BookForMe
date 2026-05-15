@@ -27,6 +27,7 @@ from agent.nodes import (
     BOOKING_WINDOW_DAYS,
     check_guardrails,
     normalize_date,
+    _extract_fast_date_text,
     _detect_tx_input,
     _extract_slot_selection_number,
     _format_availability_response,
@@ -36,7 +37,7 @@ from agent.session_store import session_store
 from agent.graph import BookingAgent
 
 VULGAR_MSG = "please keep"
-BLOCK_SNIPPETS = ("bookings", "booking", "slots", "sports")
+BLOCK_SNIPPETS = ("bookings", "booking", "book", "slots", "sports", "court")
 
 phone = "+923001112233"
 results = []
@@ -103,6 +104,7 @@ def part1_unit_tests():
     legit = [
         ("Greeting hi", "hi"),
         ("Sport query", "padel tomorrow evening"),
+        ("Play padel", "play padel tomorrow"),
         ("Urdu booking", "kal shaam padel chahiye"),
         ("Cricket", "cricket slots for friday"),
         ("Futsal", "futsal available today?"),
@@ -262,6 +264,24 @@ def part1_unit_tests():
     nearby_times = [opt["slot_time"] for opt in nearby_options]
     record("Nearby slot display by distance", nearby_times[:3] == ["08:00", "01:00", "00:00"], f"times={nearby_times}, text={nearby_text.splitlines()[0] if nearby_text else ''}")
 
+    jump_text, _ = _format_availability_response({
+        "success": True,
+        "date": "2026-05-18",
+        "requested_date": "2026-05-17",
+        "sport_type": "padel",
+        "area": "Karachi",
+        "vendors": [
+            {
+                "vendor_name": "Alpha Club",
+                "slots": [
+                    {"slot_id": "a_18", "slot_time": "18:00", "end_time": "19:00", "time_display": "18:00 - 19:00", "price": 1100},
+                ],
+            },
+        ],
+    })
+    jump_ok = "No slots available on 2026-05-17" in (jump_text or "") and "2026-05-18" in (jump_text or "")
+    record("Date-jump availability header", jump_ok, f"header={jump_text.splitlines()[0] if jump_text else ''}")
+
     print("\n--- 1I: Booking policy validation ---\n")
     yesterday = normalize_date("yesterday")
     far_future = "2099-01-01"
@@ -271,11 +291,24 @@ def part1_unit_tests():
         ("Early morning closed", normalize_date("tomorrow"), {"start": "03:00", "end": "05:00"}, "outside_hours"),
         ("Normal evening", normalize_date("tomorrow"), {"start": "19:00", "end": "20:00"}, None),
         ("Possible late weekend hour", normalize_date("tomorrow"), {"start": "01:00", "end": "02:00"}, None),
+        ("Ordinal past date", normalize_date("11th May"), {"start": "19:00", "end": "20:00"}, "past_date"),
+        ("Month-day past date", normalize_date("May 11"), {"start": "19:00", "end": "20:00"}, "past_date"),
+        ("Relative too far", normalize_date("4 weeks from now"), {"start": "19:00", "end": "20:00"}, "too_far"),
+        ("Next week allowed", normalize_date("next week"), {"start": "19:00", "end": "20:00"}, None),
     ]
     for name, date_value, time_range, expected in policy_cases:
         result = _booking_policy_error(date_value, time_range)
         got = result.get("type") if result else None
         record(name, got == expected, f"date={date_value}, time={time_range} -> {got} (expected {expected})")
+
+    fast_dates = [
+        ("Fast ordinal day-month", "book padel 11th May at 7pm", "11th may"),
+        ("Fast month-day", "book padel May 11 at 7pm", "may 11"),
+        ("Fast relative weeks", "book padel 4 weeks from now at 7pm", "4 weeks from now"),
+    ]
+    for name, msg, expected in fast_dates:
+        got = _extract_fast_date_text(msg)
+        record(name, got == expected, f"'{msg}' -> {got} (expected {expected})")
 
 
 async def part2_live_tests():
@@ -337,11 +370,19 @@ async def part2_live_tests():
     record("Live: off-topic mid-flow", passed, f"'tell me a joke instead' -> {r2[:100]}")
 
     r3 = await agent.process(phone, "that's too late", history)
-    passed = "earlier time" in r3.lower() or "another number" in r3.lower()
+    passed = (
+        "earlier" in r3.lower()
+        or "better" in r3.lower()
+        or "another number" in r3.lower()
+        or "different time" in r3.lower()
+    )
     record("Live: unclear booking mid-flow", passed, f"'that's too late' -> {r3[:100]}")
 
     r4 = await agent.process(phone, "no slots?", history)
-    passed = "available" in r4.lower() and "pick a number" in r4.lower()
+    passed = (
+        ("available" in r4.lower() or "shown" in r4.lower() or "listed" in r4.lower() or "slots" in r4.lower() or "options" in r4.lower())
+        and ("number" in r4.lower() or "different time" in r4.lower() or "date" in r4.lower())
+    )
     record("Live: no-slots question mid-flow", passed, f"'no slots?' -> {r4[:100]}")
 
     history2 = history + [
@@ -351,6 +392,22 @@ async def part2_live_tests():
     r5 = await agent.process(phone, "maybe", history2)
     passed = "yes" in r5.lower() and "no" in r5.lower()
     record("Live: maybe at confirmation", passed, f"'maybe' -> {r5[:100]}")
+
+    print("\n--- 2E: Policy errors do not poison active slot list ---\n")
+    poison_phone = phone + "99"
+    session_store.clear_session(poison_phone)
+    p1 = await agent.process(poison_phone, "padel tomorrow evening", [])
+    poison_history = [
+        {"role": "user", "content": "padel tomorrow evening"},
+        {"role": "assistant", "content": p1},
+    ]
+    p2 = await agent.process(poison_phone, "yes, 512 days from now", poison_history)
+    p3 = await agent.process(poison_phone, "1", poison_history + [
+        {"role": "user", "content": "yes, 512 days from now"},
+        {"role": "assistant", "content": p2},
+    ])
+    passed = "next 14 days" in p2.lower() and "next 14 days" not in p3.lower() and ("confirm" in p3.lower() or "hold" in p3.lower() or "yes" in p3.lower())
+    record("Live: invalid date does not persist over slot selection", passed, f"invalid -> {p2[:80]} | then '1' -> {p3[:120]}")
 
 
 async def main():

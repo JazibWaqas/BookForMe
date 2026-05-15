@@ -37,6 +37,8 @@ class AgentState(TypedDict):
     selected_sport_type: Optional[str]
     selected_area: Optional[str]
     selected_time_range: Optional[Dict[str, str]]
+    previous_selected_date: Optional[str]
+    previous_selected_time_range: Optional[Dict[str, str]]
     slot_selection_reset: Optional[bool]
     
     # Confirmation Flow State

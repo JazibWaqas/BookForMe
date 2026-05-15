@@ -149,6 +149,8 @@ class BookingAgent:
                 "selected_sport_type": persisted.get("selected_sport_type"),
                 "selected_area": persisted.get("selected_area"),
                 "selected_time_range": persisted.get("selected_time_range"),
+                "previous_selected_date": None,
+                "previous_selected_time_range": None,
                 "awaiting_confirmation": persisted.get("awaiting_confirmation", False),
                 "confirmation_type": persisted.get("confirmation_type"),
                 "pending_booking": persisted.get("pending_booking"),

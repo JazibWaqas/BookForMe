@@ -59,7 +59,7 @@ _CONCIERGE_SYSTEM = (
 )
 
 
-_CONVERSE_CACHE: dict = {}  # task prefix -> (response, timestamp)
+_CONVERSE_CACHE: dict = {}  # task/message hash -> (response, timestamp)
 
 
 async def _llm_converse(task: str, messages: list, fallback: str) -> str:
@@ -68,7 +68,8 @@ async def _llm_converse(task: str, messages: list, fallback: str) -> str:
     if messages:
         last = messages[-1]
         last_text = last.get("content", "") if isinstance(last, dict) else str(last)
-    cache_key = f"{'ur' if _is_urdu(last_text) else 'en'}:{task[:100]}"
+    cache_basis = f"{task}\nLAST:{last_text}"
+    cache_key = f"{'ur' if _is_urdu(last_text) else 'en'}:{abs(hash(cache_basis))}"
     cached = _CONVERSE_CACHE.get(cache_key)
     if cached and (_time.time() - cached[1]) < 300:
         return cached[0]
@@ -269,6 +270,13 @@ def _extract_fast_date_text(message: str) -> Optional[str]:
     msg = message.lower()
     if "day after tomorrow" in msg:
         return "day after tomorrow"
+    relative_match = re.search(
+        r"\b(?:(?:in|after)\s+)?\d+\s+(?:weeks?|days?)\s*(?:from\s+now|later|hence|baad|se)?\b|"
+        r"\bnext\s+week\b|\bnext\s+month\b|\bagle\s+hafte\b|\bagle\s+mahine\b",
+        msg,
+    )
+    if relative_match:
+        return relative_match.group(0).strip()
     typo_dates = {
         "tommorow": "tomorrow",
         "tommorrow": "tomorrow",
@@ -297,12 +305,21 @@ def _extract_fast_date_text(message: str) -> Optional[str]:
         return day_match.group(0)
 
     date_match = re.search(
-        r"\b\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
+        r"\b\d{1,2}(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
         r"january|february|march|april|june|july|august|september|october|november|december)\b",
         msg,
     )
     if date_match:
         return date_match.group(0)
+
+    month_day_match = re.search(
+        r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
+        r"january|february|march|april|june|july|august|september|october|november|december)"
+        r"\s+\d{1,2}(?:st|nd|rd|th)?(?:\s+\d{4})?\b",
+        msg,
+    )
+    if month_day_match:
+        return month_day_match.group(0)
 
     iso_match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", msg)
     if iso_match:
@@ -443,7 +460,8 @@ def _try_fast_inquiry_entities(message: str) -> Optional[Dict[str, str]]:
 _DATE_FAST_WORDS = {
     "kal", "aaj", "parson", "today", "tomorrow", "day after tomorrow",
     "tommorow", "tommorrow", "tomorow", "tomoro", "tomrw", "tmrw",
-    "yesterday", "yestarday", "yesturday",
+    "yesterday", "yestarday", "yesturday", "next week", "next month",
+    "agle hafte", "agle mahine",
     "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
     "somwar", "somvar", "mangal", "budh", "jumeraat", "juma", "jumma", "hafta", "itwar",
 }
@@ -457,6 +475,13 @@ def _try_fast_date(message: str) -> Optional[str]:
     """Return raw date text if message contains a clear date marker.
     Used when user already has sport context (we know they're booking)."""
     msg = message.strip().lower()
+    relative_match = re.search(
+        r"\b(?:(?:in|after)\s+)?\d+\s+(?:weeks?|days?)\s*(?:from\s+now|later|hence|baad|se)?\b|"
+        r"\bnext\s+week\b|\bnext\s+month\b|\bagle\s+hafte\b|\bagle\s+mahine\b",
+        msg,
+    )
+    if relative_match:
+        return relative_match.group(0).strip()
     # Word-boundary search — handles "kal subah ka slot", "tomorrow morning"
     for word in _DATE_FAST_WORDS:
         if re.search(rf"\b{re.escape(word)}\b", msg):
@@ -465,7 +490,9 @@ def _try_fast_date(message: str) -> Optional[str]:
             if word in {"yestarday", "yesturday"}:
                 return "yesterday"
             return word
-    if re.search(r'\b\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b', msg):
+    if re.search(r'\b\d{1,2}(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b', msg):
+        return msg
+    if re.search(r'\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:\s+\d{4})?\b', msg):
         return msg
     if re.search(r'\b(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', msg):
         return msg
@@ -684,6 +711,7 @@ _KNOWN_VENDOR_ALIASES = {
 }
 _NON_VENDOR_WORDS = {
     "book", "reserve", "check", "want", "need", "please", "pls", "slot",
+    "play", "playing", "try", "practice", "game", "match",
     "slots", "court", "courts", "available", "availability", "at", "in",
     "for", "to", "a", "an", "the", "me", "my", "i", "can", "you",
     "do", "have", "is", "there", "tomorrow", "today", "kal", "aaj",
@@ -890,6 +918,41 @@ def _guardrail_response(block_reason: str, message: str, state: AgentState) -> s
     return "I can help with sports bookings here. Tell me padel, futsal, cricket, or pickleball, plus the date and time."
 
 
+async def _guardrail_response_dynamic(block_reason: str, message: str, state: AgentState) -> str:
+    """Use deterministic guardrail classification, but let the LLM phrase guidance."""
+    fallback = _guardrail_response(block_reason, message, state)
+    if block_reason == "vulgar":
+        return fallback
+
+    messages = state.get("messages", [])
+    entities = state.get("entities", {}) or {}
+    sport = entities.get("service_type") or state.get("selected_sport_type")
+    area = entities.get("area") or state.get("selected_area")
+    date = entities.get("date") or state.get("selected_date")
+    time_range = entities.get("time_range") or state.get("selected_time_range")
+    slot_count = len(state.get("slot_options") or [])
+
+    task = (
+        "The latest user message needs a booking-focused recovery response. "
+        f"Reason: {block_reason}. User said: {message!r}. "
+        f"Current context: sport={sport or 'unknown'}, area={area or 'unknown'}, "
+        f"date={date or 'unknown'}, time_range={time_range or 'unknown'}, "
+        f"awaiting_slot_selection={bool(state.get('awaiting_slot_selection'))}, "
+        f"awaiting_confirmation={bool(state.get('awaiting_confirmation'))}, "
+        f"awaiting_payment={bool(state.get('awaiting_payment'))}, shown_slot_count={slot_count}. "
+        "Write one short WhatsApp-style reply. Be specific to what the user said. "
+        "Do not answer unrelated questions, math, jokes, or romantic requests. "
+        "If they are mid-slot-list, guide them to pick a number or give a new time/date/area. "
+        "For a 'no slots?' style message when slots are already shown, gently say the listed slots are available, "
+        "then ask them to pick a number or share a different time/date. Do not scold them or say 'check again'. "
+        "For 'too late' or 'too early', ask what time works better and mention they can also pick another shown number. "
+        "If they mention an unsupported venue/location/service, say what is unsupported and offer only supported BookForMe options. "
+        "If the message is unclear, ask for the exact missing booking detail. "
+        "Do not invent venues, areas, phone numbers, or policies."
+    )
+    return await _llm_converse(task, messages, fallback)
+
+
 def check_guardrails(message: str, in_booking_context: bool = False) -> Optional[str]:
     msg = message.strip()
     if not msg:
@@ -900,10 +963,9 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
     if profanity.contains_profanity(msg) or _CUSTOM_PROFANITY_RE.search(msg_lower):
         return "vulgar"
 
-    # Only hard-block clear off-topic (jokes, weather, code) before any booking
-    # context exists. Once mid-flow, the LLM system prompt handles it naturally
-    # and can still redirect while maintaining the conversational thread.
-    if _is_clear_off_topic_request(msg_lower) and not in_booking_context:
+    # Hard-block clear off-topic requests even mid-flow. Letting them through
+    # can make the intent model misread them as booking modifications.
+    if _is_clear_off_topic_request(msg_lower):
         return "off_topic"
 
     words = set(re.findall(r"[a-z0-9]+", msg_lower))
@@ -926,6 +988,10 @@ def check_guardrails(message: str, in_booking_context: bool = False) -> Optional
     # Outside booking context: only block if there's no booking signal at all.
     if _STANDALONE_CONTEXT_REPLY_RE.match(msg_lower):
         return None
+
+    if words and not _has_booking_signal(msg_lower, words):
+        if len(msg) > 2 and not is_greeting(msg_lower):
+            return "off_topic"
 
     return None
 
@@ -961,7 +1027,7 @@ async def guardrails_node(state: AgentState) -> AgentState:
 
         if block_reason:
             state["guardrail_block"] = block_reason
-            state["response"] = _guardrail_response(block_reason, last_message, state)
+            state["response"] = await _guardrail_response_dynamic(block_reason, last_message, state)
             logger.info(f"Guardrail triggered: {block_reason} for message: '{last_message[:50]}'")
         else:
             state["guardrail_block"] = None
@@ -1011,6 +1077,28 @@ def normalize_date(date_text: str) -> str:
             days_ahead += 7
         return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
 
+    # ── Relative expressions ─────────────────────────────────────────────────────
+    rel_weeks = re.search(
+        r'\b(?:in|after)?\s*(\d+)\s+weeks?\s*(?:from\s+now|later|hence|baad|se)?\b',
+        date_lower,
+    )
+    if rel_weeks:
+        return (today + timedelta(weeks=int(rel_weeks.group(1)))).strftime("%Y-%m-%d")
+    rel_days = re.search(
+        r'\b(?:in|after)?\s*(\d+)\s+days?\s*(?:from\s+now|later|hence|baad|se)?\b',
+        date_lower,
+    )
+    if rel_days:
+        return (today + timedelta(days=int(rel_days.group(1)))).strftime("%Y-%m-%d")
+    if re.search(r'\bnext\s+week\b|\bagle\s+hafte\b', date_lower):
+        return (today + timedelta(weeks=1)).strftime("%Y-%m-%d")
+    if re.search(r'\bnext\s+month\b|\bagle\s+mahine\b', date_lower):
+        return (today + timedelta(days=30)).strftime("%Y-%m-%d")
+
+    # ── Strip ordinal suffixes so "11th May", "1st June", "23rd Dec" parse correctly
+    date_lower_clean = re.sub(r'(\d+)(?:st|nd|rd|th)\b', r'\1', date_lower)
+    date_text_clean = re.sub(r'(\d+)(?:st|nd|rd|th)\b', r'\1', date_text, flags=re.IGNORECASE)
+
     month_names = {
         "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
         "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6,
@@ -1019,7 +1107,7 @@ def normalize_date(date_text: str) -> str:
     }
 
     day_month_pattern = r'(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)(?:\s+(\d{4}))?'
-    day_month_match = re.search(day_month_pattern, date_lower)
+    day_month_match = re.search(day_month_pattern, date_lower_clean)
     if day_month_match:
         day = int(day_month_match.group(1))
         month_name = day_month_match.group(2)
@@ -1028,8 +1116,23 @@ def normalize_date(date_text: str) -> str:
         if month:
             try:
                 parsed = datetime(year, month, day)
-                if parsed < today:
-                    parsed = datetime(current_year + 1, month, day)
+                # Do NOT auto-bump past dates to next year.
+                # _booking_policy_error will catch them and return a clear
+                # "that date has passed" message instead of "too far in future".
+                return parsed.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
+    month_day_pattern = r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\s+(\d{1,2})(?:\s+(\d{4}))?'
+    month_day_match = re.search(month_day_pattern, date_lower_clean)
+    if month_day_match:
+        month_name = month_day_match.group(1)
+        day = int(month_day_match.group(2))
+        year = int(month_day_match.group(3)) if month_day_match.group(3) else current_year
+        month = month_names.get(month_name)
+        if month:
+            try:
+                parsed = datetime(year, month, day)
                 return parsed.strftime("%Y-%m-%d")
             except ValueError:
                 pass
@@ -1037,11 +1140,8 @@ def normalize_date(date_text: str) -> str:
     date_formats = ['%B %d, %Y', '%d %B %Y', '%B %d %Y', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d']
     for fmt in date_formats:
         try:
-            parsed = datetime.strptime(date_text, fmt)
-            if parsed < today and fmt != '%Y-%m-%d':
-                parsed = parsed.replace(year=current_year)
-                if parsed < today:
-                    parsed = parsed.replace(year=current_year + 1)
+            parsed = datetime.strptime(date_text_clean, fmt)
+            # Do NOT auto-bump. Return as-is; _booking_policy_error handles past dates.
             return parsed.strftime("%Y-%m-%d")
         except ValueError:
             continue
@@ -1630,7 +1730,10 @@ async def normalize_entities_node(state: AgentState) -> AgentState:
             try:
                 date_text = date_value.get("text") if isinstance(date_value, dict) else str(date_value)
                 if date_text:
+                    previous_date = state.get("selected_date")
                     entities["date"] = normalize_date(date_text)
+                    if previous_date and previous_date != entities["date"]:
+                        state["previous_selected_date"] = previous_date
                     state["selected_date"] = entities["date"]
                     logger.info(f"Normalized date: {entities['date']}")
             except Exception as e:
@@ -1656,7 +1759,10 @@ async def normalize_entities_node(state: AgentState) -> AgentState:
                     else:
                         time_range = normalize_time(time_text)
                     if time_range:
+                        previous_time_range = state.get("selected_time_range")
                         entities["time_range"] = time_range
+                        if previous_time_range and previous_time_range != time_range:
+                            state["previous_selected_time_range"] = previous_time_range
                         state["selected_time_range"] = time_range
                         logger.info(f"Normalized time: {time_range}")
             except Exception as e:
@@ -1848,6 +1954,21 @@ async def validate_state_node(state: AgentState) -> AgentState:
             )
             if policy_error:
                 state["policy_error"] = policy_error
+                if policy_error.get("type") in {"past_date", "too_far"}:
+                    previous_date = state.get("previous_selected_date")
+                    if previous_date:
+                        state["selected_date"] = previous_date
+                    else:
+                        state["selected_date"] = None
+                    entities.pop("date", None)
+                if policy_error.get("type") == "outside_hours":
+                    previous_time_range = state.get("previous_selected_time_range")
+                    if previous_time_range:
+                        state["selected_time_range"] = previous_time_range
+                    else:
+                        state["selected_time_range"] = None
+                    entities.pop("time_range", None)
+                    entities.pop("time", None)
                 missing = []
                 logger.info(f"Booking policy blocked request: {policy_error}")
 
@@ -2080,9 +2201,11 @@ async def query_availability_node(state: AgentState) -> AgentState:
         if should_search_alternatives:
             logger.info("No vendors found, searching alternative dates in parallel...")
             base_date = datetime.strptime(date, "%Y-%m-%d")
+            max_alt_date = _karachi_today_date() + timedelta(days=BOOKING_WINDOW_DAYS)
             future_dates = [
-                (base_date + timedelta(days=d)).strftime("%Y-%m-%d")
+                candidate.strftime("%Y-%m-%d")
                 for d in range(1, 8)
+                if (candidate := (base_date + timedelta(days=d)).date()) <= max_alt_date
             ]
             alt_results = await asyncio.gather(*[
                 check_availability(service_type, area, d, time_range, vendor_name=ent_vendor_name, vendor_id=ent_vendor_id)
@@ -2231,7 +2354,7 @@ async def check_confirmation_node(state: AgentState) -> AgentState:
             state["slot_options"] = []
             state["awaiting_slot_selection"] = False
             logger.info("User wants to modify")
-        elif tx in ("confirm", "slot_select") or _CONFIRM_WORDS.search(last_message) or intent == "transaction":
+        elif tx in ("confirm", "slot_select") or _CONFIRM_WORDS.search(last_message):
             state["user_confirmed"] = True
             state["confirmation_action"] = "proceed"
             logger.info("User confirmed booking")
@@ -2412,6 +2535,18 @@ async def generate_response_node(state: AgentState) -> AgentState:
                 messages,
                 "Sure, what would you like to change? Date, time, or venue?",
             )
+            return state
+
+        if confirmation_action == "clarify":
+            response = await _llm_converse(
+                "The user gave an unclear answer while confirming a selected slot. Ask them to reply yes to hold it, no to cancel, or tell what to change. Keep it brief and natural.",
+                messages,
+                "Just to confirm, reply yes to hold this slot, no to cancel, or tell me what to change.",
+            )
+            lower_response = response.lower()
+            if "yes" not in lower_response or "no" not in lower_response:
+                response = response.rstrip() + "\nReply yes to hold it, no to cancel, or tell me what to change."
+            state["response"] = response
             return state
 
         if intent == "greeting":
