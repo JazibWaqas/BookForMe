@@ -4,13 +4,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { COLORS } from '../../constants/colors';
 import { CATEGORIES } from '../../constants/categories';
-import { authService } from '../../services/auth';
+import { FONTS } from '../../constants/typography';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showError, showSuccess } from '../../utils/feedback';
+
+const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
+  padel: 'tennisball',
+  futsal: 'football',
+  cricket: 'baseball',
+  pickleball: 'tennisball-outline',
+};
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -32,6 +38,7 @@ export default function RegisterScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -170,10 +177,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[COLORS.background, COLORS.backgroundLight]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      {/* Decorative concentric arcs — court-line inspired */}
+      <View style={styles.decorArc1} />
+      <View style={styles.decorArc2} />
+      <View style={styles.decorArcBottomRight} />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -184,70 +193,119 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.content}>
+          {/* Brand Header */}
+          <View style={styles.header}>
+            <Ionicons name="flash" size={22} color={COLORS.primary} style={styles.logoMark} />
+            <Text style={styles.logo}>BookForMe</Text>
+            <Text style={styles.tagline}>Karachi's Premier Sports Booking</Text>
+          </View>
+
+          {/* Form Card */}
+          <View style={styles.card}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join BookForMe today</Text>
 
+            {/* Role Toggle */}
             <View style={styles.roleToggle}>
               <TouchableOpacity
+                activeOpacity={0.8}
                 style={[styles.roleButton, role === 'customer' && styles.roleButtonActive]}
                 onPress={() => setRole('customer')}
               >
-                <Ionicons
-                  name="person"
-                  size={24}
-                  color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
-                />
+                <View style={[styles.roleIconWrap, role === 'customer' && styles.roleIconWrapActive]}>
+                  <Ionicons
+                    name="person"
+                    size={20}
+                    color={role === 'customer' ? COLORS.primary : COLORS.textMuted}
+                  />
+                </View>
                 <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>
                   Customer
                 </Text>
+                <Text style={[styles.roleSubtext, role === 'customer' && styles.roleSubtextActive]}>
+                  Book venues
+                </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
+                activeOpacity={0.8}
                 style={[styles.roleButton, role === 'vendor' && styles.roleButtonActive]}
                 onPress={() => setRole('vendor')}
               >
-                <Ionicons
-                  name="business"
-                  size={24}
-                  color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
-                />
+                <View style={[styles.roleIconWrap, role === 'vendor' && styles.roleIconWrapActive]}>
+                  <Ionicons
+                    name="business"
+                    size={20}
+                    color={role === 'vendor' ? COLORS.primary : COLORS.textMuted}
+                  />
+                </View>
                 <Text style={[styles.roleText, role === 'vendor' && styles.roleTextActive]}>
                   Vendor
+                </Text>
+                <Text style={[styles.roleSubtext, role === 'vendor' && styles.roleSubtextActive]}>
+                  Manage bookings
                 </Text>
               </TouchableOpacity>
             </View>
 
+            {/* Form */}
             <View style={styles.form}>
-              {/* Name Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>{role === 'vendor' ? "Owner Name *" : "Full Name *"}</Text>
-                <View style={[styles.inputWrapper, !!errors.name && styles.inputWrapperError]}>
-                  <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter your name"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={name}
-                    onChangeText={(t) => { setName(t); clearError('name'); }}
-                    autoCapitalize="words"
-                    accessibilityLabel="Name"
-                  />
-                </View>
-                {!!errors.name && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.name}</Text>}
-              </View>
-
-              {role === 'vendor' && (
+              {role === 'customer' ? (
                 <>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="person-outline" size={16} color={COLORS.primary} style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Account Details</Text>
+                  </View>
+
+                  {/* Customer Full Name */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Full Name *</Text>
+                    <View style={[
+                      styles.inputWrapper,
+                      focusedField === 'name' && styles.inputWrapperFocused,
+                      !!errors.name && styles.inputWrapperError
+                    ]}>
+                      <Ionicons name="person-outline" size={18} color={focusedField === 'name' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Enter your full name"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={name}
+                        onChangeText={(t) => { setName(t); clearError('name'); }}
+                        onFocus={() => setFocusedField('name')}
+                        onBlur={() => setFocusedField(null)}
+                        autoCapitalize="words"
+                        accessibilityLabel="Name"
+                      />
+                    </View>
+                    {!!errors.name && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.name}</Text>}
+                  </View>
+                </>
+              ) : (
+                <>
+                  {/* Vendor Section 1: Business Details */}
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="business-outline" size={16} color={COLORS.primary} style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Business details</Text>
+                  </View>
+
+                  {/* Business Name */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Business Name *</Text>
-                    <View style={[styles.inputWrapper, !!errors.businessName && styles.inputWrapperError]}>
-                      <Ionicons name="briefcase-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                    <View style={[
+                      styles.inputWrapper,
+                      focusedField === 'businessName' && styles.inputWrapperFocused,
+                      !!errors.businessName && styles.inputWrapperError
+                    ]}>
+                      <Ionicons name="briefcase-outline" size={18} color={focusedField === 'businessName' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="Enter business name"
                         placeholderTextColor={COLORS.textMuted}
                         value={businessName}
                         onChangeText={(t) => { setBusinessName(t); clearError('businessName'); }}
+                        onFocus={() => setFocusedField('businessName')}
+                        onBlur={() => setFocusedField(null)}
                         autoCapitalize="words"
                         accessibilityLabel="Business name"
                       />
@@ -255,56 +313,83 @@ export default function RegisterScreen() {
                     {!!errors.businessName && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.businessName}</Text>}
                   </View>
 
+                  {/* CNIC Optional */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>CNIC (Optional)</Text>
-                    <View style={styles.inputWrapper}>
-                      <Ionicons name="card-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                    <View style={[
+                      styles.inputWrapper,
+                      focusedField === 'cnic' && styles.inputWrapperFocused
+                    ]}>
+                      <Ionicons name="card-outline" size={18} color={focusedField === 'cnic' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="42101-1234567-1"
                         placeholderTextColor={COLORS.textMuted}
                         value={cnic}
                         onChangeText={setCnic}
+                        onFocus={() => setFocusedField('cnic')}
+                        onBlur={() => setFocusedField(null)}
                         keyboardType="numeric"
                       />
                     </View>
                   </View>
 
+                  {/* Sports Category Scrollable Pills */}
                   <View style={styles.categoryContainer}>
                     <Text style={styles.label}>Category *</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                      {CATEGORIES.map((cat) => (
-                        <TouchableOpacity
-                          key={cat.id}
-                          style={[
-                            styles.categoryButton,
-                            category === cat.id && styles.categoryButtonActive,
-                          ]}
-                          onPress={() => setCategory(cat.id)}
-                        >
-                          <Text
+                      {CATEGORIES.map((cat) => {
+                        const isActive = category === cat.id;
+                        const iconColor = isActive ? COLORS.primary : COLORS.textMuted;
+                        return (
+                          <TouchableOpacity
+                            key={cat.id}
+                            activeOpacity={0.8}
                             style={[
-                              styles.categoryText,
-                              category === cat.id && styles.categoryTextActive,
+                              styles.categoryButton,
+                              isActive && styles.categoryButtonActive,
                             ]}
+                            onPress={() => setCategory(cat.id)}
                           >
-                            {cat.icon} {cat.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Ionicons
+                                name={categoryIcons[cat.id] || 'tennisball'}
+                                size={15}
+                                color={iconColor}
+                              />
+                              <Text
+                                style={[
+                                  styles.categoryText,
+                                  isActive && styles.categoryTextActive,
+                                ]}
+                              >
+                                {cat.name}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </ScrollView>
                   </View>
 
+                  {/* Business Address */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Business Address *</Text>
-                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 52, paddingVertical: 12 }, !!errors.address && styles.inputWrapperError]}>
-                      <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                    <View style={[
+                      styles.inputWrapper,
+                      { height: 'auto', minHeight: 54, paddingVertical: 12 },
+                      focusedField === 'address' && styles.inputWrapperFocused,
+                      !!errors.address && styles.inputWrapperError
+                    ]}>
+                      <Ionicons name="location-outline" size={18} color={focusedField === 'address' ? COLORS.primary : COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
                       <TextInput
                         style={[styles.textInput, { height: 'auto' }]}
                         placeholder="Enter business address"
                         placeholderTextColor={COLORS.textMuted}
                         value={address}
                         onChangeText={(t) => { setAddress(t); clearError('address'); }}
+                        onFocus={() => setFocusedField('address')}
+                        onBlur={() => setFocusedField(null)}
                         multiline
                         accessibilityLabel="Business address"
                       />
@@ -312,33 +397,78 @@ export default function RegisterScreen() {
                     {!!errors.address && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.address}</Text>}
                   </View>
 
-                  <Button
-                    title={location ? "Update Location" : "Capture Location (Optional)"}
-                    onPress={getCurrentLocation}
-                    variant="outline"
-                    loading={locationLoading}
-                    style={styles.locationButton}
-                  />
-                  {location && (
-                    <Text style={styles.locationText}>
-                      Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                    </Text>
-                  )}
+                  {/* Capture GPS Location Button */}
+                  <View style={styles.locationContainer}>
+                    <Button
+                      title={location ? "Update Location" : "Capture Location (Optional)"}
+                      onPress={getCurrentLocation}
+                      variant="outline"
+                      loading={locationLoading}
+                      style={styles.locationButton}
+                    />
+                    {location && (
+                      <View style={styles.locationTag}>
+                        <Ionicons name="checkmark-circle" size={14} color={COLORS.primary} />
+                        <Text style={styles.locationText}>
+                          GPS Fixed: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
+                  {/* Business Description */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Business Description</Text>
-                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 80, paddingVertical: 12, alignItems: 'flex-start' }]}>
-                      <Ionicons name="document-text-outline" size={20} color={COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
+                    <View style={[
+                      styles.inputWrapper,
+                      { height: 'auto', minHeight: 90, paddingVertical: 12, alignItems: 'flex-start' },
+                      focusedField === 'description' && styles.inputWrapperFocused
+                    ]}>
+                      <Ionicons name="document-text-outline" size={18} color={focusedField === 'description' ? COLORS.primary : COLORS.textMuted} style={[styles.inputIcon, { marginTop: 2 }]} />
                       <TextInput
                         style={[styles.textInput, { height: 'auto', textAlignVertical: 'top' }]}
                         placeholder="Describe your business (optional)"
                         placeholderTextColor={COLORS.textMuted}
                         value={description}
                         onChangeText={setDescription}
+                        onFocus={() => setFocusedField('description')}
+                        onBlur={() => setFocusedField(null)}
                         multiline
                         numberOfLines={3}
                       />
                     </View>
+                  </View>
+
+                  <View style={styles.formDivider} />
+
+                  {/* Vendor Section 2: Owner details */}
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="person-outline" size={16} color={COLORS.primary} style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Owner credentials</Text>
+                  </View>
+
+                  {/* Owner Full Name */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Owner Name *</Text>
+                    <View style={[
+                      styles.inputWrapper,
+                      focusedField === 'name' && styles.inputWrapperFocused,
+                      !!errors.name && styles.inputWrapperError
+                    ]}>
+                      <Ionicons name="person-outline" size={18} color={focusedField === 'name' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Enter owner's full name"
+                        placeholderTextColor={COLORS.textMuted}
+                        value={name}
+                        onChangeText={(t) => { setName(t); clearError('name'); }}
+                        onFocus={() => setFocusedField('name')}
+                        onBlur={() => setFocusedField(null)}
+                        autoCapitalize="words"
+                        accessibilityLabel="Name"
+                      />
+                    </View>
+                    {!!errors.name && <Text style={styles.fieldError} accessibilityLiveRegion="polite">{errors.name}</Text>}
                   </View>
                 </>
               )}
@@ -346,14 +476,20 @@ export default function RegisterScreen() {
               {/* Email Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email *</Text>
-                <View style={[styles.inputWrapper, !!errors.email && styles.inputWrapperError]}>
-                  <Ionicons name="mail-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'email' && styles.inputWrapperFocused,
+                  !!errors.email && styles.inputWrapperError
+                ]}>
+                  <Ionicons name="mail-outline" size={18} color={focusedField === 'email' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="your@email.com"
                     placeholderTextColor={COLORS.textMuted}
                     value={email}
                     onChangeText={(t) => { setEmail(t); clearError('email'); }}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -366,14 +502,20 @@ export default function RegisterScreen() {
               {/* Phone Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Phone Number *</Text>
-                <View style={[styles.inputWrapper, !!errors.phone && styles.inputWrapperError]}>
-                  <Ionicons name="call-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'phone' && styles.inputWrapperFocused,
+                  !!errors.phone && styles.inputWrapperError
+                ]}>
+                  <Ionicons name="call-outline" size={18} color={focusedField === 'phone' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="+92 300 1234567"
                     placeholderTextColor={COLORS.textMuted}
                     value={phone}
                     onChangeText={(t) => { setPhone(t); clearError('phone'); }}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
                     keyboardType="phone-pad"
                     accessibilityLabel="Phone number"
                   />
@@ -384,14 +526,20 @@ export default function RegisterScreen() {
               {/* Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password *</Text>
-                <View style={[styles.inputWrapper, !!errors.password && styles.inputWrapperError]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'password' && styles.inputWrapperFocused,
+                  !!errors.password && styles.inputWrapperError
+                ]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={focusedField === 'password' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Create password (min 6 chars)"
                     placeholderTextColor={COLORS.textMuted}
                     value={password}
                     onChangeText={(t) => { setPassword(t); clearError('password'); }}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     accessibilityLabel="Password"
@@ -404,7 +552,7 @@ export default function RegisterScreen() {
                   >
                     <Ionicons
                       name={showPassword ? "eye-outline" : "eye-off-outline"}
-                      size={20}
+                      size={18}
                       color={COLORS.textMuted}
                     />
                   </TouchableOpacity>
@@ -415,14 +563,20 @@ export default function RegisterScreen() {
               {/* Confirm Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Confirm Password *</Text>
-                <View style={[styles.inputWrapper, !!errors.confirmPassword && styles.inputWrapperError]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <View style={[
+                  styles.inputWrapper,
+                  focusedField === 'confirmPassword' && styles.inputWrapperFocused,
+                  !!errors.confirmPassword && styles.inputWrapperError
+                ]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={focusedField === 'confirmPassword' ? COLORS.primary : COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Re-enter password"
                     placeholderTextColor={COLORS.textMuted}
                     value={confirmPassword}
                     onChangeText={(t) => { setConfirmPassword(t); clearError('confirmPassword'); }}
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    onBlur={() => setFocusedField(null)}
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     accessibilityLabel="Confirm password"
@@ -435,7 +589,7 @@ export default function RegisterScreen() {
                   >
                     <Ionicons
                       name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-                      size={20}
+                      size={18}
                       color={COLORS.textMuted}
                     />
                   </TouchableOpacity>
@@ -444,118 +598,247 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Submit Button */}
             <Button
               title="Sign Up"
               onPress={handleRegister}
               loading={loading}
               variant="secondary"
+              style={styles.submitButton}
             />
 
+            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => router.back()}>
                 <Text style={styles.linkText}>Login</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={{ height: 60 }} />
           </View>
+
+          <View style={{ height: 60 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0B0F1A',
   },
+
+  // ── Decorative background arcs (court-line inspired) ──
+  decorArc1: {
+    position: 'absolute',
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.055)',
+    top: -100,
+    alignSelf: 'center',
+  },
+  decorArc2: {
+    position: 'absolute',
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.09)',
+    top: -35,
+    alignSelf: 'center',
+  },
+  decorArcBottomRight: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 208, 132, 0.04)',
+    bottom: 50,
+    right: -90,
+  },
+
+  // ── Scroll ──
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
+
+  // ── Brand Header ──
+  header: {
+    paddingTop: 64,
+    paddingBottom: 20,
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
+  logoMark: {
+    marginBottom: 10,
+  },
+  logo: {
+    fontSize: 32,
+    fontFamily: FONTS.extrabold,
     color: COLORS.text,
+    letterSpacing: -1,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 15,
+  tagline: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
     color: COLORS.textMuted,
-    marginBottom: 32,
+    letterSpacing: 0.5,
   },
+
+  // ── Form Card ──
+  card: {
+    marginHorizontal: 20,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 32,
+    backgroundColor: '#111827',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 26,
+    fontFamily: FONTS.extrabold,
+    color: COLORS.text,
+    letterSpacing: -0.8,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: COLORS.textMuted,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+
+  // ── Role Toggle ──
   roleToggle: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 32,
+    marginBottom: 28,
   },
   roleButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 18,
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    overflow: 'hidden',
   },
   roleButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
+    borderColor: 'rgba(0, 208, 132, 0.4)',
+    backgroundColor: 'rgba(0, 208, 132, 0.1)',
+    shadowColor: '#00D084',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 0,
+  },
+  roleIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    marginBottom: 10,
+  },
+  roleIconWrapActive: {
+    backgroundColor: 'rgba(0, 208, 132, 0.14)',
   },
   roleText: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    fontFamily: FONTS.semibold,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
   },
   roleTextActive: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontFamily: FONTS.bold,
   },
+  roleSubtext: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: COLORS.textMuted,
+  },
+  roleSubtextActive: {
+    color: 'rgba(0, 208, 132, 0.7)',
+  },
+
+  // ── Form ──
   form: {
     marginBottom: 24,
     gap: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  sectionIcon: {
+    opacity: 0.9,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  formDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: 14,
   },
   inputContainer: {
     gap: 8,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 13,
+    fontFamily: FONTS.semibold,
+    color: COLORS.textSecondary,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 54,
+  },
+  inputWrapperFocused: {
+    borderColor: 'rgba(0, 208, 132, 0.5)',
+    backgroundColor: 'rgba(0, 208, 132, 0.03)',
   },
   inputWrapperError: {
     borderColor: COLORS.error,
-    backgroundColor: 'rgba(255, 69, 58, 0.06)',
-  },
-  fieldError: {
-    marginTop: 6,
-    fontSize: 12,
-    color: COLORS.error,
-    fontWeight: '500',
+    backgroundColor: 'rgba(255, 69, 58, 0.05)',
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   textInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: FONTS.regular,
     color: COLORS.text,
     height: '100%',
   },
@@ -563,54 +846,86 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 8,
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
+  fieldError: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.error,
   },
-  footerText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  linkText: {
-    fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
+
+  // ── Category Pills ──
   categoryContainer: {
-    marginBottom: 16,
+    gap: 8,
+    marginVertical: 4,
   },
   categoryScroll: {
     marginHorizontal: -4,
   },
   categoryButton: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    backgroundColor: COLORS.surface,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     marginRight: 8,
   },
   categoryButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: 'rgba(0, 208, 132, 0.4)',
+    backgroundColor: 'rgba(0, 208, 132, 0.1)',
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: FONTS.semibold,
     color: COLORS.textSecondary,
   },
   categoryTextActive: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontFamily: FONTS.bold,
+  },
+
+  // ── Location Button & Tag ──
+  locationContainer: {
+    marginVertical: 4,
+    gap: 10,
   },
   locationButton: {
-    marginBottom: 8,
+    height: 50,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 208, 132, 0.08)',
+    borderColor: 'rgba(0, 208, 132, 0.2)',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
   },
   locationText: {
     fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.primary,
+  },
+
+  // ── Submit & Footer ──
+  submitButton: {
+    marginTop: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 22,
+  },
+  footerText: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
     color: COLORS.textMuted,
-    fontStyle: 'italic',
-    marginBottom: 16,
+  },
+  linkText: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
   },
 });

@@ -317,25 +317,7 @@ export default function LoginScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google Button */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-              disabled={googleLoading || loading}
-              activeOpacity={0.8}
-            >
-              <GoogleIcon size={20} />
-              <Text style={styles.googleButtonText}>
-                {googleLoading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
-            </TouchableOpacity>
+            {/* Google Button removed to prevent broken sign-in flow on web/mobile */}
 
             {/* Footer */}
             <View style={styles.footer}>
