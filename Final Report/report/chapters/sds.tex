@@ -74,7 +74,8 @@ booking inventory, pricing, and payment verification pipeline.
     \caption{Core Domain Collections}
     \label{tab:entities-core}
     \small
-    \begin{tabular}{|p{3.2cm}|p{4.6cm}|p{6.2cm}|}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{|p{3.0cm}|p{4.2cm}|p{6.0cm}|}
     \hline
     \textbf{Collection} & \textbf{Key Attributes} & \textbf{Description \& Purpose} \\ \hline
     \textbf{users} & phone, role, skill\_rating, stats & Core identity and authentication. Carries gamification fields (points, level, badges) shared across booking and social features. \\ \hline
@@ -83,7 +84,7 @@ booking inventory, pricing, and payment verification pipeline.
     \textbf{resources} & capacity, vendor\_id, service\_id & Physical asset mapped to a service (e.g.\ Court~1, Pitch~A). Determines how many concurrent bookings a service can accept. \\ \hline
     \textbf{slots} & status, hold\_expires\_at, price & The core inventory ledger. Each document represents one bookable hour on one resource and carries the seven-state lifecycle described in Section~\ref{sec:sds-agent-pipeline}. \\ \hline
     \textbf{payments} & screenshot\_url, ocr\_verified\_amount, status & Financial audit trail. Stores the uploaded receipt, the OCR-extracted amount, and a verification status (\texttt{uploaded}, \texttt{verified}, \texttt{rejected}). \\ \hline
-    \textbf{vendor\_payment\_accounts} & type, account\_number, is\_default & Stores JazzCash, EasyPaisa, or bank transfer details per vendor. The agent fetches the default account to share payment instructions with the customer after slot confirmation. \\ \hline
+    {\scriptsize\textbf{vendor\_payment\_\allowbreak accounts}} & type, account\_number, is\_default & Stores JazzCash, EasyPaisa, or bank transfer details per vendor. The agent fetches the default account to share payment instructions with the customer after slot confirmation. \\ \hline
     \end{tabular}
 \end{table}
 
@@ -96,7 +97,8 @@ engagement layer described in Section~\ref{sec:sds-social}.
     \caption{Social \& Auxiliary Collections}
     \label{tab:entities-social}
     \small
-    \begin{tabular}{|p{3.2cm}|p{4.6cm}|p{6.2cm}|}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{|p{3.0cm}|p{4.2cm}|p{6.0cm}|}
     \hline
     \textbf{Collection} & \textbf{Key Attributes} & \textbf{Description \& Purpose} \\ \hline
     \textbf{posts} & sport\_type, likes\_count, comments\_count & Community forum entries tied to a sport category. Supports likes and threaded comments. \\ \hline

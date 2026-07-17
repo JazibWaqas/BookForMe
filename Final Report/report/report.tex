@@ -2,12 +2,13 @@
 % Habib University, Dhanani School of Science and Engineering
 % Adapted from the departmental Kaavish template
 
-\documentclass[12pt,oneside]{report}
+\documentclass[12pt,a4paper,oneside]{report}
 
 \usepackage[titletoc]{appendix} % for adding appendix to TOC
-\usepackage[T1]{fontenc}        % proper font encoding for code/text symbols
+\usepackage[OT1]{fontenc}       % native Computer Modern encoding required by FYP guidelines
 \usepackage[utf8]{inputenc}     % support for non-ASCII characters
-\usepackage{lmodern}
+% The FYP submission guidelines require Computer Modern.  Do not replace this
+% with Latin Modern or another look-alike font.
 \usepackage{biblatex}           % reference management
 \usepackage{geometry}           % better margins and margin control
 \usepackage{graphicx}
@@ -59,7 +60,7 @@
 }
 
 % Chapter title format (matches template exactly)
-\titleformat{\chapter}[hang]{\bf\huge}{\thechapter.}{2pc}{}
+\titleformat{\chapter}[hang]{\bfseries\huge\raggedright}{\thechapter.}{2pc}{}
 \titlespacing*{\chapter}{0pt}{-14pt}{22pt}
 
 % Image path
@@ -129,8 +130,41 @@
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{document}
 
-% ── Front matter: title (p.1), approval (p.2); chapters in chapters/ ──
+% ── Front matter: cover (p.1), title (p.2), approval (p.3); chapters in chapters/ ──
 
+% ── Cover page ────────────────────────────────────────────────────────────────
+\thispagestyle{empty}
+\newgeometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\singlespacing
+\begin{center}
+
+\vspace*{0.9cm}
+\includegraphics[width=0.19\textwidth,keepaspectratio]{Hu Golden Logo Transparent.png}\par
+
+\vspace{2.8cm}
+{\large\bfseries BOOKFORME: AN AGENTIC AI-POWERED\par
+\vspace{0.2em}
+CENTRALIZED BOOKING PLATFORM\par}
+
+\vspace{1.7cm}
+{\normalsize\bfseries
+Jazib Waqas\par\vspace{0.15em}
+Ahmad Hanif\par\vspace{0.15em}
+Muhammad Taqi\par\vspace{0.15em}
+Taha Hunaid\par}
+
+\vfill
+{\normalsize\bfseries HABIB UNIVERSITY\par
+\vspace{0.2em}
+KARACHI, PAKISTAN\par
+\vspace{0.2em}
+2026\par}
+
+\end{center}
+\restoregeometry
+\clearpage
+
+% ── Title page ────────────────────────────────────────────────────────────────
 \begin{titlepage}
   \thispagestyle{empty}
   \newgeometry{top=2.2cm,bottom=2cm,left=2.5cm,right=2.5cm}
@@ -153,7 +187,7 @@
     Taha Hunaid Ali              & ta08451 \\
   \end{tabular}\par}
   \vspace{2em}
-  \includegraphics[width=0.34\textwidth,keepaspectratio]{Hu Golden Logo.jpeg}\par
+  \includegraphics[width=0.34\textwidth,keepaspectratio]{logo.pdf}\par
   \vspace{1.6em}
   {\large In partial fulfillment of the requirements for\par\vspace{0.5em}
     \textit{Bachelor of Science}\par\vspace{0.35em}
@@ -172,11 +206,13 @@
 
 \begingroup
 \singlespacing
-\newgeometry{left=2.5cm,right=2.5cm,top=2.8cm,bottom=2.5cm}
-\vspace*{0.5cm}
+\newgeometry{left=2.5cm,right=2.5cm,top=2.2cm,bottom=2.5cm}
+\vspace*{0.2cm}
 \begin{center}
   \begin{minipage}{0.94\textwidth}\centering
-    {\Huge\bfseries\linespread{1.08}\selectfont\Title\par}
+    {\LARGE\bfseries\linespread{1.08}\selectfont
+      BookForMe: An Agentic AI-Powered\par
+      Centralized Booking Platform\par}
   \end{minipage}
 \end{center}
 
@@ -189,7 +225,7 @@
 \begin{flushright}
   \begin{tabular}{@{}l@{}}
     \rule{9.5cm}{0.55pt} \\[1.15em]
-    {\large Project Supervisor} \\[0.45em]
+    {\large Qasim Pasta} \\[0.45em]
     {\large Faculty of Computer Science} \\[0.45em]
     {\large Habib University}
   \end{tabular}
@@ -204,8 +240,18 @@
 \endgroup
 \clearpage
 
+\chapter*{Dedication}
+
+We dedicate this project to our parents and families, whose patience,
+encouragement, and unwavering support have sustained us throughout our academic
+journey. Their belief in us gave us the confidence to work through the challenges
+of designing and building this project.
+
+We also dedicate this work to our teachers, mentors, and everyone who guided us
+through the Kaavish programme. Their knowledge, feedback, and support helped us
+turn an ambitious idea into a practical system.
+
 \chapter*{Acknowledgements}
-\addcontentsline{toc}{chapter}{Acknowledgements}
 
 We want to thank the CS faculty at Habib University for their guidance throughout
 the Kaavish programme, particularly during milestone reviews where their feedback
@@ -220,7 +266,6 @@ behind HuggingFace Transformers, LangGraph, FastAPI, and React Native, whose wor
 made this project technically feasible within one academic year.
 
 \chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
 Booking recreational and informal services in Pakistan (futsal courts, salons,
 gaming zones, and beach houses) remains fragmented and inefficient. Customers must
 individually contact vendors over WhatsApp, wait for manual availability checks, and
@@ -266,11 +311,11 @@ DistilBERT.
 \label{chap:lit}
 \input{chapters/review}
 
-\chapter{Software Requirement Specification (SRS)}
+\chapter[Software Requirement Specification (SRS)]{Software Requirement\\Specification (SRS)}
 \label{chap:srs}
 \input{chapters/srs}
 
-\chapter{Software Design Specification (SDS)}
+\chapter[Software Design Specification (SDS)]{Software Design Specification\\(SDS)}
 \label{chap:sds}
 \input{chapters/sds}
 
