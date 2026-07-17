@@ -1,0 +1,94 @@
+Guidelines for Final Year Project (FYP) Submission for Library Clearance 
+ 
+Students must complete, sign in the approval form (available here) by the faculty / advisor before 
+sending it for final printing. A copy of this form will be required for library clearance as well. 
+Length  
+The minimum length of FYP should be 12000 words (excluding table of contents and 
+preliminary pages).  
+Formatting 
+• A4 paper 
+• Use Latex for formatting papers with Computer Modern font 
+• Graphs/Graphics should be color printed (if recommended by the advisor).  
+• Use American English  
+Printing 
+• Single sided printing is essential.  
+• The template having essential sections of the report can be downloaded here 
+1. Computer Science (filename: CS_Kaavish_report_template final.pdf) 
+2. Electrical and Computer Engineering (ECE) - (filename: EE FYP report template 
+final.pdf) – a zip file is also available for page by page editing and formatting (EE 
+FYP Report Format with Pages.zip). 
+• Printing can be done in house or through Universal Photostat (contact details mentioned 
+below) according to following paper specifications. 
+1. Black and White 80 grams  
+2. Color printing 105 grams 
+Binding 
+• FYP must be hard bound in University Blue with Gold Lettering (see specification 
+below) 
+• The binding should be done through Madina Book Binding House (contact details 
+mentioned below) 
+• The format of spine is available here for downloading.  
+• The golden logo file is available here for downloading (filename golden logo.png)  
+Printing and binding costs will be borne by the students.   
+Submission of Report and Library Clearance 
+• For library clearance, students have to submit a hard bound copy and a soft copy with 
+metadata here  https://habibuniversity.sharepoint.com/sites/Student/hira-metadata-form 
+
+• Along with hard bound copy, the advisor / supervisor approval form should also be 
+submitted.  
+• Library will only accept the reports, which have been duly signed by respective faculty 
+member and/or supervisor. 
+• Library books have to be returned (as per due date) and all fines have to be paid. 
+Contact Details of Vendors 
+Photocopying and Binding 
+Universal Photostat 
+Mr. Zulfiqar 
+International Center for Chemical and Biological Sciences (ICCBS) 
+University of Karachi 
+Contact: 0334-1665405 
+Only Binding 
+Madina Book Binding House 
+Mr.Shabbir 
+Contact: 021-34819506, 0300-3371170 
+ 
+ 
+
+Specification  
+ 
+FYP binding title, logo and text color 
+ 
+ 
+ 
+ 
+FYP spine 
+ 
+ 
+
+Approval by Supervisor/Faculty  
+ 
+This is to certify that I have reviewed the Final Year Project (FYP) submitted by ___ class of 
+__2024_____ having student ID ___.  
+The FYP fulfils the following formatting requirements. 
+o Page formatting is done using Latex  
+o Font style used is Computer Modern 
+o Cover page has been added with HU Golden color Logo  
+o Acknowledgement and Table of Contents page is available 
+o Copyright page and logo is added  
+o FYP is not plagiarized (Turntin report attached) 
+ 
+FYP is ready to be sent for binding. 
+ 
+ _________________   ___________    __________ 
+Name of Supervisor / Faculty   Signature     Date 
+ 
+Note: Student(s) are advised to submit this copy with the hard bound copy at the time of library 
+clearance. 
+ 
+ 
+
+HU
+ 
+FYP TITLE
+ 
+EE 
+ 
+2018
