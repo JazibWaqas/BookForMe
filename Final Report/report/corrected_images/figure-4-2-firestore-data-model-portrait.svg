@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
+  <defs>
+    <style>
+      .panel { fill:#ffffff; stroke:#111827; stroke-width:2; }
+      .panel-title { font:700 24px Arial,sans-serif; fill:#111827; }
+      .box { fill:#ffffff; stroke:#374151; stroke-width:1.7; }
+      .head { fill:#f1f5f9; stroke:#374151; stroke-width:1.7; }
+      .entity { font:700 21px Arial,sans-serif; fill:#111827; text-anchor:middle; }
+      .field { font:18px Arial,sans-serif; fill:#111827; }
+      .key { font:700 18px Arial,sans-serif; fill:#111827; }
+      .relation { fill:none; stroke:#374151; stroke-width:2; marker-end:url(#arrow); }
+      .rel-label { font:16px Arial,sans-serif; fill:#111827; text-anchor:middle; }
+      .note-text { font:16px Arial,sans-serif; fill:#374151; }
+      .ref { fill:#ffffff; stroke:#64748b; stroke-width:1.5; }
+      .ref-text { font:700 17px Arial,sans-serif; fill:#1f2937; text-anchor:middle; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="1500" fill="#ffffff"/>
+
+  <!-- Panel A: transactional booking and payments -->
+  <rect class="panel" x="20" y="20" width="1160" height="920"/>
+  <text class="panel-title" x="50" y="60">Transactional booking and payment domain</text>
+
+  <!-- Relationship lines are drawn first so entity boxes remain clear. -->
+  <path class="relation" d="M350 180 H450"/>
+  <text class="rel-label" x="400" y="167">0..* : 1</text>
+  <path class="relation" d="M750 180 H850"/>
+  <text class="rel-label" x="800" y="167">1 : 0..*</text>
+  <path class="relation" d="M545 340 V380 H200 V430"/>
+  <text class="rel-label" x="335" y="370">offers 1 : N</text>
+  <path class="relation" d="M650 340 V430"/>
+  <text class="rel-label" x="720" y="393">manages 1 : N</text>
+  <path class="relation" d="M750 540 H810"/>
+  <text class="rel-label" x="780" y="526">1:N</text>
+  <path class="relation" d="M350 610 H390 V675 H790 V620 H810"/>
+  <text class="rel-label" x="605" y="664">1:N</text>
+  <path class="relation" d="M350 300 H405 V685 H790 V455 H810"/>
+  <text class="rel-label" x="430" y="674">1:N</text>
+  <path class="relation" d="M810 750 H770"/>
+  <text class="rel-label" x="790" y="736">1:0..1</text>
+
+  <!-- users -->
+  <rect class="box" x="50" y="90" width="300" height="250"/>
+  <rect class="head" x="50" y="90" width="300" height="45"/>
+  <text class="entity" x="200" y="120">users</text>
+  <text class="key" x="70" y="160">PK  id : string</text>
+  <text class="field" x="70" y="189">name, phone, email : string</text>
+  <text class="field" x="70" y="218">role : customer | vendor | admin</text>
+  <text class="field" x="70" y="247">vendor_id : string?</text>
+  <text class="field" x="70" y="276">points : integer</text>
+  <text class="field" x="70" y="305">skill_rating : number</text>
+
+  <!-- vendors -->
+  <rect class="box" x="450" y="90" width="300" height="250"/>
+  <rect class="head" x="450" y="90" width="300" height="45"/>
+  <text class="entity" x="600" y="120">vendors</text>
+  <text class="key" x="470" y="160">PK  id : vendor_slug</text>
+  <text class="field" x="470" y="189">name, area, status : string</text>
+  <text class="field" x="470" y="218">operating_hours : map</text>
+  <text class="field" x="470" y="247">average_rating : number</text>
+
+  <!-- vendor payment accounts -->
+  <rect class="box" x="850" y="90" width="300" height="250"/>
+  <rect class="head" x="850" y="90" width="300" height="45"/>
+  <text class="entity" x="1000" y="120">vendor_payment_accounts</text>
+  <text class="key" x="870" y="160">PK  id : string</text>
+  <text class="field" x="870" y="189">FK  vendor_id -&gt; vendors</text>
+  <text class="field" x="870" y="218">type : JazzCash | EasyPaisa | bank</text>
+  <text class="field" x="870" y="247">account_title : string</text>
+  <text class="field" x="870" y="276">account_number : string</text>
+  <text class="field" x="870" y="305">bank_name?; is_default : boolean</text>
+
+  <!-- services -->
+  <rect class="box" x="50" y="430" width="300" height="225"/>
+  <rect class="head" x="50" y="430" width="300" height="45"/>
+  <text class="entity" x="200" y="460">services</text>
+  <text class="key" x="70" y="500">PK  id : string</text>
+  <text class="field" x="70" y="529">FK  vendor_id -&gt; vendors</text>
+  <text class="field" x="70" y="558">sport_type, name : string</text>
+  <text class="field" x="70" y="587">duration_min : integer</text>
+  <text class="field" x="70" y="616">pricing : map</text>
+
+  <!-- resources -->
+  <rect class="box" x="450" y="430" width="300" height="225"/>
+  <rect class="head" x="450" y="430" width="300" height="45"/>
+  <text class="entity" x="600" y="460">resources</text>
+  <text class="key" x="470" y="500">PK  id : string</text>
+  <text class="field" x="470" y="529">FK  vendor_id -&gt; vendors</text>
+  <text class="field" x="470" y="558">name : string; capacity : integer</text>
+  <text class="field" x="470" y="587">active : boolean</text>
+
+  <!-- slots -->
+  <rect class="box" x="810" y="380" width="340" height="400"/>
+  <rect class="head" x="810" y="380" width="340" height="52"/>
+  <text class="entity" x="980" y="404">slots</text>
+  <text class="entity" x="980" y="426" style="font-size:16px">canonical booking record</text>
+  <text class="key" x="830" y="462">PK  id : date_time_vendor_resource</text>
+  <text class="field" x="830" y="491">FK  vendor_id -&gt; vendors</text>
+  <text class="field" x="830" y="520">FK  service_id -&gt; services</text>
+  <text class="field" x="830" y="549">FK  resource_id -&gt; resources</text>
+  <text class="field" x="830" y="578">FK  user_id -&gt; users?</text>
+  <text class="field" x="830" y="607">FK  payment_id -&gt; payments?</text>
+  <text class="field" x="830" y="636">date, start_time, end_time</text>
+  <text class="field" x="830" y="665">price : number</text>
+  <text class="field" x="830" y="694">status : available | locked | pending</text>
+  <text class="field" x="830" y="723" style="font-size:15px">confirmed | completed | cancelled | blocked</text>
+  <text class="field" x="830" y="752">booking_source; hold_expires_at</text>
+
+  <!-- payments -->
+  <rect class="box" x="430" y="700" width="340" height="225"/>
+  <rect class="head" x="430" y="700" width="340" height="45"/>
+  <text class="entity" x="600" y="730">payments</text>
+  <text class="key" x="450" y="770">PK  id : string</text>
+  <text class="field" x="450" y="799">FK  slot_id, user_id, vendor_id</text>
+  <text class="field" x="450" y="828">screenshot_url : string</text>
+  <text class="field" x="450" y="857">amount_claimed, ocr_verified_amount</text>
+  <text class="field" x="450" y="886">status : uploaded | pending</text>
+  <text class="field" x="450" y="913">verified | rejected</text>
+
+  <text class="note-text" x="50" y="820">The slot document is the canonical booking record.</text>
+  <text class="note-text" x="50" y="848">Optional references are marked with ?.</text>
+
+  <!-- Panel B: social and engagement -->
+  <rect class="panel" x="20" y="970" width="1160" height="510"/>
+  <text class="panel-title" x="50" y="1010">Social and engagement domain (principal collections)</text>
+
+  <rect class="ref" x="70" y="1040" width="250" height="48"/>
+  <text class="ref-text" x="195" y="1071">users reference</text>
+  <rect class="ref" x="475" y="1040" width="250" height="48"/>
+  <text class="ref-text" x="600" y="1071">vendors reference</text>
+  <rect class="ref" x="880" y="1040" width="250" height="48"/>
+  <text class="ref-text" x="1005" y="1071">slots reference</text>
+
+  <path class="relation" d="M195 1088 V1125 H175 V1150"/>
+  <path class="relation" d="M195 1088 V1110 H455 V1150"/>
+  <path class="relation" d="M600 1088 V1125 H735 V1150"/>
+  <path class="relation" d="M1005 1088 V1110 H735 V1150"/>
+  <path class="relation" d="M195 1088 V1100 H1015 V1150"/>
+
+  <rect class="box" x="45" y="1150" width="260" height="285"/>
+  <rect class="head" x="45" y="1150" width="260" height="45"/>
+  <text class="entity" x="175" y="1180">posts</text>
+  <text class="key" x="65" y="1220">PK  id : string</text>
+  <text class="field" x="65" y="1249">FK  user_id -&gt; users</text>
+  <text class="field" x="65" y="1278">sport_type : string?</text>
+  <text class="field" x="65" y="1307">content : string</text>
+  <text class="field" x="65" y="1336">likes_count : integer</text>
+  <text class="field" x="65" y="1365">comments_count : integer</text>
+
+  <rect class="box" x="325" y="1150" width="260" height="285"/>
+  <rect class="head" x="325" y="1150" width="260" height="45"/>
+  <text class="entity" x="455" y="1180">matches</text>
+  <text class="key" x="345" y="1220">PK  id : string</text>
+  <text class="field" x="345" y="1249">FK  host_user_id -&gt; users</text>
+  <text class="field" x="345" y="1278">FK  venue_id -&gt; vendors?</text>
+  <text class="field" x="345" y="1307">FK  slot_id -&gt; slots?</text>
+  <text class="field" x="345" y="1336">sport_type : string</text>
+  <text class="field" x="345" y="1360" style="font-size:15px">status : open | full | in_progress</text>
+  <text class="field" x="345" y="1384" style="font-size:15px">completed | cancelled</text>
+
+  <rect class="box" x="605" y="1150" width="260" height="285"/>
+  <rect class="head" x="605" y="1150" width="260" height="45"/>
+  <text class="entity" x="735" y="1180">reviews</text>
+  <text class="key" x="625" y="1220">PK  id : string</text>
+  <text class="field" x="625" y="1249">FK  vendor_id -&gt; vendors</text>
+  <text class="field" x="625" y="1278">FK  user_id -&gt; users</text>
+  <text class="field" x="625" y="1307">FK  slot_id -&gt; slots?</text>
+  <text class="field" x="625" y="1336">rating : 1..5</text>
+  <text class="field" x="625" y="1365" style="font-size:16px">status : pending | approved | rejected</text>
+
+  <rect class="box" x="885" y="1150" width="270" height="285"/>
+  <rect class="head" x="885" y="1150" width="270" height="45"/>
+  <text class="entity" x="1020" y="1180">notifications</text>
+  <text class="key" x="905" y="1220">PK  id : string</text>
+  <text class="field" x="905" y="1249">FK  user_id -&gt; users</text>
+  <text class="field" x="905" y="1278">type : string</text>
+  <text class="field" x="905" y="1307">title : string</text>
+  <text class="field" x="905" y="1336">message : string</text>
+  <text class="field" x="905" y="1365">read : boolean</text>
+
+  <text class="note-text" x="50" y="1454">PK = document identifier; FK = stored reference identifier. Optional references are marked with ?.</text>
+  <text class="note-text" x="50" y="1475" style="font-size:13px">Supporting collections (not expanded): conversations/messages, comments/likes, match_participants, conversation_states and admin_audit_logs.</text>
+</svg>

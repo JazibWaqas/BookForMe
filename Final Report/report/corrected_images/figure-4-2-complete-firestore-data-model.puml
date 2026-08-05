@@ -1,4 +1,6 @@
 @startuml
+/' Legacy wide-layout source. The report-ready portrait composition is maintained
+   in figure-4-2-firestore-data-model-portrait.svg. '/
 title BookForMe Firestore Data Model
 
 top to bottom direction

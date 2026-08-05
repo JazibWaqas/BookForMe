@@ -212,19 +212,19 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1.2}System Architecture Diagram}{45}{subsection.4.1.2}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces High-level system architecture for the BookForMe platform.}}{46}{figure.caption.20}\protected@file@percent }
 \newlabel{fig:sds-system-arch}{{4.1}{46}{High-level system architecture for the BookForMe platform}{figure.caption.20}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}Data Model (Data Design)}{47}{section.4.2}\protected@file@percent }
-\newlabel{sec:sds-data}{{4.2}{47}{Data Model (Data Design)}{section.4.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Database Strategy}{47}{subsection.4.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Slot Identity Design}{47}{subsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Data Model (Data Design)}{46}{section.4.2}\protected@file@percent }
+\newlabel{sec:sds-data}{{4.2}{46}{Data Model (Data Design)}{section.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Database Strategy}{46}{subsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Slot Identity Design}{46}{subsection.4.2.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Core Domain Collections}{47}{subsection.4.2.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Core Domain Collections}}{48}{table.caption.21}\protected@file@percent }
 \newlabel{tab:entities-core}{{4.1}{48}{Core Domain Collections}{table.caption.21}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2.4}Social \& Auxiliary Collections}{48}{subsection.4.2.4}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Social \& Auxiliary Collections}}{49}{table.caption.22}\protected@file@percent }
 \newlabel{tab:entities-social}{{4.2}{49}{Social \& Auxiliary Collections}{table.caption.22}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.5}NoSQL Schema Diagram}{49}{subsection.4.2.5}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Firestore data model and payment relationships.}}{50}{figure.caption.23}\protected@file@percent }
-\newlabel{fig:sds-erd}{{4.2}{50}{Firestore data model and payment relationships}{figure.caption.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.5}NoSQL Schema Diagram}{50}{subsection.4.2.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Core Firestore data model and payment relationships.}}{50}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:sds-erd}{{4.2}{50}{Core Firestore data model and payment relationships}{figure.caption.23}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4.3}Agentic Booking Process Pipeline}{51}{section.4.3}\protected@file@percent }
 \newlabel{sec:sds-agent-pipeline}{{4.3}{51}{Agentic Booking Process Pipeline}{section.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Pipeline Logic}{51}{subsection.4.3.1}\protected@file@percent }
@@ -249,99 +249,99 @@
 \@writefile{toc}{\contentsline {subsubsection}{Workflow 3: The Vendor Management Experience}{58}{figure.caption.26}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {4.6}{\ignorespaces Activity diagram: vendor dashboard and booking approval flow.}}{59}{figure.caption.27}\protected@file@percent }
 \newlabel{fig:sds-vend-flow}{{4.6}{59}{Activity diagram: vendor dashboard and booking approval flow}{figure.caption.27}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.6}Security Implementation}{60}{section.4.6}\protected@file@percent }
-\newlabel{sec:sds-security}{{4.6}{60}{Security Implementation}{section.4.6}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Development}{61}{chapter.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Security Implementation}{59}{section.4.6}\protected@file@percent }
+\newlabel{sec:sds-security}{{4.6}{59}{Security Implementation}{section.4.6}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Development}{60}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{chap:dev}{{5}{61}{Development}{chapter.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.1}Overview}{61}{section.5.1}\protected@file@percent }
-\newlabel{sec:dev-overview}{{5.1}{61}{Overview}{section.5.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.2}Database Design Decisions}{61}{section.5.2}\protected@file@percent }
-\newlabel{sec:dev-database}{{5.2}{61}{Database Design Decisions}{section.5.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Slot as the Canonical Booking Record}{61}{subsection.5.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Composite Document IDs for Collision Prevention}{62}{subsection.5.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Two-Domain Schema}{62}{subsection.5.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.4}Batch Reads to Eliminate N+1 Queries}{62}{subsection.5.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.3}AI Receptionist Development}{63}{section.5.3}\protected@file@percent }
-\newlabel{sec:dev-agent}{{5.3}{63}{AI Receptionist Development}{section.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}Two-Model NLU and NLG Architecture}{63}{subsection.5.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}LangGraph: Why a State Graph Over a Simple Pipeline}{63}{subsection.5.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.3}Entity Validation: From Regex to Pydantic}{64}{subsection.5.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.4}Guardrails Node}{64}{subsection.5.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.4}Mobile Application Development}{64}{section.5.4}\protected@file@percent }
-\newlabel{sec:dev-mobile}{{5.4}{64}{Mobile Application Development}{section.5.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}Expo Go Constraints and Library Trade-offs}{64}{subsection.5.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.2}Caching Strategy}{65}{subsection.5.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.3}Role-Based Routing in a Single App}{65}{subsection.5.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.4}Smart Filter (In-App AI Chat)}{65}{subsection.5.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.5}Matchmaking and Elo Ranking}{66}{subsection.5.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Vendor Dashboard and Admin Panel}{66}{section.5.5}\protected@file@percent }
-\newlabel{sec:dev-vendor}{{5.5}{66}{Vendor Dashboard and Admin Panel}{section.5.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Payment Verification via OCR}{67}{section.5.6}\protected@file@percent }
-\newlabel{sec:dev-ocr}{{5.6}{67}{Payment Verification via OCR}{section.5.6}{}}
+\newlabel{chap:dev}{{5}{60}{Development}{chapter.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Overview}{60}{section.5.1}\protected@file@percent }
+\newlabel{sec:dev-overview}{{5.1}{60}{Overview}{section.5.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Database Design Decisions}{60}{section.5.2}\protected@file@percent }
+\newlabel{sec:dev-database}{{5.2}{60}{Database Design Decisions}{section.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Slot as the Canonical Booking Record}{60}{subsection.5.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Composite Document IDs for Collision Prevention}{61}{subsection.5.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Two-Domain Schema}{61}{subsection.5.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.4}Batch Reads to Eliminate N+1 Queries}{61}{subsection.5.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}AI Receptionist Development}{62}{section.5.3}\protected@file@percent }
+\newlabel{sec:dev-agent}{{5.3}{62}{AI Receptionist Development}{section.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}Two-Model NLU and NLG Architecture}{62}{subsection.5.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}LangGraph: Why a State Graph Over a Simple Pipeline}{62}{subsection.5.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.3}Entity Validation: From Regex to Pydantic}{63}{subsection.5.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.4}Guardrails Node}{63}{subsection.5.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Mobile Application Development}{63}{section.5.4}\protected@file@percent }
+\newlabel{sec:dev-mobile}{{5.4}{63}{Mobile Application Development}{section.5.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}Expo Go Constraints and Library Trade-offs}{63}{subsection.5.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.2}Caching Strategy}{64}{subsection.5.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.3}Role-Based Routing in a Single App}{64}{subsection.5.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.4}Smart Filter (In-App AI Chat)}{64}{subsection.5.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.5}Matchmaking and Elo Ranking}{65}{subsection.5.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Vendor Dashboard and Admin Panel}{65}{section.5.5}\protected@file@percent }
+\newlabel{sec:dev-vendor}{{5.5}{65}{Vendor Dashboard and Admin Panel}{section.5.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}Payment Verification via OCR}{66}{section.5.6}\protected@file@percent }
+\newlabel{sec:dev-ocr}{{5.6}{66}{Payment Verification via OCR}{section.5.6}{}}
 \abx@aux@cite{0}{he2024}
 \abx@aux@segm{0}{0}{he2024}
 \abx@aux@cite{0}{an2022}
 \abx@aux@segm{0}{0}{an2022}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Methodology, Experiments and Results}{68}{chapter.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Methodology, Experiments and Results}{67}{chapter.6}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{chap:results}{{6}{68}{Methodology, Experiments and Results}{chapter.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.1}Dataset Construction}{68}{section.6.1}\protected@file@percent }
-\newlabel{sec:results-dataset}{{6.1}{68}{Dataset Construction}{section.6.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.1}Data Collection}{68}{subsection.6.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.2}Dataset Statistics}{69}{subsection.6.1.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{69}{table.caption.28}\protected@file@percent }
-\newlabel{tab:data-dist}{{6.1}{69}{Intent distribution in the full BookForMe bilingual corpus (694 samples)}{table.caption.28}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.3}Annotation Schema}{69}{subsection.6.1.3}\protected@file@percent }
+\newlabel{chap:results}{{6}{67}{Methodology, Experiments and Results}{chapter.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Dataset Construction}{67}{section.6.1}\protected@file@percent }
+\newlabel{sec:results-dataset}{{6.1}{67}{Dataset Construction}{section.6.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.1}Data Collection}{67}{subsection.6.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.2}Dataset Statistics}{68}{subsection.6.1.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.1}{\ignorespaces Intent distribution in the full BookForMe bilingual corpus (694 samples).}}{68}{table.caption.28}\protected@file@percent }
+\newlabel{tab:data-dist}{{6.1}{68}{Intent distribution in the full BookForMe bilingual corpus (694 samples)}{table.caption.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1.3}Annotation Schema}{68}{subsection.6.1.3}\protected@file@percent }
 \abx@aux@cite{0}{lin2017}
 \abx@aux@segm{0}{0}{lin2017}
-\@writefile{toc}{\contentsline {section}{\numberline {6.2}NLU Model Training and Selection}{70}{section.6.2}\protected@file@percent }
-\newlabel{sec:results-nlu}{{6.2}{70}{NLU Model Training and Selection}{section.6.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.1}Training Configuration}{70}{subsection.6.2.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{70}{table.caption.29}\protected@file@percent }
-\newlabel{tab:hyperparams}{{6.2}{70}{Hyperparameters used for all fine-tuning experiments}{table.caption.29}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.2}Model Comparison}{70}{subsection.6.2.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{71}{table.caption.30}\protected@file@percent }
-\newlabel{tab:nlu-results}{{6.3}{71}{Overall NLU model comparison (5-class intent classification)}{table.caption.30}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.3}Selected Model: DistilBERT}{71}{subsection.6.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.4}Per-Class Analysis (DistilBERT)}{71}{subsection.6.2.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{72}{figure.caption.31}\protected@file@percent }
-\newlabel{fig:DistilBERT_PerClass}{{6.1}{72}{DistilBERT per-class classification report on the held-out test set}{figure.caption.31}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.3}Agent Evaluation}{72}{section.6.3}\protected@file@percent }
-\newlabel{sec:results-agent}{{6.3}{72}{Agent Evaluation}{section.6.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3.1}Test Case Methodology}{72}{subsection.6.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{73}{figure.caption.32}\protected@file@percent }
-\newlabel{fig:DistilBERT_confusion}{{6.2}{73}{Confusion matrix for DistilBERT}{figure.caption.32}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3.2}Test Case Results}{74}{subsection.6.3.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{74}{table.caption.33}\protected@file@percent }
-\newlabel{tab:agent-tests}{{6.4}{74}{AI Receptionist agent test case results}{table.caption.33}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.4}Discussion}{75}{section.6.4}\protected@file@percent }
-\newlabel{sec:results-discussion}{{6.4}{75}{Discussion}{section.6.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.1}Key Findings}{75}{subsection.6.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.2}Limitations}{75}{subsection.6.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{77}{chapter.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}NLU Model Training and Selection}{69}{section.6.2}\protected@file@percent }
+\newlabel{sec:results-nlu}{{6.2}{69}{NLU Model Training and Selection}{section.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.1}Training Configuration}{69}{subsection.6.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.2}{\ignorespaces Hyperparameters used for all fine-tuning experiments.}}{69}{table.caption.29}\protected@file@percent }
+\newlabel{tab:hyperparams}{{6.2}{69}{Hyperparameters used for all fine-tuning experiments}{table.caption.29}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.2}Model Comparison}{69}{subsection.6.2.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.3}{\ignorespaces Overall NLU model comparison (5-class intent classification).}}{70}{table.caption.30}\protected@file@percent }
+\newlabel{tab:nlu-results}{{6.3}{70}{Overall NLU model comparison (5-class intent classification)}{table.caption.30}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.3}Selected Model: DistilBERT}{70}{subsection.6.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.4}Per-Class Analysis (DistilBERT)}{70}{subsection.6.2.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{71}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:DistilBERT_PerClass}{{6.1}{71}{DistilBERT per-class classification report on the held-out test set}{figure.caption.31}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Agent Evaluation}{71}{section.6.3}\protected@file@percent }
+\newlabel{sec:results-agent}{{6.3}{71}{Agent Evaluation}{section.6.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3.1}Test Case Methodology}{71}{subsection.6.3.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{72}{figure.caption.32}\protected@file@percent }
+\newlabel{fig:DistilBERT_confusion}{{6.2}{72}{Confusion matrix for DistilBERT}{figure.caption.32}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3.2}Test Case Results}{73}{subsection.6.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.4}{\ignorespaces AI Receptionist agent test case results.}}{73}{table.caption.33}\protected@file@percent }
+\newlabel{tab:agent-tests}{{6.4}{73}{AI Receptionist agent test case results}{table.caption.33}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Discussion}{74}{section.6.4}\protected@file@percent }
+\newlabel{sec:results-discussion}{{6.4}{74}{Discussion}{section.6.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.1}Key Findings}{74}{subsection.6.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.2}Limitations}{74}{subsection.6.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{76}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{chap:outro}{{7}{77}{Conclusion and Future Work}{chapter.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.1}Summary}{77}{section.7.1}\protected@file@percent }
-\newlabel{sec:outro-summary}{{7.1}{77}{Summary}{section.7.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.2}Future Work}{77}{section.7.2}\protected@file@percent }
-\newlabel{sec:outro-future}{{7.2}{77}{Future Work}{section.7.2}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {8}Reflection}{79}{chapter.8}\protected@file@percent }
+\newlabel{chap:outro}{{7}{76}{Conclusion and Future Work}{chapter.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Summary}{76}{section.7.1}\protected@file@percent }
+\newlabel{sec:outro-summary}{{7.1}{76}{Summary}{section.7.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}Future Work}{76}{section.7.2}\protected@file@percent }
+\newlabel{sec:outro-future}{{7.2}{76}{Future Work}{section.7.2}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {8}Reflection}{78}{chapter.8}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{chap:Reflection}{{8}{79}{Reflection}{chapter.8}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8.1}Individual Reflections}{79}{section.8.1}\protected@file@percent }
-\newlabel{sec:reflect-learning}{{8.1}{79}{Individual Reflections}{section.8.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.1}Muhammad Ahmad Humayun Hanif}{79}{subsection.8.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.2}Jazib Waqas}{79}{subsection.8.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.3}Taha Hunaid Ali}{80}{subsection.8.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.4}Muhammad Taqi}{80}{subsection.8.1.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8.2}Team Reflection}{81}{section.8.2}\protected@file@percent }
-\newlabel{sec:reflect-team}{{8.2}{81}{Team Reflection}{section.8.2}{}}
-\@writefile{toc}{\contentsline {chapter}{References}{82}{chapter*.34}\protected@file@percent }
+\newlabel{chap:Reflection}{{8}{78}{Reflection}{chapter.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.1}Individual Reflections}{78}{section.8.1}\protected@file@percent }
+\newlabel{sec:reflect-learning}{{8.1}{78}{Individual Reflections}{section.8.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.1}Muhammad Ahmad Humayun Hanif}{78}{subsection.8.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.2}Jazib Waqas}{78}{subsection.8.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.3}Taha Hunaid Ali}{79}{subsection.8.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1.4}Muhammad Taqi}{79}{subsection.8.1.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8.2}Team Reflection}{80}{section.8.2}\protected@file@percent }
+\newlabel{sec:reflect-team}{{8.2}{80}{Team Reflection}{section.8.2}{}}
+\@writefile{toc}{\contentsline {chapter}{References}{81}{chapter*.34}\protected@file@percent }
 \abx@aux@read@bbl@mdfivesum{8D42DF63D3C8A8B00A92C212C0D69703}
 \abx@aux@defaultrefcontext{0}{an2022}{nty/global//global/global/global}
 \abx@aux@defaultrefcontext{0}{bhat2023}{nty/global//global/global/global}
@@ -382,4 +382,4 @@
 \abx@aux@defaultrefcontext{0}{xi2023}{nty/global//global/global/global}
 \abx@aux@defaultrefcontext{0}{yao2023}{nty/global//global/global/global}
 \abx@aux@defaultrefcontext{0}{yu2023}{nty/global//global/global/global}
-\gdef \@abspage@last{87}
+\gdef \@abspage@last{86}

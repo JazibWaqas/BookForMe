@@ -20,14 +20,14 @@
 \contentsline {figure}{\numberline {3.16}{\ignorespaces Admin vendor moderation: approve, suspend, or delete registered vendors.}}{44}{figure.caption.19}%
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {4.1}{\ignorespaces High-level system architecture for the BookForMe platform.}}{46}{figure.caption.20}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Firestore data model and payment relationships.}}{50}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Core Firestore data model and payment relationships.}}{50}{figure.caption.23}%
 \contentsline {figure}{\numberline {4.3}{\ignorespaces AI booking and payment sequence.}}{52}{figure.caption.24}%
 \contentsline {figure}{\numberline {4.4}{\ignorespaces Activity diagram: WhatsApp AI booking flow.}}{56}{figure.caption.25}%
 \contentsline {figure}{\numberline {4.5}{\ignorespaces Activity diagram: mobile application search and booking flow.}}{58}{figure.caption.26}%
 \contentsline {figure}{\numberline {4.6}{\ignorespaces Activity diagram: vendor dashboard and booking approval flow.}}{59}{figure.caption.27}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{72}{figure.caption.31}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{73}{figure.caption.32}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces DistilBERT per-class classification report on the held-out test set}}{71}{figure.caption.31}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Confusion matrix for DistilBERT}}{72}{figure.caption.32}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

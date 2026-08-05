@@ -33,6 +33,7 @@ Replace the image paths while retaining the existing Chapter 4 numbering:
 
 - Figure 4.1: `corrected_images/report_ready/figure-4-1-high-level-system-architecture.png`
 - Figure 4.2: `corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png`
+  - Portrait print source: `corrected_images/figure-4-2-firestore-data-model-portrait.svg`
 - Figure 4.3: `corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png`
 - Figure 4.4: `corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png`
 - Figure 4.5: `corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png`

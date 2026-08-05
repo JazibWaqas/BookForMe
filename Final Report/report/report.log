@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  6 AUG 2026 01:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.12)  6 AUG 2026 01:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -374,20 +374,6 @@ File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
 \Gin@req@height=\dimen157
 \Gin@req@width=\dimen158
 )
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/pdflscape\pdflscape.
-sty
-Package: pdflscape 2022-10-27 v0.13 Display of landscape pages in PDF
-
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/pdflscape\pdflscape-
-nometadata.sty
-Package: pdflscape-nometadata 2022-10-28 v0.13 Display of landscape pages in PD
-F (HO)
-
-(C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/graphics\lscape.sty
-Package: lscape 2020/05/28 v3.02 Landscape Pages (DPC)
-)
-Package pdflscape Info: Auto-detected driver: pdftex on input line 81.
-))
 (C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/eso-pic\eso-pic.sty
 Package: eso-pic 2025/12/10 v3.0d eso-pic (RN)
 \ESO@tempdima=\dimen159
@@ -886,30 +872,30 @@ Package: needspace 2025/03/13 v1.3e reserve vertical space
 y
 Package: placeins 2005/04/18  v 2.2
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 61.
+Package hyperref Info: Option `colorlinks' set `true' on input line 60.
 \@quotelevel=\count479
 \@quotereset=\count480
  (report.aux)
 \openout1 = `report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 132.
-LaTeX Font Info:    ... okay on input line 132.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 131.
+LaTeX Font Info:    ... okay on input line 131.
 Package biblatex Info: Trying to load language 'english'...
 Package biblatex Info: ... file 'english.lbx' found.
 
@@ -925,8 +911,8 @@ Package biblatex Info: Automatic encoding selection.
 Package biblatex Info: Trying to load bibliographic data...
 Package biblatex Info: ... file 'report.bbl' found.
  (report.bbl)
-Package biblatex Info: Reference section=0 on input line 132.
-Package biblatex Info: Reference segment=0 on input line 132.
+Package biblatex Info: Reference section=0 on input line 131.
+Package biblatex Info: Reference segment=0 on input line 131.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -988,7 +974,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 s.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring ON on input line 132.
+Package hyperref Info: Link coloring ON on input line 131.
  (report.out) (report.out)
 \@outlinefile=\write4
 \openout4 = `report.out'.
@@ -1006,12 +992,12 @@ y
 Package: ltcaption 2021/01/08 v1.4c longtable captions (AR)
 )
 Package caption Info: End \AtBeginDocument code.
-LaTeX Info: Redefining \microtypecontext on input line 132.
-Package microtype Info: Applying patch `item' on input line 132.
-Package microtype Info: Applying patch `toc' on input line 132.
-Package microtype Info: Applying patch `eqnum' on input line 132.
-Package microtype Info: Applying patch `verbatim' on input line 132.
-LaTeX Info: Redefining \microtypesetup on input line 132.
+LaTeX Info: Redefining \microtypecontext on input line 131.
+Package microtype Info: Applying patch `item' on input line 131.
+Package microtype Info: Applying patch `toc' on input line 131.
+Package microtype Info: Applying patch `eqnum' on input line 131.
+Package microtype Info: Applying patch `verbatim' on input line 131.
+LaTeX Info: Redefining \microtypesetup on input line 131.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -1063,7 +1049,7 @@ File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
 File: images/Hu Golden Logo Transparent.png Graphic file (type png)
 <use images/Hu Golden Logo Transparent.png>
 Package pdftex.def Info: images/Hu Golden Logo Transparent.png  used on input l
-ine 143.
+ine 142.
 (pdftex.def)             Requested size: 86.49748pt x 93.26762pt.
  [1
 
@@ -1102,7 +1088,7 @@ Hu Golden Logo Transparent.png>]
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 177
+LaTeX Font Info:    Trying to load font information for U+msa on input line 176
 .
 
 (C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
@@ -1111,7 +1097,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 177
+LaTeX Font Info:    Trying to load font information for U+msb on input line 176
 .
  (C:\Users\OMNIBOOK\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -1122,14 +1108,14 @@ File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 <images/logo.pdf, id=484, 597.55246pt x 845.07718pt>
 File: images/logo.pdf Graphic file (type pdf)
 <use images/logo.pdf>
-Package pdftex.def Info: images/logo.pdf  used on input line 191.
+Package pdftex.def Info: images/logo.pdf  used on input line 190.
 (pdftex.def)             Requested size: 154.78133pt x 218.88962pt.
 
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.202   \restoregeometry
+l.201   \restoregeometry
                          [1
 
 
@@ -1172,7 +1158,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.240 \restoregeometry
+l.239 \restoregeometry
                        [1
 
 
@@ -1328,104 +1314,95 @@ Package pdftex.def Info: images/Admin Dashboard (2).jpeg  used on input line 29
 ) [43 <./images/WhatsApp Converstation.jpeg>] [44 <./images/Admin Dashboard.jpe
 g> <./images/Admin Dashboard (2).jpeg>]
 Chapter 4.
-(chapters/sds.tex [45
-
-]
+(chapters/sds.tex
 <corrected_images/report_ready/figure-4-1-high-level-system-architecture.png, i
-d=1008, 1733.47626pt x 869.2475pt>
+d=1004, 1733.47626pt x 869.2475pt>
 File: corrected_images/report_ready/figure-4-1-high-level-system-architecture.p
 ng Graphic file (type png)
 <use corrected_images/report_ready/figure-4-1-high-level-system-architecture.pn
 g>
 Package pdftex.def Info: corrected_images/report_ready/figure-4-1-high-level-sy
-stem-architecture.png  used on input line 38.
-(pdftex.def)             Requested size: 579.69319pt x 290.68575pt.
- [46
+stem-architecture.png  used on input line 37.
+(pdftex.def)             Requested size: 418.2382pt x 209.72453pt.
+ [45
 
- <./corrected_images/report_ready/figure-4-1-high-level-system-architecture.png
- (PNG copy)>]
+]
 LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 
-66.
-LaTeX Font Info:    No file OMScmtt.fd. on input line 66.
+64.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 64.
 
 
 LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 66.
+(Font)              for symbol `textbraceleft' on input line 64.
 
-[47
-
-] [48] [49]
+[46 <./corrected_images/report_ready/figure-4-1-high-level-system-architecture.
+png (PNG copy)>] [47] [48] [49]
 <corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png, id
-=1033, 2033.5975pt x 1363.0925pt>
+=1034, 1806.75pt x 2258.4375pt>
 File: corrected_images/report_ready/figure-4-2-complete-firestore-data-model.pn
 g Graphic file (type png)
 <use corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png
 >
 Package pdftex.def Info: corrected_images/report_ready/figure-4-2-complete-fire
-store-data-model.png  used on input line 127.
-(pdftex.def)             Requested size: 511.68733pt x 342.97699pt.
+store-data-model.png  used on input line 125.
+(pdftex.def)             Requested size: 364.37616pt x 455.4702pt.
  [50
 
- <./corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png 
-(PNG copy)>]
+ <./corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png>
+]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 144.
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 141.
 <corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png, id=1
-038, 1484.54625pt x 1300.86pt>
+040, 1484.54625pt x 1300.86pt>
 File: corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png 
 Graphic file (type png)
 <use corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png>
 Package pdftex.def Info: corrected_images/report_ready/figure-4-3-ai-booking-pa
-yment-sequence.png  used on input line 152.
+yment-sequence.png  used on input line 149.
 (pdftex.def)             Requested size: 418.25249pt x 366.50116pt.
- [51
-
-] [52 <./corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.p
-ng>] [53] [54] [55]
+ [51] [52 <./corrected_images/report_ready/figure-4-3-ai-booking-payment-sequen
+ce.png>] [53] [54] [55]
 <corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png, id=107
-1, 739.76375pt x 1160.335pt>
+3, 739.76375pt x 1160.335pt>
 File: corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png Gr
 aphic file (type png)
 <use corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png>
 Package pdftex.def Info: corrected_images/report_ready/figure-4-4-whatsapp-book
-ing-activity.png  used on input line 215.
+ing-activity.png  used on input line 212.
 (pdftex.def)             Requested size: 275.29988pt x 431.81367pt.
  [56 <./corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png 
 (PNG copy)>]
 <corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png, id=1
-076, 1036.87375pt x 1357.07pt>
+078, 1036.87375pt x 1357.07pt>
 File: corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png 
 Graphic file (type png)
 <use corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png>
 Package pdftex.def Info: corrected_images/report_ready/figure-4-5-mobile-app-bo
-oking-activity.png  used on input line 230.
+oking-activity.png  used on input line 227.
 (pdftex.def)             Requested size: 329.92363pt x 431.80711pt.
- [57] [58 <./corrected_images/report_ready/figure-4-5-mobile-app-booking-activi
-ty.png (PNG copy)>]
+
+[57]
 <corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png, id=108
-5, 2093.8225pt x 1068.99374pt>
+3, 2093.8225pt x 1068.99374pt>
 File: corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png Gr
 aphic file (type png)
 <use corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png>
 Package pdftex.def Info: corrected_images/report_ready/figure-4-6-vendor-dashbo
-ard-activity.png  used on input line 243.
-(pdftex.def)             Requested size: 579.6848pt x 295.95604pt.
- [59
-
- <./corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png (PNG
- copy)>]) [60
-
-]
+ard-activity.png  used on input line 239.
+(pdftex.def)             Requested size: 418.2459pt x 213.53397pt.
+ [58 <./corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.pn
+g (PNG copy)>]) [59 <./corrected_images/report_ready/figure-4-6-vendor-dashboar
+d-activity.png (PNG copy)>]
 Chapter 5.
-(chapters/development.tex [61
+(chapters/development.tex [60
 
-] [62] [63] [64] [65] [66]) [67]
+] [61] [62] [63] [64] [65]) [66]
 Chapter 6.
-(chapters/results.tex [68
+(chapters/results.tex [67
 
-] [69] [70]
-<images/distilbert_per_class_prf.png, id=1143, 433.62pt x 289.08pt>
+] [68] [69]
+<images/distilbert_per_class_prf.png, id=1141, 433.62pt x 289.08pt>
 File: images/distilbert_per_class_prf.png Graphic file (type png)
 <use images/distilbert_per_class_prf.png>
 Package pdftex.def Info: images/distilbert_per_class_prf.png  used on input lin
@@ -1435,8 +1412,8 @@ e 171.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[71]
-<images/distilbert_confusion_matrix.png, id=1152, 361.35pt x 325.215pt>
+[70]
+<images/distilbert_confusion_matrix.png, id=1149, 361.35pt x 325.215pt>
 File: images/distilbert_confusion_matrix.png Graphic file (type png)
 <use images/distilbert_confusion_matrix.png>
 Package pdftex.def Info: images/distilbert_confusion_matrix.png  used on input 
@@ -1446,20 +1423,20 @@ line 186.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[72 <./images/distilbert_per_class_prf.png>] [73 <./images/distilbert_confusion
-_matrix.png>] [74
+[71 <./images/distilbert_per_class_prf.png>] [72 <./images/distilbert_confusion
+_matrix.png>] [73
 
-] [75]) [76]
+] [74]) [75]
 Chapter 7.
-(chapters/conclusion.tex [77
+(chapters/conclusion.tex [76
 
-]) [78]
+]) [77]
 Chapter 8.
-(chapters/reflection.tex [79
+(chapters/reflection.tex [78
 
-] [80]) [81] [82
+] [79]) [80] [81
 
-] [83] [84] [85] (report.aux)
+] [82] [83] [84] (report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
@@ -1475,13 +1452,13 @@ Package logreq Info: Writing requests to 'report.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 26332 strings out of 467871
- 462053 string characters out of 5416924
- 1315382 words of memory out of 5000000
- 54234 multiletter control sequences out of 15000+600000
+ 26258 strings out of 467871
+ 459856 string characters out of 5416924
+ 1314566 words of memory out of 5000000
+ 54171 multiletter control sequences out of 15000+600000
  652948 words of font info for 257 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 66i,12n,76p,1185b,1499s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 63i,12n,76p,1185b,1499s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\OMNIBOOK\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\t
 crm1200.pk><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/public/
 amsfonts/cm/cmbx10.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/t
@@ -1500,9 +1477,9 @@ al/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Users/OMNIBOOK
 ers/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt1
 2.pfb><C:/Users/OMNIBOOK/AppData/Local/Programs/MiKTeX/fonts/type1/urw/zapfding
 /uzdr.pfb>
-Output written on report.pdf (87 pages, 2905723 bytes).
+Output written on report.pdf (86 pages, 3117380 bytes).
 PDF statistics:
- 1406 PDF objects out of 1440 (max. 8388607)
- 302 named destinations out of 1000 (max. 500000)
+ 1404 PDF objects out of 1440 (max. 8388607)
+ 301 named destinations out of 1000 (max. 500000)
  49208 words of extra memory for PDF output out of 51595 (max. 10000000)
 

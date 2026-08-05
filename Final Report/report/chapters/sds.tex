@@ -10,8 +10,8 @@
 \newcommand{\sdstallfig}[1]{%
   \includegraphics[width=0.86\linewidth,height=0.73\textheight,keepaspectratio]{#1}%
 }
-\newcommand{\sdslandscapefig}[1]{%
-  \includegraphics[width=0.98\linewidth,height=0.82\textheight,keepaspectratio]{#1}%
+\newcommand{\sdsdatamodelfig}[1]{%
+  \includegraphics[width=0.94\linewidth,height=0.77\textheight,keepaspectratio]{#1}%
 }
 
 This chapter details the BookForMe system's architectural patterns, data structures, and the workflow logic required to build a robust service booking application. It serves as the technical blueprint for the implementation described in the following chapters.
@@ -30,16 +30,14 @@ The diagram below illustrates the high-level data flow across the system's three
     \item \textbf{Asynchronous Event Flow:} The WhatsApp API operates via webhooks, triggering an asynchronous event routed to the LangGraph AI Receptionist.
 \end{itemize}
 
-\begin{landscape}
-    \begin{figure}[H]
-        \centering
-        \IfFileExists{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}{
-            \sdslandscapefig{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}
-        }{\fbox{System Architecture Diagram Missing}}
-        \caption{High-level system architecture for the BookForMe platform.}
-        \label{fig:sds-system-arch}
-    \end{figure}
-\end{landscape}
+\begin{figure}[H]
+    \centering
+    \IfFileExists{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}{
+        \sdsfig{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}
+    }{\fbox{System Architecture Diagram Missing}}
+    \caption{High-level system architecture for the BookForMe platform.}
+    \label{fig:sds-system-arch}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Data Model (Data Design)}
@@ -116,19 +114,18 @@ engagement layer described in Section~\ref{sec:sds-social}.
     \end{tabular}
 \end{table}
 
+\clearpage
 \subsection{NoSQL Schema Diagram}
-The Entity Relationship Diagram delineates references between entities, mapping out the foreign keys (e.g.\ \texttt{vendor\_id}) that correlate disparate collections.
+Figure~\ref{fig:sds-erd} presents the core transactional and payment collections and the principal social collections. Supporting messaging, interaction, state, and audit collections are summarized within the figure rather than expanded.
 
-\begin{landscape}
-    \begin{figure}[H]
-        \centering
-        \IfFileExists{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}{
-            \sdslandscapefig{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}
-        }{\fbox{ERD Diagram Missing}}
-        \caption{Firestore data model and payment relationships.}
-        \label{fig:sds-erd}
-    \end{figure}
-\end{landscape}
+\begin{figure}[H]
+    \centering
+    \IfFileExists{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}{
+        \sdsdatamodelfig{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}
+    }{\fbox{ERD Diagram Missing}}
+    \caption{Core Firestore data model and payment relationships.}
+    \label{fig:sds-erd}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Agentic Booking Process Pipeline}
@@ -235,16 +232,14 @@ The natural-language path is powered by two backend modules - \texttt{ai\_search
 \FloatBarrier
 \subsubsection{Workflow 3: The Vendor Management Experience}
 This workflow maps vendor slot management and payment review. Approval changes a pending booking to confirmed, while rejection marks the payment as rejected, releases the \texttt{PENDING} slot to \texttt{AVAILABLE}, and notifies the customer.
-\begin{landscape}
-    \begin{figure}[H]
-        \centering
-        \IfFileExists{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}{
-            \sdslandscapefig{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}
-        }{\fbox{Activity Diagram: Vendor Flow Missing}}
-        \caption{Activity diagram: vendor dashboard and booking approval flow.}
-        \label{fig:sds-vend-flow}
-    \end{figure}
-\end{landscape}
+\begin{figure}[H]
+    \centering
+    \IfFileExists{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}{
+        \sdsfig{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}
+    }{\fbox{Activity Diagram: Vendor Flow Missing}}
+    \caption{Activity diagram: vendor dashboard and booking approval flow.}
+    \label{fig:sds-vend-flow}
+\end{figure}
 
 \endgroup
 
