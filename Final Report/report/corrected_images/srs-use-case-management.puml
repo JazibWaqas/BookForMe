@@ -1,0 +1,37 @@
+@startuml
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam ArrowColor #334155
+skinparam UsecaseBorderColor #2563EB
+skinparam UsecaseBackgroundColor #EFF6FF
+skinparam RectangleBorderColor #64748B
+skinparam RectangleBackgroundColor #F8FAFC
+
+actor Vendor
+actor Administrator as Admin
+
+rectangle "BookForMe - Management Roles" {
+  usecase "Manage profile, services,\nresources and availability" as Manage
+  usecase "View dashboard, calendar\nand analytics" as Dashboard
+  usecase "Review pending payment\nand booking" as Review
+  usecase "Approve booking" as Approve
+  usecase "Reject booking and\nrelease slot" as Reject
+  usecase "Record walk-in booking" as WalkIn
+  usecase "Moderate vendors\nand users" as Moderate
+  usecase "Review payments and\nmaintain slot inventory" as AdminOps
+  usecase "View platform overview\nand audit logs" as Audit
+}
+
+Vendor -- Manage
+Vendor -- Dashboard
+Vendor -- Review
+Vendor -- WalkIn
+Review .> Approve : <<extend>>
+Review .> Reject : <<extend>>
+Admin -- Moderate
+Admin -- AdminOps
+Admin -- Audit
+@enduml

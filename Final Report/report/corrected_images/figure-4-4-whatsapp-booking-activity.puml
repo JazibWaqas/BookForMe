@@ -1,0 +1,43 @@
+@startuml
+title WhatsApp AI Booking Activity
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #334155
+skinparam ActivityBorderColor #1E3A8A
+skinparam ActivityBackgroundColor #EFF6FF
+skinparam ActivityDiamondBorderColor #A16207
+skinparam ActivityDiamondBackgroundColor #FEF3C7
+
+start
+:[Customer] Send sport, area, date and time request;
+:[System] Classify intent, extract entities\nand query shared inventory;
+if (Complete request and slot available?) then (yes)
+  :[System] Present matching slots and prices;
+else (no)
+  :[System] Ask for missing details or\nsuggest alternative slots;
+  stop
+endif
+:[Customer] Select slot and confirm;
+:[System] Atomically lock slot for 10 minutes\nand send payment instructions;
+if (Lock successful?) then (yes)
+  :[Customer] Upload payment screenshot;
+else (no)
+  :[System] Inform customer and suggest alternatives;
+  stop
+endif
+:[System] Run OCR amount verification;
+while (Screenshot valid?) is (no)
+  :[System] Request and receive corrected screenshot;
+  :[System] Run OCR amount verification;
+endwhile (yes)
+:[System] Store proof, create UPLOADED payment,\nset slot to PENDING and notify vendor;
+:[Vendor] Review booking and payment proof;
+if (Vendor approves?) then (yes)
+  :[System] Verify payment, confirm slot and\nsend booking reference;
+else (no)
+  :[System] Reject payment, release slot and\nsend rejection notification;
+endif
+stop
+@enduml

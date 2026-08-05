@@ -1,0 +1,53 @@
+@startuml
+title Mobile Application Search and Booking Activity
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #334155
+skinparam ActivityBorderColor #1E3A8A
+skinparam ActivityBackgroundColor #EFF6FF
+skinparam ActivityDiamondBorderColor #A16207
+skinparam ActivityDiamondBackgroundColor #FEF3C7
+
+start
+:[Customer] Log in and open home screen;
+if (Search method?) then (Manual browse)
+  :[Customer] Select sport/category and filters;
+  :[System] Load matching vendors;
+else (AI smart search)
+  :[Customer] Enter natural-language query;
+  :[System] Extract filters and rank matching venues;
+endif
+:[Customer] Select venue and view schedule;
+:[System] Load real-time slot availability;
+:[Customer] Select court and time slot;
+:[System] Atomically lock slot for 10 minutes;
+if (Lock successful?) then (yes)
+  :[System] Display vendor payment account\nand required amount;
+else (no)
+  :[System] Refresh availability and show alternatives;
+  stop
+endif
+:[Customer] Upload payment screenshot;
+:[System] Run OCR amount verification;
+if (Payment proof valid?) then (yes)
+  :[System] Store screenshot and create payment record;
+  :[System] Set slot to PENDING;
+  :[System] Notify vendor for review;
+  :[Customer] View pending booking status;
+  :[Vendor] Review payment proof;
+  if (Vendor approves?) then (yes)
+    :[System] Set payment to VERIFIED\nand slot to CONFIRMED;
+    :[Customer] Receive booking confirmation;
+  else (no)
+    :[System] Set payment to REJECTED\nand release slot;
+    :[Customer] Receive rejection notification;
+  endif
+else (no)
+  :[System] Keep slot locked until hold expiry;
+  :[System] Show correction message;
+  :[Customer] Retry payment upload or cancel;
+endif
+stop
+@enduml

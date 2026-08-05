@@ -1,15 +1,15 @@
 [0] Config.pm:328> INFO - This is Biber 2.21
 [0] Config.pm:331> INFO - Logfile is 'report.blg'
-[280] biber-MSWIN64:342> INFO - === 
-[395] Biber.pm:421> INFO - Reading 'report.bcf'
-[518] Biber.pm:1002> INFO - Found 39 citekeys in bib section 0
-[533] Biber.pm:4487> INFO - Processing section 0
-[559] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
-[628] bibtex.pm:1713> INFO - LaTeX decoding ...
-[675] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
-[1062] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[1062] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[1062] Biber.pm:4307> INFO - Sorting list 'nty/global//global/global/global' of type 'entry' with template 'nty' and locale 'en-US'
-[1062] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
-[1156] bbl.pm:676> INFO - Writing 'report.bbl' with encoding 'UTF-8'
-[1193] bbl.pm:779> INFO - Output to report.bbl
+[193] biber-MSWIN64:342> INFO - === 
+[239] Biber.pm:421> INFO - Reading 'report.bcf'
+[330] Biber.pm:1002> INFO - Found 39 citekeys in bib section 0
+[339] Biber.pm:4487> INFO - Processing section 0
+[347] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
+[507] bibtex.pm:1713> INFO - LaTeX decoding ...
+[547] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[755] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[755] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[755] Biber.pm:4307> INFO - Sorting list 'nty/global//global/global/global' of type 'entry' with template 'nty' and locale 'en-US'
+[755] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[780] bbl.pm:676> INFO - Writing 'report.bbl' with encoding 'UTF-8'
+[805] bbl.pm:779> INFO - Output to report.bbl

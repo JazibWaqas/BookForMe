@@ -46,5 +46,6 @@ pdflatex report.tex
 
 ## Links
 
-- Demo: https://jhat-to9p.onrender.com/chat/index.html
+- App: https://bookforme-ie34.onrender.com/login
+- AI chat: https://bookforme-ie34.onrender.com/chat/index.html
 - Repo: https://github.com/JazibWaqas/JHAT

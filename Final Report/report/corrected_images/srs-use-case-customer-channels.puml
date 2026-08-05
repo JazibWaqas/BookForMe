@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam ArrowColor #334155
+skinparam UsecaseBorderColor #2563EB
+skinparam UsecaseBackgroundColor #EFF6FF
+skinparam RectangleBorderColor #64748B
+skinparam RectangleBackgroundColor #F8FAFC
+
+actor Customer
+actor "WhatsApp Customer" as WAUser
+actor "Payment OCR Service" as OCR
+
+rectangle "BookForMe - Customer Channels" {
+  usecase "Register / Log in" as Auth
+  usecase "Discover venues and\nview availability" as Discover
+  usecase "Book and lock\na court slot" as Book
+  usecase "Upload payment\nproof" as Pay
+  usecase "Use social and\nmatchmaking features" as Social
+  usecase "Request booking through\nWhatsApp AI receptionist" as WABook
+  usecase "Interpret intent and\nquery shared inventory" as NLU
+  usecase "Verify payment amount" as Verify
+}
+
+Customer -- Auth
+Customer -- Discover
+Customer -- Book
+Customer -- Pay
+Customer -- Social
+WAUser -- WABook
+WABook .> NLU : <<include>>
+WABook .> Book : <<include>>
+Book .> Discover : <<include>>
+Pay .> Verify : <<include>>
+OCR -- Verify
+@enduml

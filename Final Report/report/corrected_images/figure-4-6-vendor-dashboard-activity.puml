@@ -1,0 +1,62 @@
+@startuml
+title Vendor Dashboard and Booking Approval Activity
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #334155
+skinparam ActivityBorderColor #1E3A8A
+skinparam ActivityBackgroundColor #EFF6FF
+skinparam ActivityDiamondBorderColor #A16207
+skinparam ActivityDiamondBackgroundColor #FEF3C7
+
+start
+:[Vendor] Log in;
+:[System] Authenticate and verify vendor ownership;
+if (Authorized vendor?) then (yes)
+  :[System] Load dashboard metrics, pending actions\nand upcoming bookings;
+else (no)
+  :[System] Display access error;
+  stop
+endif
+
+:[Vendor] Choose dashboard operation;
+if (Operation selected?) then (Manage slots)
+  :[Vendor] Open court grid calendar;
+  :[Vendor] Select slot and desired action;
+  if (Slot action?) then (Block / remove)
+    :[System] Validate ownership and slot state;
+    :[System] Set slot to BLOCKED or AVAILABLE;
+  elseif (Record walk-in) then
+    :[System] Validate available slot;
+    :[System] Record MANUAL booking source\nand set slot to CONFIRMED;
+  else (Edit availability)
+    :[System] Update resource availability\nor service price;
+  endif
+  :[System] Refresh calendar;
+
+elseif (Review pending booking) then
+  :[System] Load customer, slot and payment proof;
+  :[Vendor] Review booking and screenshot;
+  if (Approve booking?) then (approve)
+    :[System] Set slot to CONFIRMED;
+    :[System] Set payment to VERIFIED;
+    :[System] Create confirmation notification;
+  else (reject)
+    :[System] Set payment to REJECTED;
+    :[System] Release slot to AVAILABLE;
+    :[System] Clear customer, payment and hold data;
+    :[System] Create rejection notification;
+  endif
+  :[System] Refresh pending actions;
+
+else (View booking history)
+  :[System] Load confirmed, rejected, cancelled\nand completed records;
+  :[Vendor] Review booking history and analytics;
+endif
+
+:[Vendor] Return to dashboard;
+stop
+
+@enduml

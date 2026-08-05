@@ -1,0 +1,91 @@
+@startuml
+title BookForMe High-Level System Architecture
+
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam componentStyle rectangle
+skinparam ArrowColor #334155
+skinparam ComponentBorderColor #1E3A8A
+skinparam ComponentBackgroundColor #EFF6FF
+skinparam DatabaseBorderColor #166534
+skinparam DatabaseBackgroundColor #F0FDF4
+skinparam CloudBorderColor #6B21A8
+skinparam CloudBackgroundColor #FAF5FF
+skinparam RectangleBorderColor #64748B
+skinparam RectangleBackgroundColor #F8FAFC
+
+actor Customer
+actor Vendor
+actor Administrator as Admin
+actor "WhatsApp Customer" as WAUser
+
+package "Presentation and Messaging Layer" {
+  component "React Native Mobile App\nCustomer | Vendor | Admin" as Mobile
+  component "In-App AI Smart Search" as SmartUI
+  cloud "Meta WhatsApp\nBusiness API" as WAAPI
+  Mobile -[hidden]right- SmartUI
+  SmartUI -[hidden]right- WAAPI
+}
+
+package "Application and AI Layer" {
+  component "Central FastAPI Backend" as API
+  component "Authentication\nand RBAC" as Auth
+  component "Booking, Slot and\nPayment Services" as Booking
+  component "Social, Matchmaking and\nNotification Services" as Social
+  component "AI Search Service\n(single-turn)" as AISearch
+  component "LangGraph WhatsApp Agent\n(stateful conversation)" as Agent
+  component "Intent Classification and\nEntity Extraction" as NLU
+  component "Payment Screenshot OCR\nand Amount Verification" as OCR
+
+  Auth -[hidden]right- Booking
+  Booking -[hidden]right- Social
+  AISearch -[hidden]right- Agent
+  Agent -[hidden]right- NLU
+  NLU -[hidden]right- OCR
+}
+
+package "Persistence Layer - Single Source of Truth" {
+  cloud "Firebase Authentication" as FirebaseAuth
+  database "Google Cloud Firestore\nUsers, vendors, services, resources,\nslots, payments and social data" as Firestore
+  cloud "Firebase Storage /\nPayment Image Storage" as Storage
+  FirebaseAuth -[hidden]right- Firestore
+  Firestore -[hidden]right- Storage
+}
+
+Customer --> Mobile : browse, book, pay, social
+Vendor --> Mobile : slots, bookings, approvals
+Admin --> Mobile : moderation and administration
+WAUser --> WAAPI : messages and screenshots
+
+Mobile --> API : JSON / HTTPS
+SmartUI --> API : natural-language query
+WAAPI --> API : asynchronous webhook
+API --> WAAPI : WhatsApp reply
+
+API --> Auth
+API --> Booking
+API --> Social
+API --> AISearch
+API --> Agent
+AISearch --> NLU
+Agent --> NLU
+Agent --> Booking : deterministic booking tools
+Booking --> OCR : verify proof
+
+Auth --> FirebaseAuth
+Auth --> Firestore
+Booking --> Firestore : transactional reads / writes
+Social --> Firestore : social data
+AISearch --> Firestore : shared inventory query
+Agent --> Firestore : conversation state
+Booking --> Storage : payment screenshot
+
+note right of Booking
+  Firestore transactions hold slots for 10 minutes
+  and prevent concurrent double-booking.
+end note
+
+@enduml

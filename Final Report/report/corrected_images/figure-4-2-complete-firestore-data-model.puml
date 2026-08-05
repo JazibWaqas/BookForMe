@@ -1,0 +1,179 @@
+@startuml
+title BookForMe Firestore Data Model
+
+top to bottom direction
+hide circle
+hide methods
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ClassBorderColor #1E3A8A
+skinparam ClassBackgroundColor #EFF6FF
+skinparam ClassHeaderBackgroundColor #DBEAFE
+skinparam NoteBorderColor #A16207
+skinparam NoteBackgroundColor #FEFCE8
+
+package "Transactional Booking Domain" {
+  entity "users" as users {
+    * id : string <<document ID>>
+    --
+    name : string
+    phone : string
+    email : string
+    role : customer | vendor | admin
+    vendor_id : string?
+    points : integer
+    skill_rating : number
+  }
+
+  entity "vendors" as vendors {
+    * id : vendor_slug
+    --
+    owner_user_id : string
+    name : string
+    area : string
+    status : string
+    operating_hours : map
+    average_rating : number
+  }
+
+  entity "services" as services {
+    * id : string
+    --
+    vendor_id : string
+    sport_type : string
+    service_name : string
+    duration_min : integer
+    pricing : map
+  }
+
+  entity "resources" as resources {
+    * id : string
+    --
+    vendor_id : string
+    service_id : string
+    name : string
+    capacity : integer
+    active : boolean
+  }
+
+  entity "slots\n(canonical booking record)" as slots {
+    * id : date_time_vendor_resource
+    --
+    vendor_id : string
+    service_id : string
+    resource_id : string
+    user_id : string?
+    payment_id : string?
+    date, start_time, end_time
+    price : number
+    status : available | locked | pending |
+    confirmed | completed | cancelled | blocked
+    booking_source : app | whatsapp | manual
+    hold_expires_at : timestamp?
+  }
+
+  entity "payments" as payments {
+    * id : string
+    --
+    slot_id : string
+    user_id : string
+    vendor_id : string
+    screenshot_url : string
+    amount_claimed : number
+    ocr_verified_amount : number?
+    status : uploaded | verified | rejected
+    created_at : timestamp
+  }
+
+  entity "vendor_payment_accounts" as accounts {
+    * id : string
+    --
+    vendor_id : string
+    type : jazzcash | easypaisa | bank
+    account_title : string
+    account_number : string
+    is_default : boolean
+  }
+}
+
+package "Social and Engagement Domain" {
+  entity "posts" as posts {
+    * id : string
+    --
+    user_id : string
+    sport_type : string?
+    content : string
+    likes_count : integer
+    comments_count : integer
+  }
+
+  entity "matches" as matches {
+    * id : string
+    --
+    host_user_id : string
+    venue_id : string?
+    slot_id : string?
+    sport_type : string
+    status : open | full | completed | cancelled
+  }
+
+  entity "reviews" as reviews {
+    * id : string
+    --
+    vendor_id : string
+    user_id : string
+    slot_id : string?
+    rating : 1..5
+    status : pending | approved | rejected
+  }
+
+  entity "notifications" as notifications {
+    * id : string
+    --
+    user_id : string
+    type : string
+    title : string
+    message : string
+    read : boolean
+  }
+}
+
+users ||--o| vendors : owns
+vendors ||--o{ services : offers
+vendors ||--o{ resources : manages
+services ||--o{ resources : uses
+vendors ||--o{ slots : supplies
+services ||--o{ slots : defines
+resources ||--o{ slots : schedules
+users ||--o{ slots : books
+
+slots ||--o| payments : payment proof
+users ||--o{ payments : submits
+vendors ||--o{ payments : receives
+vendors ||--o{ accounts : publishes
+
+users ||--o{ posts : authors
+users ||--o{ matches : hosts
+vendors ||--o{ matches : venue
+slots ||--o| matches : may advertise
+users ||--o{ reviews : writes
+vendors ||--o{ reviews : receives
+slots ||--o| reviews : validates
+users ||--o{ notifications : receives
+
+note right of slots
+  No separate bookings collection exists.
+  A slot becomes the booking record when
+  user_id, payment_id and booking status are set.
+end note
+
+note right of payments
+  Payment proof explicitly connects the customer,
+  vendor and booked slot. screenshot_url points to
+  Firebase Storage or the local upload fallback.
+end note
+@enduml

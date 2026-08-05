@@ -7,6 +7,12 @@
 \newcommand{\sdsfig}[1]{%
   \includegraphics[width=\linewidth,height=0.69\textheight,keepaspectratio]{#1}%
 }
+\newcommand{\sdstallfig}[1]{%
+  \includegraphics[width=0.86\linewidth,height=0.73\textheight,keepaspectratio]{#1}%
+}
+\newcommand{\sdslandscapefig}[1]{%
+  \includegraphics[width=0.98\linewidth,height=0.82\textheight,keepaspectratio]{#1}%
+}
 
 This chapter details the BookForMe system's architectural patterns, data structures, and the workflow logic required to build a robust service booking application. It serves as the technical blueprint for the implementation described in the following chapters.
 
@@ -24,14 +30,16 @@ The diagram below illustrates the high-level data flow across the system's three
     \item \textbf{Asynchronous Event Flow:} The WhatsApp API operates via webhooks, triggering an asynchronous event routed to the LangGraph AI Receptionist.
 \end{itemize}
 
-\begin{figure}[H]
-    \centering
-    \IfFileExists{images/System Architecture.png}{
-        \sdsfig{images/System Architecture.png}
-    }{\fbox{System Architecture Diagram Missing}}
-    \caption{High-Level System Architecture}
-    \label{fig:sds-system-arch}
-\end{figure}
+\begin{landscape}
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}{
+            \sdslandscapefig{corrected_images/report_ready/figure-4-1-high-level-system-architecture.png}
+        }{\fbox{System Architecture Diagram Missing}}
+        \caption{High-level system architecture for the BookForMe platform.}
+        \label{fig:sds-system-arch}
+    \end{figure}
+\end{landscape}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Data Model (Data Design)}
@@ -111,14 +119,16 @@ engagement layer described in Section~\ref{sec:sds-social}.
 \subsection{NoSQL Schema Diagram}
 The Entity Relationship Diagram delineates references between entities, mapping out the foreign keys (e.g.\ \texttt{vendor\_id}) that correlate disparate collections.
 
-\begin{figure}[H]
-    \centering
-    \IfFileExists{images/ERD.png}{
-        \sdsfig{images/ERD.png}
-    }{\fbox{ERD Diagram Missing}}
-    \caption{Entity Relationship Diagram defining referential structures.}
-    \label{fig:sds-erd}
-\end{figure}
+\begin{landscape}
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}{
+            \sdslandscapefig{corrected_images/report_ready/figure-4-2-complete-firestore-data-model.png}
+        }{\fbox{ERD Diagram Missing}}
+        \caption{Firestore data model and payment relationships.}
+        \label{fig:sds-erd}
+    \end{figure}
+\end{landscape}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Agentic Booking Process Pipeline}
@@ -137,10 +147,10 @@ A core functionality is the AI-driven booking process managed by a LangGraph tem
 
 \begin{figure}[H]
     \centering
-    \IfFileExists{images/FYP - Seq Dig.png}{
-        \sdsfig{images/FYP - Seq Dig.png}
+    \IfFileExists{corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png}{
+        \sdsfig{corrected_images/report_ready/figure-4-3-ai-booking-payment-sequence.png}
     }{\fbox{Sequence Diagram Missing}}
-    \caption{AI Booking \& Payment Pipeline}
+    \caption{AI booking and payment sequence.}
     \label{fig:sds-seq-dig}
 \end{figure}
 
@@ -200,10 +210,10 @@ Each user document carries a \texttt{skill\_rating} field initialised at 1000 an
 This covers the WhatsApp conversational flow, focusing heavily on the Error Correction Loop wherein rejected OCR receipts autonomously trigger a re-prompt.
 \begin{figure}[H]
     \centering
-    \IfFileExists{images/Activity Diagram- Whatsapp Booking flow.png}{
-        \sdsfig{images/Activity Diagram- Whatsapp Booking flow.png}
+    \IfFileExists{corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png}{
+        \sdstallfig{corrected_images/report_ready/figure-4-4-whatsapp-booking-activity.png}
     }{\fbox{Activity Diagram: Agent Flow Missing}}
-    \caption{Activity Diagram: Agent/WhatsApp Booking Flow}
+    \caption{Activity diagram: WhatsApp AI booking flow.}
     \label{fig:sds-wa-flow}
 \end{figure}
 
@@ -215,25 +225,26 @@ The React Native client provides a \textbf{Dual-Search Capability}: a traditiona
 The natural-language path is powered by two backend modules - \texttt{ai\_search\_service.py} and \texttt{smart\_search.py} - that are entirely separate from the WhatsApp LangGraph agent. When a user types a free-text query (e.g.\ ``padel courts DHA tomorrow evening''), the request is forwarded to the AI search service, which queries Firestore for matching vendors and slots and ranks results using a Groq-backed relevance scoring pass. This architecture ensures that the conversational WhatsApp agent and the in-app search share the same underlying slot inventory ledger while operating through independent NLU pipelines optimised for their respective interaction modalities.
 \begin{figure}[H]
     \centering
-    \IfFileExists{images/AD- App flow booking process.png}{
-        \sdsfig{images/AD- App flow booking process.png}
+    \IfFileExists{corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png}{
+        \sdstallfig{corrected_images/report_ready/figure-4-5-mobile-app-booking-activity.png}
     }{\fbox{Activity Diagram: App Flow Missing}}
-    \caption{Activity Diagram: Mobile App Search \& Book}
+    \caption{Activity diagram: mobile application search and booking flow.}
     \label{fig:sds-app-flow}
 \end{figure}
 
 \FloatBarrier
-\Needspace{0.82\textheight}
 \subsubsection{Workflow 3: The Vendor Management Experience}
-This maps the Vendor integration, indicating that rejections trigger a sweeping cascade releasing \texttt{LOCKED} slots back to \texttt{AVAILABLE}.
-\begin{figure}[H]
-    \centering
-    \IfFileExists{images/FYP - Vend Activity Dig.png}{
-        \sdsfig{images/FYP - Vend Activity Dig.png}
-    }{\fbox{Activity Diagram: Vendor Flow Missing}}
-    \caption{Activity Diagram: Vendor Dashboard \& Approvals}
-    \label{fig:sds-vend-flow}
-\end{figure}
+This workflow maps vendor slot management and payment review. Approval changes a pending booking to confirmed, while rejection marks the payment as rejected, releases the \texttt{PENDING} slot to \texttt{AVAILABLE}, and notifies the customer.
+\begin{landscape}
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}{
+            \sdslandscapefig{corrected_images/report_ready/figure-4-6-vendor-dashboard-activity.png}
+        }{\fbox{Activity Diagram: Vendor Flow Missing}}
+        \caption{Activity diagram: vendor dashboard and booking approval flow.}
+        \label{fig:sds-vend-flow}
+    \end{figure}
+\end{landscape}
 
 \endgroup
 

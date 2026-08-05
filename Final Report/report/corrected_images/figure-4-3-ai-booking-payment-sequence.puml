@@ -1,0 +1,59 @@
+@startuml
+title AI Booking and Payment Sequence
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam sequenceArrowColor #334155
+skinparam sequenceParticipantBorderColor #1E3A8A
+skinparam sequenceParticipantBackgroundColor #EFF6FF
+
+actor Customer
+participant "WhatsApp / Mobile Client" as Client
+participant "FastAPI + Booking Agent" as Backend
+participant "Slot Service" as SlotService
+participant "Payment OCR Service" as OCR
+database "Firestore" as DB
+collections "Image Storage" as Storage
+
+Customer -> Client : Request sport, venue, date and time
+Client -> Backend : Send booking query
+Backend -> DB : Query vendors and available slots
+DB --> Backend : Matching availability and prices
+Backend --> Client : Present available options
+Customer -> Client : Select slot and confirm
+Client -> Backend : Confirm selected slot
+Backend -> SlotService : lock_slot(slot_id, user_id)
+SlotService -> DB : Transaction: AVAILABLE -> LOCKED\nset 10-minute expiry
+DB --> SlotService : Lock committed
+SlotService --> Backend : Lock details and payment amount
+Backend --> Client : Payment account and upload request
+
+Customer -> Client : Upload payment screenshot
+Client -> Backend : Image + slot + claimed amount
+Backend -> OCR : Extract and verify amount
+OCR --> Backend : Verification result
+
+alt Amount unreadable or incorrect
+  Backend --> Client : Request clearer/corrected screenshot
+  note over Backend,DB : Slot remains LOCKED until expiry
+else Amount verified
+  Backend -> Storage : Store screenshot
+  Storage --> Backend : screenshot_url
+  Backend -> DB : Create payment record (UPLOADED)
+  Backend -> SlotService : submit_payment(slot_id, payment_id)
+  SlotService -> DB : LOCKED -> PENDING\nattach payment_id
+  Backend --> Client : Payment accepted; awaiting vendor review
+  Backend --> Vendor : Notify payment needs review
+end
+
+alt Vendor approves
+  Vendor -> Backend : Approve booking and payment proof
+  Backend -> DB : Payment -> VERIFIED\nSlot: PENDING -> CONFIRMED
+  Backend --> Client : Booking confirmation and reference
+else Vendor rejects
+  Vendor -> Backend : Reject booking and payment proof
+  Backend -> DB : Payment -> REJECTED\nRelease slot to AVAILABLE
+  Backend --> Client : Rejection notification
+end
+@enduml
